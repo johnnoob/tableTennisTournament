@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, Trophy, Award, Crown } from 'lucide-react';
+import { LayoutDashboard, History, Trophy, Award, Crown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ReportScore } from './ReportScore';
+import { Button } from './ui/button';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -50,6 +52,16 @@ export function Navigation() {
 
         {/* Desktop Menu */}
         <div className="flex-1 space-y-3">
+          <div className="mb-6 px-4">
+             <ReportScore 
+               trigger={
+                 <Button className="w-full h-14 rounded-2xl bg-electric-blue hover:bg-slate-800 text-white font-display font-black text-sm tracking-widest shadow-xl shadow-electric-blue/20 transition-all border-none">
+                    <Plus className="mr-2 h-5 w-5" />
+                    申報比分
+                 </Button>
+               }
+             />
+          </div>
           <p className="text-[9px] text-primary-slate/30 uppercase tracking-[0.2em] font-sans font-black ml-4 mb-4">Main Navigation</p>
           {navItems.map((item) => (
             <NavLink

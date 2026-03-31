@@ -6,6 +6,7 @@ import { Navigation } from './components/Navigation';
 import { Tournament } from './pages/Tournament';
 import { TournamentDetail } from './pages/TournamentDetail';
 import { HallOfFame } from './pages/HallOfFame';
+import { PlayerAnalysis } from './pages/PlayerAnalysis';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
               <Route path="/tournament" element={<Tournament />} />
               <Route path="/tournament/:id" element={<TournamentDetail />} />
               <Route path="/hof" element={<HallOfFame />} />
+              <Route path="/player/:id" element={<PlayerAnalysis />} />
             </Routes>
           </div>
         </main>

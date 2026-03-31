@@ -12,7 +12,15 @@ export interface Player {
     losses: number;
     winRate: number;
     avgScore: number;
+    seasonWinRate?: number;
+    maxStreak?: number;
   };
+  racketConfig?: {
+    forehand: string;
+    backhand: string;
+  };
+  nemesis?: RivalryItem[];
+  prey?: RivalryItem[];
   title?: string;
 }
 
@@ -77,7 +85,16 @@ export const players: Player[] = [
     isVerified: true,
     department: '秘書處 / 第一組',
     title: 'CHAMPION STANDING',
-    stats: { wins: 320, losses: 45, winRate: 94.2, avgScore: 28.2 }
+    stats: { wins: 320, losses: 45, winRate: 94.2, avgScore: 28.2, seasonWinRate: 96.5, maxStreak: 24 },
+    racketConfig: { forehand: '平面－澀性膠皮', backhand: '平面－黏性膠皮' },
+    nemesis: [
+      { id: 'n1', name: 'Sarah Tseng', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop', winRate: 35 },
+      { id: 'n2', name: 'Alex Liu', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop', winRate: 41 }
+    ],
+    prey: [
+      { id: 'm1', name: 'Jason Wang', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', winRate: 90 },
+      { id: 'm2', name: 'Linda Chen', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop', winRate: 88 }
+    ]
   },
   {
     id: 'p2',
@@ -89,7 +106,14 @@ export const players: Player[] = [
     isVerified: true,
     department: '資訊部 / 技術處',
     title: 'ELITE',
-    stats: { wins: 280, losses: 62, winRate: 79.8, avgScore: 26.5 }
+    stats: { wins: 280, losses: 62, winRate: 79.8, avgScore: 26.5, seasonWinRate: 82.1, maxStreak: 15 },
+    racketConfig: { forehand: '平面－黏性膠皮', backhand: '平面－澀性膠皮' },
+    nemesis: [
+      { id: 'n1', name: 'Kevin Lin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop', winRate: 15 }
+    ],
+    prey: [
+      { id: 'm1', name: 'Emily Wong', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', winRate: 85 }
+    ]
   },
   {
     id: 'p3',

@@ -6,6 +6,7 @@ import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { Bell, Search, Plus, Filter, Skull, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ReportScore } from '@/components/ReportScore';
 
 export function Dashboard() {
   return (
@@ -133,9 +134,13 @@ export function Dashboard() {
       </div>
 
       {/* Floating Action Button (Mobile Only) */}
-      <Button className="md:hidden fixed bottom-24 right-6 size-14 rounded-full bg-electric-blue shadow-lg shadow-electric-blue/40 border-none group transition-all duration-300 hover:scale-105 active:scale-95">
-        <Plus size={28} className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
-      </Button>
+      <ReportScore 
+        trigger={
+          <Button className="lg:hidden fixed bottom-24 right-6 size-14 rounded-full bg-electric-blue shadow-lg shadow-electric-blue/40 border-none group transition-all duration-300 hover:scale-105 active:scale-95">
+            <Plus size={28} className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
+          </Button>
+        }
+      />
 
     </div>
   );
