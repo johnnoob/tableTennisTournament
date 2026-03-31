@@ -42,7 +42,7 @@ export function MatchHistory() {
         {/* Search & Filter Pills */}
         <div className="space-y-4">
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-slate/30 group-focus-within:text-electric-blue transition-colors" size={16} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-electric-blue transition-colors" size={16} />
             <input 
               type="text" 
               placeholder="Search opponent or event..." 
@@ -54,7 +54,7 @@ export function MatchHistory() {
             <Button 
               onClick={() => setFilter('all')}
               className={cn(
-                "rounded-full px-5 py-0 h-9 text-[10px] uppercase font-sans tracking-widest font-bold transition-all",
+                "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all",
                 filter === 'all' ? "bg-primary-navy text-white shadow-lg shadow-primary-navy/20" : "bg-white text-primary-navy border border-slate-100 hover:bg-slate-50"
               )}
             >
@@ -63,7 +63,7 @@ export function MatchHistory() {
             <Button 
               onClick={() => setFilter('win')}
               className={cn(
-                "rounded-full px-5 py-0 h-9 text-[10px] uppercase font-sans tracking-widest font-bold transition-all",
+                "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all",
                 filter === 'win' ? "bg-electric-blue text-white shadow-lg shadow-electric-blue/20" : "bg-white text-primary-navy border border-slate-100 hover:bg-slate-50"
               )}
             >
@@ -72,7 +72,7 @@ export function MatchHistory() {
             <Button 
               onClick={() => setFilter('loss')}
               className={cn(
-                "rounded-full px-5 py-0 h-9 text-[10px] uppercase font-sans tracking-widest font-bold transition-all",
+                "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all",
                 filter === 'loss' ? "bg-primary-slate text-white shadow-lg shadow-primary-slate/20" : "bg-white text-primary-navy border border-slate-100 hover:bg-slate-50"
               )}
             >
@@ -84,8 +84,8 @@ export function MatchHistory() {
 
       {/* Match Timeline */}
       <section className="space-y-6">
-        <div className="flex items-center gap-4 py-2 opacity-40">
-           <span className="text-[10px] uppercase font-sans font-bold tracking-[0.2em] text-primary-navy shrink-0">
+        <div className="flex items-center gap-4 py-2 text-slate-500 opacity-100">
+           <span className="text-xs uppercase font-sans font-bold tracking-[0.2em] text-primary-navy shrink-0">
              Match Timeline
            </span>
            <div className="h-px bg-primary-navy flex-1"></div>

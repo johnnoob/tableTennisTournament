@@ -34,7 +34,7 @@ export function TournamentDetail() {
           <h1 className="text-2xl md:text-5xl text-primary-navy font-display tracking-tight font-black">
             {tournament.title}
           </h1>
-          <p className="text-[10px] md:text-xs text-primary-slate/40 uppercase tracking-[0.3em] font-sans font-black mt-2">Active Tournament Details</p>
+          <p className="text-xs md:text-xs text-slate-500 uppercase tracking-[0.3em] font-sans font-black mt-2">Active Tournament Details</p>
         </div>
       </header>
 
@@ -69,14 +69,14 @@ export function TournamentDetail() {
 
           {/* Tournament Detailed Information */}
           <section className="space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary-slate/40 font-sans border-b border-slate-50 pb-4 inline-block">Technical Details</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Technical Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-electric-blue w-fit">
                    <Calendar size={28} />
                  </div>
                  <div>
-                   <p className="text-[9px] uppercase font-sans font-black text-primary-slate/30 tracking-widest">Duration</p>
+                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Duration</p>
                    <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Jan 1st - Mar 31st</p>
                  </div>
               </div>
@@ -85,7 +85,7 @@ export function TournamentDetail() {
                    <MapPin size={28} />
                  </div>
                  <div>
-                   <p className="text-[9px] uppercase font-sans font-black text-primary-slate/30 tracking-widest">Office Location</p>
+                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Office Location</p>
                    <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Building B, Main Hall</p>
                  </div>
               </div>
@@ -94,7 +94,7 @@ export function TournamentDetail() {
                    <Scale size={28} />
                  </div>
                  <div>
-                   <p className="text-[9px] uppercase font-sans font-black text-primary-slate/30 tracking-widest">Comp. Rules</p>
+                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Comp. Rules</p>
                    <p className="text-xs font-sans font-bold text-primary-navy mt-1">Stardard ITTF (Best of 5)</p>
                  </div>
               </div>
@@ -110,7 +110,7 @@ export function TournamentDetail() {
 
           {/* Large Prizes Grid */}
           <section className="space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary-slate/40 font-sans border-b border-slate-50 pb-4 inline-block">Official Rewards</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Official Rewards</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {tournament.prizes.map((prize) => (
                 <Card key={prize.position} className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-visible group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative mt-4">
@@ -122,9 +122,9 @@ export function TournamentDetail() {
                       <img src={prize.image} alt={prize.item} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
                    </div>
                    <div className="p-6 text-center">
-                     <span className="text-[9px] uppercase font-sans font-black text-electric-blue tracking-tighter block mb-2">{prize.label}</span>
+                     <span className="text-xs uppercase font-sans font-black text-electric-blue tracking-tighter block mb-2">{prize.label}</span>
                      <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">{prize.item}</h4>
-                     <p className="text-xs text-primary-slate/40 font-sans">{prize.description}</p>
+                     <p className="text-xs text-slate-500 font-sans">{prize.description}</p>
                    </div>
                 </Card>
               ))}
@@ -153,7 +153,7 @@ export function TournamentDetail() {
                   </div>
                   <div className="flex-1 pl-8">
                      <h4 className="font-sans font-black text-primary-navy text-sm md:text-base">{player.name}</h4>
-                     <p className="text-[10px] uppercase font-sans font-bold text-primary-slate/40 tracking-wider">
+                     <p className="text-xs uppercase font-sans font-bold text-slate-500 tracking-wider">
                        WR {player.stats.winRate}% • {player.title}
                      </p>
                   </div>
@@ -177,7 +177,7 @@ export function TournamentDetail() {
              </p>
              <div className="flex gap-2">
                 <div className="size-2 bg-neon-orange rounded-full animate-pulse" />
-                <span className="text-[10px] uppercase font-black tracking-widest">Live Updates Enabled</span>
+                <span className="text-xs uppercase font-black tracking-widest">Live Updates Enabled</span>
              </div>
           </section>
 

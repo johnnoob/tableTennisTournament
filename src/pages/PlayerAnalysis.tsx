@@ -53,7 +53,7 @@ export function PlayerAnalysis() {
           className="rounded-xl flex items-center gap-2 text-primary-navy hover:bg-slate-100"
         >
           <ArrowLeft size={18} />
-          <span className="font-bold uppercase tracking-widest text-[10px]">Back</span>
+          <span className="font-bold uppercase tracking-widest text-xs">Back</span>
         </Button>
         <h1 className="font-display font-black text-primary-navy uppercase tracking-tighter text-sm">Player Analysis</h1>
         <div className="w-20" /> {/* Spacer */}
@@ -80,14 +80,14 @@ export function PlayerAnalysis() {
           <div className="flex-1 space-y-6 md:space-y-8 relative py-2">
             <div className="space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 justify-center lg:justify-start">
-                <span className="bg-electric-blue/10 text-electric-blue px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-electric-blue/5 self-center lg:self-auto">
+                <span className="bg-electric-blue/10 text-electric-blue px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-electric-blue/5 self-center lg:self-auto">
                   Global Rank #{player.rank.toString().padStart(2, '0')}
                 </span>
               </div>
               <h2 className="text-4xl md:text-7xl font-display font-black text-primary-navy tracking-tight leading-[0.9] uppercase italic">
                 {player.name}
               </h2>
-              <p className="text-xs md:text-sm font-sans font-bold text-primary-slate/40 uppercase tracking-[0.2em]">
+              <p className="text-xs md:text-sm font-sans font-bold text-slate-500 uppercase tracking-[0.2em]">
                 Strategic Offense Specialist | {player.department || 'Taiwan District Office'}
               </p>
             </div>
@@ -138,11 +138,11 @@ export function PlayerAnalysis() {
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-[12px] font-black text-primary-navy uppercase tracking-widest">Performance Trends</h4>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Season 4 Metrics</p>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Season 4 Metrics</p>
               </div>
               <div className="flex gap-2 p-1 bg-slate-50 rounded-xl">
                 {['1W', '1M', 'ALL'].map(t => (
-                  <button key={t} className={cn("px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all", t === '1M' ? "bg-electric-blue text-white shadow-sm" : "text-slate-400 hover:text-primary-navy")}>
+                  <button key={t} className={cn("px-3 py-1 rounded-lg text-xs font-black uppercase transition-all", t === '1M' ? "bg-electric-blue text-white shadow-sm" : "text-slate-500 hover:text-primary-navy")}>
                     {t}
                   </button>
                 ))}
@@ -196,15 +196,15 @@ export function PlayerAnalysis() {
                 </div>
                 <div className="relative space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg tracking-widest uppercase">FH</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forehand Power</span>
+                    <span className="bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-lg tracking-widest uppercase">FH</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Forehand Power</span>
                   </div>
                   <h5 className="text-xl font-display font-black text-primary-navy leading-tight tracking-tight uppercase italic group-hover:text-red-600 transition-colors">
                     {player.racketConfig?.forehand || '平面－澀性膠皮'}
                   </h5>
                   <div className="flex items-center gap-1.5">
                      <div className="size-1.5 rounded-full bg-red-500" />
-                     <span className="text-[9px] font-bold text-slate-400 uppercase">Competitive Grade</span>
+                     <span className="text-xs font-bold text-slate-500 uppercase">Competitive Grade</span>
                   </div>
                 </div>
               </div>
@@ -216,22 +216,22 @@ export function PlayerAnalysis() {
                 </div>
                 <div className="relative space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-0.5 rounded-lg tracking-widest uppercase">BH</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Backhand Control</span>
+                    <span className="bg-slate-900 text-white text-xs font-black px-2 py-0.5 rounded-lg tracking-widest uppercase">BH</span>
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Backhand Control</span>
                   </div>
                   <h5 className="text-xl font-display font-black text-primary-navy leading-tight tracking-tight uppercase italic group-hover:text-slate-700 transition-colors">
                     {player.racketConfig?.backhand || '平面－黏性膠皮'}
                   </h5>
                   <div className="flex items-center gap-1.5">
                      <div className="size-1.5 rounded-full bg-slate-900" />
-                     <span className="text-[9px] font-bold text-slate-400 uppercase">Mastery Certified</span>
+                     <span className="text-xs font-bold text-slate-500 uppercase">Mastery Certified</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 pt-6 border-t border-slate-50">
-               <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest text-center italic">
+               <p className="text-xs text-slate-500 font-bold uppercase tracking-widest text-center italic">
                  "Equipment tuned for high-precision competitive play"
                </p>
             </div>
@@ -245,9 +245,9 @@ export function PlayerAnalysis() {
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <Skull size={18} className="text-red-500" />
-                <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Primary Nemesis</h4>
+                <h4 className="text-xs font-black text-red-500 uppercase tracking-[0.2em]">Primary Nemesis</h4>
               </div>
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Win Rate: Low</span>
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Win Rate: Low</span>
             </div>
             <div className="space-y-4">
               {player.nemesis?.map((rival) => (
@@ -263,9 +263,9 @@ export function PlayerAnalysis() {
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <Crown size={18} className="text-green-500" />
-                <h4 className="text-[10px] font-black text-green-500 uppercase tracking-[0.2em]">Preferred Opponent</h4>
+                <h4 className="text-xs font-black text-green-500 uppercase tracking-[0.2em]">Preferred Opponent</h4>
               </div>
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Win Rate: High</span>
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Win Rate: High</span>
             </div>
             <div className="space-y-4">
               {player.prey?.map((rival) => (
@@ -285,14 +285,14 @@ export function PlayerAnalysis() {
 function StatCard({ label, value, unit, icon, color, trend }: { label: string, value: number | string, unit?: string, icon: React.ReactNode, color: string, trend?: string }) {
   return (
     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all cursor-default">
-      <p className="text-[10px] font-black text-primary-slate/30 uppercase tracking-widest mb-2">{label}</p>
+      <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">{label}</p>
       <div className="flex items-baseline gap-1">
         <h3 className={cn("text-4xl font-display font-black tracking-tighter tabular-nums", color)}>{value}</h3>
-        {unit && <span className="text-xs font-black text-slate-400 uppercase">{unit}</span>}
+        {unit && <span className="text-xs font-black text-slate-500 uppercase">{unit}</span>}
       </div>
       {trend && (
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-4 flex items-center gap-1">
-          <Activity size={10} className="text-slate-300" />
+        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mt-4 flex items-center gap-1">
+          <Activity size={10} className="text-slate-500" />
           {trend}
         </p>
       )}
@@ -318,12 +318,12 @@ function RivalCard({ rival, type }: { rival: any, type: 'nemesis' | 'prey' }) {
           <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-electric-blue transition-colors italic uppercase">{rival.name}</h5>
           <div className="flex items-center gap-2 mt-1">
             <span className={cn(
-              "text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg",
+              "text-xs font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg",
               isNemesis ? "text-red-500 bg-red-50" : "text-electric-blue bg-electric-blue/5"
             )}>
               {isNemesis ? "Negative Matchup" : "Preferred Prey"}
             </span>
-            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Region: Tokyo</span>
+            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Region: Tokyo</span>
           </div>
         </div>
         <div className="text-right">
@@ -333,7 +333,7 @@ function RivalCard({ rival, type }: { rival: any, type: 'nemesis' | 'prey' }) {
           )}>
             {rival.winRate}%
           </p>
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Win Probability</p>
+          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mt-1">Win Probability</p>
         </div>
       </div>
     </Link>

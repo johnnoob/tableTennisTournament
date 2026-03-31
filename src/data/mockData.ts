@@ -34,6 +34,8 @@ export interface Match {
   status: 'completed' | 'pending' | 'disputed';
   mmrChange: [number, number]; // [P1_Change, P2_Change]
   tournament?: string;
+  submittedBy?: string;
+  expiresAt?: string;
 }
 
 export interface Prize {
@@ -179,7 +181,7 @@ export const matches: Match[] = [
   {
     id: 'm1',
     player1: { name: '陳大文', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop' },
-    opponent: { name: '李小龍', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
+    opponent: { id: 'p1', name: '李小龍', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop' },
     date: '2 小時前',
     score: [3, 1],
     result: 'win',
@@ -190,18 +192,59 @@ export const matches: Match[] = [
   {
     id: 'm2',
     player1: { name: '張學友', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
-    opponent: { name: '林家謙', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop' },
+    opponent: { id: 'p2', name: '林家謙', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop' },
     date: '5 小時前',
     score: [3, 2],
     result: 'win',
     status: 'pending',
     mmrChange: [18, -14],
-    tournament: 'Global Open Qualifiers'
+    tournament: 'Global Open Qualifiers',
+    submittedBy: 'p2',
+    expiresAt: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString() // 23h from now
+  },
+  {
+    id: 'm2-b',
+    player1: { name: '陳大文', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop' },
+    opponent: { id: 'p4', name: '王小明', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop' },
+    date: '8 小時前',
+    score: [0, 3],
+    result: 'loss',
+    status: 'pending',
+    mmrChange: [-15, 12],
+    tournament: 'DIVISION I',
+    submittedBy: 'p4',
+    expiresAt: new Date(Date.now() + 15 * 60 * 60 * 1000).toISOString() // 15h from now
+  },
+  {
+    id: 'm-wait-1',
+    player1: { name: '陳大文', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop' },
+    opponent: { id: 'p3', name: '黃柏翰', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop' },
+    date: '昨天 10:00',
+    score: [3, 0],
+    result: 'win',
+    status: 'pending',
+    mmrChange: [12, -8],
+    tournament: 'Friendly Match',
+    submittedBy: 'current-user',
+    expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() // 12h from now
+  },
+  {
+    id: 'm-wait-2',
+    player1: { name: '陳大文', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop' },
+    opponent: { id: 'p6',name: '張雅婷', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=400&h=400&fit=crop' },
+    date: '昨天 15:30',
+    score: [3, 1],
+    result: 'win',
+    status: 'pending',
+    mmrChange: [8, -5],
+    tournament: 'DIVISION II',
+    submittedBy: 'current-user',
+    expiresAt: new Date(Date.now() + 28 * 60 * 60 * 1000).toISOString() // 28h from now
   },
   {
     id: 'm3',
     player1: { name: '周杰倫', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop' },
-    opponent: { name: '王菲', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop' },
+    opponent: { id: 'p7', name: '王菲', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop' },
     date: '昨天 21:30',
     score: [1, 3],
     result: 'loss',

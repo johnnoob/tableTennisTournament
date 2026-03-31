@@ -23,7 +23,7 @@ export function Tournament() {
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Trophy size={100} />
             </div>
-            <Badge className="bg-neon-orange text-white text-[10px] uppercase font-sans tracking-widest px-3 py-1 mb-4 border-none">
+            <Badge className="bg-neon-orange text-white text-xs uppercase font-sans tracking-widest px-3 py-1 mb-4 border-none">
               Live Now
             </Badge>
             <h2 className="text-2xl font-display font-black mb-2">{t.title}</h2>
@@ -51,7 +51,7 @@ export function Tournament() {
                   </div>
                   <div>
                     <h4 className="font-display font-bold text-primary-navy">{t.title}</h4>
-                    <p className="text-[10px] uppercase font-sans tracking-widest text-primary-slate/40 mt-1 font-bold">
+                    <p className="text-xs uppercase font-sans tracking-widest text-slate-500 mt-1 font-bold">
                       {t.startDate} — {t.endDate}
                     </p>
                   </div>

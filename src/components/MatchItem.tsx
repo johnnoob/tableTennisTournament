@@ -19,7 +19,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
       case 'disputed':
         return { label: 'DISPUTED', color: 'bg-rose-50 text-rose-600 border-rose-100' };
       default:
-        return { label: 'UNKNOWN', color: 'bg-slate-50 text-slate-400' };
+        return { label: 'UNKNOWN', color: 'bg-slate-50 text-slate-500' };
     }
   };
 
@@ -33,12 +33,12 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
         
         {/* Header Bar */}
         <div className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-black uppercase tracking-widest text-primary-slate/40">
+          <div className="flex items-center gap-2 md:gap-3 text-sm md:text-sm font-black uppercase tracking-widest text-slate-500">
             <span>{match.date}</span>
             <span className="text-slate-200 text-lg leading-none">•</span>
             <span className="text-electric-blue/70">{match.tournament || 'DIVISION I'}</span>
           </div>
-          <Badge variant="secondary" className={cn("px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-black border tracking-widest shadow-none", status.color)}>
+          <Badge variant="secondary" className={cn("px-4 py-1.5 rounded-full text-sm font-black border tracking-widest shadow-none", status.color)}>
             {status.label}
           </Badge>
         </div>
@@ -56,7 +56,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                     {match.player1?.name}
                  </span>
                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={cn("text-[11px] md:text-xs font-black font-display", p1Change > 0 ? "text-emerald-500" : "text-rose-400")}>
+                    <span className={cn("text-sm font-black font-display", p1Change > 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p1Change > 0 ? `+${p1Change}` : p1Change} LP
                     </span>
                     <TrendingUp size={12} strokeWidth={3} className={cn(p1Change > 0 ? "text-emerald-500" : "text-rose-400 rotate-180")} />
@@ -76,7 +76,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                  </span>
               </div>
               <div className="mt-1.5 md:mt-3 px-2 py-0.5 md:px-3 md:py-1 bg-slate-50 rounded-sm md:rounded-md">
-                 <span className="text-[8px] md:text-[9px] font-black text-primary-slate/30 uppercase tracking-[0.2em] whitespace-nowrap">
+                 <span className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">
                    {match.score[0] + match.score[1] >= 5 ? 'BO5' : 'BO3'}
                  </span>
               </div>
@@ -89,7 +89,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                     {match.opponent?.name}
                  </span>
                  <div className="flex items-center justify-end gap-1.5 mt-1">
-                    <span className={cn("text-[11px] md:text-xs font-black font-display", p2Change > 0 ? "text-emerald-500" : "text-rose-400")}>
+                    <span className={cn("text-sm font-black font-display", p2Change > 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p2Change > 0 ? `+${p2Change}` : p2Change} LP
                     </span>
                     <TrendingDown size={12} strokeWidth={3} className={cn(p2Change < 0 ? "text-rose-400" : "text-emerald-500 rotate-180")} />
@@ -104,7 +104,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
         {/* Dispute Action Button */}
         {match.status === 'disputed' && (
           <div className="pt-4 flex justify-center">
-             <Button variant="outline" className="w-full max-w-sm bg-rose-50/20 text-rose-600 border-rose-100 hover:bg-rose-50 hover:text-rose-700 rounded-2xl py-6 font-sans font-black text-xs uppercase tracking-widest gap-2 shadow-none">
+             <Button variant="outline" className="w-full max-w-sm bg-rose-50/20 text-rose-600 border-rose-100 hover:bg-rose-50 hover:text-rose-700 rounded-2xl py-6 font-sans font-black text-sm uppercase tracking-widest gap-2 shadow-none">
                 <Scale size={16} />
                 檢視申訴細節
              </Button>

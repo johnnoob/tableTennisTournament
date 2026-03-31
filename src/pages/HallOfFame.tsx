@@ -21,12 +21,12 @@ export function HallOfFame() {
       {/* Header - Editorial Style */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-7xl mx-auto w-full">
         <div className="space-y-1">
-          <p className="text-[10px] md:text-xs font-black text-electric-blue uppercase tracking-[0.2em]">Institutional Records</p>
+          <p className="text-xs md:text-xs font-black text-electric-blue uppercase tracking-[0.2em]">Institutional Records</p>
           <h1 className="text-3xl md:text-5xl text-primary-navy font-display font-black tracking-tight">歷屆賽事榮譽榜</h1>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-primary-slate/40 ml-1">Select Season</label>
+          <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Select Season</label>
           <Select value={selectedTournament} onValueChange={(val) => setSelectedTournament(val || '2025-autumn')}>
             <SelectTrigger className="w-full md:w-[260px] bg-[#fbfcff] border-slate-100 rounded-xl h-12 px-4 font-sans font-bold text-sm text-primary-navy shadow-sm">
               <SelectValue placeholder="Select Season" />
@@ -53,7 +53,7 @@ export function HallOfFame() {
                 <div className="absolute bottom-0 -right-2 size-7 md:size-10 rounded-full bg-[#9E9E9E] border-2 md:border-4 border-white flex items-center justify-center font-display font-black text-white text-xs md:text-sm shadow-md">2</div>
              </div>
              <div className="w-full h-32 md:h-44 bg-[#E0E0E0]/10 rounded-t-4xl md:rounded-t-[3rem] shadow-sm border-t border-x border-slate-200/50 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-[#E0E0E0]/20 transition-colors">
-                <h3 className="font-sans font-black text-primary-navy text-[10px] md:text-base text-center truncate w-full">{topThree[1].name} {topThree[1].username}</h3>
+                <h3 className="font-sans font-black text-primary-navy text-xs md:text-base text-center truncate w-full">{topThree[1].name} {topThree[1].username}</h3>
                 <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">{topThree[1].rating.toLocaleString()}</span>
              </div>
           </div>
@@ -72,10 +72,10 @@ export function HallOfFame() {
                 <div className="absolute bottom-0 -right-2 size-9 md:size-12 rounded-full bg-neon-orange border-2 md:border-4 border-white flex items-center justify-center font-display font-black text-white text-sm md:text-lg shadow-md">1</div>
              </div>
              <div className="w-full h-44 md:h-64 bg-primary-navy rounded-t-[2.5rem] md:rounded-t-[3.5rem] shadow-2xl shadow-primary-navy/20 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-primary-navy/95 transition-colors">
-                <h3 className="font-sans font-black text-white/40 text-[10px] md:text-base text-center truncate w-full">{topThree[0].name} {topThree[0].username}</h3>
+                <h3 className="font-sans font-black text-white/40 text-xs md:text-base text-center truncate w-full">{topThree[0].name} {topThree[0].username}</h3>
                 <span className="font-display font-black text-2xl md:text-5xl text-white mt-1 md:mt-2 tracking-tighter">{topThree[0].rating.toLocaleString()}</span>
                 <div className="mt-4 md:mt-6 px-3 py-1.5 md:px-5 md:py-2.5 bg-neon-orange/10 border border-neon-orange/20 rounded-full">
-                   <span className="text-[8px] md:text-[10px] font-black text-neon-orange uppercase tracking-[0.2em]">Season Champion</span>
+                   <span className="text-[8px] md:text-xs font-black text-neon-orange uppercase tracking-[0.2em]">Season Champion</span>
                 </div>
              </div>
           </div>
@@ -89,7 +89,7 @@ export function HallOfFame() {
                 <div className="absolute bottom-0 -right-2 size-7 md:size-10 rounded-full bg-[#CD7F32] border-2 md:border-4 border-white flex items-center justify-center font-display font-black text-white text-xs md:text-sm shadow-md">3</div>
              </div>
              <div className="w-full h-24 md:h-36 bg-[#CD7F32]/10 rounded-t-4xl md:rounded-t-[3.5rem] shadow-sm border-t border-x border-[#CD7F32]/20 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-[#CD7F32]/15 transition-colors">
-                <h3 className="font-sans font-black text-primary-navy/60 text-[10px] md:text-base text-center truncate w-full">{topThree[2].name} {topThree[2].username}</h3>
+                <h3 className="font-sans font-black text-primary-navy/60 text-xs md:text-base text-center truncate w-full">{topThree[2].name} {topThree[2].username}</h3>
                 <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">{topThree[2].rating.toLocaleString()}</span>
              </div>
           </div>
@@ -103,7 +103,7 @@ export function HallOfFame() {
            <div>
               <h2 className="text-xl md:text-2xl text-primary-navy font-display font-black">賽事完整排行 (Rank 4+)</h2>
            </div>
-           <span className="text-[10px] font-black uppercase text-primary-slate/30 tracking-[0.2em]">Total 124 Participants</span>
+           <span className="text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Total 124 Participants</span>
         </div>
 
         {/* Desktop Table View (Rank 4+) */}
@@ -111,11 +111,11 @@ export function HallOfFame() {
            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                  <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-10 py-5 text-[10px] font-black uppercase text-primary-slate/40 tracking-[0.2em]">Rank</th>
-                    <th className="px-8 py-5 text-[10px] font-black uppercase text-primary-slate/40 tracking-[0.2em]">Player</th>
-                    <th className="px-8 py-5 text-[10px] font-black uppercase text-primary-slate/40 tracking-[0.2em]">Department / Unit</th>
-                    <th className="px-8 py-5 text-center text-[10px] font-black uppercase text-primary-slate/40 tracking-[0.2em]">Win/Loss Record</th>
-                    <th className="px-10 py-5 text-right text-[10px] font-black uppercase text-primary-slate/40 tracking-[0.2em]">Final Score</th>
+                    <th className="px-10 py-5 text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Rank</th>
+                    <th className="px-8 py-5 text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Player</th>
+                    <th className="px-8 py-5 text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Department / Unit</th>
+                    <th className="px-8 py-5 text-center text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Win/Loss Record</th>
+                    <th className="px-10 py-5 text-right text-xs font-black uppercase text-slate-500 tracking-[0.2em]">Final Score</th>
                  </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -137,7 +137,7 @@ export function HallOfFame() {
                        </td>
                        <td className="px-8 py-6 text-center">
                           <div className="text-xs font-black text-primary-navy">
-                             {player.stats.wins}W <span className="text-primary-slate/30 mx-1">-</span> {player.stats.losses}L
+                             {player.stats.wins}W <span className="text-slate-500 mx-1">-</span> {player.stats.losses}L
                           </div>
                        </td>
                        <td className="px-10 py-6 text-right">
@@ -165,7 +165,7 @@ export function HallOfFame() {
                     <img src={player.avatar} alt={player.name} className="size-12 rounded-full object-cover border-2 border-slate-50 shadow-sm shrink-0" />
                     <div className="flex flex-col min-w-0">
                        <span className="text-base font-black text-primary-navy truncate leading-tight">{player.name}</span>
-                       <span className="text-xs font-bold text-primary-slate/40 truncate mt-1 tracking-tight">
+                       <span className="text-xs font-bold text-slate-500 truncate mt-1 tracking-tight">
                           {player.department?.split(' / ')[1] || player.department}
                        </span>
                     </div>
@@ -176,7 +176,7 @@ export function HallOfFame() {
                     <div className="text-lg font-display font-black text-primary-navy leading-none tracking-tighter">
                        {player.rating.toLocaleString()}
                     </div>
-                    <div className="text-[10px] font-black text-emerald-500/80 uppercase tracking-tight mt-1.5 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <div className="text-xs font-black text-emerald-500/80 uppercase tracking-tight mt-1.5 bg-emerald-50 px-2 py-0.5 rounded-full">
                        {player.stats.wins}W <span className="opacity-30 mx-0.5">-</span> {player.stats.losses}L
                     </div>
                  </div>
@@ -193,7 +193,7 @@ export function HallOfFame() {
       </section>
 
       {/* Footer Meta */}
-      <footer className="max-w-7xl mx-auto w-full pt-4 pb-12 flex flex-col md:flex-row justify-between items-center text-[10px] font-bold text-primary-slate/30 gap-6">
+      <footer className="max-w-7xl mx-auto w-full pt-4 pb-12 flex flex-col md:flex-row justify-between items-center text-xs font-bold text-slate-500 gap-6">
          <div className="flex items-center gap-8">
             <span className="text-primary-navy uppercase tracking-widest">Precision Arena</span>
             <span>© 2024 Precision Arena. National Governing Body of Competitive Table Tennis.</span>

@@ -23,11 +23,11 @@ export function Navigation() {
               to={item.path}
               className={({ isActive }) => cn(
                 "flex flex-col items-center gap-1 transition-all duration-300 relative group",
-                isActive ? "text-electric-blue" : "text-primary-slate/40 hover:text-primary-slate/70"
+                isActive ? "text-electric-blue" : "text-slate-500 hover:text-primary-slate/70"
               )}
             >
               <item.icon size={20} className="transition-all duration-300" />
-              <span className="text-[9px] font-sans font-black uppercase tracking-wider">
+              <span className="text-xs font-sans font-black uppercase tracking-wider">
                 {item.label}
               </span>
 
@@ -46,7 +46,7 @@ export function Navigation() {
           </div>
           <div>
             <h2 className="text-primary-navy font-display font-black text-xl leading-tight">Precision</h2>
-            <p className="text-[10px] text-primary-slate/40 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
+            <p className="text-xs text-slate-500 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ export function Navigation() {
                }
              />
           </div>
-          <p className="text-[9px] text-primary-slate/30 uppercase tracking-[0.2em] font-sans font-black ml-4 mb-4">Main Navigation</p>
+          <p className="text-xs text-slate-500 uppercase tracking-[0.2em] font-sans font-black ml-4 mb-4">Main Navigation</p>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -88,7 +88,7 @@ export function Navigation() {
         {/* Footer info or user profile preview can go here */}
         <div className="mt-auto pt-8 border-t border-slate-200/30">
           <div className="bg-white/40 p-4 rounded-2xl border border-white/50 backdrop-blur-sm">
-             <p className="text-[10px] text-primary-slate/40 uppercase font-black tracking-widest text-center mb-1">Status</p>
+             <p className="text-xs text-slate-500 uppercase font-black tracking-widest text-center mb-1">Status</p>
              <p className="text-xs text-primary-navy font-bold text-center">Season 4 Active</p>
           </div>
         </div>

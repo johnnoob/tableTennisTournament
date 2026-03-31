@@ -50,7 +50,7 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
                 <div className="flex items-center gap-2">
                   <h3 className={cn("font-display group-hover:text-electric-blue transition-colors", isFeatured ? "text-2xl group-hover:text-white" : "text-lg")}>{player.name}</h3>
                   {isFeatured && (
-                    <span className="bg-[#ffdbca] text-[#341100] text-[10px] px-2 py-0.5 rounded uppercase font-sans font-bold tracking-wider">
+                    <span className="bg-[#ffdbca] text-[#341100] text-xs px-2 py-0.5 rounded uppercase font-sans font-bold tracking-wider">
                       Pro
                     </span>
                   )}
@@ -66,7 +66,7 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
               )}>
                 {player.rating}
               </div>
-              <p className="text-[10px] uppercase tracking-widest font-sans opacity-50 flex items-center gap-1 justify-end">
+              <p className="text-xs uppercase tracking-widest font-sans opacity-50 flex items-center gap-1 justify-end">
                 MMR
                 <TrendingUp size={10} className={isFeatured ? "text-neon-orange" : "text-electric-blue"} />
               </p>
@@ -79,11 +79,11 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
             isFeatured ? "border-white/10" : "border-slate-100"
           )}>
             <div>
-              <p className="text-[10px] uppercase font-sans opacity-60 tracking-wider">Win Rate</p>
+              <p className="text-xs uppercase font-sans opacity-60 tracking-wider">Win Rate</p>
               <p className="font-display font-bold text-lg">{player.stats.winRate}%</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase font-sans opacity-60 tracking-wider">Avg Score</p>
+              <p className="text-xs uppercase font-sans opacity-60 tracking-wider">Avg Score</p>
               <p className="font-display font-bold text-lg">{player.stats.avgScore}</p>
             </div>
             <div className="ml-auto flex gap-3 text-xs font-sans">

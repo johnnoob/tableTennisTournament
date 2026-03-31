@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Search, Plus, Filter, Skull, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
+import { PendingActions } from '@/components/PendingActions';
 
 export function Dashboard() {
   return (
@@ -16,7 +17,7 @@ export function Dashboard() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black">Overview</h1>
-          <p className="text-xs md:text-sm text-primary-slate/50 mt-2 uppercase tracking-[0.2em] font-sans font-bold">Season 4 • Week 12 • Active</p>
+          <p className="text-sm md:text-base text-slate-500 mt-2 uppercase tracking-[0.2em] font-sans font-bold">Season 4 • Week 12 • Active</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all p-6">
@@ -34,6 +35,10 @@ export function Dashboard() {
         
         {/* Left Column: Stats & Hero (8 cols) */}
         <div className="xl:col-span-8 space-y-10">
+          
+          {/* Pending Actions (High Priority) */}
+          <PendingActions />
+
           <section className="transform transition-transform hover:scale-[1.01] duration-500">
              <RankingCard player={currentUser} variant="featured" />
           </section>
@@ -43,7 +48,7 @@ export function Dashboard() {
                <h2 className="text-xl md:text-2xl text-primary-navy font-display font-bold px-2">MMR Trend</h2>
                <div className="flex gap-2">
                  {['1W', '1M', '3M', 'ALL'].map(tab => (
-                   <Button key={tab} variant="ghost" className="text-[10px] font-black h-8 px-3 rounded-lg hover:bg-white hover:shadow-sm">
+                   <Button key={tab} variant="ghost" className="text-xs font-black h-8 px-3 rounded-lg hover:bg-white hover:shadow-sm">
                      {tab}
                    </Button>
                  ))}
@@ -76,7 +81,7 @@ export function Dashboard() {
                       <Skull size={24} className="text-white" />
                    </div>
                    <div>
-                      <h3 className="text-xl font-display font-black text-primary-navy">天敵 <span className="text-[10px] uppercase text-primary-slate/40 ml-2 tracking-widest font-sans">Nemesis</span></h3>
+                      <h3 className="text-xl font-display font-black text-primary-navy">天敵 <span className="text-sm uppercase text-slate-500 ml-2 tracking-widest font-sans">Nemesis</span></h3>
                    </div>
                 </div>
                 <div className="space-y-3">
@@ -93,7 +98,7 @@ export function Dashboard() {
                       <Crown size={24} className="text-white" />
                    </div>
                    <div>
-                      <h3 className="text-xl font-display font-black text-primary-navy">手下敗將 <span className="text-[10px] uppercase text-primary-slate/40 ml-2 tracking-widest font-sans">Minions</span></h3>
+                      <h3 className="text-xl font-display font-black text-primary-navy">手下敗將 <span className="text-sm uppercase text-slate-500 ml-2 tracking-widest font-sans">Minions</span></h3>
                    </div>
                 </div>
                 <div className="space-y-3">
@@ -155,7 +160,7 @@ function RivalRow({ name, avatar, winRate, type }: RivalryItem & { type: 'nemesi
             "font-display font-black text-lg",
             type === 'nemesis' ? 'text-red-500' : 'text-green-500'
          )}>
-            {winRate}% <span className="text-[10px] uppercase opacity-40 ml-1">WR</span>
+            {winRate}% <span className="text-sm uppercase text-slate-500 ml-1">WR</span>
          </span>
       </div>
    );
