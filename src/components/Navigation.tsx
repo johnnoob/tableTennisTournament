@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, History, Trophy, Award, Crown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,11 +13,39 @@ const navItems = [
 ];
 
 export function Navigation() {
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Hide on scroll down, show on scroll up
+      // Add a small threshold (10px) to prevent flickering
+      if (Math.abs(currentScrollY - lastScrollY) < 10) return;
+
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        setIsVisible(false); // Swiping up -> Hide
+      } else {
+        setIsVisible(true);  // Swiping down -> Show
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
     <>
-      {/* Mobile Bottom Navigation (Glassmorphism) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-2xl border-t border-slate-200/40 pb-safe px-6 pt-3 z-60 lg:hidden">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      {/* Mobile Bottom Navigation (Glassmorphism & Interactive) */}
+      <nav 
+        className={cn(
+          "fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-2xl border-t border-slate-200/40 z-60 lg:hidden transition-transform duration-500 ease-in-out px-6",
+          "h-[calc(4.5rem+env(safe-area-inset-bottom,0px))]",
+          isVisible ? "translate-y-0" : "translate-y-[calc(100%+32px)]"
+        )}
+      >
+        <div className="max-w-md mx-auto h-full flex items-center justify-between pb-[env(safe-area-inset-bottom,0px)]">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -27,10 +56,9 @@ export function Navigation() {
               )}
             >
               <item.icon size={20} className="transition-all duration-300" />
-              <span className="text-xs font-sans font-black uppercase tracking-wider">
+              <span className="text-[10px] font-sans font-black uppercase tracking-wider">
                 {item.label}
               </span>
-
             </NavLink>
           ))}
         </div>

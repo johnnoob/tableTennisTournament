@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus, Minus, Trophy, User, CheckCircle2 } from "lucide-react"
+import { Plus, Minus, Trophy, User, CheckCircle2, Swords } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import {
   Dialog,
@@ -161,7 +161,7 @@ export function ReportScore({
           {/* Opponent Selection */}
           <section className="space-y-4">
             <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 ml-1">選擇對手</label>
-            <div className="flex gap-2 md:gap-3 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
               {allPlayers.slice(0, 5).map((player) => (
                 <button
                   key={player.id}
@@ -207,16 +207,8 @@ export function ReportScore({
             </div>
           </section>
 
-          {/* Conditional Desktop Submit Button */}
-          {isDesktop && (
-            <Button 
-              onClick={handleSubmit} 
-              disabled={!selectedOpponentId || isSubmitting}
-              className="w-full py-8 rounded-[2rem] bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20"
-            >
-              {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
-            </Button>
-          )}
+          {/* Conditional Desktop Submit Button - Moved to Dialog footer below */}
+
         </>
       )}
     </div>
@@ -235,6 +227,45 @@ export function ReportScore({
             <DialogDescription>請確認比分正確，送出後對手將收到確認通知。</DialogDescription>
           </DialogHeader>
           {content}
+          {!isSuccess && !isDesktop && (
+             <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={!selectedOpponentId || isSubmitting}
+                  className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
+                >
+                  {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
+                </Button>
+                <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
+                   取消
+                </Button>
+             </div>
+          )}
+          {isDesktop && !isSuccess && (
+            <div className="p-8 pt-0 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-8 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
+                取消
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!selectedOpponentId || isSubmitting}
+                className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
+              >
+                {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
+              </Button>
+            </div>
+          )}
+          {isDesktop && isSuccess && (
+             <div className="p-8 pt-0">
+               <Button 
+                  onClick={() => setOpen(false)}
+                  className="w-full h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all"
+                >
+                  知道了
+                </Button>
+             </div>
+          )}
+
         </DialogContent>
       </Dialog>
     )
@@ -271,8 +302,8 @@ export function ReportScore({
             </Button>
           )}
           <DrawerClose asChild>
-            <Button variant="ghost" className="text-slate-500 text-xs font-black uppercase tracking-widest h-10">
-              {isSuccess ? "關閉視窗" : "取消"}
+            <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-500 font-bold hover:bg-slate-50 uppercase tracking-widest">
+              {isSuccess ? "關閉視窗" : "取消操作"}
             </Button>
           </DrawerClose>
         </DrawerFooter>
@@ -314,12 +345,12 @@ function ScoreControl({
           )}
         </div>
         <div className={cn(
-          "absolute -bottom-2 -right-2 size-6 rounded-lg shadow-sm flex items-center justify-center border",
-          status === 'win' ? "bg-green-500 text-white border-green-600" : 
-          status === 'loss' ? "bg-red-500 text-white border-red-600" : 
+          "absolute -bottom-2 -right-2 size-7 rounded-full shadow-lg flex items-center justify-center border-2",
+          status === 'win' ? "bg-green-500 text-white border-white" : 
+          status === 'loss' ? "bg-red-500 text-white border-white" : 
           "bg-white text-primary-navy border-slate-100"
         )}>
-           <span className="text-sm font-black">{placeholder ? "OPP" : "YOU"}</span>
+           {placeholder ? <Swords size={14} strokeWidth={3} /> : <User size={14} strokeWidth={3} />}
         </div>
       </div>
       <span className={cn(

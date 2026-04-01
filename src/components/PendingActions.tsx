@@ -3,8 +3,25 @@ import { matches, currentUser } from '@/data/mockData';
 import type { Match } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { ReportScore } from '@/components/ReportScore';
-import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2 } from 'lucide-react';
+import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 
 // Helper to format remaining time
 const getRemainingTimeStr = (expiresAtStr?: string) => {
@@ -43,7 +60,7 @@ function ActionRequiredGroup({ matches }: { matches: Match[] }) {
   const hasMore = matches.length > 3;
 
   return (
-    <div className="bg-red-50/50 border-2 border-red-100 rounded-[2rem] overflow-hidden shadow-sm shadow-red-100/30">
+    <div className="bg-red-50/50 border-2 border-red-100 rounded-4xl overflow-hidden shadow-sm shadow-red-100/30">
       <div className="bg-red-100/50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -86,6 +103,163 @@ function ActionMatchCard({ match }: { match: Match }) {
   const lpChange = match.mmrChange[0];
   const [isDisputing, setIsDisputing] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
+  
+  // Confirmation state
+  const [open, setOpen] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  const handleConfirmAction = async () => {
+    setIsConfirming(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    setIsConfirming(false);
+    setIsSuccess(true);
+  };
+
+  const closeDialog = () => {
+    setOpen(false);
+    // Reset success state after closing animation
+    setTimeout(() => {
+      setIsSuccess(false);
+    }, 300);
+  };
+
+  const confirmationContent = (
+    <div className="px-6 py-4 space-y-6">
+      {isSuccess ? (
+        <div className="flex flex-col items-center justify-center py-6 space-y-6 animate-in fade-in zoom-in duration-500">
+          <div className="relative">
+            <div className="size-20 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-xl shadow-emerald-100/30 relative z-10">
+              <CheckCircle2 size={48} strokeWidth={2.5} />
+            </div>
+            <div className="absolute inset-0 bg-emerald-400 blur-2xl opacity-20 animate-pulse rounded-full" />
+          </div>
+          
+          <div className="text-center space-y-1">
+            <h3 className="text-2xl font-display font-black text-primary-navy tracking-tight">已確認戰果！</h3>
+            <p className="text-sm font-medium text-slate-500 px-10">感謝您的確認，賽果現在正式生效並更新排名。</p>
+          </div>
+
+          {/* Match Receipt Card */}
+          <div className="w-full bg-slate-50/80 border border-slate-100 rounded-3xl p-6 space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Trophy size={80} />
+            </div>
+            
+            <div className="flex items-center justify-between relative z-10">
+              {/* Me */}
+              <div className="flex flex-col items-center gap-2">
+                <div className={cn(
+                  "size-14 rounded-2xl p-0.5 border-2",
+                  !isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                )}>
+                  <img src={currentUser.avatar} className="size-full rounded-xl object-cover" alt={currentUser.name} />
+                </div>
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{currentUser.name}</span>
+              </div>
+
+              {/* Score */}
+              <div className="flex flex-col items-center">
+                <div className="text-4xl font-display font-black text-primary-navy tabular-nums tracking-tighter">
+                  {match.score[0]} : {match.score[1]}
+                </div>
+                <div className={cn(
+                  "mt-1 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                  !isLoss ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                )}>
+                  {!isLoss ? " Victory " : " Defeat "}
+                </div>
+              </div>
+
+              {/* Opponent */}
+              <div className="flex flex-col items-center gap-2">
+                <div className={cn(
+                  "size-14 rounded-2xl p-0.5 border-2",
+                  isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                )}>
+                  <img src={opponentPlayer.avatar} className="size-full rounded-xl object-cover" alt={opponentPlayer.name} />
+                </div>
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{opponentPlayer.name}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-dashed border-slate-200 flex flex-col gap-2">
+               <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <span>Timestamp</span>
+                  <span>LP Change</span>
+               </div>
+               <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600">{new Date().toLocaleDateString('zh-TW')} {new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit'})}</span>
+                  <span className={cn("text-sm font-display font-black", lpChange < 0 ? 'text-rose-500' : 'text-emerald-500')}>
+                    {lpChange > 0 ? `+${lpChange}` : lpChange} LP
+                  </span>
+               </div>
+            </div>
+          </div>
+
+          <Button 
+            onClick={closeDialog} 
+            className="w-full h-14 rounded-[1.5rem] bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-widest uppercase transition-all shadow-xl shadow-primary-navy/20"
+          >
+            關閉視窗
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-8 py-4">
+          <div className="flex flex-col items-center gap-6">
+             <div className="flex items-center gap-8 md:gap-12">
+                <div className="flex flex-col items-center gap-3">
+                   <div className="size-20 md:size-24 rounded-4xl border-4 border-white shadow-xl overflow-hidden">
+                      <img src={currentUser.avatar} className="size-full object-cover" alt={currentUser.name} />
+                   </div>
+                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">{currentUser.name}</span>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                   <span className="text-5xl md:text-7xl font-display font-black text-slate-200 tracking-tighter leading-none mb-2">VS</span>
+                   <div className="h-1.5 w-12 bg-electric-blue/10 rounded-full" />
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                   <div className="size-20 md:size-24 rounded-4xl border-4 border-white shadow-xl overflow-hidden">
+                      <img src={opponentPlayer.avatar} className="size-full object-cover" alt={opponentPlayer.name} />
+                   </div>
+                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">{opponentPlayer.name}</span>
+                </div>
+             </div>
+
+             <div className="w-full bg-slate-50 border border-slate-100 rounded-4xl p-6 text-center space-y-4">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Final Registered Score</span>
+                <div className="text-6xl font-display font-black text-primary-navy tabular-nums tracking-tighter">
+                   {match.score[0]} : {match.score[1]}
+                </div>
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest ring-4",
+                  !isLoss ? "bg-emerald-500 text-white ring-emerald-500/10" : "bg-rose-500 text-white ring-rose-500/10"
+                )}>
+                  {isLoss ? 'You Lost (-15 LP)' : 'You Won (+18 LP)'}
+                </div>
+             </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button 
+               onClick={handleConfirmAction}
+               disabled={isConfirming}
+               className="w-full h-16 rounded-[1.5rem] bg-emerald-500 hover:bg-emerald-600 text-white font-display font-black text-lg tracking-widest uppercase transition-all shadow-xl shadow-emerald-500/20"
+            >
+               {isConfirming ? "處理中..." : "我確認，賽果無誤"}
+            </Button>
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
+               確認即代表您同意此賽果，MMR 將立即計算。
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   if (isDisputing) {
     return (
@@ -170,10 +344,50 @@ function ActionMatchCard({ match }: { match: Match }) {
           >
             <X size={18} strokeWidth={3} />
           </Button>
-          <Button className="h-10 px-4 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-black text-sm tracking-widest shadow-lg shadow-primary-navy/20 gap-2 border-none">
-            <Check size={16} strokeWidth={3} className="text-emerald-400" />
-            確認
-          </Button>
+
+          {isDesktop ? (
+            <Dialog open={open} onOpenChange={(val) => { if(!isConfirming) setOpen(val) }}>
+              <DialogTrigger>
+                <Button className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm tracking-widest shadow-lg shadow-emerald-500/20 gap-2 border-none transition-all active:scale-95">
+                  <Check size={16} strokeWidth={3} />
+                  確認
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl p-0 overflow-hidden border-none bg-white">
+                <DialogHeader className="p-8 pb-0">
+                  <DialogTitle className="flex items-center gap-3">
+                    <CheckCircle2 className="text-emerald-500" />
+                    確認賽果
+                  </DialogTitle>
+                  <DialogDescription>請再次檢查比分與勝敗是否正確，確認後無法撤回。</DialogDescription>
+                </DialogHeader>
+                {confirmationContent}
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Drawer open={open} onOpenChange={(val) => { if(!isConfirming) setOpen(val) }}>
+              <DrawerTrigger asChild>
+                <Button className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm tracking-widest shadow-lg shadow-emerald-500/20 gap-2 border-none">
+                  <Check size={16} strokeWidth={3} />
+                  確認
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="p-0 border-none bg-white max-h-[96vh] flex flex-col">
+              <div className="flex-1 overflow-y-auto no-scrollbar">
+                <DrawerHeader className="p-6 pb-2 text-center">
+                  <DrawerTitle className="flex items-center justify-center gap-3">
+                    <CheckCircle2 className="text-emerald-500" size={20} />
+                    確認賽果
+                  </DrawerTitle>
+                  <DrawerDescription>確認無誤後請按下確認按鈕</DrawerDescription>
+                </DrawerHeader>
+                <div className="pb-12 pb-safe">
+                  {confirmationContent}
+                </div>
+              </div>
+            </DrawerContent>
+            </Drawer>
+          )}
         </div>
       </div>
     </div>
