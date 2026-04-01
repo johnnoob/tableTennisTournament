@@ -42,11 +42,11 @@ export function MatchHistory() {
         {/* Search & Filter Pills */}
         <div className="space-y-4">
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-electric-blue transition-colors" size={16} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-sapphire-blue transition-colors" size={16} />
             <input 
               type="text" 
               placeholder="Search opponent or event..." 
-              className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 text-sm font-sans outline-none border border-transparent shadow-sm focus:border-electric-blue/20 focus:ring-4 focus:ring-electric-blue/5 transition-all text-primary-navy"
+              className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 text-sm font-sans outline-none border border-transparent shadow-sm focus:border-sapphire-blue/20 focus:ring-4 focus:ring-sapphire-blue/5 transition-all text-primary-navy"
             />
           </div>
 
@@ -64,7 +64,7 @@ export function MatchHistory() {
               onClick={() => setFilter('win')}
               className={cn(
                 "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all",
-                filter === 'win' ? "bg-electric-blue text-white shadow-lg shadow-electric-blue/20" : "bg-white text-primary-navy border border-slate-100 hover:bg-slate-50"
+                filter === 'win' ? "bg-sapphire-blue text-white shadow-lg shadow-sapphire-blue/20" : "bg-white text-primary-navy border border-slate-100 hover:bg-slate-50"
               )}
             >
               <Trophy size={12} className="mr-2" /> Wins

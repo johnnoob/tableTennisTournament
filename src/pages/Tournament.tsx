@@ -19,11 +19,11 @@ export function Tournament() {
       {/* Recommended/Ongoing Tournament Hero */}
       {tournaments.filter(t => t.status === 'ongoing').map(t => (
         <section key={t.id} onClick={() => navigate(`/tournament/${t.id}`)} className="cursor-pointer">
-          <div className="bg-[#111c2d] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-electric-blue/10 border border-[#1a2b45]">
+          <div className="bg-[#111c2d] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-sapphire-blue/10 border border-[#1a2b45]">
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Trophy size={100} />
             </div>
-            <Badge className="bg-neon-orange text-white text-xs uppercase font-sans tracking-widest px-3 py-1 mb-4 border-none">
+            <Badge className="bg-olympic-gold text-white text-xs uppercase font-sans tracking-widest px-3 py-1 mb-4 border-none">
               Live Now
             </Badge>
             <h2 className="text-2xl font-display font-black mb-2">{t.title}</h2>
@@ -31,7 +31,7 @@ export function Tournament() {
               <span className="flex items-center gap-1.5"><Calendar size={14} /> Ends Mar 31</span>
               <span className="flex items-center gap-1.5"><Trophy size={14} /> $50,000 Pool</span>
             </div>
-            <div className="w-full bg-electric-blue text-white rounded-2xl py-4 text-center font-sans font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-electric-blue/20">
+            <div className="w-full bg-sapphire-blue text-white rounded-2xl py-4 text-center font-sans font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-sapphire-blue/20">
               View Tournament Detail
             </div>
           </div>
@@ -56,7 +56,7 @@ export function Tournament() {
                     </p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-primary-slate/20 group-hover:text-electric-blue transition-all group-hover:translate-x-1" />
+                <ArrowRight size={18} className="text-primary-slate/20 group-hover:text-sapphire-blue transition-all group-hover:translate-x-1" />
               </CardContent>
             </Card>
           ))}

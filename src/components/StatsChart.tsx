@@ -20,7 +20,7 @@ export function StatsChart() {
             <CardTitle className="font-display text-xl text-primary-navy">Performance Analytics</CardTitle>
             <p className="text-xs text-slate-500 mt-1 font-sans">MMR Progression • Last 7 Days</p>
           </div>
-          <div className="bg-electric-blue/10 text-electric-blue rounded-full px-3 py-1 text-xs font-semibold">
+          <div className="bg-sapphire-blue/10 text-sapphire-blue rounded-full px-3 py-1 text-xs font-semibold">
             +110 PTS
           </div>
         </div>

@@ -91,7 +91,7 @@ export function ReportScore({
         return { 
           valid: false, 
           text: matchType === 'singles' ? "👤 請點擊上方選擇對手" : "👥 請點擊上方選齊搭檔與對手", 
-          style: "bg-amber-50 text-amber-600 border-amber-200 shadow-sm shadow-amber-500/10 animate-pulse" 
+          style: "bg-amber-50 text-amber-600 border-amber-200 shadow-sm shadow-olympic-gold/10 animate-pulse" 
         };
       }
       return { 
@@ -120,7 +120,7 @@ export function ReportScore({
   }
 
   const content = (
-    <div className="px-6 py-4 space-y-8">
+    <div className="px-6 py-4 md:py-2 space-y-8 md:space-y-4">
       {isSuccess ? (
         <div className="flex flex-col items-center justify-center py-6 space-y-6 animate-in fade-in zoom-in duration-500">
           <div className="relative">
@@ -226,23 +226,6 @@ export function ReportScore({
             </div>
           </div>
 
-          <Button 
-            onClick={() => {
-              setOpen(false);
-              setTimeout(() => {
-                setIsSuccess(false);
-                setScoreA(0);
-                setScoreB(0);
-                setSelectedOpponentId(null);
-                setSelectedPartnerId(null);
-                setSelectedOpponentIds([]);
-                setMatchType('singles');
-              }, 300);
-            }} 
-            className="w-full h-14 rounded-[1.5rem] bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-widest uppercase transition-all shadow-xl shadow-primary-navy/20"
-          >
-            知道了
-          </Button>
         </div>
       ) : (
         <>
@@ -280,7 +263,7 @@ export function ReportScore({
                       setSelectedPartnerId(null);
                       setSelectedOpponentIds([]);
                     }}
-                    className="text-[10px] font-black text-electric-blue uppercase tracking-widest hover:underline"
+                    className="text-[10px] font-black text-sapphire-blue uppercase tracking-widest hover:underline"
                   >
                     重設選擇
                   </button>
@@ -300,7 +283,7 @@ export function ReportScore({
               </div>
             </div>
 
-            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-4 md:overflow-visible">
               {/* 🌟 修改：動態過濾名單邏輯 */}
               {(() => {
                 const filteredPlayers = allPlayers
@@ -312,7 +295,7 @@ export function ReportScore({
 
                 if (displayPlayers.length === 0) {
                   return (
-                    <div className="col-span-5 py-6 text-center text-xs font-bold text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-2xl w-full">
+                    <div className="col-span-4 py-6 text-center text-xs font-bold text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-2xl w-full">
                       找不到符合的同仁
                     </div>
                   );
@@ -359,7 +342,7 @@ export function ReportScore({
                         {isSelected && (
                           <div className={cn(
                             "absolute -top-1 -right-1 size-4 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm",
-                            isPartner ? "bg-amber-500" : "bg-emerald-500"
+                            isPartner ? "bg-olympic-gold" : "bg-emerald-500"
                           )}>
                             {isPartner ? "T" : "O"}
                           </div>
@@ -377,7 +360,7 @@ export function ReportScore({
           </section>
 
           {/* Score Input */}
-          <section className="space-y-6">
+          <section className="space-y-2 md:space-y-0">
             <div className="flex items-center justify-between gap-4">
               <ScoreControl 
                 value={scoreA} 
@@ -425,15 +408,17 @@ export function ReportScore({
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger render={trigger} />
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none bg-white">
-          <DialogHeader className="p-8 pb-0">
+        <DialogContent className="max-w-xl p-0 overflow-hidden border-none bg-white">
+          <DialogHeader className="p-8 pb-0 md:p-6 md:pb-0">
             <DialogTitle className="flex items-center gap-3">
-              <Trophy className="text-neon-orange" />
+              <Trophy className="text-olympic-gold" />
               {editMode ? "修改賽果" : "申報比賽結果"}
             </DialogTitle>
             <DialogDescription>請確認比分正確，送出後對手將收到確認通知。</DialogDescription>
           </DialogHeader>
-          {content}
+          <div className="max-h-[calc(85vh-160px)] overflow-y-auto no-scrollbar border-y border-slate-50 md:border-none">
+            {content}
+          </div>
           {!isSuccess && !isDesktop && (
              <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
                 <Button 
@@ -449,7 +434,7 @@ export function ReportScore({
              </div>
           )}
           {isDesktop && !isSuccess && (
-            <div className="p-8 pt-0 flex justify-end gap-3">
+            <div className="p-8 pt-4 md:p-6 md:pt-2 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-8 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
                 取消
               </Button>
@@ -465,7 +450,18 @@ export function ReportScore({
           {isDesktop && isSuccess && (
              <div className="p-8 pt-0">
                <Button 
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false)
+                    setTimeout(() => {
+                      setIsSuccess(false)
+                      setScoreA(0)
+                      setScoreB(0)
+                      setSelectedOpponentId(null)
+                      setSelectedPartnerId(null)
+                      setSelectedOpponentIds([])
+                      setMatchType('singles')
+                    }, 300)
+                  }}
                   className="w-full h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all"
                 >
                   知道了
@@ -487,7 +483,7 @@ export function ReportScore({
         <div className="flex-1 overflow-y-auto no-scrollbar">
           <DrawerHeader className="p-6 pb-2 border-none">
             <DrawerTitle className="flex items-center justify-center gap-3">
-              <Trophy className="text-neon-orange" size={20} />
+              <Trophy className="text-olympic-gold" size={20} />
               {editMode ? "修改賽果" : "申報比賽結果"}
             </DrawerTitle>
             <DrawerDescription className="text-center">請輸入最終局數比分</DrawerDescription>
@@ -509,8 +505,29 @@ export function ReportScore({
             </Button>
           )}
           <DrawerClose asChild>
-            <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-500 font-bold hover:bg-slate-50 uppercase tracking-widest">
-              {isSuccess ? "關閉視窗" : "取消操作"}
+            <Button 
+              variant={isSuccess ? "default" : "outline"}
+              onClick={() => {
+                if (isSuccess) {
+                  setTimeout(() => {
+                    setIsSuccess(false)
+                    setScoreA(0)
+                    setScoreB(0)
+                    setSelectedOpponentId(null)
+                    setSelectedPartnerId(null)
+                    setSelectedOpponentIds([])
+                    setMatchType('singles')
+                  }, 300)
+                }
+              }}
+              className={cn(
+                "w-full h-12 rounded-xl border-slate-200 font-bold uppercase tracking-widest",
+                isSuccess 
+                  ? "bg-primary-navy hover:bg-slate-800 text-white border-none" 
+                  : "text-slate-500 hover:bg-slate-50"
+              )}
+            >
+              {isSuccess ? "知道了" : "取消操作"}
             </Button>
           </DrawerClose>
         </DrawerFooter>
@@ -535,7 +552,7 @@ function ScoreControl({
   status?: 'win' | 'loss' | 'draw';
 }) {
   return (
-    <div className="flex-1 flex flex-col items-center space-y-4">
+    <div className="flex-1 flex flex-col items-center space-y-3 md:space-y-2">
       <div className="relative group">
         <div className={cn(
           "flex items-center justify-center transition-all",
@@ -546,7 +563,7 @@ function ScoreControl({
               <div 
                 key={i}
                 className={cn(
-                  "size-14 rounded-[1.5rem] overflow-hidden border-2 transition-all relative z-[1]",
+                  "size-14 md:size-11 rounded-[1.5rem] md:rounded-xl overflow-hidden border-2 transition-all relative z-[1]",
                   "border-white bg-slate-50 shadow-md transform group-hover:rotate-6",
                   status === 'win' && "border-green-200 ring-4 ring-green-500/10",
                   status === 'loss' && "border-red-200 opacity-80"
@@ -558,9 +575,9 @@ function ScoreControl({
             ))
           ) : (
             <div className={cn(
-              "size-14 rounded-[1.5rem] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400",
+              "size-14 md:size-11 rounded-[1.5rem] md:rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400",
             )}>
-              <User size={24} />
+              <User size={20} />
             </div>
           )}
         </div>
@@ -581,7 +598,7 @@ function ScoreControl({
       </span>
       
       <div className={cn(
-        "flex flex-col items-center gap-4 p-4 rounded-[2.5rem] border transition-all duration-500",
+        "flex flex-col items-center gap-4 md:gap-2 p-4 md:p-3 rounded-[2.5rem] md:rounded-[1.5rem] border transition-all duration-500",
         status === 'win' ? "bg-green-50 border-green-100 shadow-lg shadow-green-200/20" : 
         status === 'loss' ? "bg-red-50 border-red-100 opacity-90" : 
         "bg-slate-50/50 border-slate-100/50"
@@ -589,26 +606,26 @@ function ScoreControl({
         <button 
           onClick={() => onChange(Math.min(3, value + 1))}
           className={cn(
-            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
+            "size-14 md:size-10 rounded-2xl md:rounded-xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
             status === 'win' && "bg-white border-green-200 text-green-600 hover:bg-green-100/50",
             status === 'loss' && "bg-white border-red-200 text-red-600 hover:bg-red-100/50"
           )}
         >
-          <Plus size={24} strokeWidth={3} />
+          <Plus size={20} strokeWidth={3} />
         </button>
         <span className={cn(
-          "text-5xl font-display font-black tabular-nums min-w-[60px] text-center transition-colors",
+          "text-5xl md:text-4xl font-display font-black tabular-nums min-w-[60px] text-center transition-colors",
           status === 'win' ? "text-green-600" : status === 'loss' ? "text-red-600" : "text-primary-navy"
         )}>{value}</span>
         <button 
           onClick={() => onChange(Math.max(0, value - 1))}
           className={cn(
-            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
+            "size-14 md:size-10 rounded-2xl md:rounded-xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
             status === 'win' && "bg-white border-green-200 text-green-600 hover:bg-green-100/50",
             status === 'loss' && "bg-white border-red-200 text-red-600 hover:bg-red-100/50"
           )}
         >
-          <Minus size={24} strokeWidth={3} />
+          <Minus size={20} strokeWidth={3} />
         </button>
       </div>
     </div>

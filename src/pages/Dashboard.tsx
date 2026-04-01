@@ -70,7 +70,7 @@ function AnnouncementBanner() {
         <div className="flex items-start md:items-center gap-4 md:gap-6 relative z-10 flex-1 w-full">
           <div className={cn(
             "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
-            current.type === 'tournament' ? "bg-amber-500 text-white shadow-amber-500/20" : "bg-electric-blue text-white shadow-electric-blue/20"
+            current.type === 'tournament' ? "bg-olympic-gold text-white shadow-olympic-gold/20" : "bg-sapphire-blue text-white shadow-sapphire-blue/20"
           )}>
             {current.type === 'tournament' ? <Trophy size={28} /> : <Info size={28} />}
           </div>
@@ -79,7 +79,7 @@ function AnnouncementBanner() {
             <div className="flex flex-wrap items-center gap-2">
               <span className={cn(
                 "text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest",
-                current.type === 'tournament' ? "bg-amber-500/20 text-amber-400" : "bg-electric-blue/20 text-blue-300"
+                current.type === 'tournament' ? "bg-olympic-gold/20 text-amber-400" : "bg-sapphire-blue/20 text-blue-300"
               )}>
                 {current.tag}
               </span>
@@ -125,7 +125,7 @@ function AnnouncementBanner() {
             <Button className={cn(
               "flex-1 md:flex-none h-12 md:h-14 px-6 md:px-8 rounded-xl font-black text-sm tracking-widest transition-all active:scale-95 gap-2 border-none",
               current.type === 'tournament' 
-                ? "bg-amber-500 hover:bg-amber-400 text-primary-navy shadow-lg shadow-amber-500/20" 
+                ? "bg-olympic-gold hover:bg-amber-400 text-primary-navy shadow-lg shadow-olympic-gold/20" 
                 : "bg-white hover:bg-slate-100 text-primary-navy shadow-lg shadow-white/10"
             )}>
               {current.actionText}
@@ -170,7 +170,7 @@ export function Dashboard() {
           </Button>
           <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all p-6 relative">
             <Bell size={22} className="text-primary-navy" />
-            <span className="absolute top-4 right-4 size-3 bg-neon-orange rounded-full border-[3px] border-white shadow-sm" />
+            <span className="absolute top-4 right-4 size-3 bg-olympic-gold rounded-full border-[3px] border-white shadow-sm" />
           </Button>
         </div>
       </header>
@@ -209,7 +209,7 @@ export function Dashboard() {
           <section className="space-y-6">
             <div className="flex items-center justify-between border-b border-slate-50 pb-4">
               <h2 className="text-xl md:text-2xl text-primary-navy font-display font-bold px-2">Recent Feed</h2>
-              <Button variant="link" className="text-electric-blue text-xs font-black uppercase tracking-[0.2em] p-0 h-auto">History</Button>
+              <Button variant="link" className="text-sapphire-blue text-xs font-black uppercase tracking-[0.2em] p-0 h-auto">History</Button>
             </div>
             <div className="space-y-4">
               {matches.slice(0, 3).map((match: Match) => (
@@ -304,7 +304,7 @@ export function Dashboard() {
       {/* Floating Action Button (Mobile Only) */}
       <ReportScore 
         trigger={
-          <Button className="lg:hidden fixed bottom-24 right-6 size-14 rounded-full bg-electric-blue shadow-lg shadow-electric-blue/40 border-none group transition-all duration-300 hover:scale-105 active:scale-95">
+          <Button className="lg:hidden fixed bottom-24 right-6 size-14 rounded-full bg-sapphire-blue shadow-lg shadow-sapphire-blue/40 border-none group transition-all duration-300 hover:scale-105 active:scale-95">
             <Plus size={28} className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
           </Button>
         }

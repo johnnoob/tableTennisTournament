@@ -58,7 +58,7 @@ export function TournamentDetail() {
                   </h3>
                 </div>
                 <div className="text-right">
-                   <span className="text-xs md:text-sm font-sans font-black text-electric-blue bg-electric-blue/5 px-4 py-2 rounded-xl">
+                   <span className="text-xs md:text-sm font-sans font-black text-sapphire-blue bg-sapphire-blue/5 px-4 py-2 rounded-xl">
                      {Math.round(progress)}% Season Compete
                    </span>
                 </div>
@@ -72,7 +72,7 @@ export function TournamentDetail() {
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Technical Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-electric-blue w-fit">
+                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
                    <Calendar size={28} />
                  </div>
                  <div>
@@ -81,7 +81,7 @@ export function TournamentDetail() {
                  </div>
               </div>
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-electric-blue w-fit">
+                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
                    <MapPin size={28} />
                  </div>
                  <div>
@@ -90,7 +90,7 @@ export function TournamentDetail() {
                  </div>
               </div>
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-electric-blue w-fit">
+                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
                    <Scale size={28} />
                  </div>
                  <div>
@@ -113,20 +113,23 @@ export function TournamentDetail() {
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Official Rewards</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {tournament.prizes.map((prize) => (
-                <Card key={prize.position} className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-visible group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative mt-4">
-                   {/* Floating Trophy Badge */}
-                   <div className="absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border border-slate-100 z-20 transform group-hover:scale-110 transition-transform">
-                      {prize.position}
-                   </div>
-                   <div className="h-56 relative overflow-hidden rounded-t-[2.5rem]">
+                <div key={prize.position} className="relative mt-4 group">
+                  {/* Floating Trophy Badge - Now outside overflow-hidden Card */}
+                  <div className="absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border border-slate-100 z-20 transform group-hover:scale-110 transition-transform">
+                    {prize.position}
+                  </div>
+                  
+                  <Card className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative p-0">
+                    <div className="h-56 relative overflow-hidden">
                       <img src={prize.image} alt={prize.item} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
-                   </div>
-                   <div className="p-6 text-center">
-                     <span className="text-xs uppercase font-sans font-black text-electric-blue tracking-tighter block mb-2">{prize.label}</span>
-                     <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">{prize.item}</h4>
-                     <p className="text-xs text-slate-500 font-sans">{prize.description}</p>
-                   </div>
-                </Card>
+                    </div>
+                    <div className="p-6 text-center">
+                      <span className="text-xs uppercase font-sans font-black text-sapphire-blue tracking-tighter block mb-2">{prize.label}</span>
+                      <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">{prize.item}</h4>
+                      <p className="text-xs text-slate-500 font-sans">{prize.description}</p>
+                    </div>
+                  </Card>
+                </div>
               ))}
             </div>
           </section>
@@ -147,7 +150,7 @@ export function TournamentDetail() {
                 <div key={player.id} className="flex items-center gap-4 p-4 rounded-3xl bg-[#fbfcff] hover:bg-slate-50 transition-colors border border-slate-100 relative overflow-visible group mt-2">
                   <div className={cn(
                     "absolute -left-3 -top-3 size-10 md:size-12 rounded-2xl flex items-center justify-center font-display font-black text-xl shrink-0 transition-all shadow-md z-20 border-2 border-white",
-                    idx === 0 ? "bg-neon-orange text-white" : "bg-white text-primary-slate"
+                    idx === 0 ? "bg-olympic-gold text-white" : "bg-white text-primary-slate"
                   )}>
                     {idx + 1}
                   </div>
@@ -163,23 +166,11 @@ export function TournamentDetail() {
                 </div>
               ))}
               
-              <Button className="power-button w-full shadow-lg shadow-electric-blue/40 font-sans font-black tracking-widest uppercase py-10 rounded-[2.5rem] mt-8">
-                Join Season Now
-              </Button>
+              {/* Removed: Join Season Now Button */}
             </div>
           </section>
 
-          {/* Social / Activity Box */}
-          <section className="p-8 rounded-4xl bg-primary-navy text-white shadow-xl shadow-primary-navy/20">
-             <h3 className="text-xl font-display font-black mb-4 capitalize">Arena live broadcast</h3>
-             <p className="text-xs text-white/50 font-sans leading-relaxed mb-6 italic">
-                "Real-time match logging enabled for all Season 4 participants. Stay focused on the gold."
-             </p>
-             <div className="flex gap-2">
-                <div className="size-2 bg-neon-orange rounded-full animate-pulse" />
-                <span className="text-xs uppercase font-black tracking-widest">Live Updates Enabled</span>
-             </div>
-          </section>
+          {/* Removed: Social / Activity Box */}
 
         </div>
 

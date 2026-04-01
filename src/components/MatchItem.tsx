@@ -36,7 +36,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
           <div className="flex items-center gap-2 md:gap-3 text-sm md:text-sm font-black uppercase tracking-widest text-slate-500">
             <span>{match.date}</span>
             <span className="text-slate-200 text-lg leading-none">•</span>
-            <span className="text-electric-blue/70">{match.tournament || 'DIVISION I'}</span>
+            <span className="text-sapphire-blue/70">{match.tournament || 'DIVISION I'}</span>
           </div>
           <Badge variant="secondary" className={cn("px-4 py-1.5 rounded-full text-sm font-black border tracking-widest shadow-none", status.color)}>
             {status.label}

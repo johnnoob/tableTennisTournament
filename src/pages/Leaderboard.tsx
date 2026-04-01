@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // 🌟 核心邏輯：將隱藏 MMR 轉換為段位徽章
 const getTierBadge = (mmr: number) => {
-  if (mmr >= 2000) return { name: '菁英 (Elite)', icon: <Shield size={16} />, color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20' };
+  if (mmr >= 2000) return { name: '菁英 (Elite)', icon: <Shield size={16} />, color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-olympic-gold/20' };
   if (mmr >= 1700) return { name: '金牌 (Gold)', icon: <Trophy size={16} />, color: 'bg-amber-100 text-amber-700 border-amber-300' };
   if (mmr >= 1400) return { name: '銀牌 (Silver)', icon: <Medal size={16} />, color: 'bg-slate-100 text-slate-600 border-slate-300' };
   return { name: '銅牌 (Bronze)', icon: <Award size={16} />, color: 'bg-orange-50 text-orange-700 border-orange-200' };
@@ -63,7 +63,7 @@ export function Leaderboard() {
             placeholder="搜尋同仁姓名或單位..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-100 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-bold text-slate-600 placeholder:text-slate-400"
+            className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-100 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-olympic-gold/20 focus:border-olympic-gold transition-all font-bold text-slate-600 placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -103,7 +103,7 @@ export function Leaderboard() {
                     <td className="py-4 px-6 text-center">
                       <div className={cn(
                         "font-display font-black text-xl tabular-nums",
-                        isTop1 ? "text-amber-500 text-3xl" : 
+                        isTop1 ? "text-olympic-gold text-3xl" : 
                         isTop2 ? "text-slate-400 text-2xl" : 
                         isTop3 ? "text-orange-400 text-2xl" : "text-slate-300"
                       )}>
@@ -124,7 +124,7 @@ export function Leaderboard() {
                             )}
                           />
                           {isTop1 && (
-                            <div className="absolute -top-2 -right-2 bg-amber-500 text-white p-1 rounded-full shadow-md">
+                            <div className="absolute -top-2 -right-2 bg-olympic-gold text-white p-1 rounded-full shadow-md">
                               <Crown size={12} strokeWidth={3} />
                             </div>
                           )}

@@ -12,7 +12,7 @@ import { Leaderboard } from './pages/Leaderboard';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 font-sans selection:bg-electric-blue/10 flex relative">
+      <div className="min-h-screen bg-slate-50 font-sans selection:bg-sapphire-blue/10 flex relative">
         
         {/* Navigation Layer (Contains Fixed Mobile & Desktop Navs) */}
         <Navigation />

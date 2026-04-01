@@ -234,7 +234,7 @@ function ActionMatchCard({ match }: { match: Match }) {
                 
                 <div className="flex flex-col items-center">
                    <span className="text-5xl md:text-7xl font-display font-black text-slate-200 tracking-tighter leading-none mb-2">VS</span>
-                   <div className="h-1.5 w-12 bg-electric-blue/10 rounded-full" />
+                   <div className="h-1.5 w-12 bg-sapphire-blue/10 rounded-full" />
                 </div>
 
                 <div className="flex flex-col items-center gap-3">

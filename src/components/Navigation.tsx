@@ -53,7 +53,7 @@ export function Navigation() {
               to={item.path}
               className={({ isActive }) => cn(
                 "flex flex-col items-center gap-1 transition-all duration-300 relative group",
-                isActive ? "text-electric-blue" : "text-slate-500 hover:text-primary-slate/70"
+                isActive ? "text-sapphire-blue" : "text-slate-500 hover:text-primary-slate/70"
               )}
             >
               <item.icon size={20} className="transition-all duration-300" />
@@ -71,7 +71,7 @@ export function Navigation() {
         {/* Brand Logo */}
         <div className="flex items-center gap-3 mb-16 group cursor-default">
           <div className="size-12 rounded-2xl bg-primary-navy shadow-xl shadow-primary-navy/20 flex items-center justify-center transform group-hover:rotate-6 transition-transform">
-            <Crown size={24} className="text-neon-orange" />
+            <Crown size={24} className="text-olympic-gold" />
           </div>
           <div>
             <h2 className="text-primary-navy font-display font-black text-xl leading-tight">Precision</h2>
@@ -84,7 +84,7 @@ export function Navigation() {
           <div className="mb-6 px-4">
              <ReportScore 
                trigger={
-                 <Button className="w-full h-14 rounded-2xl bg-electric-blue hover:bg-slate-800 text-white font-display font-black text-sm tracking-widest shadow-xl shadow-electric-blue/20 transition-all border-none">
+                 <Button className="w-full h-14 rounded-2xl bg-sapphire-blue hover:bg-slate-800 text-white font-display font-black text-sm tracking-widest shadow-xl shadow-sapphire-blue/20 transition-all border-none">
                     <Plus className="mr-2 h-5 w-5" />
                     申報比分
                  </Button>

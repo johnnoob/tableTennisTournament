@@ -68,15 +68,15 @@ export function PlayerAnalysis() {
         {/* 1. Hero Card - Responsive Side-by-Side on Desktop */}
         <section className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center lg:items-start lg:text-left text-center gap-8 md:gap-12 relative overflow-hidden">
           <div className="relative group shrink-0">
-            <div className="absolute inset-0 rounded-3xl bg-electric-blue/10 scale-110 blur-2xl group-hover:bg-electric-blue/20 transition-all duration-500" />
-            <div className="relative size-40 md:size-56 rounded-[2rem] p-1 bg-gradient-to-tr from-electric-blue to-neon-orange overflow-hidden border-2 border-white shadow-2xl">
+            <div className="absolute inset-0 rounded-3xl bg-sapphire-blue/10 scale-110 blur-2xl group-hover:bg-sapphire-blue/20 transition-all duration-500" />
+            <div className="relative size-40 md:size-56 rounded-[2rem] p-1 bg-gradient-to-tr from-sapphire-blue to-olympic-gold overflow-hidden border-2 border-white shadow-2xl">
               <img
                 src={player.avatar}
                 alt={player.name}
                 className="w-full h-full rounded-[1.8rem] object-cover"
               />
               <div className="absolute bottom-3 right-3 bg-white rounded-full p-1.5 shadow-md border border-slate-50 z-10">
-                <ShieldCheck size={24} className="text-electric-blue fill-electric-blue/10" />
+                <ShieldCheck size={24} className="text-sapphire-blue fill-sapphire-blue/10" />
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ export function PlayerAnalysis() {
           <div className="flex-1 space-y-6 md:space-y-8 relative py-2">
             <div className="space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 justify-center lg:justify-start">
-                <span className="bg-electric-blue/10 text-electric-blue px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-electric-blue/5 self-center lg:self-auto">
+                <span className="bg-sapphire-blue/10 text-sapphire-blue px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-sapphire-blue/5 self-center lg:self-auto">
                   Global Rank #{player.rank.toString().padStart(2, '0')}
                 </span>
               </div>
@@ -114,7 +114,7 @@ export function PlayerAnalysis() {
             value={player.stats.seasonWinRate || 0}
             unit="%"
             icon={<TrendingUp size={24} />}
-            color="text-neon-orange"
+            color="text-olympic-gold"
             trend="+0.5% Consistency"
           />
           <StatCard
@@ -122,7 +122,7 @@ export function PlayerAnalysis() {
             value={player.stats.maxStreak || 0}
             unit="Wins"
             icon={<Zap size={24} />}
-            color="text-electric-blue"
+            color="text-sapphire-blue"
             trend="Active Streak: 4"
           />
           <StatCard
@@ -146,7 +146,7 @@ export function PlayerAnalysis() {
               </div>
               <div className="flex gap-2 p-1 bg-slate-50 rounded-xl">
                 {['1W', '1M', 'ALL'].map(t => (
-                  <button key={t} className={cn("px-3 py-1 rounded-lg text-xs font-black uppercase transition-all", t === '1M' ? "bg-electric-blue text-white shadow-sm" : "text-slate-500 hover:text-primary-navy")}>
+                  <button key={t} className={cn("px-3 py-1 rounded-lg text-xs font-black uppercase transition-all", t === '1M' ? "bg-sapphire-blue text-white shadow-sm" : "text-slate-500 hover:text-primary-navy")}>
                     {t}
                   </button>
                 ))}
@@ -284,7 +284,7 @@ export function PlayerAnalysis() {
         {/* 5. Doubles Synergy Insights - NEW SECTION */}
         <section className="space-y-8">
            <div className="flex items-center gap-3 px-2 border-b border-slate-100 pb-4">
-              <div className="size-10 rounded-2xl bg-electric-blue flex items-center justify-center shadow-lg shadow-electric-blue/20">
+              <div className="size-10 rounded-2xl bg-sapphire-blue flex items-center justify-center shadow-lg shadow-sapphire-blue/20">
                  <Handshake size={20} className="text-white" />
               </div>
               <div>
@@ -298,8 +298,8 @@ export function PlayerAnalysis() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
                   <div className="flex items-center gap-2">
-                    <Users size={18} className="text-amber-500" />
-                    <h4 className="text-xs font-black text-amber-500 uppercase tracking-[0.2em]">Golden Partner</h4>
+                    <Users size={18} className="text-olympic-gold" />
+                    <h4 className="text-xs font-black text-olympic-gold uppercase tracking-[0.2em]">Golden Partner</h4>
                   </div>
                   <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Max Synergy</span>
                 </div>
@@ -370,11 +370,11 @@ function RivalCard({ rival, type }: { rival: any, type: 'nemesis' | 'prey' }) {
           </div>
         </div>
         <div className="flex-1">
-          <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-electric-blue transition-colors italic uppercase">{rival.name}</h5>
+          <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-sapphire-blue transition-colors italic uppercase">{rival.name}</h5>
           <div className="flex items-center gap-2 mt-1">
             <span className={cn(
               "text-xs font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg",
-              isNemesis ? "text-red-500 bg-red-50" : "text-electric-blue bg-electric-blue/5"
+              isNemesis ? "text-red-500 bg-red-50" : "text-sapphire-blue bg-sapphire-blue/5"
             )}>
               {isNemesis ? "Negative Matchup" : "Preferred Prey"}
             </span>
@@ -407,13 +407,13 @@ function SynergyCard({ rival, type }: { rival: any, type: 'golden' | 'worst' }) 
           <img src={rival.avatar} alt={rival.name} className="size-16 md:size-20 rounded-2xl object-cover border border-slate-100 shadow-sm transition-transform group-hover:scale-105" />
           <div className={cn(
             "absolute -bottom-2 -right-2 size-7 rounded-full border-2 border-white flex items-center justify-center text-white shadow-md",
-            isGolden ? "bg-amber-500" : "bg-purple-500"
+            isGolden ? "bg-olympic-gold" : "bg-purple-500"
           )}>
             {isGolden ? <Handshake size={14} /> : <Ghost size={14} />}
           </div>
         </div>
         <div className="flex-1">
-          <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-electric-blue transition-colors italic uppercase">{rival.name}</h5>
+          <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-sapphire-blue transition-colors italic uppercase">{rival.name}</h5>
           <div className="flex items-center gap-2 mt-1">
             <span className={cn(
               "text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg",
@@ -427,7 +427,7 @@ function SynergyCard({ rival, type }: { rival: any, type: 'golden' | 'worst' }) 
         <div className="text-right">
           <p className={cn(
             "text-3xl md:text-4xl font-display font-black tracking-tighter leading-none italic",
-            isGolden ? "text-amber-500" : "text-purple-500"
+            isGolden ? "text-olympic-gold" : "text-purple-500"
           )}>
             {rival.winRate}%
           </p>

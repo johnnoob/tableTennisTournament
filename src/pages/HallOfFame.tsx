@@ -30,7 +30,7 @@ export function HallOfFame() {
       {/* Header - Editorial Style */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 max-w-7xl mx-auto w-full">
         <div className="space-y-1">
-          <p className="text-xs md:text-xs font-black text-electric-blue uppercase tracking-[0.2em]">Institutional Records</p>
+          <p className="text-xs md:text-xs font-black text-sapphire-blue uppercase tracking-[0.2em]">Institutional Records</p>
           <h1 className="text-3xl md:text-5xl text-primary-navy font-display font-black tracking-tight">歷屆賽事榮譽榜</h1>
         </div>
 
@@ -96,22 +96,22 @@ export function HallOfFame() {
           <div className="flex flex-col items-center gap-8 w-1/3 md:w-64 z-10 group hover:scale-[1.05] transition-all duration-500 cursor-pointer animate-in slide-in-from-bottom-12">
              <div className="relative p-2 rounded-full bg-linear-to-tr from-[#BF953F] via-[#F3E5AB] to-[#FEF9E7] shadow-2xl">
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
-                   <div className="bg-neon-orange p-2 rounded-lg shadow-lg shadow-neon-orange/20 border-2 border-white transform rotate-45">
+                   <div className="bg-olympic-gold p-2 rounded-lg shadow-lg shadow-olympic-gold/20 border-2 border-white transform rotate-45">
                       <Trophy size={18} className="text-white transform -rotate-45" />
                    </div>
                 </div>
                 <div className="rounded-full bg-slate-50">
                    <img src={topThree[0].avatar} alt={topThree[0].name} className="size-24 md:size-44 rounded-full object-cover shadow-inner" />
                 </div>
-                <div className="absolute bottom-0 -right-2 size-9 md:size-12 rounded-full bg-neon-orange border-2 md:border-4 border-white flex items-center justify-center font-display font-black text-white text-sm md:text-lg shadow-md">1</div>
+                <div className="absolute bottom-0 -right-2 size-9 md:size-12 rounded-full bg-olympic-gold border-2 md:border-4 border-white flex items-center justify-center font-display font-black text-white text-sm md:text-lg shadow-md">1</div>
              </div>
              <div className="w-full h-44 md:h-64 bg-primary-navy rounded-t-[2.5rem] md:rounded-t-[3.5rem] shadow-2xl shadow-primary-navy/20 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-primary-navy/95 transition-colors">
                 <h3 className="font-sans font-black text-white/40 text-xs md:text-base text-center truncate w-full">{topThree[0].name} {topThree[0].username}</h3>
                 <span className="font-display font-black text-2xl md:text-5xl text-white mt-1 md:mt-2 tracking-tighter">
                   {(mode === 'doubles' ? (topThree[0].doublesRating ?? topThree[0].rating) : topThree[0].rating).toLocaleString()}
                 </span>
-                <div className="mt-4 md:mt-6 px-3 py-1.5 md:px-5 md:py-2.5 bg-neon-orange/10 border border-neon-orange/20 rounded-full">
-                   <span className="text-[8px] md:text-xs font-black text-neon-orange uppercase tracking-[0.2em]">Season Champion</span>
+                <div className="mt-4 md:mt-6 px-3 py-1.5 md:px-5 md:py-2.5 bg-olympic-gold/10 border border-olympic-gold/20 rounded-full">
+                   <span className="text-[8px] md:text-xs font-black text-olympic-gold uppercase tracking-[0.2em]">Season Champion</span>
                 </div>
              </div>
           </div>
@@ -227,7 +227,7 @@ export function HallOfFame() {
         </div>
 
         <div className="p-8 flex justify-center border-t border-slate-50">
-           <Button variant="ghost" className="group text-electric-blue font-sans font-black text-sm uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 py-6 px-8 rounded-2xl">
+           <Button variant="ghost" className="group text-sapphire-blue font-sans font-black text-sm uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 py-6 px-8 rounded-2xl">
               View More Rankings
               <ChevronRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
            </Button>
