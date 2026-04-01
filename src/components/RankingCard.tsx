@@ -7,10 +7,17 @@ import { Link } from 'react-router-dom';
 interface RankingCardProps {
   player: Player;
   variant?: 'featured' | 'standard';
+  mode?: 'singles' | 'doubles';
 }
 
-export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCardProps>) {
+export function RankingCard({ player, variant = 'standard', mode = 'singles' }: Readonly<RankingCardProps>) {
   const isFeatured = variant === 'featured';
+  
+  // Dynamic stats based on mode
+  const isDoubles = mode === 'doubles';
+  const displayRating = isDoubles ? (player.doublesRating ?? player.rating) : player.rating;
+  const displayRank = isDoubles ? (player.doublesRank ?? player.rank) : player.rank;
+  const displayStats = isDoubles ? (player.doublesStats ?? player.stats) : player.stats;
 
   return (
     <Link to={`/player/${player.id}`} className="block group">
@@ -23,7 +30,7 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
           "absolute -left-4 -top-4 flex items-center justify-center font-display font-black rounded-full shadow-2xl z-20 border-4 border-white transform transition-transform group-hover:scale-110",
           isFeatured ? "size-16 text-2xl bg-neon-orange text-white" : "size-12 text-xl bg-electric-blue text-white"
         )}>
-          {player.rank}
+          {displayRank}
         </div>
 
         <CardContent className="p-0 flex flex-col pt-3 pl-6">
@@ -72,7 +79,7 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
                 "font-display font-black tracking-tighter leading-none",
                 isFeatured ? "text-3xl md:text-5xl text-white" : "text-2xl md:text-3xl text-primary-navy"
               )}>
-                {player.rating}
+                {displayRating}
               </div>
               <p className="text-[9px] md:text-[10px] uppercase underline underline-offset-4 decoration-neon-orange/50 tracking-[0.2em] md:tracking-[0.3em] font-sans font-black opacity-60 mt-1 md:mt-2 flex items-center gap-1 md:gap-2 justify-end">
                 MMR
@@ -88,17 +95,17 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
           )}>
             <div className="space-y-1">
               <p className="text-[9px] md:text-[10px] uppercase font-sans font-black opacity-50 tracking-[0.2em]">Win Rate</p>
-              <p className={cn("font-display font-black text-xl md:text-2xl", isFeatured ? "text-white" : "text-primary-navy")}>{player.stats.winRate}%</p>
+              <p className={cn("font-display font-black text-xl md:text-2xl", isFeatured ? "text-white" : "text-primary-navy")}>{displayStats.winRate}%</p>
             </div>
             <div className={cn("space-y-1 pl-4 md:pl-6 border-l", isFeatured ? "border-white/10" : "border-slate-100")}>
               <p className="text-[9px] md:text-[10px] uppercase font-sans font-black opacity-50 tracking-[0.2em]">Matches</p>
-              <p className={cn("font-display font-black text-xl md:text-2xl", isFeatured ? "text-white" : "text-primary-navy")}>{player.stats.wins + player.stats.losses}</p>
+              <p className={cn("font-display font-black text-xl md:text-2xl", isFeatured ? "text-white" : "text-primary-navy")}>{displayStats.wins + displayStats.losses}</p>
             </div>
             <div className="ml-auto">
               <div className="text-right">
                  <p className="text-[9px] md:text-[10px] uppercase font-sans font-black opacity-50 tracking-[0.2em] mb-1">Record</p>
                  <div className="flex gap-2 text-[10px] md:text-sm font-sans font-black">
-                   <span className="text-neon-orange whitespace-nowrap">{player.stats.wins} <span className="text-[9px] opacity-70">W</span></span>
+                   <span className="text-neon-orange whitespace-nowrap">{displayStats.wins} <span className="text-[9px] opacity-70">W</span></span>
                    <span className={cn("whitespace-nowrap", isFeatured ? "text-slate-400" : "text-slate-500")}>{player.stats.losses} <span className="text-[9px] opacity-70">L</span></span>
                  </div>
               </div>

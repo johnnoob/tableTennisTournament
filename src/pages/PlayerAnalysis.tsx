@@ -13,7 +13,11 @@ import {
   HandMetal,
   Target,
   Shield,
-  Layers
+  Layers,
+  Users,
+  Handshake,
+  CloudLightning,
+  Ghost
 } from 'lucide-react';
 import {
   LineChart,
@@ -277,6 +281,57 @@ export function PlayerAnalysis() {
           </div>
         </section>
 
+        {/* 5. Doubles Synergy Insights - NEW SECTION */}
+        <section className="space-y-8">
+           <div className="flex items-center gap-3 px-2 border-b border-slate-100 pb-4">
+              <div className="size-10 rounded-2xl bg-electric-blue flex items-center justify-center shadow-lg shadow-electric-blue/20">
+                 <Handshake size={20} className="text-white" />
+              </div>
+              <div>
+                 <h3 className="text-xl md:text-2xl font-display font-black text-primary-navy uppercase italic">Doubles Synergy Insights</h3>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cooperative performance analytics</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Golden Partner Column */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Users size={18} className="text-amber-500" />
+                    <h4 className="text-xs font-black text-amber-500 uppercase tracking-[0.2em]">Golden Partner</h4>
+                  </div>
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Max Synergy</span>
+                </div>
+                <div className="space-y-4">
+                  {player.goldenPartner?.map((rival) => (
+                    <SynergyCard key={rival.id} rival={rival} type="golden" />
+                  )) || (
+                      <div className="text-center py-12 text-slate-200 font-bold uppercase text-[12px] tracking-widest bg-white rounded-[2.5rem] border border-dashed border-slate-200">No Synergy Data</div>
+                    )}
+                </div>
+              </div>
+
+              {/* Worst Synergy Column */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <CloudLightning size={18} className="text-purple-500" />
+                    <h4 className="text-xs font-black text-purple-500 uppercase tracking-[0.2em]">Difficult Sync</h4>
+                  </div>
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Low Compatibility</span>
+                </div>
+                <div className="space-y-4">
+                  {player.worstPartner?.map((rival) => (
+                    <SynergyCard key={rival.id} rival={rival} type="worst" />
+                  )) || (
+                      <div className="text-center py-12 text-slate-200 font-bold uppercase text-[12px] tracking-widest bg-white rounded-[2.5rem] border border-dashed border-slate-200">No Synergy Data</div>
+                    )}
+                </div>
+              </div>
+           </div>
+        </section>
+
       </main>
     </div>
   );
@@ -340,3 +395,45 @@ function RivalCard({ rival, type }: { rival: any, type: 'nemesis' | 'prey' }) {
   );
 }
 
+function SynergyCard({ rival, type }: { rival: any, type: 'golden' | 'worst' }) {
+  const isGolden = type === 'golden';
+  return (
+    <Link to={`/player/${rival.id}`} className="block group">
+      <div className={cn(
+        "px-8 py-6 rounded-[2.5rem] border shadow-sm flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all",
+        isGolden ? "bg-white border-amber-100/50" : "bg-white border-purple-100/50"
+      )}>
+        <div className="relative">
+          <img src={rival.avatar} alt={rival.name} className="size-16 md:size-20 rounded-2xl object-cover border border-slate-100 shadow-sm transition-transform group-hover:scale-105" />
+          <div className={cn(
+            "absolute -bottom-2 -right-2 size-7 rounded-full border-2 border-white flex items-center justify-center text-white shadow-md",
+            isGolden ? "bg-amber-500" : "bg-purple-500"
+          )}>
+            {isGolden ? <Handshake size={14} /> : <Ghost size={14} />}
+          </div>
+        </div>
+        <div className="flex-1">
+          <h5 className="text-xl md:text-2xl font-display font-black text-primary-navy tracking-tight group-hover:text-electric-blue transition-colors italic uppercase">{rival.name}</h5>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={cn(
+              "text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg",
+              isGolden ? "text-amber-600 bg-amber-50" : "text-purple-500 bg-purple-50"
+            )}>
+              {isGolden ? "Elite Compatibility" : "Flow Disruption"}
+            </span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:inline">Synced Stats</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className={cn(
+            "text-3xl md:text-4xl font-display font-black tracking-tighter leading-none italic",
+            isGolden ? "text-amber-500" : "text-purple-500"
+          )}>
+            {rival.winRate}%
+          </p>
+          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">Win Rate as Team</p>
+        </div>
+      </div>
+    </Link>
+  );
+}

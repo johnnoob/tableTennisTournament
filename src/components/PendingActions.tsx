@@ -98,7 +98,7 @@ function ActionRequiredGroup({ matches }: { matches: Match[] }) {
 }
 
 function ActionMatchCard({ match }: { match: Match }) {
-  const opponentPlayer = match.opponent;
+  const opponentPlayers = match.opponent;
   const isLoss = match.score[0] < match.score[1]; 
   const lpChange = match.mmrChange[0];
   const [isDisputing, setIsDisputing] = useState(false);
@@ -176,12 +176,21 @@ function ActionMatchCard({ match }: { match: Match }) {
               {/* Opponent */}
               <div className="flex flex-col items-center gap-2">
                 <div className={cn(
-                  "size-14 rounded-2xl p-0.5 border-2",
-                  isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                  "flex transition-all",
+                  opponentPlayers.length > 1 ? "-space-x-3" : ""
                 )}>
-                  <img src={opponentPlayer.avatar} className="size-full rounded-xl object-cover" alt={opponentPlayer.name} />
+                  {opponentPlayers.map((p, i) => (
+                    <div key={p.id || i} className={cn(
+                      "size-12 rounded-2xl p-0.5 border-2 z-10",
+                      isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                    )}>
+                      <img src={p.avatar} className="size-full rounded-xl object-cover" alt={p.name} />
+                    </div>
+                  ))}
                 </div>
-                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{opponentPlayer.name}</span>
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest truncate w-24 text-center">
+                  {opponentPlayers.length > 1 ? opponentPlayers.map(p => p.name?.split(' ')[0] || '?').join('/') : opponentPlayers[0]?.name}
+                </span>
               </div>
             </div>
 
@@ -211,10 +220,16 @@ function ActionMatchCard({ match }: { match: Match }) {
           <div className="flex flex-col items-center gap-6">
              <div className="flex items-center gap-8 md:gap-12">
                 <div className="flex flex-col items-center gap-3">
-                   <div className="size-20 md:size-24 rounded-4xl border-4 border-white shadow-xl overflow-hidden">
-                      <img src={currentUser.avatar} className="size-full object-cover" alt={currentUser.name} />
+                   <div className={cn("flex -space-x-4 transition-all")}>
+                    {match.player1.map((p, i) => (
+                      <div key={p.id || i} className="size-16 md:size-20 rounded-4xl border-4 border-white shadow-xl overflow-hidden relative z-10">
+                        <img src={p.avatar} className="size-full object-cover" alt={p.name} />
+                      </div>
+                    ))}
                    </div>
-                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">{currentUser.name}</span>
+                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">
+                    {match.player1.length > 1 ? match.player1.map(p => p.name?.split(' ')[0] || '?').join('/') : match.player1[0]?.name}
+                   </span>
                 </div>
                 
                 <div className="flex flex-col items-center">
@@ -223,10 +238,16 @@ function ActionMatchCard({ match }: { match: Match }) {
                 </div>
 
                 <div className="flex flex-col items-center gap-3">
-                   <div className="size-20 md:size-24 rounded-4xl border-4 border-white shadow-xl overflow-hidden">
-                      <img src={opponentPlayer.avatar} className="size-full object-cover" alt={opponentPlayer.name} />
+                   <div className={cn("flex -space-x-4 transition-all")}>
+                    {opponentPlayers.map((p, i) => (
+                      <div key={p.id || i} className="size-16 md:size-20 rounded-4xl border-4 border-white shadow-xl overflow-hidden relative z-10">
+                        <img src={p.avatar} className="size-full object-cover" alt={p.name} />
+                      </div>
+                    ))}
                    </div>
-                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">{opponentPlayer.name}</span>
+                   <span className="text-sm font-black text-primary-navy tracking-widest uppercase">
+                    {opponentPlayers.length > 1 ? opponentPlayers.map(p => p.name?.split(' ')[0] || '?').join('/') : opponentPlayers[0]?.name}
+                   </span>
                 </div>
              </div>
 
@@ -265,7 +286,7 @@ function ActionMatchCard({ match }: { match: Match }) {
     return (
       <div className="bg-white rounded-3xl p-4 md:p-5 flex flex-col gap-3 border border-rose-100 shadow-sm relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-500" />
-        <h4 className="font-bold text-slate-700 text-sm">提出異議：與 {opponentPlayer.name} 的賽果</h4>
+        <h4 className="font-bold text-slate-700 text-sm">提出異議：對戰戰績</h4>
         <textarea 
           className="w-full text-sm rounded-xl border border-slate-200 bg-slate-50 p-3 h-20 resize-none focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 transition-all font-medium text-slate-700 placeholder:text-slate-400"
           placeholder="請簡述異議原因（例如：比分登錄錯誤、尚未完賽等）..."
@@ -292,15 +313,20 @@ function ActionMatchCard({ match }: { match: Match }) {
 
       {/* Opponent & Score Info */}
       <div className="flex items-center gap-4 flex-1">
-        <img 
-          src={opponentPlayer.avatar} 
-          alt={opponentPlayer.name} 
-          className="size-12 md:size-14 rounded-2xl object-cover shadow-sm bg-slate-50" 
-        />
+        <div className={cn("flex transition-all", opponentPlayers.length > 1 ? "-space-x-4" : "")}>
+          {opponentPlayers.map((p, i) => (
+            <img 
+              key={p.id || i}
+              src={p.avatar} 
+              alt={p.name} 
+              className="size-12 md:size-14 rounded-2xl object-cover shadow-sm bg-slate-50 border-2 border-white relative z-10" 
+            />
+          ))}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-             <span className="font-sans font-black text-primary-navy truncate text-sm md:text-base">
-                對戰：{opponentPlayer.name}
+             <span className="font-sans font-black text-primary-navy truncate text-xs md:text-base uppercase tracking-tight">
+                {opponentPlayers.length > 1 ? opponentPlayers.map(p => p.name?.split(' ')[0] || '?').join(' / ') : opponentPlayers[0]?.name}
              </span>
              <span className={cn(
                "text-xs md:text-sm font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border",
@@ -428,13 +454,19 @@ function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
                  const isLoss = match.score[0] < match.score[1];
                  
                  return (
-                 <div key={match.id} className="bg-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm border border-slate-50 gap-3">
+                <div key={match.id} className="bg-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm border border-slate-50 gap-3">
                     <div className="flex items-center gap-3">
-                       <img src={match.opponent.avatar} alt={match.opponent.name} className="size-8 rounded-lg grayscale opacity-60" />
+                       <div className={cn("flex -space-x-3 transition-all")}>
+                        {match.opponent.map((p, i) => (
+                          <img key={p.id || i} src={p.avatar} alt={p.name} className="size-8 rounded-lg grayscale opacity-60 border border-white" />
+                        ))}
+                       </div>
                        <div className="flex items-center gap-2">
-                         <span className="text-sm font-bold text-slate-600">{match.opponent.name}</span>
+                         <span className="text-[10px] md:text-sm font-bold text-slate-600 uppercase">
+                          {match.opponent.length > 1 ? match.opponent.map(p => p.name?.split(' ')[0] || '?').join('/') : match.opponent[0]?.name}
+                         </span>
                          <span className={cn(
-                           "text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                           "text-[9px] md:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
                            isLoss ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-600"
                          )}>
                            {isLoss ? 'LOSS' : 'WIN'}
@@ -450,7 +482,7 @@ function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
                        <div className="flex items-center gap-1 shrink-0">
                          <ReportScore 
                            editMode
-                           initialOpponentId={match.opponent.id}
+                           initialOpponentId={match.opponent[0]?.id}
                            initialScoreA={match.score[0]}
                            initialScoreB={match.score[1]}
                            trigger={

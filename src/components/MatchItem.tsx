@@ -46,17 +46,27 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
         {/* Dashboard Arena View - Optimized for Mobile Horizontal */}
         <div className="flex items-center justify-between gap-3 md:gap-4 relative overflow-hidden">
            
-           {/* Player 1 - Left Section */}
+           {/* Team 1 - Left Section */}
            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-              <div className="relative shrink-0">
-                 <img src={match.player1?.avatar} alt={match.player1?.name} className="size-12 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-slate-100 shadow-sm" />
+              <div className={cn("flex shrink-0 transition-all", match.player1.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
+                 {match.player1.map((p, i) => (
+                    <div key={p.id || i} className="relative z-10">
+                       <img 
+                          src={p.avatar} 
+                          alt={p.name} 
+                          className="size-10 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-white shadow-sm ring-1 ring-slate-100" 
+                       />
+                    </div>
+                 ))}
               </div>
               <div className="flex flex-col min-w-0">
-                 <span className="font-display font-black text-primary-navy text-sm md:text-xl truncate leading-tight uppercase tracking-tight">
-                    {match.player1?.name}
+                 <span className="font-display font-black text-primary-navy text-xs md:text-xl truncate leading-tight uppercase tracking-tight">
+                    {match.player1.length > 1 
+                       ? match.player1.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
+                       : match.player1[0]?.name}
                  </span>
                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={cn("text-sm font-black font-display", p1Change > 0 ? "text-emerald-600" : "text-rose-500")}>
+                    <span className={cn("text-[10px] md:text-sm font-black font-display", p1Change > 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p1Change > 0 ? `+${p1Change}` : p1Change} LP
                     </span>
                     <TrendingUp size={12} strokeWidth={3} className={cn(p1Change > 0 ? "text-emerald-500" : "text-rose-400 rotate-180")} />
@@ -65,38 +75,48 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
            </div>
 
            {/* Central Score Display */}
-           <div className="flex flex-col items-center justify-center px-2 md:px-4 shrink-0">
-              <div className="flex items-center gap-1.5 md:gap-3">
-                 <span className="text-2xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
+           <div className="flex flex-col items-center justify-center px-1 md:px-4 shrink-0">
+              <div className="flex items-center gap-1 md:gap-3">
+                 <span className="text-xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
                     {match.score[0]}
                  </span>
-                 <span className="text-slate-200 text-base md:text-2xl font-black">:</span>
-                 <span className="text-2xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
+                 <span className="text-slate-200 text-sm md:text-2xl font-black">:</span>
+                 <span className="text-xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
                     {match.score[1]}
                  </span>
               </div>
-              <div className="mt-1.5 md:mt-3 px-2 py-0.5 md:px-3 md:py-1 bg-slate-50 rounded-sm md:rounded-md">
-                 <span className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">
-                   {match.score[0] + match.score[1] >= 5 ? 'BO5' : 'BO3'}
+              <div className="mt-1 md:mt-3 px-1.5 py-0.5 md:px-3 md:py-1 bg-slate-50 rounded-sm md:rounded-md">
+                 <span className="text-[10px] md:text-sm font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                   {match.type === 'doubles' ? '2V2' : match.score[0] + match.score[1] >= 5 ? 'BO5' : 'BO3'}
                  </span>
               </div>
            </div>
 
-           {/* Player 2 - Right Section */}
+           {/* Team 2 - Right Section */}
            <div className="flex items-center justify-end gap-3 md:gap-4 flex-1 min-w-0 text-right">
               <div className="flex flex-col min-w-0 order-1">
-                 <span className="font-display font-black text-primary-navy text-sm md:text-xl truncate leading-tight uppercase tracking-tight">
-                    {match.opponent?.name}
+                 <span className="font-display font-black text-primary-navy text-xs md:text-xl truncate leading-tight uppercase tracking-tight">
+                    {match.opponent.length > 1 
+                       ? match.opponent.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
+                       : match.opponent[0]?.name}
                  </span>
                  <div className="flex items-center justify-end gap-1.5 mt-1">
-                    <span className={cn("text-sm font-black font-display", p2Change > 0 ? "text-emerald-600" : "text-rose-500")}>
+                    <span className={cn("text-[10px] md:text-sm font-black font-display", p2Change > 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p2Change > 0 ? `+${p2Change}` : p2Change} LP
                     </span>
                     <TrendingDown size={12} strokeWidth={3} className={cn(p2Change < 0 ? "text-rose-400" : "text-emerald-500 rotate-180")} />
                  </div>
               </div>
-              <div className="relative shrink-0 order-2">
-                 <img src={match.opponent?.avatar} alt={match.opponent?.name} className="size-12 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-slate-100 shadow-sm" />
+              <div className={cn("flex shrink-0 order-2 transition-all", match.opponent.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
+                 {match.opponent.map((p, i) => (
+                    <div key={p.id || i} className="relative z-10">
+                       <img 
+                          src={p.avatar} 
+                          alt={p.name} 
+                          className="size-10 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-white shadow-sm ring-1 ring-slate-100" 
+                       />
+                    </div>
+                 ))}
               </div>
            </div>
         </div>

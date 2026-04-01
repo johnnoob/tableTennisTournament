@@ -1,15 +1,18 @@
+import { useState } from 'react';
 import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
 import type { Match, RivalryItem } from '@/data/mockData';
 import { RankingCard } from '@/components/RankingCard';
 import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
-import { Bell, Search, Plus, Filter, Skull, Crown } from 'lucide-react';
+import { Bell, Search, Plus, Skull, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
 import { PendingActions } from '@/components/PendingActions';
 
 export function Dashboard() {
+  const [rivalMode, setRivalMode] = useState<'singles' | 'doubles'>('singles');
+  
   return (
     <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white">
       
@@ -117,16 +120,31 @@ export function Dashboard() {
           <section className="space-y-6 pt-0">
             <div className="flex items-center justify-between border-b border-slate-50 pb-4">
               <h2 className="text-xl text-primary-navy font-display font-bold">Top Rivals</h2>
-              <div className="flex gap-2">
-                 <Button variant="ghost" size="icon" className="size-8 rounded-lg bg-slate-50">
-                    <Filter size={14} className="text-primary-navy" />
-                 </Button>
+              <div className="flex bg-slate-50 p-1 rounded-xl">
+                 <button 
+                  onClick={() => setRivalMode('singles')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                    rivalMode === 'singles' ? "bg-white text-primary-navy shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                  )}
+                 >
+                    Singles
+                 </button>
+                 <button 
+                  onClick={() => setRivalMode('doubles')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                    rivalMode === 'doubles' ? "bg-white text-primary-navy shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                  )}
+                 >
+                    Doubles
+                 </button>
               </div>
             </div>
             <div className="space-y-4">
               {players.slice(0, 3).map(player => (
                 <div key={player.id} className="hover:translate-x-1 transition-transform">
-                   <RankingCard player={player} />
+                   <RankingCard player={player} mode={rivalMode} />
                 </div>
               ))}
               <Button className="w-full bg-slate-50 hover:bg-slate-100 text-primary-navy border border-slate-100/50 py-7 rounded-3xl font-sans font-black text-xs uppercase tracking-widest">

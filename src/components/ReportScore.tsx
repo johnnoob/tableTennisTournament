@@ -10,6 +10,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -42,7 +47,10 @@ export function ReportScore({
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [scoreA, setScoreA] = React.useState(initialScoreA)
   const [scoreB, setScoreB] = React.useState(initialScoreB)
+  const [matchType, setMatchType] = React.useState<'singles' | 'doubles'>('singles')
   const [selectedOpponentId, setSelectedOpponentId] = React.useState<string | null>(initialOpponentId)
+  const [selectedPartnerId, setSelectedPartnerId] = React.useState<string | null>(null)
+  const [selectedOpponentIds, setSelectedOpponentIds] = React.useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
 
@@ -52,13 +60,22 @@ export function ReportScore({
       setScoreA(initialScoreA)
       setScoreB(initialScoreB)
       setSelectedOpponentId(initialOpponentId)
+      setSelectedPartnerId(null)
+      setSelectedOpponentIds([])
+      setMatchType('singles')
     }
   }, [open, initialScoreA, initialScoreB, initialOpponentId, isSuccess])
 
   const selectedOpponent = allPlayers.find(p => p.id === selectedOpponentId)
+  const selectedPartner = allPlayers.find(p => p.id === selectedPartnerId)
+  const selectedOpponents = allPlayers.filter(p => selectedOpponentIds.includes(p.id))
+
+  const isReady = matchType === 'singles' 
+    ? !!selectedOpponentId 
+    : (!!selectedPartnerId && selectedOpponentIds.length === 2)
 
   const handleSubmit = async () => {
-    if (!selectedOpponentId) return
+    if (!isReady) return
     setIsSubmitting(true)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
@@ -90,15 +107,30 @@ export function ReportScore({
             </div>
             
             <div className="flex items-center justify-between relative z-10">
-              {/* Me */}
+              {/* Me / My Team */}
               <div className="flex flex-col items-center gap-2">
                 <div className={cn(
-                  "size-14 rounded-2xl p-0.5 border-2",
-                  scoreA > scoreB ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                  "flex items-center justify-center transition-all",
+                  matchType === 'doubles' && selectedPartner ? "-space-x-4" : ""
                 )}>
-                  <img src={currentUser.avatar} className="size-full rounded-xl object-cover" alt={currentUser.name} />
+                  <div className={cn(
+                    "size-14 rounded-2xl p-0.5 border-2 bg-white relative z-10",
+                    scoreA > scoreB ? "border-emerald-500" : "border-slate-200"
+                  )}>
+                    <img src={currentUser.avatar} className="size-full rounded-xl object-cover" alt={currentUser.name} />
+                  </div>
+                  {matchType === 'doubles' && selectedPartner && (
+                    <div className={cn(
+                      "size-14 rounded-2xl p-0.5 border-2 bg-white relative z-0",
+                      scoreA > scoreB ? "border-emerald-500" : "border-slate-200"
+                    )}>
+                      <img src={selectedPartner.avatar} className="size-full rounded-xl object-cover" alt={selectedPartner.name} />
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{currentUser.name}</span>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest line-clamp-1 w-20 text-center">
+                  {matchType === 'doubles' && selectedPartner ? "TEAM US" : currentUser.name}
+                </span>
               </div>
 
               {/* Score Display */}
@@ -114,15 +146,33 @@ export function ReportScore({
                 </div>
               </div>
 
-              {/* Opponent */}
+              {/* Opponent / Opponent Team */}
               <div className="flex flex-col items-center gap-2">
                 <div className={cn(
-                  "size-14 rounded-2xl p-0.5 border-2",
-                  scoreB > scoreA ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                  "flex items-center justify-center transition-all",
+                  matchType === 'doubles' && selectedOpponents.length > 1 ? "-space-x-4" : ""
                 )}>
-                  <img src={selectedOpponent?.avatar} className="size-full rounded-xl object-cover" alt={selectedOpponent?.name} />
+                  {matchType === 'doubles' ? (
+                    selectedOpponents.map((p, i) => (
+                      <div key={p.id} className={cn(
+                        "size-14 rounded-2xl p-0.5 border-2 bg-white",
+                        scoreB > scoreA ? "border-emerald-500" : "border-slate-200"
+                      )} style={{ zIndex: selectedOpponents.length - i }}>
+                        <img src={p.avatar} className="size-full rounded-xl object-cover" alt={p.name} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className={cn(
+                      "size-14 rounded-2xl p-0.5 border-2 bg-white",
+                      scoreB > scoreA ? "border-emerald-500" : "border-slate-200"
+                    )}>
+                      <img src={selectedOpponent?.avatar} className="size-full rounded-xl object-cover" alt={selectedOpponent?.name} />
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{selectedOpponent?.name}</span>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest line-clamp-1 w-20 text-center">
+                  {matchType === 'doubles' ? "TEAM THEM" : selectedOpponent?.name}
+                </span>
               </div>
             </div>
 
@@ -149,6 +199,9 @@ export function ReportScore({
                 setScoreA(0);
                 setScoreB(0);
                 setSelectedOpponentId(null);
+                setSelectedPartnerId(null);
+                setSelectedOpponentIds([]);
+                setMatchType('singles');
               }, 300);
             }} 
             className="w-full h-14 rounded-[1.5rem] bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-widest uppercase transition-all shadow-xl shadow-primary-navy/20"
@@ -158,50 +211,126 @@ export function ReportScore({
         </div>
       ) : (
         <>
-          {/* Opponent Selection */}
+          {/* Match Type Selection */}
+          {!editMode && (
+            <Tabs 
+              value={matchType} 
+              onValueChange={(val) => {
+                setMatchType(val as 'singles' | 'doubles');
+                setSelectedOpponentId(null);
+                setSelectedPartnerId(null);
+                setSelectedOpponentIds([]);
+              }} 
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 rounded-2xl p-1 bg-slate-100">
+                <TabsTrigger value="singles" className="rounded-xl font-bold py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">單打 Singles</TabsTrigger>
+                <TabsTrigger value="doubles" className="rounded-xl font-bold py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">雙打 Doubles</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Player Selection */}
           <section className="space-y-4">
-            <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 ml-1">選擇對手</label>
-            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-4 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
-              {allPlayers.slice(0, 5).map((player) => (
-                <button
-                  key={player.id}
-                  onClick={() => !editMode && setSelectedOpponentId(player.id)}
-                  disabled={editMode}
-                  className={cn(
-                    "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
-                    selectedOpponentId === player.id 
-                      ? "bg-electric-blue/5 border-electric-blue shadow-lg shadow-electric-blue/10 scale-105 z-10" 
-                      : editMode
-                        ? "bg-slate-50 border-transparent grayscale opacity-30 cursor-not-allowed"
-                        : "bg-slate-50 border-transparent grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
-                  )}
+            <div className="flex items-center justify-between ml-1">
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                {matchType === 'singles' ? '選擇對手' : (
+                  !selectedPartnerId ? '請選擇您的搭檔 (1/1)' : `請選擇對手 (${selectedOpponentIds.length}/2)`
+                )}
+              </label>
+              {matchType === 'doubles' && (selectedPartnerId || selectedOpponentIds.length > 0) && (
+                <button 
+                  onClick={() => {
+                    setSelectedPartnerId(null);
+                    setSelectedOpponentIds([]);
+                  }}
+                  className="text-[10px] font-black text-electric-blue uppercase tracking-widest hover:underline"
                 >
-                  <img src={player.avatar} alt={player.name} className="size-10 md:size-12 rounded-xl object-cover shadow-sm" />
-                  <span className="text-sm md:text-sm font-bold text-primary-navy truncate w-full text-center">{player.name}</span>
+                  重設選擇
                 </button>
-              ))}
+              )}
+            </div>
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
+              {allPlayers.filter(p => p.id !== currentUser.id).slice(0, 10).map((player) => {
+                const isPartner = selectedPartnerId === player.id;
+                const isOpponent = matchType === 'singles' ? selectedOpponentId === player.id : selectedOpponentIds.includes(player.id);
+                const isSelected = isPartner || isOpponent;
+
+                return (
+                  <button
+                    key={player.id}
+                    onClick={() => {
+                      if (editMode) return;
+                      if (matchType === 'singles') {
+                        setSelectedOpponentId(player.id);
+                      } else {
+                        if (!selectedPartnerId) {
+                          setSelectedPartnerId(player.id);
+                        } else if (isPartner) {
+                          setSelectedPartnerId(null);
+                        } else if (isOpponent) {
+                          setSelectedOpponentIds(prev => prev.filter(id => id !== player.id));
+                        } else if (selectedOpponentIds.length < 2) {
+                          setSelectedOpponentIds(prev => [...prev, player.id]);
+                        }
+                      }
+                    }}
+                    disabled={editMode}
+                    className={cn(
+                      "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
+                      isSelected 
+                        ? isPartner 
+                          ? "bg-amber-50 border-amber-400 shadow-lg shadow-amber-200/20 scale-105 z-10"
+                          : "bg-electric-blue/5 border-electric-blue shadow-lg shadow-electric-blue/10 scale-105 z-10"
+                        : editMode
+                          ? "bg-slate-50 border-transparent grayscale opacity-30 cursor-not-allowed"
+                          : "bg-slate-50 border-transparent grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                    )}
+                  >
+                    <div className="relative">
+                      <img src={player.avatar} alt={player.name} className="size-10 md:size-12 rounded-xl object-cover shadow-sm" />
+                      {isSelected && (
+                        <div className={cn(
+                          "absolute -top-1 -right-1 size-4 rounded-full flex items-center justify-center text-[8px] font-black text-white",
+                          isPartner ? "bg-amber-500" : "bg-electric-blue"
+                        )}>
+                          {isPartner ? "T" : "O"}
+                        </div>
+                      )}
+                    </div>
+                    <span className={cn(
+                      "text-[10px] md:text-xs font-bold truncate w-full text-center",
+                      isSelected ? "text-primary-navy" : "text-slate-500"
+                    )}>{player.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
           {/* Score Input */}
           <section className="space-y-6">
             <div className="flex items-center justify-between gap-4">
-              {/* My Score */}
               <ScoreControl 
                 value={scoreA} 
                 onChange={setScoreA} 
-                avatar={currentUser.avatar}
-                name={currentUser.name}
+                avatars={matchType === 'doubles' && selectedPartner ? [currentUser.avatar, selectedPartner.avatar] : [currentUser.avatar]}
+                names={matchType === 'doubles' && selectedPartner ? [currentUser.name, selectedPartner.name] : [currentUser.name]}
                 status={scoreA > scoreB ? 'win' : scoreA < scoreB ? 'loss' : 'draw'}
               />
               <div className="text-2xl font-display font-black text-slate-500 transform translate-y-4">:</div>
-              {/* Opponent Score */}
               <ScoreControl 
                 value={scoreB} 
                 onChange={setScoreB} 
-                avatar={selectedOpponent?.avatar || ""}
-                name={selectedOpponent?.name || "???"}
-                placeholder
+                avatars={matchType === 'doubles' 
+                  ? selectedOpponents.map(p => p.avatar)
+                  : selectedOpponent ? [selectedOpponent.avatar] : []
+                }
+                names={matchType === 'doubles' 
+                  ? selectedOpponents.map(p => p.name)
+                  : selectedOpponent ? [selectedOpponent.name] : ["???"]
+                }
+                placeholder={matchType === 'singles' ? !selectedOpponentId : selectedOpponentIds.length < 2}
                 status={scoreB > scoreA ? 'win' : scoreB < scoreA ? 'loss' : 'draw'}
               />
             </div>
@@ -231,7 +360,7 @@ export function ReportScore({
              <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={!selectedOpponentId || isSubmitting}
+                  disabled={!isReady || isSubmitting}
                   className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
                 >
                   {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -248,7 +377,7 @@ export function ReportScore({
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!selectedOpponentId || isSubmitting}
+                disabled={!isReady || isSubmitting}
                 className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
                 {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -295,7 +424,7 @@ export function ReportScore({
           {!isSuccess && (
             <Button 
               onClick={handleSubmit} 
-              disabled={!selectedOpponentId || isSubmitting}
+              disabled={!isReady || isSubmitting}
               className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20 mb-4"
             >
               {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -315,37 +444,50 @@ export function ReportScore({
 function ScoreControl({ 
   value, 
   onChange, 
-  avatar, 
-  name,
+  avatars, 
+  names,
   placeholder = false,
   status
 }: { 
-  value: number, 
-  onChange: (val: number) => void,
-  avatar: string,
-  name: string,
-  placeholder?: boolean,
-  status?: 'win' | 'loss' | 'draw'
+  value: number;
+  onChange: (val: number) => void;
+  avatars: string[];
+  names: string[];
+  placeholder?: boolean;
+  status?: 'win' | 'loss' | 'draw';
 }) {
   return (
     <div className="flex-1 flex flex-col items-center space-y-4">
       <div className="relative group">
         <div className={cn(
-          "size-14 rounded-[1.5rem] overflow-hidden border-2 transition-all",
-          placeholder && !avatar ? "bg-slate-100 border-dashed border-slate-300" : "border-white bg-slate-50 shadow-md transform group-hover:rotate-6",
-          status === 'win' && "border-green-200 ring-4 ring-green-500/10",
-          status === 'loss' && "border-red-200 opacity-80"
+          "flex items-center justify-center transition-all",
+          avatars.length > 1 ? "-space-x-4" : ""
         )}>
-          {avatar ? (
-            <img src={avatar} alt={name} className="size-full object-cover" />
+          {avatars.length > 0 ? (
+            avatars.map((avatar, i) => (
+              <div 
+                key={i}
+                className={cn(
+                  "size-14 rounded-[1.5rem] overflow-hidden border-2 transition-all relative z-[1]",
+                  "border-white bg-slate-50 shadow-md transform group-hover:rotate-6",
+                  status === 'win' && "border-green-200 ring-4 ring-green-500/10",
+                  status === 'loss' && "border-red-200 opacity-80"
+                )}
+                style={{ zIndex: avatars.length - i }}
+              >
+                <img src={avatar} alt={names[i]} className="size-full object-cover" />
+              </div>
+            ))
           ) : (
-            <div className="size-full flex items-center justify-center text-slate-500">
+            <div className={cn(
+              "size-14 rounded-[1.5rem] overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400",
+            )}>
               <User size={24} />
             </div>
           )}
         </div>
         <div className={cn(
-          "absolute -bottom-2 -right-2 size-7 rounded-full shadow-lg flex items-center justify-center border-2",
+          "absolute -bottom-2 -right-2 size-7 rounded-full shadow-lg flex items-center justify-center border-2 z-10",
           status === 'win' ? "bg-green-500 text-white border-white" : 
           status === 'loss' ? "bg-red-500 text-white border-white" : 
           "bg-white text-primary-navy border-slate-100"
@@ -354,9 +496,11 @@ function ScoreControl({
         </div>
       </div>
       <span className={cn(
-        "text-sm font-black uppercase tracking-widest transition-colors",
+        "text-[10px] font-black uppercase tracking-widest transition-colors text-center line-clamp-1 h-4",
         status === 'win' ? "text-green-600" : status === 'loss' ? "text-red-500" : "text-slate-500"
-      )}>{name}</span>
+      )}>
+        {names.length > 1 ? `${names[0]} & ${names[1]}` : names[0] || ""}
+      </span>
       
       <div className={cn(
         "flex flex-col items-center gap-4 p-4 rounded-[2.5rem] border transition-all duration-500",
@@ -367,10 +511,9 @@ function ScoreControl({
         <button 
           onClick={() => onChange(value + 1)}
           className={cn(
-            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all",
-            status === 'win' ? "bg-white border-green-200 text-green-600 hover:bg-green-100/50" : 
-            status === 'loss' ? "bg-white border-red-200 text-red-600 hover:bg-red-100/50" : 
-            "bg-white border-slate-100 text-primary-navy hover:bg-slate-50"
+            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
+            status === 'win' && "bg-white border-green-200 text-green-600 hover:bg-green-100/50",
+            status === 'loss' && "bg-white border-red-200 text-red-600 hover:bg-red-100/50"
           )}
         >
           <Plus size={24} strokeWidth={3} />
@@ -382,15 +525,14 @@ function ScoreControl({
         <button 
           onClick={() => onChange(Math.max(0, value - 1))}
           className={cn(
-            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all",
-            status === 'win' ? "bg-white border-green-200 text-green-600 hover:bg-green-100/50" : 
-            status === 'loss' ? "bg-white border-red-200 text-red-600 hover:bg-red-100/50" : 
-            "bg-white border-slate-100 text-primary-navy hover:bg-slate-50"
+            "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
+            status === 'win' && "bg-white border-green-200 text-green-600 hover:bg-green-100/50",
+            status === 'loss' && "bg-white border-red-200 text-red-600 hover:bg-red-100/50"
           )}
         >
           <Minus size={24} strokeWidth={3} />
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -9,11 +9,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trophy, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function HallOfFame() {
-  const topThree = players.slice(0, 3);
-  const others = players.slice(3);
   const [selectedTournament, setSelectedTournament] = useState('2025-autumn');
+  const [mode, setMode] = useState<'singles' | 'doubles'>('singles');
+
+  const sortedPlayers = [...players].sort((a, b) => {
+    const rA = mode === 'doubles' ? (a.doublesRating ?? 0) : a.rating;
+    const rB = mode === 'doubles' ? (b.doublesRating ?? 0) : b.rating;
+    return rB - rA;
+  });
+
+  const topThree = sortedPlayers.slice(0, 3);
+  const others = sortedPlayers.slice(3);
 
   return (
     <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 bg-white min-h-screen font-sans">
@@ -25,18 +34,41 @@ export function HallOfFame() {
           <h1 className="text-3xl md:text-5xl text-primary-navy font-display font-black tracking-tight">歷屆賽事榮譽榜</h1>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Select Season</label>
-          <Select value={selectedTournament} onValueChange={(val) => setSelectedTournament(val || '2025-autumn')}>
-            <SelectTrigger className="w-full md:w-[260px] bg-[#fbfcff] border-slate-100 rounded-xl h-12 px-4 font-sans font-bold text-sm text-primary-navy shadow-sm">
-              <SelectValue placeholder="Select Season" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-100 font-sans font-bold">
-              <SelectItem value="2025-autumn">2025 秋季長官盃</SelectItem>
-              <SelectItem value="2025-spring">2025 春季公開賽</SelectItem>
-              <SelectItem value="all-time">All-Time Ranking</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col gap-4">
+          <div className="flex bg-[#fbfcff] p-1 rounded-xl border border-slate-100 self-end">
+            <button 
+              onClick={() => setMode('singles')}
+              className={cn(
+                "px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+                mode === 'singles' ? "bg-white text-primary-navy shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              單打英雄榜
+            </button>
+            <button 
+              onClick={() => setMode('doubles')}
+              className={cn(
+                "px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+                mode === 'doubles' ? "bg-white text-primary-navy shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              雙打英雄榜
+            </button>
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Select Season</label>
+            <Select value={selectedTournament} onValueChange={(val) => setSelectedTournament(val || '2025-autumn')}>
+              <SelectTrigger className="w-full md:w-[260px] bg-[#fbfcff] border-slate-100 rounded-xl h-12 px-4 font-sans font-bold text-sm text-primary-navy shadow-sm">
+                <SelectValue placeholder="Select Season" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-100 font-sans font-bold">
+                <SelectItem value="2025-autumn">2025 秋季長官盃</SelectItem>
+                <SelectItem value="2025-spring">2025 春季公開賽</SelectItem>
+                <SelectItem value="all-time">All-Time Ranking</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </header>
 
@@ -54,7 +86,9 @@ export function HallOfFame() {
              </div>
              <div className="w-full h-32 md:h-44 bg-[#E0E0E0]/10 rounded-t-4xl md:rounded-t-[3rem] shadow-sm border-t border-x border-slate-200/50 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-[#E0E0E0]/20 transition-colors">
                 <h3 className="font-sans font-black text-primary-navy text-xs md:text-base text-center truncate w-full">{topThree[1].name} {topThree[1].username}</h3>
-                <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">{topThree[1].rating.toLocaleString()}</span>
+                <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">
+                  {(mode === 'doubles' ? (topThree[1].doublesRating ?? topThree[1].rating) : topThree[1].rating).toLocaleString()}
+                </span>
              </div>
           </div>
 
@@ -73,7 +107,9 @@ export function HallOfFame() {
              </div>
              <div className="w-full h-44 md:h-64 bg-primary-navy rounded-t-[2.5rem] md:rounded-t-[3.5rem] shadow-2xl shadow-primary-navy/20 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-primary-navy/95 transition-colors">
                 <h3 className="font-sans font-black text-white/40 text-xs md:text-base text-center truncate w-full">{topThree[0].name} {topThree[0].username}</h3>
-                <span className="font-display font-black text-2xl md:text-5xl text-white mt-1 md:mt-2 tracking-tighter">{topThree[0].rating.toLocaleString()}</span>
+                <span className="font-display font-black text-2xl md:text-5xl text-white mt-1 md:mt-2 tracking-tighter">
+                  {(mode === 'doubles' ? (topThree[0].doublesRating ?? topThree[0].rating) : topThree[0].rating).toLocaleString()}
+                </span>
                 <div className="mt-4 md:mt-6 px-3 py-1.5 md:px-5 md:py-2.5 bg-neon-orange/10 border border-neon-orange/20 rounded-full">
                    <span className="text-[8px] md:text-xs font-black text-neon-orange uppercase tracking-[0.2em]">Season Champion</span>
                 </div>
@@ -90,7 +126,9 @@ export function HallOfFame() {
              </div>
              <div className="w-full h-24 md:h-36 bg-[#CD7F32]/10 rounded-t-4xl md:rounded-t-[3.5rem] shadow-sm border-t border-x border-[#CD7F32]/20 flex flex-col items-center justify-start pt-6 md:pt-10 px-2 group-hover:bg-[#CD7F32]/15 transition-colors">
                 <h3 className="font-sans font-black text-primary-navy/60 text-xs md:text-base text-center truncate w-full">{topThree[2].name} {topThree[2].username}</h3>
-                <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">{topThree[2].rating.toLocaleString()}</span>
+                <span className="font-display font-black text-lg md:text-3xl text-primary-navy mt-1 md:mt-2">
+                  {(mode === 'doubles' ? (topThree[2].doublesRating ?? topThree[2].rating) : topThree[2].rating).toLocaleString()}
+                </span>
              </div>
           </div>
 
@@ -119,11 +157,11 @@ export function HallOfFame() {
                  </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                 {others.map((player) => (
+                 {others.map((player, idx) => (
                     <tr key={player.id} className="group hover:bg-slate-50/40 transition-colors">
                        <td className="px-10 py-6">
                           <span className="text-xl font-display font-black text-primary-navy/40 group-hover:text-primary-navy transition-colors">
-                             {player.rank.toString().padStart(2, '0')}
+                             {(idx + 4).toString().padStart(2, '0')}
                           </span>
                        </td>
                        <td className="px-8 py-6">
@@ -137,11 +175,15 @@ export function HallOfFame() {
                        </td>
                        <td className="px-8 py-6 text-center">
                           <div className="text-xs font-black text-primary-navy">
-                             {player.stats.wins}W <span className="text-slate-500 mx-1">-</span> {player.stats.losses}L
+                             {mode === 'doubles' ? (player.doublesStats?.wins ?? 0) : player.stats.wins}W 
+                             <span className="text-slate-500 mx-1">-</span> 
+                             {mode === 'doubles' ? (player.doublesStats?.losses ?? 0) : player.stats.losses}L
                           </div>
                        </td>
                        <td className="px-10 py-6 text-right">
-                          <span className="text-xl font-display font-black text-primary-navy tracking-tight">{player.rating.toLocaleString()}</span>
+                          <span className="text-xl font-display font-black text-primary-navy tracking-tight">
+                            {(mode === 'doubles' ? (player.doublesRating ?? player.rating) : player.rating).toLocaleString()}
+                          </span>
                        </td>
                     </tr>
                  ))}
@@ -151,12 +193,12 @@ export function HallOfFame() {
 
         {/* Mobile Ranking List View (Rank 4+) - High Density Optimization */}
         <div className="md:hidden divide-y divide-slate-50">
-           {others.map((player) => (
+           {others.map((player, idx) => (
               <div key={player.id} className="flex items-center gap-4 py-6 px-5 active:bg-slate-50 transition-colors">
                  {/* Rank Index */}
                  <div className="w-6 shrink-0">
                     <span className="text-base font-display font-black text-primary-navy/20 tracking-tighter">
-                       {player.rank.toString().padStart(2, '0')}
+                       {(idx + 4).toString().padStart(2, '0')}
                     </span>
                  </div>
                  
@@ -174,10 +216,10 @@ export function HallOfFame() {
                  {/* Performance (Score + Win/Loss) */}
                  <div className="text-right shrink-0 flex flex-col items-end">
                     <div className="text-lg font-display font-black text-primary-navy leading-none tracking-tighter">
-                       {player.rating.toLocaleString()}
+                       {(mode === 'doubles' ? (player.doublesRating ?? player.rating) : player.rating).toLocaleString()}
                     </div>
                     <div className="text-xs font-black text-emerald-500/80 uppercase tracking-tight mt-1.5 bg-emerald-50 px-2 py-0.5 rounded-full">
-                       {player.stats.wins}W <span className="opacity-30 mx-0.5">-</span> {player.stats.losses}L
+                       {mode === 'doubles' ? (player.doublesStats?.wins ?? 0) : player.stats.wins}W <span className="opacity-30 mx-0.5">-</span> {mode === 'doubles' ? (player.doublesStats?.losses ?? 0) : player.stats.losses}L
                     </div>
                  </div>
               </div>
