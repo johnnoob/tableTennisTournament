@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, Trophy, Award, Crown, Plus } from 'lucide-react';
+import { LayoutDashboard, History, Trophy, Award, Crown, Plus, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
@@ -9,6 +9,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: History, label: 'Matches', path: '/history' },
   { icon: Trophy, label: 'Tournament', path: '/tournament' },
+  { icon: Shield, label: 'Leaderboard', path: '/leaderboard' },
   { icon: Award, label: 'Hall of Fame', path: '/hof' },
 ];
 

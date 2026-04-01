@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus, Minus, Trophy, User, CheckCircle2, Swords } from "lucide-react"
+import { Plus, Minus, Trophy, User, CheckCircle2, Swords, Search } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import {
   Dialog,
@@ -48,6 +48,7 @@ export function ReportScore({
   const [scoreA, setScoreA] = React.useState(initialScoreA)
   const [scoreB, setScoreB] = React.useState(initialScoreB)
   const [matchType, setMatchType] = React.useState<'singles' | 'doubles'>('singles')
+  const [searchTerm, setSearchTerm] = React.useState("")
   const [selectedOpponentId, setSelectedOpponentId] = React.useState<string | null>(initialOpponentId)
   const [selectedPartnerId, setSelectedPartnerId] = React.useState<string | null>(null)
   const [selectedOpponentIds, setSelectedOpponentIds] = React.useState<string[]>([])
@@ -63,6 +64,7 @@ export function ReportScore({
       setSelectedPartnerId(null)
       setSelectedOpponentIds([])
       setMatchType('singles')
+      setSearchTerm("")
     }
   }, [open, initialScoreA, initialScoreB, initialOpponentId, isSuccess])
 
@@ -265,79 +267,112 @@ export function ReportScore({
 
           {/* Player Selection */}
           <section className="space-y-4">
-            <div className="flex items-center justify-between ml-1">
-              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                {matchType === 'singles' ? '選擇對手' : (
-                  !selectedPartnerId ? '請選擇您的搭檔 (1/1)' : `請選擇對手 (${selectedOpponentIds.length}/2)`
-                )}
-              </label>
-              {matchType === 'doubles' && (selectedPartnerId || selectedOpponentIds.length > 0) && (
-                <button 
-                  onClick={() => {
-                    setSelectedPartnerId(null);
-                    setSelectedOpponentIds([]);
-                  }}
-                  className="text-[10px] font-black text-electric-blue uppercase tracking-widest hover:underline"
-                >
-                  重設選擇
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
-              {allPlayers.filter(p => p.id !== currentUser.id).slice(0, 10).map((player) => {
-                const isPartner = selectedPartnerId === player.id;
-                const isOpponent = matchType === 'singles' ? selectedOpponentId === player.id : selectedOpponentIds.includes(player.id);
-                const isSelected = isPartner || isOpponent;
-
-                return (
-                  <button
-                    key={player.id}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  {matchType === 'singles' ? '選擇對手' : (
+                    !selectedPartnerId ? '請選擇您的搭檔 (1/1)' : `請選擇對手 (${selectedOpponentIds.length}/2)`
+                  )}
+                </label>
+                {matchType === 'doubles' && (selectedPartnerId || selectedOpponentIds.length > 0) && (
+                  <button 
                     onClick={() => {
-                      if (editMode) return;
-                      if (matchType === 'singles') {
-                        setSelectedOpponentId(player.id);
-                      } else {
-                        if (!selectedPartnerId) {
-                          setSelectedPartnerId(player.id);
-                        } else if (isPartner) {
-                          setSelectedPartnerId(null);
-                        } else if (isOpponent) {
-                          setSelectedOpponentIds(prev => prev.filter(id => id !== player.id));
-                        } else if (selectedOpponentIds.length < 2) {
-                          setSelectedOpponentIds(prev => [...prev, player.id]);
-                        }
-                      }
+                      setSelectedPartnerId(null);
+                      setSelectedOpponentIds([]);
                     }}
-                    disabled={editMode}
-                    className={cn(
-                      "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
-                      isSelected 
-                        ? isPartner 
-                          ? "bg-amber-50 border-amber-400 shadow-lg shadow-amber-200/20 scale-105 z-10"
-                          : "bg-electric-blue/5 border-electric-blue shadow-lg shadow-electric-blue/10 scale-105 z-10"
-                        : editMode
-                          ? "bg-slate-50 border-transparent grayscale opacity-30 cursor-not-allowed"
-                          : "bg-slate-50 border-transparent grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
-                    )}
+                    className="text-[10px] font-black text-electric-blue uppercase tracking-widest hover:underline"
                   >
-                    <div className="relative">
-                      <img src={player.avatar} alt={player.name} className="size-10 md:size-12 rounded-xl object-cover shadow-sm" />
-                      {isSelected && (
-                        <div className={cn(
-                          "absolute -top-1 -right-1 size-4 rounded-full flex items-center justify-center text-[8px] font-black text-white",
-                          isPartner ? "bg-amber-500" : "bg-electric-blue"
-                        )}>
-                          {isPartner ? "T" : "O"}
-                        </div>
-                      )}
-                    </div>
-                    <span className={cn(
-                      "text-[10px] md:text-xs font-bold truncate w-full text-center",
-                      isSelected ? "text-primary-navy" : "text-slate-500"
-                    )}>{player.name}</span>
+                    重設選擇
                   </button>
-                );
-              })}
+                )}
+              </div>
+              
+              {/* 🌟 新增：搜尋輸入框 */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input 
+                  type="text"
+                  placeholder="搜尋同仁姓名..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-bold text-slate-600 placeholder:text-slate-400 placeholder:font-medium shadow-sm inset-y-0"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
+              {/* 🌟 修改：動態過濾名單邏輯 */}
+              {(() => {
+                const filteredPlayers = allPlayers
+                  .filter(p => p.id !== currentUser.id)
+                  .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+                
+                // 如果沒有搜尋條件，預設顯示 10 名；有搜尋則顯示所有符合條件的同仁
+                const displayPlayers = searchTerm ? filteredPlayers : filteredPlayers.slice(0, 10);
+
+                if (displayPlayers.length === 0) {
+                  return (
+                    <div className="col-span-5 py-6 text-center text-xs font-bold text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-2xl w-full">
+                      找不到符合的同仁
+                    </div>
+                  );
+                }
+
+                return displayPlayers.map((player) => {
+                  const isPartner = selectedPartnerId === player.id;
+                  const isOpponent = matchType === 'singles' ? selectedOpponentId === player.id : selectedOpponentIds.includes(player.id);
+                  const isSelected = isPartner || isOpponent;
+
+                  return (
+                    <button
+                      key={player.id}
+                      onClick={() => {
+                        if (editMode) return;
+                        if (matchType === 'singles') {
+                          setSelectedOpponentId(player.id);
+                        } else {
+                          if (!selectedPartnerId) {
+                            setSelectedPartnerId(player.id);
+                          } else if (isPartner) {
+                            setSelectedPartnerId(null);
+                          } else if (isOpponent) {
+                            setSelectedOpponentIds(prev => prev.filter(id => id !== player.id));
+                          } else if (selectedOpponentIds.length < 2) {
+                            setSelectedOpponentIds(prev => [...prev, player.id]);
+                          }
+                        }
+                      }}
+                      disabled={editMode}
+                      className={cn(
+                        "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
+                        isSelected 
+                          ? isPartner 
+                            ? "bg-amber-50 border-amber-400 shadow-lg shadow-amber-200/20 scale-105 z-10"
+                            : "bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-200/20 scale-105 z-10"
+                          : editMode
+                            ? "bg-slate-50 border-transparent grayscale opacity-30 cursor-not-allowed"
+                            : "bg-slate-50 border-transparent grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                      )}
+                    >
+                      <div className="relative">
+                        <img src={player.avatar} alt={player.name} className="size-10 md:size-12 rounded-xl object-cover shadow-sm" />
+                        {isSelected && (
+                          <div className={cn(
+                            "absolute -top-1 -right-1 size-4 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm",
+                            isPartner ? "bg-amber-500" : "bg-emerald-500"
+                          )}>
+                            {isPartner ? "T" : "O"}
+                          </div>
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[10px] md:text-xs font-bold truncate w-full text-center",
+                        isSelected ? "text-primary-navy" : "text-slate-500"
+                      )}>{player.name}</span>
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </section>
 

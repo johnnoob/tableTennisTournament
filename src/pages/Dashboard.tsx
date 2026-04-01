@@ -1,14 +1,156 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
 import type { Match, RivalryItem } from '@/data/mockData';
 import { RankingCard } from '@/components/RankingCard';
 import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
-import { Bell, Search, Plus, Skull, Crown } from 'lucide-react';
+import { Bell, Search, Plus, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Info, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
 import { PendingActions } from '@/components/PendingActions';
+
+// 📢 公告假資料 (未來可由 FastAPI 後端提供)
+const announcements = [
+  {
+    id: '1',
+    type: 'tournament',
+    title: '2026 春季長官盃雙打邀請賽，現正開放登記！',
+    description: '本季最大型賽事即將開打，請於本週五前完成搭檔登記與報名。',
+    tag: '特殊賽事',
+    urgency: 'high',
+    actionText: '立即前往報名',
+    date: '2天後截止'
+  },
+  {
+    id: '2',
+    type: 'system',
+    title: '全新常態天梯制上線：免報名，隨時開打！',
+    description: '中午吃完飯直接找人切磋，點擊右下角「+」送出比分，系統自動將您納入本季排行。',
+    tag: '系統公告',
+    urgency: 'normal',
+    actionText: '了解天梯規則',
+    date: '剛剛發布'
+  }
+];
+
+// 📢 智慧動態輪播看板元件
+function AnnouncementBanner() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const current = announcements[currentIndex];
+
+  const nextMsg = () => setCurrentIndex((prev) => (prev + 1) % announcements.length);
+  const prevMsg = () => setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
+
+  // 🌟 強制啟動：自動輪播邏輯 (5秒切換一次，具備滑鼠移入暫停)
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % announcements.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  return (
+    <section className="animate-in fade-in slide-in-from-left-4 duration-1000 delay-150">
+      <div 
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        className="bg-primary-navy rounded-[2rem] p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group"
+      >
+        
+        {/* 背景奧運風裝飾浮水印 */}
+        <div className="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700">
+          {current.type === 'tournament' ? <Trophy size={250} /> : <Info size={250} />}
+        </div>
+
+        {/* 左側：內容區 */}
+        <div className="flex items-start md:items-center gap-4 md:gap-6 relative z-10 flex-1 w-full">
+          <div className={cn(
+            "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+            current.type === 'tournament' ? "bg-amber-500 text-white shadow-amber-500/20" : "bg-electric-blue text-white shadow-electric-blue/20"
+          )}>
+            {current.type === 'tournament' ? <Trophy size={28} /> : <Info size={28} />}
+          </div>
+          
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn(
+                "text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest",
+                current.type === 'tournament' ? "bg-amber-500/20 text-amber-400" : "bg-electric-blue/20 text-blue-300"
+              )}>
+                {current.tag}
+              </span>
+              {current.type === 'tournament' && (
+                <span className="flex items-center gap-1 text-amber-400/80 text-[11px] font-bold">
+                  <Timer size={12} /> {current.date}
+                </span>
+              )}
+            </div>
+            <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
+              {current.title}
+            </h3>
+            <p className="text-xs md:text-sm text-slate-300 font-medium line-clamp-1 md:line-clamp-2">
+              {current.description}
+            </p>
+          </div>
+        </div>
+
+        {/* 右側：按鈕與控制區 */}
+        <div className="flex items-center justify-between w-full md:w-auto gap-4 relative z-10 shrink-0 border-t border-white/10 md:border-none pt-4 md:pt-0">
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* 桌機版切換按鈕：直接放在主按鈕旁邊，避免被裁切 */}
+            <div className="hidden md:flex items-center gap-1.5 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+               <button onClick={prevMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-md">
+                 <ChevronLeft size={18} strokeWidth={3} />
+               </button>
+               <button onClick={nextMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-md">
+                 <ChevronRight size={18} strokeWidth={3} />
+               </button>
+            </div>
+
+            {/* 手機版切換按鈕：維持原本位置 */}
+            <div className="flex md:hidden items-center gap-1">
+               <button onClick={prevMsg} className="size-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                 <ChevronLeft size={16} />
+               </button>
+               <button onClick={nextMsg} className="size-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                 <ChevronRight size={16} />
+               </button>
+            </div>
+
+            <Button className={cn(
+              "flex-1 md:flex-none h-12 md:h-14 px-6 md:px-8 rounded-xl font-black text-sm tracking-widest transition-all active:scale-95 gap-2 border-none",
+              current.type === 'tournament' 
+                ? "bg-amber-500 hover:bg-amber-400 text-primary-navy shadow-lg shadow-amber-500/20" 
+                : "bg-white hover:bg-slate-100 text-primary-navy shadow-lg shadow-white/10"
+            )}>
+              {current.actionText}
+              <ChevronRight size={18} strokeWidth={3} />
+            </Button>
+          </div>
+        </div>
+
+        {/* 底部輪播進度指示器 (Dots) */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+          {announcements.map((_, idx) => (
+            <div 
+              key={idx} 
+              className={cn(
+                "h-1 rounded-full transition-all duration-500",
+                idx === currentIndex ? "w-6 bg-white" : "w-1.5 bg-white/20"
+              )}
+            />
+          ))}
+        </div>
+
+      </div>
+    </section>
+  );
+}
 
 export function Dashboard() {
   const [rivalMode, setRivalMode] = useState<'singles' | 'doubles'>('singles');
@@ -32,6 +174,9 @@ export function Dashboard() {
           </Button>
         </div>
       </header>
+      
+      {/* 🚀 插入全新的社團公告輪播區塊 */}
+      <AnnouncementBanner />
 
       {/* Main Responsive Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-12">

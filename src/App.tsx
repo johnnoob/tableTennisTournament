@@ -7,6 +7,7 @@ import { Tournament } from './pages/Tournament';
 import { TournamentDetail } from './pages/TournamentDetail';
 import { HallOfFame } from './pages/HallOfFame';
 import { PlayerAnalysis } from './pages/PlayerAnalysis';
+import { Leaderboard } from './pages/Leaderboard';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
               <Route path="/tournament" element={<Tournament />} />
               <Route path="/tournament/:id" element={<TournamentDetail />} />
               <Route path="/hof" element={<HallOfFame />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/player/:id" element={<PlayerAnalysis />} />
             </Routes>
           </div>
