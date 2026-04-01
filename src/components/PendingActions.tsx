@@ -382,13 +382,17 @@ function ActionMatchCard({ match }: { match: Match }) {
                 }
               />
               <DialogContent className="max-w-2xl p-0 overflow-hidden border-none bg-white">
-                <DialogHeader className="p-8 pb-0">
-                  <DialogTitle className="flex items-center gap-3">
-                    <CheckCircle2 className="text-emerald-500" />
-                    確認賽果
-                  </DialogTitle>
-                  <DialogDescription>請再次檢查比分與勝敗是否正確，確認後無法撤回。</DialogDescription>
-                </DialogHeader>
+                  <DialogHeader className="p-8 pb-0">
+                    <DialogTitle className="flex items-center gap-3 text-emerald-600">
+                      <CheckCircle2 className="text-emerald-500" />
+                      {isSuccess ? "申報完成" : "確認賽果"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {isSuccess 
+                        ? "您的賽果已成功紀錄，積分與排名已即時更新。" 
+                        : "請再次檢查比分與勝敗是否正確，確認後無法撤回。"}
+                    </DialogDescription>
+                  </DialogHeader>
                 {confirmationContent}
               </DialogContent>
             </Dialog>
@@ -403,11 +407,15 @@ function ActionMatchCard({ match }: { match: Match }) {
               <DrawerContent className="p-0 border-none bg-white max-h-[96vh] flex flex-col">
               <div className="flex-1 overflow-y-auto no-scrollbar">
                 <DrawerHeader className="p-6 pb-2 text-center">
-                  <DrawerTitle className="flex items-center justify-center gap-3">
+                  <DrawerTitle className="flex items-center justify-center gap-3 text-emerald-600">
                     <CheckCircle2 className="text-emerald-500" size={20} />
-                    確認賽果
+                    {isSuccess ? "申報完成" : "確認賽果"}
                   </DrawerTitle>
-                  <DrawerDescription>確認無誤後請按下確認按鈕</DrawerDescription>
+                  <DrawerDescription>
+                    {isSuccess 
+                      ? "您的戰果已成功紀錄與生效" 
+                      : "確認無誤後請按下確認按鈕"}
+                  </DrawerDescription>
                 </DrawerHeader>
                 <div className="pb-12 pb-safe">
                   {confirmationContent}

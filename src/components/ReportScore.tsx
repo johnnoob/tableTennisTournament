@@ -410,11 +410,15 @@ export function ReportScore({
         <DialogTrigger render={trigger} />
         <DialogContent className="max-w-xl p-0 overflow-hidden border-none bg-white">
           <DialogHeader className="p-8 pb-0 md:p-6 md:pb-0">
-            <DialogTitle className="flex items-center gap-3">
-              <Trophy className="text-olympic-gold" />
-              {editMode ? "修改賽果" : "申報比賽結果"}
+            <DialogTitle className={cn("flex items-center gap-3", isSuccess && "text-emerald-600")}>
+              {isSuccess ? <CheckCircle2 className="text-emerald-500" /> : <Trophy className="text-olympic-gold" />}
+              {isSuccess ? "申報成功" : (editMode ? "修改賽果" : "申報比賽結果")}
             </DialogTitle>
-            <DialogDescription>請確認比分正確，送出後對手將收到確認通知。</DialogDescription>
+            <DialogDescription>
+              {isSuccess 
+                ? "賽果已提交，等待對手系統確認中。" 
+                : "請確認比分正確，送出後對手將收到確認通知。"}
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-[calc(85vh-160px)] overflow-y-auto no-scrollbar border-y border-slate-50 md:border-none">
             {content}
@@ -482,11 +486,13 @@ export function ReportScore({
       <DrawerContent className="p-0 border-none bg-white z-[100] max-h-[96vh] flex flex-col">
         <div className="flex-1 overflow-y-auto no-scrollbar">
           <DrawerHeader className="p-6 pb-2 border-none">
-            <DrawerTitle className="flex items-center justify-center gap-3">
-              <Trophy className="text-olympic-gold" size={20} />
-              {editMode ? "修改賽果" : "申報比賽結果"}
+            <DrawerTitle className={cn("flex items-center justify-center gap-3", isSuccess && "text-emerald-600")}>
+              {isSuccess ? <CheckCircle2 className="text-emerald-500" size={20} /> : <Trophy className="text-olympic-gold" size={20} />}
+              {isSuccess ? "申報成功" : (editMode ? "修改賽果" : "申報比賽結果")}
             </DrawerTitle>
-            <DrawerDescription className="text-center">請輸入最終局數比分</DrawerDescription>
+            <DrawerDescription className="text-center">
+              {isSuccess ? "您的戰果已成功提交" : "請輸入最終局數比分"}
+            </DrawerDescription>
           </DrawerHeader>
           <div className="pb-4">
             {content}
