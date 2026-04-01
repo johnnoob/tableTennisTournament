@@ -74,8 +74,41 @@ export function ReportScore({
     ? !!selectedOpponentId 
     : (!!selectedPartnerId && selectedOpponentIds.length === 2)
 
+  // 智慧推斷：判斷局數與參與者是否合法，並回傳對應的 UI 狀態
+  const getScoreValidation = (a: number, b: number, ready: boolean) => {
+    const max = Math.max(a, b);
+    const min = Math.min(a, b);
+    
+    if (a === 0 && b === 0) return { valid: false, text: "請輸入最終局數", style: "bg-slate-50 text-slate-400 border-slate-200" };
+    if (a === b) return { valid: false, text: "平手無法送出", style: "bg-slate-50 text-slate-500 border-slate-200" };
+    
+    const scoreIsValid = (max === 2 && min <= 1) || (max === 3 && min <= 2);
+
+    if (scoreIsValid) {
+      if (!ready) {
+        return { 
+          valid: false, 
+          text: matchType === 'singles' ? "👤 請點擊上方選擇對手" : "👥 請點擊上方選齊搭檔與對手", 
+          style: "bg-amber-50 text-amber-600 border-amber-200 shadow-sm shadow-amber-500/10 animate-pulse" 
+        };
+      }
+      return { 
+        valid: true, 
+        text: max === 2 ? "✅ 合法賽果 (3戰2勝)" : "✅ 合法賽果 (5戰3勝)", 
+        style: "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-500/10" 
+      };
+    }
+    
+    // 超過合理範圍
+    if (max > 3) return { valid: false, text: "❌ 局數異常 (最多3勝)", style: "bg-rose-50 text-rose-500 border-rose-200" };
+    
+    return { valid: false, text: "⏳ 比賽尚未分出勝負", style: "bg-slate-50 text-slate-500 border-slate-200" };
+  };
+
+  const validation = getScoreValidation(scoreA, scoreB, isReady);
+
   const handleSubmit = async () => {
-    if (!isReady) return
+    if (!isReady || !validation.valid) return
     setIsSubmitting(true)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
@@ -336,6 +369,16 @@ export function ReportScore({
             </div>
           </section>
 
+          {/* 新增：動態防呆提示標籤 */}
+          <div className="flex justify-center pt-2 pb-4">
+             <div className={cn(
+               "px-4 py-2 rounded-full border text-xs font-black tracking-widest transition-all duration-300",
+               validation.style
+             )}>
+               {validation.text}
+             </div>
+          </div>
+
           {/* Conditional Desktop Submit Button - Moved to Dialog footer below */}
 
         </>
@@ -360,7 +403,7 @@ export function ReportScore({
              <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={!isReady || isSubmitting}
+                  disabled={!isReady || isSubmitting || !validation.valid}
                   className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
                 >
                   {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -377,7 +420,7 @@ export function ReportScore({
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!isReady || isSubmitting}
+                disabled={!isReady || isSubmitting || !validation.valid}
                 className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
                 {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -424,7 +467,7 @@ export function ReportScore({
           {!isSuccess && (
             <Button 
               onClick={handleSubmit} 
-              disabled={!isReady || isSubmitting}
+              disabled={!isReady || isSubmitting || !validation.valid}
               className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20 mb-4"
             >
               {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -509,7 +552,7 @@ function ScoreControl({
         "bg-slate-50/50 border-slate-100/50"
       )}>
         <button 
-          onClick={() => onChange(value + 1)}
+          onClick={() => onChange(Math.min(3, value + 1))}
           className={cn(
             "size-14 rounded-2xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
             status === 'win' && "bg-white border-green-200 text-green-600 hover:bg-green-100/50",
