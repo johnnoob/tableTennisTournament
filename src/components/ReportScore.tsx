@@ -161,16 +161,16 @@ export function ReportScore({
           {/* Opponent Selection */}
           <section className="space-y-4">
             <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 ml-1">選擇對手</label>
-            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
+            <div className="flex gap-2 md:gap-3 overflow-x-auto pt-4 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-5 md:overflow-visible">
               {allPlayers.slice(0, 5).map((player) => (
                 <button
                   key={player.id}
                   onClick={() => !editMode && setSelectedOpponentId(player.id)}
                   disabled={editMode}
                   className={cn(
-                    "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2",
+                    "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
                     selectedOpponentId === player.id 
-                      ? "bg-electric-blue/5 border-electric-blue shadow-lg shadow-electric-blue/10 scale-105" 
+                      ? "bg-electric-blue/5 border-electric-blue shadow-lg shadow-electric-blue/10 scale-105 z-10" 
                       : editMode
                         ? "bg-slate-50 border-transparent grayscale opacity-30 cursor-not-allowed"
                         : "bg-slate-50 border-transparent grayscale opacity-60 hover:opacity-100 hover:grayscale-0"

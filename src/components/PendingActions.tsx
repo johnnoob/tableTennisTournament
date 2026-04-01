@@ -347,12 +347,14 @@ function ActionMatchCard({ match }: { match: Match }) {
 
           {isDesktop ? (
             <Dialog open={open} onOpenChange={(val) => { if(!isConfirming) setOpen(val) }}>
-              <DialogTrigger>
-                <Button className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm tracking-widest shadow-lg shadow-emerald-500/20 gap-2 border-none transition-all active:scale-95">
-                  <Check size={16} strokeWidth={3} />
-                  確認
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger
+                render={
+                  <Button className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm tracking-widest shadow-lg shadow-emerald-500/20 gap-2 border-none transition-all active:scale-95">
+                    <Check size={16} strokeWidth={3} />
+                    確認
+                  </Button>
+                }
+              />
               <DialogContent className="max-w-2xl p-0 overflow-hidden border-none bg-white">
                 <DialogHeader className="p-8 pb-0">
                   <DialogTitle className="flex items-center gap-3">
