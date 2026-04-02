@@ -13,11 +13,22 @@ from routers.auth import router as auth_router
 
 from starlette.middleware.sessions import SessionMiddleware
 
+from contextlib import asynccontextmanager
+from database import create_db_and_tables
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 啟動時執行：建立資料庫與資料表
+    create_db_and_tables()
+    yield
+    # 關閉時執行 (如有需要)
+
 # 1. 建立 FastAPI 應用程式實例，並加上晨星奧運風的專屬標題
 app = FastAPI(
     title="Precision Arena API",
     description="機關專屬桌球戰情室系統核心伺服器",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # 🌟 新增 Session 中介軟體 (secret_key 從環境變數讀取)
@@ -28,6 +39,8 @@ app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "fallba
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 
 app.add_middleware(

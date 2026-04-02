@@ -3,3 +3,8 @@ uvicorn
 pydantic
 python-multipart
 python-dotenv
+sqlmodel
+authlib
+pyjwt
+httpx
+itsdangerous
