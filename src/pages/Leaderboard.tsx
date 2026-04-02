@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Trophy, Medal, Shield, Award, ChevronDown, Timer, Crown, History, TrendingUp, User, Swords, Zap, ChevronUp, Minus } from 'lucide-react';
+import { Search, Trophy, Medal, Shield, Award, ChevronDown, Timer, Crown, History, ChevronUp, Minus } from 'lucide-react';
 import { players } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,7 +34,8 @@ export function Leaderboard() {
   // 動態判斷賽季狀態
   const isSeasonEnded = selectedSeason === 's3'; // S3 已結算
   const isAllTime = selectedSeason === 'all-time'; // 總榜模式
-  const showPodium = isSeasonEnded || isAllTime; // 結算季與總榜顯示頒獎台
+  // 🌟 修正 2：只要有輸入搜尋字串，就強制隱藏頒獎台
+  const showPodium = (isSeasonEnded || isAllTime) && !searchTerm; 
 
   // 🌟 核心數據邏輯：根據選擇的賽季進行過濾與排序
   const sortedPlayers = useMemo(() => {
@@ -42,13 +43,17 @@ export function Leaderboard() {
       .map(p => {
         let lp = Math.floor(p.rating * 0.8);
         if (selectedSeason === 's3') lp = Math.floor(p.rating * 0.75 + Math.random() * 100); 
+        
+        // 🌟 修正 1 (暫時模擬)：如果切換到雙打，稍微改變一點分數以展現 UI 切換效果
+        if (matchType === 'doubles') lp = Math.floor(lp * 0.9 + 50); 
+        
         return { ...p, seasonLP: lp };
       })
       .sort((a, b) => {
         return isAllTime ? b.rating - a.rating : b.seasonLP - a.seasonLP;
       })
       .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.department && p.department.includes(searchTerm)));
-  }, [selectedSeason, searchTerm, isAllTime]);
+  }, [selectedSeason, searchTerm, isAllTime, matchType]); // 🌟 記得把 matchType 加入依賴陣列
 
   const top3 = sortedPlayers.slice(0, 3);
   
@@ -234,6 +239,18 @@ export function Leaderboard() {
                   </tr>
                 );
               })}
+              
+              {/* 🌟 修正 3：加入找不到人時的防呆提示 */}
+              {sortedPlayers.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-300">
+                      <Search size={48} className="mb-4 opacity-20" />
+                      <p className="text-sm font-black uppercase tracking-widest text-slate-400">沒有找到符合條件的同仁</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
