@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Trophy, Medal, Shield, Award, ChevronDown, Timer, Crown, History, ChevronUp, Minus } from 'lucide-react';
-import { players } from '@/data/mockData';
+import { Search, Trophy, Medal, Shield, Award, ChevronDown, Timer, Crown, History, ChevronUp, Minus, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,52 +13,62 @@ const getTierBadge = (mmr: number) => {
   return { name: '銅牌 (Bronze)', icon: <Award size={16} />, color: 'bg-orange-50 text-orange-700 border-orange-200' };
 };
 
-// 🌟 模擬：產生排名的動能變化 (實務上這會由 FastAPI 後端計算後傳回)
-const getMomentum = (playerId: string) => {
-  // 利用 ID 字串來產生一個固定不變的假動能，讓畫面看起來更真實
-  const hash = playerId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const mod = hash % 5; 
-  
-  if (mod === 0 || mod === 1) return { type: 'up', val: (hash % 3) + 1 }; // 綠色上升
-  if (mod === 2) return { type: 'down', val: (hash % 2) + 1 };            // 紅色下降
-  return { type: 'flat', val: 0 };                                        // 灰色持平
-};
-
 export function Leaderboard() {
   const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeason, setSelectedSeason] = useState('s4');
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // 🌟 1. 新增：用來存取後端真實排行榜資料的 State
+  const [realLeaderboard, setRealLeaderboard] = useState<any[]>([]);
+  const [seasonName, setSeasonName] = useState<string>("Active Season");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 🌟 2. 新增：透過 useEffect 去後端抓資料
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setIsLoading(true);
+      try {
+        // 根據選擇的賽季加上 Query 參數 (如果是 all-time，我們就先不傳 season_id 讓後端處理)
+        const url = selectedSeason && selectedSeason !== 'all-time'
+          ? `http://localhost:8000/api/leaderboard?season_id=${selectedSeason}`
+          : "http://localhost:8000/api/leaderboard";
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setRealLeaderboard(data.leaderboard || []); // 後端回傳的是 {"season_id": "...", "leaderboard": [...]}
+          setSeasonName(data.season_name);
+        }
+      } catch (err) {
+        console.error("無法取得排行榜資料", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [selectedSeason]); // 當選擇的賽季改變時，重新抓取
+
   // 動態判斷賽季狀態
   const isSeasonEnded = selectedSeason === 's3'; // S3 已結算
   const isAllTime = selectedSeason === 'all-time'; // 總榜模式
   // 🌟 修正 2：只要有輸入搜尋字串，就強制隱藏頒獎台
-  const showPodium = (isSeasonEnded || isAllTime) && !searchTerm; 
+  const showPodium = (isSeasonEnded || isAllTime) && !searchTerm;
 
   // 🌟 核心數據邏輯：根據選擇的賽季進行過濾與排序
   const sortedPlayers = useMemo(() => {
-    return [...players]
-      .map(p => {
-        let lp = Math.floor(p.rating * 0.8);
-        if (selectedSeason === 's3') lp = Math.floor(p.rating * 0.75 + Math.random() * 100); 
-        
-        // 🌟 修正 1 (暫時模擬)：如果切換到雙打，稍微改變一點分數以展現 UI 切換效果
-        if (matchType === 'doubles') lp = Math.floor(lp * 0.9 + 50); 
-        
-        return { ...p, seasonLP: lp };
-      })
-      .sort((a, b) => {
-        return isAllTime ? b.rating - a.rating : b.seasonLP - a.seasonLP;
-      })
-      .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.department && p.department.includes(searchTerm)));
-  }, [selectedSeason, searchTerm, isAllTime, matchType]); // 🌟 記得把 matchType 加入依賴陣列
+    return realLeaderboard.filter(p =>
+      p.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.department && p.department.includes(searchTerm))
+    );
+  }, [realLeaderboard, searchTerm]);
 
   const top3 = sortedPlayers.slice(0, 3);
-  
+
   return (
     <div className="pb-24 pt-8 md:pt-12 px-4 md:px-12 space-y-8 animate-in fade-in duration-700 bg-slate-50/30 min-h-screen relative">
-      
+
       {/* 頁面標題區 */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
@@ -70,7 +79,7 @@ export function Leaderboard() {
             <span className={cn(
               "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors",
               isAllTime ? "bg-purple-100 text-purple-700" :
-              isSeasonEnded ? "bg-amber-500 text-white" : "bg-emerald-100 text-emerald-700"
+                isSeasonEnded ? "bg-amber-500 text-white" : "bg-emerald-100 text-emerald-700"
             )}>
               {isAllTime ? <Crown size={12} /> : isSeasonEnded ? <Trophy size={12} /> : <Timer size={12} />}
               {isAllTime ? "All-Time Legends" : isSeasonEnded ? "Season 3 Completed" : "Season 4 Active"}
@@ -81,7 +90,7 @@ export function Leaderboard() {
 
       {/* 控制列 */}
       <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl md:rounded-4xl border border-slate-100 shadow-sm relative z-30">
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
           <Select value={selectedSeason} onValueChange={(val) => val && setSelectedSeason(val)}>
             <SelectTrigger className="w-full sm:w-[220px] h-12 bg-slate-50 border-slate-200 rounded-xl font-bold text-primary-navy shadow-inner focus:ring-sapphire-blue/20">
@@ -108,7 +117,7 @@ export function Leaderboard() {
 
         <div className="relative w-full xl:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
+          <input
             type="text"
             placeholder="搜尋同仁姓名或單位..."
             value={searchTerm}
@@ -123,31 +132,31 @@ export function Leaderboard() {
         <div className="flex justify-center items-end h-64 md:h-72 gap-2 md:gap-4 mt-12 mb-16 animate-in zoom-in-95 fade-in duration-700">
           <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
             <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300">
-              <img src={top3[1].avatar} className="size-16 md:size-20 rounded-full border-4 border-slate-300 object-cover shadow-lg" alt="" />
+              <img src={top3[1].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-slate-300 object-cover shadow-lg" alt="" />
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-300 text-slate-700 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">2</div>
             </div>
-            <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[1].name}</p>
+            <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[1].player_name}</p>
             <div className="w-full h-24 md:h-32 bg-linear-to-t from-slate-200 to-slate-100 rounded-t-xl mt-4 border-t-4 border-slate-300 flex justify-center pt-4">
-               <span className="font-display font-black text-slate-400/50 text-2xl">II</span>
+              <span className="font-display font-black text-slate-400/50 text-2xl">II</span>
             </div>
           </div>
           <div className="flex flex-col items-center relative z-20 w-28 md:w-40 -mt-8">
             <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300">
               <Crown size={32} className="absolute -top-6 left-1/2 -translate-x-1/2 text-amber-500 animate-bounce" />
-              <img src={top3[0].avatar} className="size-20 md:size-24 rounded-full border-4 border-amber-400 object-cover shadow-xl" alt="" />
+              <img src={top3[0].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-20 md:size-24 rounded-full border-4 border-amber-400 object-cover shadow-xl" alt="" />
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white size-7 md:size-9 rounded-full flex items-center justify-center font-black border-2 border-white">1</div>
             </div>
-            <p className="font-black text-amber-600 text-base truncate w-full text-center">{top3[0].name}</p>
+            <p className="font-black text-amber-600 text-base truncate w-full text-center">{top3[0].player_name}</p>
             <div className="w-full h-32 md:h-44 bg-linear-to-t from-amber-200 to-amber-100 rounded-t-xl mt-4 border-t-4 border-amber-400 flex justify-center pt-4">
               <span className="font-display font-black text-amber-500/30 text-4xl">I</span>
             </div>
           </div>
           <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
             <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300">
-              <img src={top3[2].avatar} className="size-16 md:size-20 rounded-full border-4 border-orange-300 object-cover shadow-lg" alt="" />
+              <img src={top3[2].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-orange-300 object-cover shadow-lg" alt="" />
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange-300 text-orange-800 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">3</div>
             </div>
-            <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[2].name}</p>
+            <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[2].player_name}</p>
             <div className="w-full h-20 md:h-24 bg-linear-to-t from-orange-100 to-orange-50 rounded-t-xl mt-4 border-t-4 border-orange-300 flex justify-center pt-4">
               <span className="font-display font-black text-orange-800/20 text-xl">III</span>
             </div>
@@ -170,18 +179,22 @@ export function Leaderboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {sortedPlayers.map((player, index) => {
-                const rank = index + 1;
-                const tier = getTierBadge(player.rating);
+              {isLoading ? (
+                <tr><td colSpan={4} className="py-16 text-center font-bold text-slate-400">資料讀取中...</td></tr>
+              ) : sortedPlayers.map((player) => {
+
+                // 🌟 使用後端給的真實資料欄位
+                const rank = player.rank;
+                // 將 season_lp 當作 MMR 傳入去算牌位
+                const tier = getTierBadge(player.season_lp);
                 const isTop1 = rank === 1 && showPodium;
-                const momentum = getMomentum(player.id); // 取得該同仁的排名動能
 
                 return (
-                  <tr 
-                    key={player.id} 
+                  <tr
+                    key={player.player_id}
                     onClick={() => {
                       const newParams = new URLSearchParams(searchParams);
-                      newParams.set('inspect', player.id);
+                      newParams.set('inspect', player.player_id);
                       setSearchParams(newParams);
                     }}
                     className={cn(
@@ -189,35 +202,39 @@ export function Leaderboard() {
                       isTop1 && "bg-amber-50/30"
                     )}
                   >
-                    {/* 🌟 升級版 Rank 欄位：結合名次與排名動能 */}
                     <td className="py-4 px-4 md:px-6 w-20 md:w-24">
                       <div className="flex flex-col items-center justify-center">
                         <span className={cn(
-                          "font-display font-black text-xl tabular-nums leading-none", 
+                          "font-display font-black text-xl tabular-nums leading-none",
                           rank <= 3 && showPodium ? "text-slate-400 text-2xl" : "text-slate-300"
                         )}>
                           {rank}
                         </span>
-                        
-                        {/* 動能指示器 (Momentum Trend Indicator) */}
+
+                        {/* 🌟 動能指示器：改用後端的 trend 和 rank_change */}
                         <div className={cn(
                           "flex items-center gap-0.5 mt-1.5 text-[10px] font-black tracking-tighter",
-                          momentum.type === 'up' ? "text-emerald-500" : 
-                          momentum.type === 'down' ? "text-rose-500" : "text-slate-300/60"
+                          player.trend === 'up' ? "text-emerald-500" :
+                            player.trend === 'down' ? "text-rose-500" :
+                              player.trend === 'new' ? "text-amber-500" : "text-slate-300/60"
                         )}>
-                          {momentum.type === 'up' && <ChevronUp size={12} strokeWidth={4} />}
-                          {momentum.type === 'down' && <ChevronDown size={12} strokeWidth={4} />}
-                          {momentum.type === 'flat' && <Minus size={10} strokeWidth={4} />}
-                          {momentum.type !== 'flat' && <span>{momentum.val}</span>}
+                          {player.trend === 'up' && <ChevronUp size={12} strokeWidth={4} />}
+                          {player.trend === 'down' && <ChevronDown size={12} strokeWidth={4} />}
+                          {player.trend === 'same' && <Minus size={10} strokeWidth={4} />}
+                          {player.trend === 'new' && <Star size={10} strokeWidth={4} />}
+
+                          {/* 如果有改變才顯示數字，'new' 顯示 NEW */}
+                          {player.trend === 'new' ? <span>NEW</span> :
+                            player.trend !== 'same' ? <span>{player.rank_change}</span> : null}
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
-                        <img src={player.avatar} alt="" className="size-12 rounded-xl object-cover border border-slate-100 shadow-sm group-hover:scale-110 transition-transform" />
+                        <img src={player.avatar_url || '/api/placeholder/150/150'} alt="" referrerPolicy="no-referrer" className="size-12 rounded-xl object-cover border border-slate-100 shadow-sm group-hover:scale-110 transition-transform" />
                         <div className="flex flex-col">
-                          <span className={cn("font-sans font-black text-base uppercase tracking-wide group-hover:text-sapphire-blue transition-colors", isTop1 ? "text-amber-700" : "text-primary-navy")}>{player.name}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{player.department || 'Taiwan District Office'}</span>
+                          <span className={cn("font-sans font-black text-base uppercase tracking-wide group-hover:text-sapphire-blue transition-colors", isTop1 ? "text-amber-700" : "text-primary-navy")}>{player.player_name}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{player.department || '未設定單位'}</span>
                         </div>
                       </div>
                     </td>
@@ -225,21 +242,25 @@ export function Leaderboard() {
                       <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-black uppercase tracking-widest shadow-sm", tier.color)}>
                         {tier.icon} {tier.name}
                       </div>
+                      {/* 🌟 隱藏小資訊：勝率 */}
+                      <div className="mt-1 text-[10px] text-slate-400 font-bold tracking-widest">
+                        Win Rate: {player.win_rate}
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex flex-col items-end justify-center">
-                        <span className={cn("font-display font-black text-2xl tabular-nums leading-none", 
+                        <span className={cn("font-display font-black text-2xl tabular-nums leading-none",
                           isTop1 ? "text-amber-600 text-3xl" : "text-primary-navy"
                         )}>
-                          {isAllTime ? player.rating : player.seasonLP}
+                          {player.season_lp}
                         </span>
-                        {isAllTime && <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Hidden Rating</span>}
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">LP</span>
                       </div>
                     </td>
                   </tr>
                 );
               })}
-              
+
               {/* 🌟 修正 3：加入找不到人時的防呆提示 */}
               {sortedPlayers.length === 0 && (
                 <tr>

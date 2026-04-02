@@ -26,8 +26,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { players as allPlayers, currentUser } from "@/data/mockData"
-import { jwtDecode } from "jwt-decode";
+import { useAuthStore } from '@/store/authStore';
 
 interface ReportScoreProps {
   trigger: React.ReactElement;
@@ -44,6 +43,7 @@ export function ReportScore({
   initialScoreA = 0,
   initialScoreB = 0
 }: ReportScoreProps) {
+  const currentUser = useAuthStore((state) => state.user);
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [scoreA, setScoreA] = React.useState(initialScoreA)
@@ -57,6 +57,7 @@ export function ReportScore({
   const [isSuccess, setIsSuccess] = React.useState(false)
   // 🌟 1. 新增一個 State 用來存真實玩家名單
   const [realPlayers, setRealPlayers] = React.useState<any[]>([])
+
 
   // 🌟 2. 元件載入或打開時，去後端拉取玩家清單
   React.useEffect(() => {
@@ -92,9 +93,9 @@ export function ReportScore({
     }
   }, [open, initialScoreA, initialScoreB, initialOpponentId, isSuccess])
 
-  const selectedOpponent = allPlayers.find(p => p.id === selectedOpponentId)
-  const selectedPartner = allPlayers.find(p => p.id === selectedPartnerId)
-  const selectedOpponents = allPlayers.filter(p => selectedOpponentIds.includes(p.id))
+  const selectedOpponent = realPlayers.find(p => p.id === selectedOpponentId)
+  const selectedPartner = realPlayers.find(p => p.id === selectedPartnerId)
+  const selectedOpponents = realPlayers.filter(p => selectedOpponentIds.includes(p.id))
 
   const isReady = matchType === 'singles'
     ? !!selectedOpponentId
@@ -134,7 +135,7 @@ export function ReportScore({
   const validation = getScoreValidation(scoreA, scoreB, isReady);
 
   const handleSubmit = async () => {
-    if (!isReady || !validation.valid) return
+    if (!isReady || !validation.valid || !currentUser) return
     setIsSubmitting(true)
     // 1. 從 Local Storage 取得識別證
     const token = localStorage.getItem('auth_token')
@@ -144,20 +145,17 @@ export function ReportScore({
       return
     }
 
-    // 🌟 替換成這行！超直覺、超乾淨的寫法：
-    const decodedPayload: any = jwtDecode(token);
-    const realMyUserId = decodedPayload.sub;
-
     // 2. 依照選擇的賽制，整理要送給後端的資料格式
     const payload = {
       score_a: scoreA,
       score_b: scoreB,
       match_type: matchType,
-      team_a_p1_id: realMyUserId, // 發起人 (注意：這裡暫時用假資料的 currentUser，下一步會教您怎麼換)
+      team_a_p1_id: currentUser.id, // 發起人 (注意：這裡暫時用假資料的 currentUser，下一步會教您怎麼換)
       team_a_p2_id: matchType === 'doubles' ? selectedPartnerId : null,
       team_b_p1_id: matchType === 'singles' ? selectedOpponentId : selectedOpponentIds[0],
       team_b_p2_id: matchType === 'doubles' ? selectedOpponentIds[1] : null,
-      format: scoreA + scoreB >= 5 ? "BO5" : "BO3" // 根據總分判斷賽制
+      format: scoreA + scoreB >= 5 ? "BO5" : "BO3", // 根據總分判斷賽制
+      reported_by: currentUser.id
     }
 
     try {

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 from uuid import UUID
+import datetime
 
 from database import get_session
 from models import Match, Season, Notification, User, PlayerStatHistory, MatchParticipation, SeasonRecord
@@ -80,8 +81,9 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
         "match_id": new_match.id
     }
 
+# 🌟 注意：我們把原本參數裡的 confirm_by 拔掉，改用 current_user 自動驗證身分！
 @router.post("/api/matches/{match_id}/confirm", summary="確認比分並結算積分 (觸發 Elo 引擎)")
-def confirm_match(match_id: UUID, confirm_by: UUID, session: Session = Depends(get_session)):
+def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
     # 1. 🔍 尋找該場比賽
     match = session.get(Match, match_id)
     if not match:
@@ -90,7 +92,7 @@ def confirm_match(match_id: UUID, confirm_by: UUID, session: Session = Depends(g
         raise HTTPException(status_code=400, detail="此比賽不處於待確認狀態")
 
     # 2. 🛡️ 防呆機制：確保是「對手 (Team B)」才能確認
-    if confirm_by not in [match.team_b_p1_id, match.team_b_p2_id]:
+    if current_user.id not in [match.team_b_p1_id, match.team_b_p2_id]:
         raise HTTPException(status_code=403, detail="只有對手可以確認此比分！")
 
     # ==========================================
@@ -194,23 +196,73 @@ def confirm_match(match_id: UUID, confirm_by: UUID, session: Session = Depends(g
         "team_b_new_mmr": team_b_p1.global_mmr
     }
 
-@router.get("/api/matches/pending", summary="取得所有待確認的比賽清單")
-def get_pending_matches(session: Session = Depends(get_session)):
-    # 📝 撈出所有狀態為 pending 的比賽
-    statement = select(Match).where(Match.status == "pending")
+@router.get("/api/matches/pending", summary="取得我相關的待確認比賽")
+def get_pending_matches(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    
+    # 📝 撈出與「我」有關，且狀態為 pending 的比賽
+    statement = select(Match).where(
+        Match.status == "pending",
+        or_(
+            Match.team_a_p1_id == current_user.id,
+            Match.team_a_p2_id == current_user.id,
+            Match.team_b_p1_id == current_user.id,
+            Match.team_b_p2_id == current_user.id
+        )
+    ).order_by(Match.created_at.desc())
+    
     pending_matches = session.exec(statement).all()
     
-    return [
-        {
-            "match_id": m.id,
-            "reporter": m.player1_info.name,
-            "score": f"{m.score_a}:{m.score_b}",
-            "team_b_p1_name": m.opponent1_info.name,
-            "team_b_p1_id": m.team_b_p1_id,  # 🌟 這就是你要找的 confirm_by ID
-            "created_at": m.created_at
-        }
-        for m in pending_matches
-    ]
+    result = []
+    for m in pending_matches:
+        team_a_p1 = session.get(User, m.team_a_p1_id)
+        team_b_p1 = session.get(User, m.team_b_p1_id)
+
+        # 🌟 呼叫 Elo 引擎試算這場比賽的 Delta 分數
+        # 我們假設如果確認了，會得幾分
+        potential_delta = calculate_elo_delta(
+            winner_team_mmr=team_a_p1.global_mmr if m.score_a > m.score_b else team_b_p1.global_mmr,
+            loser_team_mmr=team_b_p1.global_mmr if m.score_a > m.score_b else team_a_p1.global_mmr,
+            winner_matches_played=10, # 試算基準
+            score_winner=max(m.score_a, m.score_b),
+            score_loser=min(m.score_a, m.score_b),
+            format=m.format
+        )
+        
+        player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
+        opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
+
+        if m.match_type == "doubles":
+            if m.team_a_p2_id:
+                team_a_p2 = session.get(User, m.team_a_p2_id)
+                if team_a_p2: player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+            if m.team_b_p2_id:
+                team_b_p2 = session.get(User, m.team_b_p2_id)
+                if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+
+        # 計算 48 小時後的過期時間 (前端倒數計時用)
+        expires_at = m.created_at + datetime.timedelta(hours=48)
+
+        # 整理回傳資料
+        # 注意：我們把 potential_delta 塞進 mmrChange
+        # [Team A 變動, Team B 變動]
+        a_change = potential_delta if m.score_a > m.score_b else -potential_delta
+        b_change = -potential_delta if m.score_a > m.score_b else potential_delta
+
+        result.append({
+            "id": str(m.id),
+            "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
+            "score": [m.score_a, m.score_b],
+            "result": "win" if m.score_a > m.score_b else "loss",
+            "status": m.status,
+            "type": m.match_type if m.match_type else "singles",
+            "mmrChange": [a_change, b_change], # 待確認還沒有分數變化
+            "player1": player1_data,
+            "opponent": opponent_data,
+            "submittedBy": str(m.reported_by),
+            "expiresAt": expires_at.isoformat()
+        })
+        
+    return result
 
 @router.get("/api/matches/recent", summary="取得最近的比賽紀錄 (Recent Feed)")
 def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
