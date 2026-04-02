@@ -211,3 +211,64 @@ def get_pending_matches(session: Session = Depends(get_session)):
         }
         for m in pending_matches
     ]
+
+@router.get("/api/matches/recent", summary="取得最近的比賽紀錄 (Recent Feed)")
+def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
+    # 📝 撈取最近的比賽 (包含已確認與待確認)，依照時間倒序排列
+    statement = select(Match).order_by(Match.created_at.desc()).limit(limit)
+    recent_matches = session.exec(statement).all()
+    
+    result = []
+    for m in recent_matches:
+        # 1. 抓取雙方「玩家 1」的詳細資料
+        team_a_p1 = session.get(User, m.team_a_p1_id)
+        team_b_p1 = session.get(User, m.team_b_p1_id)
+        
+        # 準備基礎陣列
+        player1_data = [{
+            "id": str(team_a_p1.id),
+            "name": team_a_p1.name,
+            "avatar": team_a_p1.avatar_url
+        }]
+        
+        opponent_data = [{
+            "id": str(team_b_p1.id),
+            "name": team_b_p1.name,
+            "avatar": team_b_p1.avatar_url
+        }]
+
+        # 🌟 2. 如果這場是雙打，把「玩家 2」的資料也拉出來放進陣列
+        if m.match_type == "doubles":
+            if m.team_a_p2_id:
+                team_a_p2 = session.get(User, m.team_a_p2_id)
+                if team_a_p2:
+                    player1_data.append({
+                        "id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url
+                    })
+            if m.team_b_p2_id:
+                team_b_p2 = session.get(User, m.team_b_p2_id)
+                if team_b_p2:
+                    opponent_data.append({
+                        "id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url
+                    })
+
+        # 3. 判斷勝負與分數變動
+        is_a_win = m.score_a > m.score_b
+        delta = m.mmr_exchanged if m.mmr_exchanged else 0
+        mmr_change = [delta, -delta] if is_a_win else [-delta, delta]
+
+        # 4. 回傳給前端
+        result.append({
+            "id": str(m.id),
+            "date": m.created_at.strftime("%Y-%m-%d %H:%M"), 
+            "score": [m.score_a, m.score_b],
+            "result": "win" if is_a_win else "loss",
+            "status": m.status,
+            "type": m.match_type if m.match_type else "singles",
+            "tournament": "雙打積分賽" if m.match_type == "doubles" else "單打積分賽",
+            "mmrChange": mmr_change,
+            "player1": player1_data,    # 👈 這裡現在可能是 1 個人，也可能是 2 個人
+            "opponent": opponent_data   # 👈 這裡也是
+        })
+        
+    return result

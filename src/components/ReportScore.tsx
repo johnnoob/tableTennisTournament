@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { players as allPlayers, currentUser } from "@/data/mockData"
+import { jwtDecode } from "jwt-decode";
 
 interface ReportScoreProps {
   trigger: React.ReactElement;
@@ -36,7 +37,7 @@ interface ReportScoreProps {
   initialScoreB?: number;
 }
 
-export function ReportScore({ 
+export function ReportScore({
   trigger,
   editMode = false,
   initialOpponentId = null,
@@ -54,6 +55,29 @@ export function ReportScore({
   const [selectedOpponentIds, setSelectedOpponentIds] = React.useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
+  // 🌟 1. 新增一個 State 用來存真實玩家名單
+  const [realPlayers, setRealPlayers] = React.useState<any[]>([])
+
+  // 🌟 2. 元件載入或打開時，去後端拉取玩家清單
+  React.useEffect(() => {
+    if (open) {
+      const fetchPlayers = async () => {
+        const token = localStorage.getItem('auth_token')
+        if (!token) return
+        try {
+          const res = await fetch("http://localhost:8000/api/users", {
+            headers: { "Authorization": `Bearer ${token}` }
+          })
+          if (res.ok) {
+            setRealPlayers(await res.json())
+          }
+        } catch (err) {
+          console.error("無法取得玩家清單", err)
+        }
+      }
+      fetchPlayers()
+    }
+  }, [open])
 
   // Reset or initialize state when opening the dialog
   React.useEffect(() => {
@@ -72,38 +96,38 @@ export function ReportScore({
   const selectedPartner = allPlayers.find(p => p.id === selectedPartnerId)
   const selectedOpponents = allPlayers.filter(p => selectedOpponentIds.includes(p.id))
 
-  const isReady = matchType === 'singles' 
-    ? !!selectedOpponentId 
+  const isReady = matchType === 'singles'
+    ? !!selectedOpponentId
     : (!!selectedPartnerId && selectedOpponentIds.length === 2)
 
   // 智慧推斷：判斷局數與參與者是否合法，並回傳對應的 UI 狀態
   const getScoreValidation = (a: number, b: number, ready: boolean) => {
     const max = Math.max(a, b);
     const min = Math.min(a, b);
-    
+
     if (a === 0 && b === 0) return { valid: false, text: "請輸入最終局數", style: "bg-slate-50 text-slate-400 border-slate-200" };
     if (a === b) return { valid: false, text: "平手無法送出", style: "bg-slate-50 text-slate-500 border-slate-200" };
-    
+
     const scoreIsValid = (max === 2 && min <= 1) || (max === 3 && min <= 2);
 
     if (scoreIsValid) {
       if (!ready) {
-        return { 
-          valid: false, 
-          text: matchType === 'singles' ? "👤 請點擊上方選擇對手" : "👥 請點擊上方選齊搭檔與對手", 
-          style: "bg-amber-50 text-amber-600 border-amber-200 shadow-sm shadow-olympic-gold/10 animate-pulse" 
+        return {
+          valid: false,
+          text: matchType === 'singles' ? "👤 請點擊上方選擇對手" : "👥 請點擊上方選齊搭檔與對手",
+          style: "bg-amber-50 text-amber-600 border-amber-200 shadow-sm shadow-olympic-gold/10 animate-pulse"
         };
       }
-      return { 
-        valid: true, 
-        text: max === 2 ? "✅ 合法賽果 (3戰2勝)" : "✅ 合法賽果 (5戰3勝)", 
-        style: "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-500/10" 
+      return {
+        valid: true,
+        text: max === 2 ? "✅ 合法賽果 (3戰2勝)" : "✅ 合法賽果 (5戰3勝)",
+        style: "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-500/10"
       };
     }
-    
+
     // 超過合理範圍
     if (max > 3) return { valid: false, text: "❌ 局數異常 (最多3勝)", style: "bg-rose-50 text-rose-500 border-rose-200" };
-    
+
     return { valid: false, text: "⏳ 比賽尚未分出勝負", style: "bg-slate-50 text-slate-500 border-slate-200" };
   };
 
@@ -112,11 +136,63 @@ export function ReportScore({
   const handleSubmit = async () => {
     if (!isReady || !validation.valid) return
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsSubmitting(false)
-    setIsSuccess(true)
-    // Removed automatic close after 2s to allow viewing the receipt
+    // 1. 從 Local Storage 取得識別證
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      alert("找不到登入資訊，請重新登入！")
+      setIsSubmitting(false)
+      return
+    }
+
+    // 🌟 替換成這行！超直覺、超乾淨的寫法：
+    const decodedPayload: any = jwtDecode(token);
+    const realMyUserId = decodedPayload.sub;
+
+    // 2. 依照選擇的賽制，整理要送給後端的資料格式
+    const payload = {
+      score_a: scoreA,
+      score_b: scoreB,
+      match_type: matchType,
+      team_a_p1_id: realMyUserId, // 發起人 (注意：這裡暫時用假資料的 currentUser，下一步會教您怎麼換)
+      team_a_p2_id: matchType === 'doubles' ? selectedPartnerId : null,
+      team_b_p1_id: matchType === 'singles' ? selectedOpponentId : selectedOpponentIds[0],
+      team_b_p2_id: matchType === 'doubles' ? selectedOpponentIds[1] : null,
+      format: scoreA + scoreB >= 5 ? "BO5" : "BO3" // 根據總分判斷賽制
+    }
+
+    try {
+      // 3. 發送 POST 請求到您的 FastAPI 報分路由
+      const response = await fetch("http://localhost:8000/api/matches", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // 戴上識別證
+        },
+        body: JSON.stringify(payload)
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+
+        // 🌟 4. 新增這段：把 FastAPI 的詳細錯誤轉換成看得懂的文字
+        let errorMessage = "報分失敗";
+        if (typeof errorData.detail === "string") {
+          errorMessage = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          // 將每個錯誤的欄位名稱與原因列出來
+          errorMessage = errorData.detail.map((err: any) =>
+            `欄位 [${err.loc[err.loc.length - 1]}]: ${err.msg}`
+          ).join('\n');
+        }
+        throw new Error(errorMessage)
+      }
+      // 4. 成功！切換到成功畫面
+      setIsSubmitting(false)
+      setIsSuccess(true)
+
+    } catch (error: any) {
+      alert(`報分發生錯誤: ${error.message}`)
+      setIsSubmitting(false)
+    }
   }
 
   const content = (
@@ -129,7 +205,7 @@ export function ReportScore({
             </div>
             <div className="absolute inset-0 bg-emerald-400 blur-2xl opacity-20 animate-pulse rounded-full" />
           </div>
-          
+
           <div className="text-center space-y-1">
             <h3 className="text-2xl font-display font-black text-primary-navy tracking-tight">申報成功！</h3>
             <p className="text-sm font-medium text-slate-500">賽果已提交，等待對手系統確認中。</p>
@@ -140,7 +216,7 @@ export function ReportScore({
             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
               <Trophy size={80} />
             </div>
-            
+
             <div className="flex items-center justify-between relative z-10">
               {/* Me / My Team */}
               <div className="flex flex-col items-center gap-2">
@@ -212,17 +288,17 @@ export function ReportScore({
             </div>
 
             <div className="pt-4 border-t border-dashed border-slate-200 flex justify-between items-center">
-               <div className="space-y-0.5">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-2 bg-amber-400 rounded-full animate-pulse" />
-                    <span className="text-xs font-bold text-slate-600">等待確認中 (Pending)</span>
-                  </div>
-               </div>
-               <div className="text-right space-y-0.5">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Auto-Confirm</span>
-                  <span className="text-xs font-bold text-slate-600">48 小時內生效</span>
-               </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="size-2 bg-amber-400 rounded-full animate-pulse" />
+                  <span className="text-xs font-bold text-slate-600">等待確認中 (Pending)</span>
+                </div>
+              </div>
+              <div className="text-right space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Auto-Confirm</span>
+                <span className="text-xs font-bold text-slate-600">48 小時內生效</span>
+              </div>
             </div>
           </div>
 
@@ -231,14 +307,14 @@ export function ReportScore({
         <>
           {/* Match Type Selection */}
           {!editMode && (
-            <Tabs 
-              value={matchType} 
+            <Tabs
+              value={matchType}
               onValueChange={(val) => {
                 setMatchType(val as 'singles' | 'doubles');
                 setSelectedOpponentId(null);
                 setSelectedPartnerId(null);
                 setSelectedOpponentIds([]);
-              }} 
+              }}
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-2 rounded-2xl p-1 bg-slate-100">
@@ -258,7 +334,7 @@ export function ReportScore({
                   )}
                 </label>
                 {matchType === 'doubles' && (selectedPartnerId || selectedOpponentIds.length > 0) && (
-                  <button 
+                  <button
                     onClick={() => {
                       setSelectedPartnerId(null);
                       setSelectedOpponentIds([]);
@@ -269,11 +345,11 @@ export function ReportScore({
                   </button>
                 )}
               </div>
-              
+
               {/* 🌟 新增：搜尋輸入框 */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
+                <input
                   type="text"
                   placeholder="搜尋同仁姓名..."
                   value={searchTerm}
@@ -286,10 +362,10 @@ export function ReportScore({
             <div className="flex gap-2 md:gap-3 overflow-x-auto pt-2 pb-4 no-scrollbar -mx-2 px-2 md:grid md:grid-cols-4 md:overflow-visible">
               {/* 🌟 修改：動態過濾名單邏輯 */}
               {(() => {
-                const filteredPlayers = allPlayers
-                  .filter(p => p.id !== currentUser.id)
-                  .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-                
+                const filteredPlayers = realPlayers.filter(p =>
+                  p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.id !== currentUser.id // 這裡的 currentUser 之後也要換成從上層傳下來的真實 user
+                )
+
                 // 如果沒有搜尋條件，預設顯示 10 名；有搜尋則顯示所有符合條件的同仁
                 const displayPlayers = searchTerm ? filteredPlayers : filteredPlayers.slice(0, 10);
 
@@ -328,8 +404,8 @@ export function ReportScore({
                       disabled={editMode}
                       className={cn(
                         "flex-shrink-0 flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all min-w-[70px] md:min-w-[80px] border-2 relative",
-                        isSelected 
-                          ? isPartner 
+                        isSelected
+                          ? isPartner
                             ? "bg-amber-50 border-amber-400 shadow-lg shadow-amber-200/20 scale-105 z-10"
                             : "bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-200/20 scale-105 z-10"
                           : editMode
@@ -362,22 +438,22 @@ export function ReportScore({
           {/* Score Input */}
           <section className="space-y-2 md:space-y-0">
             <div className="flex items-center justify-between gap-4">
-              <ScoreControl 
-                value={scoreA} 
-                onChange={setScoreA} 
+              <ScoreControl
+                value={scoreA}
+                onChange={setScoreA}
                 avatars={matchType === 'doubles' && selectedPartner ? [currentUser.avatar, selectedPartner.avatar] : [currentUser.avatar]}
                 names={matchType === 'doubles' && selectedPartner ? [currentUser.name, selectedPartner.name] : [currentUser.name]}
                 status={scoreA > scoreB ? 'win' : scoreA < scoreB ? 'loss' : 'draw'}
               />
               <div className="text-2xl font-display font-black text-slate-500 transform translate-y-4">:</div>
-              <ScoreControl 
-                value={scoreB} 
-                onChange={setScoreB} 
-                avatars={matchType === 'doubles' 
+              <ScoreControl
+                value={scoreB}
+                onChange={setScoreB}
+                avatars={matchType === 'doubles'
                   ? selectedOpponents.map(p => p.avatar)
                   : selectedOpponent ? [selectedOpponent.avatar] : []
                 }
-                names={matchType === 'doubles' 
+                names={matchType === 'doubles'
                   ? selectedOpponents.map(p => p.name)
                   : selectedOpponent ? [selectedOpponent.name] : ["???"]
                 }
@@ -389,12 +465,12 @@ export function ReportScore({
 
           {/* 新增：動態防呆提示標籤 */}
           <div className="flex justify-center pt-2 pb-4">
-             <div className={cn(
-               "px-4 py-2 rounded-full border text-xs font-black tracking-widest transition-all duration-300",
-               validation.style
-             )}>
-               {validation.text}
-             </div>
+            <div className={cn(
+              "px-4 py-2 rounded-full border text-xs font-black tracking-widest transition-all duration-300",
+              validation.style
+            )}>
+              {validation.text}
+            </div>
           </div>
 
           {/* Conditional Desktop Submit Button - Moved to Dialog footer below */}
@@ -415,8 +491,8 @@ export function ReportScore({
               {isSuccess ? "申報成功" : (editMode ? "修改賽果" : "申報比賽結果")}
             </DialogTitle>
             <DialogDescription>
-              {isSuccess 
-                ? "賽果已提交，等待對手系統確認中。" 
+              {isSuccess
+                ? "賽果已提交，等待對手系統確認中。"
                 : "請確認比分正確，送出後對手將收到確認通知。"}
             </DialogDescription>
           </DialogHeader>
@@ -424,26 +500,26 @@ export function ReportScore({
             {content}
           </div>
           {!isSuccess && !isDesktop && (
-             <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={!isReady || isSubmitting || !validation.valid}
-                  className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
-                >
-                  {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
-                </Button>
-                <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
-                   取消
-                </Button>
-             </div>
+            <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
+              <Button
+                onClick={handleSubmit}
+                disabled={!isReady || isSubmitting || !validation.valid}
+                className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
+              >
+                {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
+              </Button>
+              <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-6 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
+                取消
+              </Button>
+            </div>
           )}
           {isDesktop && !isSuccess && (
             <div className="p-8 pt-4 md:p-6 md:pt-2 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setOpen(false)} className="h-12 px-8 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50">
                 取消
               </Button>
-              <Button 
-                onClick={handleSubmit} 
+              <Button
+                onClick={handleSubmit}
                 disabled={!isReady || isSubmitting || !validation.valid}
                 className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
@@ -452,25 +528,25 @@ export function ReportScore({
             </div>
           )}
           {isDesktop && isSuccess && (
-             <div className="p-8 pt-0">
-               <Button 
-                  onClick={() => {
-                    setOpen(false)
-                    setTimeout(() => {
-                      setIsSuccess(false)
-                      setScoreA(0)
-                      setScoreB(0)
-                      setSelectedOpponentId(null)
-                      setSelectedPartnerId(null)
-                      setSelectedOpponentIds([])
-                      setMatchType('singles')
-                    }, 300)
-                  }}
-                  className="w-full h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all"
-                >
-                  知道了
-                </Button>
-             </div>
+            <div className="p-8 pt-0">
+              <Button
+                onClick={() => {
+                  setOpen(false)
+                  setTimeout(() => {
+                    setIsSuccess(false)
+                    setScoreA(0)
+                    setScoreB(0)
+                    setSelectedOpponentId(null)
+                    setSelectedPartnerId(null)
+                    setSelectedOpponentIds([])
+                    setMatchType('singles')
+                  }, 300)
+                }}
+                className="w-full h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all"
+              >
+                知道了
+              </Button>
+            </div>
           )}
 
         </DialogContent>
@@ -498,12 +574,12 @@ export function ReportScore({
             {content}
           </div>
         </div>
-        
+
         {/* Fixed Mobile Footer */}
         <DrawerFooter className="px-6 pt-2 pb-10 border-t border-slate-50 bg-white/80 backdrop-blur-md">
           {!isSuccess && (
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={!isReady || isSubmitting || !validation.valid}
               className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20 mb-4"
             >
@@ -511,7 +587,7 @@ export function ReportScore({
             </Button>
           )}
           <DrawerClose asChild>
-            <Button 
+            <Button
               variant={isSuccess ? "default" : "outline"}
               onClick={() => {
                 if (isSuccess) {
@@ -528,8 +604,8 @@ export function ReportScore({
               }}
               className={cn(
                 "w-full h-12 rounded-xl border-slate-200 font-bold uppercase tracking-widest",
-                isSuccess 
-                  ? "bg-primary-navy hover:bg-slate-800 text-white border-none" 
+                isSuccess
+                  ? "bg-primary-navy hover:bg-slate-800 text-white border-none"
                   : "text-slate-500 hover:bg-slate-50"
               )}
             >
@@ -542,14 +618,14 @@ export function ReportScore({
   )
 }
 
-function ScoreControl({ 
-  value, 
-  onChange, 
-  avatars, 
+function ScoreControl({
+  value,
+  onChange,
+  avatars,
   names,
   placeholder = false,
   status
-}: { 
+}: {
   value: number;
   onChange: (val: number) => void;
   avatars: string[];
@@ -566,7 +642,7 @@ function ScoreControl({
         )}>
           {avatars.length > 0 ? (
             avatars.map((avatar, i) => (
-              <div 
+              <div
                 key={i}
                 className={cn(
                   "size-14 md:size-11 rounded-[1.5rem] md:rounded-xl overflow-hidden border-2 transition-all relative z-[1]",
@@ -589,11 +665,11 @@ function ScoreControl({
         </div>
         <div className={cn(
           "absolute -bottom-2 -right-2 size-7 rounded-full shadow-lg flex items-center justify-center border-2 z-10",
-          status === 'win' ? "bg-green-500 text-white border-white" : 
-          status === 'loss' ? "bg-red-500 text-white border-white" : 
-          "bg-white text-primary-navy border-slate-100"
+          status === 'win' ? "bg-green-500 text-white border-white" :
+            status === 'loss' ? "bg-red-500 text-white border-white" :
+              "bg-white text-primary-navy border-slate-100"
         )}>
-           {placeholder ? <Swords size={14} strokeWidth={3} /> : <User size={14} strokeWidth={3} />}
+          {placeholder ? <Swords size={14} strokeWidth={3} /> : <User size={14} strokeWidth={3} />}
         </div>
       </div>
       <span className={cn(
@@ -602,14 +678,14 @@ function ScoreControl({
       )}>
         {names.length > 1 ? `${names[0]} & ${names[1]}` : names[0] || ""}
       </span>
-      
+
       <div className={cn(
         "flex flex-col items-center gap-4 md:gap-2 p-4 md:p-3 rounded-[2.5rem] md:rounded-[1.5rem] border transition-all duration-500",
-        status === 'win' ? "bg-green-50 border-green-100 shadow-lg shadow-green-200/20" : 
-        status === 'loss' ? "bg-red-50 border-red-100 opacity-90" : 
-        "bg-slate-50/50 border-slate-100/50"
+        status === 'win' ? "bg-green-50 border-green-100 shadow-lg shadow-green-200/20" :
+          status === 'loss' ? "bg-red-50 border-red-100 opacity-90" :
+            "bg-slate-50/50 border-slate-100/50"
       )}>
-        <button 
+        <button
           onClick={() => onChange(Math.min(3, value + 1))}
           className={cn(
             "size-14 md:size-10 rounded-2xl md:rounded-xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",
@@ -623,7 +699,7 @@ function ScoreControl({
           "text-5xl md:text-4xl font-display font-black tabular-nums min-w-[60px] text-center transition-colors",
           status === 'win' ? "text-green-600" : status === 'loss' ? "text-red-600" : "text-primary-navy"
         )}>{value}</span>
-        <button 
+        <button
           onClick={() => onChange(Math.max(0, value - 1))}
           className={cn(
             "size-14 md:size-10 rounded-2xl md:rounded-xl shadow-sm border flex items-center justify-center active:scale-95 transition-all text-primary-navy hover:bg-slate-50",

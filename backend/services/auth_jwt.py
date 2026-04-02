@@ -1,7 +1,7 @@
 import jwt
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 from uuid import UUID
 
@@ -13,8 +13,7 @@ SECRET_KEY = "super-secret-precision-arena-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 識別證有效期限 (設為 7 天)
 
-# 告訴 FastAPI，前端會把 Token 放在 Header 的 Bearer 裡面傳過來
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+security = HTTPBearer()
 
 def create_access_token(user_id: UUID) -> str:
     """發行 JWT 數位識別證"""
@@ -30,11 +29,13 @@ def create_access_token(user_id: UUID) -> str:
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)) -> User:
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), # 🌟 改這裡
+    session: Session = Depends(get_session)) -> User:
     """
     驗證 JWT 識別證，並回傳對應的 User 物件。
     這支函式會作為 Dependency (依賴項) 放在需要保護的 API 路由上。
     """
+    token = credentials.credentials # 🌟 新增這行，把真正的 token 字串抽出來
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="無法驗證您的身分，請重新登入",

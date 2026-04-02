@@ -76,5 +76,6 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
 
     # 🚀 4. 帶著 Token 重新導向回前端 (Vite) 的 Dashboard 頁面
     # 這樣前端就能從網址列拿到 Token 了！
-    frontend_url = f"http://localhost:5173/?token={jwt_token}"
+    frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    frontend_url = f"{frontend_base}/?token={jwt_token}"
     return RedirectResponse(url=frontend_url)

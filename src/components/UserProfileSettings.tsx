@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { currentUser } from "@/data/mockData" // 暫時使用 mockData，未來替換為 Context 或 Redux 狀態
+// import { currentUser } from "@/data/mockData" // 暫時使用 mockData，未來替換為 Context 或 Redux 狀態
+import { useAuthStore } from '@/store/authStore';
 
 const RUBBER_OPTIONS = [
   "平面-澀性膠皮",
@@ -24,22 +25,24 @@ interface UserProfileSettingsProps {
 export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
-  
+  // 🌟 2. 把 user 和登出動作 (logout) 一起拿出來
+  const { user, logout } = useAuthStore();
+
   // 表單狀態
-  const [name, setName] = React.useState(currentUser.name)
-  const [department, setDepartment] = React.useState(currentUser.department || "秘書處 / 總務組")
-  const [forehand, setForehand] = React.useState(currentUser.racketConfig?.forehand || "")
-  const [backhand, setBackhand] = React.useState(currentUser.racketConfig?.backhand || "")
+  const [name, setName] = React.useState(user.name)
+  const [department, setDepartment] = React.useState(user.department || "秘書處 / 總務組")
+  const [forehand, setForehand] = React.useState(user.racketConfig?.forehand || "")
+  const [backhand, setBackhand] = React.useState(user.racketConfig?.backhand || "")
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
 
   // 每次打開時重設狀態
   React.useEffect(() => {
     if (open) {
-      setName(currentUser.name);
-      setDepartment(currentUser.department || "秘書處 / 總務組");
-      setForehand(currentUser.racketConfig?.forehand || "");
-      setBackhand(currentUser.racketConfig?.backhand || "");
+      setName(user.name);
+      setDepartment(user.department || "秘書處 / 總務組");
+      setForehand(user.racketConfig?.forehand || "");
+      setBackhand(user.racketConfig?.backhand || "");
       setIsSuccess(false);
     }
   }, [open]);
@@ -50,7 +53,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
     await new Promise(resolve => setTimeout(resolve, 1000))
     setIsSaving(false)
     setIsSuccess(true)
-    
+
     // 成功後延遲關閉視窗
     setTimeout(() => {
       setOpen(false)
@@ -64,14 +67,14 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       <div className="flex flex-col items-center justify-center space-y-4">
         <div className="relative group cursor-pointer">
           <div className="size-24 rounded-full p-1 border-2 border-slate-200 bg-white shadow-sm transition-all group-hover:border-sapphire-blue group-hover:shadow-md">
-            <img src={currentUser.avatar} alt="Profile" className="size-full rounded-full object-cover" />
+            <img src={user.avatar} alt="Profile" className="size-full rounded-full object-cover" />
           </div>
           <div className="absolute bottom-0 right-0 size-8 bg-sapphire-blue rounded-full border-2 border-white flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110">
             <Camera size={14} />
           </div>
         </div>
         <div className="text-center">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Account ID: {currentUser.id.split('-')[0]}</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Account ID: {user.id.split('-')[0]}</p>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-600 text-xs font-black uppercase tracking-widest">
             <Shield size={12} />
             已驗證同仁
@@ -82,12 +85,12 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center">
           <Trophy size={16} className="text-amber-500 mb-1" />
-          <span className="text-2xl font-display font-black text-primary-navy">{Math.floor(currentUser.rating * 0.8)}</span>
+          <span className="text-2xl font-display font-black text-primary-navy">{Math.floor(user.rating * 0.8)}</span>
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">本季排行分</span>
         </div>
         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center">
           <Shield size={16} className="text-sapphire-blue mb-1" />
-          <span className="text-2xl font-display font-black text-primary-navy">{currentUser.rating}</span>
+          <span className="text-2xl font-display font-black text-primary-navy">{user.rating}</span>
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">隱藏實力分</span>
         </div>
       </div>
@@ -98,19 +101,19 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2 ml-1">
             <User size={14} /> 顯示姓名
           </label>
-          <Input 
-            value={name} 
+          <Input
+            value={name}
             onChange={(e) => setName(e.target.value)}
             className="h-12 bg-slate-50 border-slate-200 focus-visible:ring-sapphire-blue/20 focus-visible:border-sapphire-blue font-bold text-primary-navy rounded-xl"
           />
         </div>
-        
+
         <div className="space-y-2">
           <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2 ml-1">
             <Building2 size={14} /> 所屬單位 / 處室
           </label>
-          <Input 
-            value={department} 
+          <Input
+            value={department}
             onChange={(e) => setDepartment(e.target.value)}
             placeholder="例如：資訊室"
             className="h-12 bg-slate-50 border-slate-200 focus-visible:ring-sapphire-blue/20 focus-visible:border-sapphire-blue font-bold text-primary-navy rounded-xl"
@@ -156,7 +159,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
 
       {/* 登出按鈕 */}
       <div className="pt-6 border-t border-slate-100">
-        <Button variant="ghost" className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 font-black tracking-widest h-12 rounded-xl">
+        <Button variant="ghost" className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 font-black tracking-widest h-12 rounded-xl" onClick={() => logout()}>
           <LogOut size={16} className="mr-2" />
           登出戰情室 (Log Out)
         </Button>
@@ -165,13 +168,13 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   )
 
   const SaveButton = () => (
-    <Button 
-      onClick={handleSave} 
+    <Button
+      onClick={handleSave}
       disabled={isSaving || isSuccess || !name}
       className={cn(
         "w-full h-12 md:h-14 rounded-xl md:rounded-2xl font-display font-black tracking-wider transition-all shadow-xl",
-        isSuccess 
-          ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
+        isSuccess
+          ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
           : "bg-primary-navy hover:bg-slate-800 text-white shadow-primary-navy/20"
       )}
     >
@@ -196,7 +199,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
             {content}
           </div>
           <div className="p-6 pt-2 bg-white border-t border-slate-50">
-             <SaveButton />
+            <SaveButton />
           </div>
         </DialogContent>
       </Dialog>
