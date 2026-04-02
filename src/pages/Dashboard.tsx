@@ -9,6 +9,7 @@ import { Bell, Search, Plus, Skull, Crown, ChevronLeft, ChevronRight, Trophy, In
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
 import { PendingActions } from '@/components/PendingActions';
+import { UserProfileSettings } from '@/components/UserProfileSettings';
 
 // 📢 公告假資料 (未來可由 FastAPI 後端提供)
 const announcements = [
@@ -58,7 +59,7 @@ function AnnouncementBanner() {
       <div 
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="bg-primary-navy rounded-[2rem] p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group"
+        className="bg-primary-navy rounded-4xl p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group"
       >
         
         {/* 背景奧運風裝飾浮水印 */}
@@ -164,16 +165,29 @@ export function Dashboard() {
           <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black">Overview</h1>
           <p className="text-sm md:text-base text-slate-500 mt-2 uppercase tracking-[0.2em] font-sans font-bold">Season 4 • Week 12 • Active</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all p-6">
+        {/* Dashboard Header 替換右側按鈕區 */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <Button variant="ghost" size="icon" className="hidden md:flex rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all p-6">
             <Search size={22} className="text-primary-navy" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all p-6 relative">
-            <Bell size={22} className="text-primary-navy" />
-            <span className="absolute top-4 right-4 size-3 bg-olympic-gold rounded-full border-[3px] border-white shadow-sm" />
+          <Button variant="ghost" size="icon" className="rounded-xl md:rounded-2xl bg-slate-50 hover:bg-slate-100 shadow-sm border border-slate-100 transition-all md:p-6 relative">
+            <Bell size={20} className="md:size-22 text-primary-navy" />
+            <span className="absolute top-2 right-2 md:top-4 md:right-4 size-2.5 md:size-3 bg-amber-500 rounded-full border-2 border-white shadow-sm" />
           </Button>
+          
+          {/* 手機版專屬：右上角個人設定入口 */}
+          <div className="lg:hidden ml-1">
+             <UserProfileSettings 
+               trigger={
+                 <button className="size-10 rounded-xl overflow-hidden border-2 border-slate-200 active:scale-95 transition-all shadow-sm">
+                   <img src={currentUser.avatar} alt={currentUser.name} className="size-full object-cover" />
+                 </button>
+               }
+             />
+          </div>
         </div>
       </header>
+
       
       {/* 🚀 插入全新的社團公告輪播區塊 */}
       <AnnouncementBanner />
@@ -202,7 +216,7 @@ export function Dashboard() {
                  ))}
                </div>
              </div>
-             <StatsChart />
+             <StatsChart showCard={false} showHeader={false} />
           </section>
 
           {/* Recent Matches Feed - Moved to main column for full width */}

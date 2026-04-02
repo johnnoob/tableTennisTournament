@@ -31,6 +31,12 @@
   --color-accent: var(--color-sapphire-blue);
   --color-accent-foreground: #ffffff;
   
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-primary-navy);
+  
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: var(--color-primary-slate);
+  
   --color-border: #e2e8f0; /* Slate 200，邊框稍微加深，增加立體感 */
   --color-input: #e2e8f0;
   --color-ring: var(--color-sapphire-blue);

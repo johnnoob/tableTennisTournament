@@ -1,5 +1,6 @@
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 const data = [
   { name: 'Mon', rating: 2340 },
@@ -11,23 +12,33 @@ const data = [
   { name: 'Sun', rating: 2450 },
 ];
 
-export function StatsChart() {
-  return (
-    <Card className="no-line-card rounded-3xl bg-white p-6 shadow-sm overflow-hidden">
-      <CardHeader className="p-0 mb-6">
-        <div className="flex items-center justify-between">
+interface StatsChartProps {
+  showCard?: boolean;
+  showHeader?: boolean;
+  height?: number;
+}
+
+export function StatsChart({ 
+  showCard = true, 
+  showHeader = true, 
+  height = 220 
+}: StatsChartProps) {
+  const content = (
+    <div className={cn("size-full", !showCard && "p-0")}>
+      {showHeader && (
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <CardTitle className="font-display text-xl text-primary-navy">Performance Analytics</CardTitle>
+            <h4 className="font-display text-xl text-primary-navy">Performance Analytics</h4>
             <p className="text-xs text-slate-500 mt-1 font-sans">MMR Progression • Last 7 Days</p>
           </div>
           <div className="bg-sapphire-blue/10 text-sapphire-blue rounded-full px-3 py-1 text-xs font-semibold">
             +110 PTS
           </div>
         </div>
-      </CardHeader>
+      )}
       
-      <CardContent className="p-0 size-full min-h-[220px]">
-        <ResponsiveContainer width="100%" height={220}>
+      <div className={cn("w-full", showCard ? "min-h-[220px]" : "")}>
+        <ResponsiveContainer width="100%" height={height}>
           <AreaChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
@@ -70,7 +81,15 @@ export function StatsChart() {
             />
           </AreaChart>
         </ResponsiveContainer>
-      </CardContent>
+      </div>
+    </div>
+  );
+
+  if (!showCard) return content;
+
+  return (
+    <Card className="no-line-card rounded-3xl bg-white p-6 shadow-sm overflow-hidden border-none">
+      {content}
     </Card>
   );
 }

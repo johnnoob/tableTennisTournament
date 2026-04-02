@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, Trophy, Award, Crown, Plus, Shield } from 'lucide-react';
+import { LayoutDashboard, History, Trophy, Crown, Plus, Shield, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
+import { UserProfileSettings } from './UserProfileSettings';
+import { currentUser } from '@/data/mockData';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: History, label: 'Matches', path: '/history' },
   { icon: Trophy, label: 'Tournament', path: '/tournament' },
   { icon: Shield, label: 'Leaderboard', path: '/leaderboard' },
-  { icon: Award, label: 'Hall of Fame', path: '/hof' },
 ];
 
 export function Navigation() {
@@ -114,15 +115,26 @@ export function Navigation() {
           ))}
         </div>
 
-        {/* Footer info or user profile preview can go here */}
-        <div className="mt-auto pt-8 border-t border-slate-200/30">
-          <div className="bg-white/40 p-4 rounded-2xl border border-white/50 backdrop-blur-sm">
-             <p className="text-xs text-slate-500 uppercase font-black tracking-widest text-center mb-1">Status</p>
-             <p className="text-xs text-primary-navy font-bold text-center">Season 4 Active</p>
-          </div>
+        {/* User Profile Trigger (Desktop) */}
+        <div className="mt-auto pt-6 border-t border-slate-200/50">
+          <UserProfileSettings 
+            trigger={
+              <button className="w-full bg-white/60 hover:bg-white p-3 rounded-2xl border border-slate-200/50 backdrop-blur-sm transition-all flex items-center gap-3 text-left group shadow-sm hover:shadow-md">
+                <div className="size-10 rounded-xl overflow-hidden border border-slate-200 shrink-0 relative group-hover:border-sapphire-blue transition-colors">
+                  <img src={currentUser.avatar} alt={currentUser.name} className="size-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-primary-navy truncate group-hover:text-sapphire-blue transition-colors">{currentUser.name}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{currentUser.department || '設定單位...'}</p>
+                </div>
+                <Settings size={18} className="text-slate-400 group-hover:text-sapphire-blue transition-colors shrink-0 mr-1 group-hover:rotate-90 duration-500" />
+              </button>
+            }
+          />
         </div>
 
       </aside>
     </>
   );
 }
+

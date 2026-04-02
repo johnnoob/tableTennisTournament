@@ -80,6 +80,10 @@ export const currentUser: Player = {
   avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop',
   isVerified: true,
   department: '資訊部 / 技術處',
+  racketConfig: {
+    forehand: '平面-澀性膠皮',
+    backhand: '長顆粒',
+  },
   stats: {
     wins: 142,
     losses: 38,
@@ -163,6 +167,7 @@ export const players: Player[] = [
     stats: { wins: 210, losses: 88, winRate: 72.5, avgScore: 23.8 },
     doublesRating: 2420,
     doublesStats: { wins: 85, losses: 35, winRate: 70.8, avgScore: 22.5 },
+    racketConfig: { forehand: '平面－澀性膠皮', backhand: '長顆粒' },
     goldenPartner: [{ id: 'p4', name: '王小明', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop', winRate: 78 }],
     worstPartner: [{ id: 'p6', name: '張雅婷', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=400&h=400&fit=crop', winRate: 22 }]
   },
@@ -177,6 +182,7 @@ export const players: Player[] = [
     department: '研發中心 / 第二開發課',
     title: 'HISTORICAL PEAK',
     stats: { wins: 24, losses: 4, winRate: 85.7, avgScore: 21.0 },
+    racketConfig: { forehand: '平面－澀性膠皮', backhand: '平面－澀性膠皮' },
     goldenPartner: [{ id: 'p3', name: '黃柏翰', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop', winRate: 82 }],
     worstPartner: [{ id: 'p1', name: '林怡君', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop', winRate: 18 }]
   },
@@ -191,6 +197,7 @@ export const players: Player[] = [
     department: '總務處 / 資產管理',
     title: 'PERSISTENT GUARD',
     stats: { wins: 22, losses: 6, winRate: 78.5, avgScore: 20.5 },
+    racketConfig: { forehand: '短顆粒', backhand: '平面－澀性膠皮' },
     goldenPartner: [{ id: 'p6', name: '張雅婷', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=400&h=400&fit=crop', winRate: 65 }],
     worstPartner: [{ id: 'p2', name: '陳偉安', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', winRate: 25 }]
   },
@@ -204,6 +211,7 @@ export const players: Player[] = [
     isVerified: false,
     department: '人事室 / 培訓組',
     stats: { wins: 21, losses: 7, winRate: 75.0, avgScore: 19.5 },
+    racketConfig: { forehand: '平面－澀性膠皮', backhand: '平面－澀性膠皮' },
     goldenPartner: [{ id: 'p5', name: '李國華', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop', winRate: 72 }],
     worstPartner: [{ id: 'p3', name: '黃柏翰', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop', winRate: 35 }]
   },
@@ -217,6 +225,7 @@ export const players: Player[] = [
     isVerified: false,
     department: '戰略規劃部 / 前瞻組',
     stats: { wins: 19, losses: 9, winRate: 67.8, avgScore: 18.2 },
+    racketConfig: { forehand: '平面－黏性膠皮', backhand: '平面－黏性膠皮' },
     goldenPartner: [{ id: 'p1', name: '林怡君', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop', winRate: 58 }],
     worstPartner: [{ id: 'p2', name: '陳偉安', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop', winRate: 15 }]
   }

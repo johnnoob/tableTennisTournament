@@ -20,7 +20,7 @@ export function RankingCard({ player, variant = 'standard', mode = 'singles' }: 
   const displayStats = isDoubles ? (player.doublesStats ?? player.stats) : player.stats;
 
   return (
-    <Link to={`/player/${player.id}`} className="block group">
+    <Link to={`?inspect=${player.id}`} className="block group">
       <Card className={cn(
         "no-line-card relative transition-all duration-300 overflow-visible",
         isFeatured ? "rounded-3xl bg-primary-navy text-white p-6 mt-6 shadow-xl shadow-sapphire-blue/10" : "rounded-2xl bg-white group-hover:bg-slate-50 p-4 mt-4 shadow-sm"
