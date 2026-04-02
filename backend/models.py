@@ -6,7 +6,12 @@ from datetime import datetime
 class User(SQLModel, table=True):
     # 1. 基本身分識別
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    email: str = Field(unique=True, index=True, description="登入用的帳號/信箱")
+    # ... 前面的 id, email (可以把 email 的 unique 限制拿掉，或允許 null，以防 LINE 沒提供) ...
+    email: Optional[str] = Field(default=None, index=True) # 允許為空
+
+    # 🌟 新增：第三方登入資訊
+    auth_provider: str = Field(default="local", description="google 或 line")
+    oauth_id: Optional[str] = Field(default=None, index=True, description="Google/LINE 提供的唯一 ID")
     
     # 2. 個人基本資料
     name: str = Field(index=True, description="同仁顯示姓名")

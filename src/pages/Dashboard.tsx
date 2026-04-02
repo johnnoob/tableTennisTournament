@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
+// import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
 import type { Match, RivalryItem } from '@/data/mockData';
 import { RankingCard } from '@/components/RankingCard';
 import { MatchItem } from '@/components/MatchItem';
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 // 📢 公告假資料 (未來可由 FastAPI 後端提供)
 const announcements = [
@@ -40,6 +42,7 @@ function AnnouncementBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const current = announcements[currentIndex];
+
 
   const nextMsg = () => setCurrentIndex((prev) => (prev + 1) % announcements.length);
   const prevMsg = () => setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
@@ -155,6 +158,54 @@ function AnnouncementBanner() {
 
 export function Dashboard() {
   const [rivalMode, setRivalMode] = useState<'singles' | 'doubles'>('singles');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null); // 🌟 儲存從後端抓回來的本人資料
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 檢查網址有沒有 token
+    const token = searchParams.get('token');
+    
+    if (token) {
+      // 1. 存進 localStorage
+      localStorage.setItem('auth_token', token);
+      
+      // 2. 把網址列的 ?token=... 抹除，讓網址變乾淨
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+
+    // 🌟 2. 抓取個人資料的函式
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/users/me", {
+          headers: {
+            "Authorization": `Bearer ${token}` // 🔑 把識別證放在這裡送給後端
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        }
+      } catch (error) {
+        console.error("抓取資料失敗", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchProfile();
+    }
+  }, []);
+
+  if (!user) return <div className="p-10">請先登入以查看戰績</div>;
+  if (loading) return <div className="p-10">載入戰力資料中...</div>;
   
   return (
     <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white">
@@ -162,7 +213,7 @@ export function Dashboard() {
       {/* Header - Desktop Optimized */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black">Overview</h1>
+          <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black">{user.name}</h1>
           <p className="text-sm md:text-base text-slate-500 mt-2 uppercase tracking-[0.2em] font-sans font-bold">Season 4 • Week 12 • Active</p>
         </div>
         {/* Dashboard Header 替換右側按鈕區 */}
@@ -202,7 +253,11 @@ export function Dashboard() {
           <PendingActions />
 
           <section className="transform transition-transform hover:scale-[1.01] duration-500">
-             <RankingCard player={currentUser} variant="featured" />
+             <RankingCard player={{
+             ...user, 
+             rank: 1, // 排名之後可以從排行榜 API 拿
+             stats: { winRate: "0%", trend: "new" } // 這些也可以慢慢換成真的
+           }} variant="featured" />
           </section>
 
           <section className="bg-[#fbfcff] p-6 md:p-8 rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden min-h-[400px]">

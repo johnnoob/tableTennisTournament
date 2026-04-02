@@ -1,5 +1,17 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+# 載入環境變數
+load_dotenv()
+
 from fastapi.middleware.cors import CORSMiddleware
+from routers.matches import router as matches_router
+from routers.users import router as users_router
+from routers.leaderboard import router as leaderboard_router
+from routers.auth import router as auth_router
+
+from starlette.middleware.sessions import SessionMiddleware
 
 # 1. 建立 FastAPI 應用程式實例，並加上晨星奧運風的專屬標題
 app = FastAPI(
@@ -7,6 +19,9 @@ app = FastAPI(
     description="機關專屬桌球戰情室系統核心伺服器",
     version="1.0.0"
 )
+
+# 🌟 新增 Session 中介軟體 (secret_key 從環境變數讀取)
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "fallback-secret-string"))
 
 # 2. 設定 CORS (跨來源資源共用)
 # 允許來自 Vite 本地開發環境的請求
@@ -22,6 +37,11 @@ app.add_middleware(
     allow_methods=["*"],  # 允許所有 HTTP 請求方法 (GET, POST, PUT, DELETE)
     allow_headers=["*"],  # 允許所有 Header 傳遞
 )
+# 將 router 掛載到 app 上
+app.include_router(matches_router)
+app.include_router(users_router)
+app.include_router(leaderboard_router)
+app.include_router(auth_router)
 
 # 3. 定義測試用的起手式 Endpoints (路由)
 

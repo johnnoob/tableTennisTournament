@@ -91,6 +91,10 @@ export function Login() {
             <Button 
               variant="outline"
               className="w-full h-14 rounded-2xl bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-bold tracking-widest shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+              onClick={() => {
+    // 導向 FastAPI 的登入路由
+    window.location.href = "http://localhost:8000/api/auth/google/login";
+  }}
             >
               {/* Google G Logo (簡化版 SVG) */}
               <svg className="size-5" viewBox="0 0 24 24">
