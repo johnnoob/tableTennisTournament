@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { currentUser, players, nemesis, minions } from '@/data/mockData';
+import { currentUser, players } from '@/data/mockData';
 // import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
 import type { Match, RivalryItem } from '@/data/mockData';
 import { RankingCard } from '@/components/RankingCard';
 import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bell, Search, Plus, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Info, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
@@ -160,39 +161,73 @@ function AnnouncementBanner() {
 export function Dashboard() {
   const [rivalMode, setRivalMode] = useState<'singles' | 'doubles'>('singles');
   const navigate = useNavigate();
-  
+
   // 🌟 從倉庫拿取全域的使用者資料
   const { user } = useAuthStore();
-  
+
   // 🌟 本地狀態：儲存最新的比賽陣列
   const [recentFeed, setRecentFeed] = useState<Match[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  // 🌟 用來存戰力資料的 State
+  const [myStats, setMyStats] = useState<any>(null);
+  const [chartInterval, setChartInterval] = useState<string>('recent'); // 🌟 新增：目前選中的圖表維度
+  // 🌟 用來裝天敵與提款機的狀態
+  const [rivals, setRivals] = useState<{ nemesis: any[], minions: any[] }>({ nemesis: [], minions: [] });
 
   useEffect(() => {
-    const fetchFeed = async () => {
+    const fetchDashboardData = async () => {
       const savedToken = localStorage.getItem('auth_token');
       if (!savedToken) {
-        setFeedLoading(false); 
+        setFeedLoading(false);
         return;
       }
 
       try {
-        const feedRes = await fetch("http://localhost:8000/api/matches/recent", { 
-          headers: { "Authorization": `Bearer ${savedToken}` } 
+        // 抓取 Recent Feed (原本的)
+        const feedRes = await fetch("http://localhost:8000/api/matches/recent", {
+          headers: { "Authorization": `Bearer ${savedToken}` }
         });
+        if (feedRes.ok) setRecentFeed(await feedRes.json());
 
-        if (feedRes.ok) {
-          setRecentFeed(await feedRes.json());
-        }
+        // 🌟 2. 抓取我的戰力指標與折線圖資料
+        const statsRes = await fetch("http://localhost:8000/api/users/me/stats", {
+          headers: { "Authorization": `Bearer ${savedToken}` }
+        });
+        if (statsRes.ok) setMyStats(await statsRes.json());
+
+        // 🌟 2. 新增：抓取宿命對決資料
+        const rivalsRes = await fetch("http://localhost:8000/api/users/me/rivals", {
+          headers: { "Authorization": `Bearer ${savedToken}` }
+        });
+        if (rivalsRes.ok) setRivals(await rivalsRes.json());
+
       } catch (err) {
-        console.error("無法連線後端抓取戰績", err);
+        console.error("無法連線後端抓取資料", err);
       } finally {
         setFeedLoading(false);
       }
     };
 
-    fetchFeed();
+    fetchDashboardData();
   }, []);
+
+  // 🌟 將抓取 Stats 的邏輯獨立出來，並監聽 chartInterval 的變化
+  useEffect(() => {
+    const fetchStats = async () => {
+      const savedToken = localStorage.getItem('auth_token');
+      if (!savedToken) return;
+      try {
+        // 發送帶有 interval 參數的請求
+        const statsRes = await fetch(`http://localhost:8000/api/users/me/stats?interval=${chartInterval}`, {
+          headers: { "Authorization": `Bearer ${savedToken}` }
+        });
+        if (statsRes.ok) setMyStats(await statsRes.json());
+      } catch (err) {
+        console.error("無法連線後端抓取資料", err);
+      }
+    };
+    fetchStats();
+  }, [chartInterval]); // 當按鈕切換時，自動重新 Fetch
 
   if (!user) return <div className="p-10 text-center font-bold text-slate-400">請先登入以查看戰績</div>;
   if (feedLoading) return <div className="p-10 text-center font-bold text-slate-400">載入戰力資料中...</div>;
@@ -245,23 +280,54 @@ export function Dashboard() {
           <section className="transform transition-transform hover:scale-[1.01] duration-500">
             <RankingCard player={{
               ...user,
-              rank: 1, // 排名之後可以從排行榜 API 拿
-              stats: { winRate: "0%", trend: "new" } // 這些也可以慢慢換成真的
+              // 🌟 換成真實資料！
+              rating: myStats?.lp || user.global_mmr || 1200,
+              rank: myStats?.rank || '-',
+              stats: {
+                winRate: myStats?.win_rate || "0%",
+                trend: myStats?.trend || "new"
+              }
             }} variant="featured" />
           </section>
 
+          {/* 🌟 圖表區塊 */}
           <section className="bg-[#fbfcff] p-6 md:p-8 rounded-[2.5rem] border border-slate-50 shadow-sm overflow-hidden min-h-[400px]">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl md:text-2xl text-primary-navy font-display font-bold px-2">MMR Trend</h2>
-              <div className="flex gap-2">
-                {['1W', '1M', '3M', 'ALL'].map(tab => (
-                  <Button key={tab} variant="ghost" className="text-xs font-black h-8 px-3 rounded-lg hover:bg-white hover:shadow-sm">
-                    {tab}
-                  </Button>
-                ))}
+
+            {/* 🌟 自訂的 Header 與控制列 */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+              <div>
+                <h4 className="font-display text-xl text-primary-navy">Performance Analytics</h4>
+                <p className="text-xs text-slate-500 mt-1 font-sans">MMR Progression</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* 🌟 時間維度切換器 */}
+                <Tabs value={chartInterval} onValueChange={setChartInterval} className="w-full sm:w-auto">
+                  <TabsList className="grid w-full grid-cols-5 h-9 bg-slate-100/80 rounded-xl p-1">
+                    <TabsTrigger value="recent" className="text-[10px] font-bold uppercase tracking-wider rounded-lg">10場</TabsTrigger>
+                    <TabsTrigger value="hour" className="text-[10px] font-bold uppercase tracking-wider rounded-lg">小時</TabsTrigger>
+                    <TabsTrigger value="day" className="text-[10px] font-bold uppercase tracking-wider rounded-lg">日</TabsTrigger>
+                    <TabsTrigger value="month" className="text-[10px] font-bold uppercase tracking-wider rounded-lg">月</TabsTrigger>
+                    <TabsTrigger value="quarter" className="text-[10px] font-bold uppercase tracking-wider rounded-lg">季</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                {/* 顯示加減分標籤 */}
+                <div className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 hidden sm:block",
+                  (myStats?.pts_change || 0) >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500"
+                )}>
+                  {myStats?.pts_change > 0 ? `+${myStats?.pts_change}` : myStats?.pts_change} PTS
+                </div>
               </div>
             </div>
-            <StatsChart showCard={false} showHeader={false} />
+
+            {/* 呼叫圖表，並關閉原本內建的 Header */}
+            <StatsChart
+              showCard={false}
+              showHeader={false} // 🌟 關閉它自己的 Header，因為我們上面已經做了一個更高級的
+              data={myStats?.chart_data || []}
+            />
           </section>
 
           {/* Recent Matches Feed - Moved to main column for full width */}
@@ -286,9 +352,9 @@ export function Dashboard() {
             </div>
           </section>
 
-          {/* New Section: Rivalry Insights (Nemesis & Minions) */}
+          {/* Nemesis & Minions Section */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Nemesis Card */}
+            {/* 👿 Nemesis Card */}
             <div className="rounded-[2.5rem] bg-red-50/40 p-8 border border-red-100/50 space-y-6">
               <div className="flex items-center gap-4">
                 <div className="size-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/20">
@@ -299,13 +365,18 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="space-y-3">
-                {nemesis.map((item) => (
-                  <RivalRow key={item.id} {...item} type="nemesis" />
-                ))}
+                {/* 🌟 換成真實資料，如果為空則顯示提示文字 */}
+                {rivals.nemesis.length > 0 ? (
+                  rivals.nemesis.map((item: any) => (
+                    <RivalRow key={item.id} {...item} type="nemesis" />
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400 font-bold text-center py-4">尚無天敵資料</p>
+                )}
               </div>
             </div>
 
-            {/* Minions Card */}
+            {/* 👑 Minions Card */}
             <div className="rounded-[2.5rem] bg-green-50/40 p-8 border border-green-100/50 space-y-6">
               <div className="flex items-center gap-4">
                 <div className="size-12 rounded-2xl bg-green-600 flex items-center justify-center shadow-lg shadow-green-600/20">
@@ -316,9 +387,14 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="space-y-3">
-                {minions.map((item) => (
-                  <RivalRow key={item.id} {...item} type="minions" />
-                ))}
+                {/* 🌟 換成真實資料 */}
+                {rivals.minions.length > 0 ? (
+                  rivals.minions.map((item: any) => (
+                    <RivalRow key={item.id} {...item} type="minions" />
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400 font-bold text-center py-4">尚無提款機資料</p>
+                )}
               </div>
             </div>
           </section>
@@ -380,11 +456,20 @@ export function Dashboard() {
   );
 }
 
-function RivalRow({ name, avatar, winRate, type }: RivalryItem & { type: 'nemesis' | 'minions' }) {
+function RivalRow({ name, avatar, winRate, matches, pointsExchanged, type }: any) {
   return (
     <div className="flex items-center gap-4 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100/50 group hover:shadow-md transition-all">
-      <img src={avatar} alt={name} className="size-10 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all border border-slate-100" />
-      <span className="flex-1 font-sans font-black text-primary-navy text-sm">{name}</span>
+      {/* 加上 referrerPolicy 防 Google 擋圖 */}
+      <img src={avatar || '/api/placeholder/150/150'} referrerPolicy="no-referrer" alt={name} className="size-10 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all border border-slate-100" />
+
+      <div className="flex-1 flex flex-col">
+        <span className="font-sans font-black text-primary-navy text-sm">{name}</span>
+        {/* 🌟 新增副標題：顯示恩怨明細 */}
+        <span className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">
+          交手 {matches} 次 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} LP
+        </span>
+      </div>
+
       <span className={cn(
         "font-display font-black text-lg",
         type === 'nemesis' ? 'text-red-500' : 'text-green-500'
