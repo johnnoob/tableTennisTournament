@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import type { Match } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
-import { ReportScore } from '@/components/ReportScore';
 import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -23,6 +21,27 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 
+// 統一的 Pending Match 資料形狀（從後端 API 回傳）
+interface PendingPlayer {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+interface PendingMatch {
+  id: string;
+  date: string;
+  score: [number, number];
+  result: string;
+  status: string;
+  type: string;
+  mmrChange: [number, number];
+  player1: PendingPlayer[];
+  opponent: PendingPlayer[];
+  submittedBy?: string;
+  expiresAt?: string;
+}
+
 // Helper to format remaining time
 const getRemainingTimeStr = (expiresAtStr?: string) => {
   if (!expiresAtStr) return '48h 00m'; // Default fallback
@@ -38,7 +57,7 @@ const getRemainingTimeStr = (expiresAtStr?: string) => {
 
 export function PendingActions() {
   const { user: currentUser } = useAuthStore();
-  const [pendingMatches, setPendingMatches] = useState<Match[]>([]);
+  const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
 
   // 🌟 一開網頁就去後端撈取我的待確認清單
   useEffect(() => {
@@ -71,7 +90,7 @@ export function PendingActions() {
 }
 
 // Group 1: Action Required (High Priority, Red)
-function ActionRequiredGroup({ matches }: { matches: Match[] }) {
+function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
   // Only show top 3 initially to save space, user can expand if there are somehow many
   const [expanded, setExpanded] = useState(false);
   const displayMatches = expanded ? matches : matches.slice(0, 3);
@@ -115,7 +134,7 @@ function ActionRequiredGroup({ matches }: { matches: Match[] }) {
   );
 }
 
-function ActionMatchCard({ match }: { match: Match }) {
+function ActionMatchCard({ match }: { match: PendingMatch }) {
   const { user: currentUser } = useAuthStore(); // 🌟 加上這行，拿取真實 user
   const opponentPlayers = match.opponent;
   const isLoss = match.score[1] < match.score[0];
@@ -465,8 +484,37 @@ function ActionMatchCard({ match }: { match: Match }) {
 }
 
 // Group 2: Waiting on Opponent (Low Priority, Collapsible)
-function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
+function WaitingOnOthersGroup({ matches: initialMatches }: { matches: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [matches, setMatches] = useState<any[]>(initialMatches);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const doDelete = async (matchId: string) => {
+    setDeletingId(matchId);
+    const token = localStorage.getItem('auth_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/matches/${matchId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setMatches(prev => prev.filter(m => m.id !== matchId));
+      } else {
+        const err = await res.json();
+        alert('撤回失敗：' + (err.detail || '未知錯誤'));
+      }
+    } catch {
+      alert('網路錯誤，請稍後再試');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEditSuccess = (matchId: string, newScoreA: number, newScoreB: number) => {
+    setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score: [newScoreA, newScoreB] } : m));
+  };
+
+  if (matches.length === 0) return null;
 
   return (
     <div className="bg-slate-50 border border-slate-100 rounded-3xl overflow-hidden transition-all duration-300 hover:bg-slate-100/50">
@@ -494,18 +542,19 @@ function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
           <div className="px-3 pb-3 pt-0 space-y-2">
             {matches.map(match => {
               const isLoss = match.score[0] < match.score[1];
+              const isDeleting = deletingId === match.id;
 
               return (
-                <div key={match.id} className="bg-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm border border-slate-50 gap-3">
+                <div key={match.id} className={cn("bg-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm border border-slate-50 gap-3 transition-all", isDeleting && "opacity-40 pointer-events-none")}>
                   <div className="flex items-center gap-3">
                     <div className={cn("flex -space-x-3 transition-all")}>
-                      {match.opponent.map((p, i) => (
-                        <img key={p.id || i} src={p.avatar} alt={p.name} className="size-8 rounded-lg grayscale opacity-60 border border-white" />
+                      {match.opponent.map((p: any, i: number) => (
+                        <img key={p.id || i} src={p.avatar} alt={p.name} referrerPolicy="no-referrer" className="size-8 rounded-lg grayscale opacity-60 border border-white" />
                       ))}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] md:text-sm font-bold text-slate-600 uppercase">
-                        {match.opponent.length > 1 ? match.opponent.map(p => p.name?.split(' ')[0] || '?').join('/') : match.opponent[0]?.name}
+                        {match.opponent.length > 1 ? match.opponent.map((p: any) => p.name?.split(' ')[0] || '?').join('/') : match.opponent[0]?.name}
                       </span>
                       <span className={cn(
                         "text-[9px] md:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
@@ -522,20 +571,14 @@ function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
                       生效剩餘 {getRemainingTimeStr(match.expiresAt)}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <ReportScore
-                        editMode
-                        initialOpponentId={match.opponent[0]?.id}
-                        initialScoreA={match.score[0]}
-                        initialScoreB={match.score[1]}
-                        trigger={
-                          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors" title="修改賽果">
-                            <Pencil size={15} />
-                          </Button>
-                        }
+                      {/* 🖊️ 修改比分 */}
+                      <EditScoreButton match={match} onSuccess={handleEditSuccess} />
+                      {/* 🗑️ 撤回申報 */}
+                      <DeleteConfirmButton
+                        match={match}
+                        isDeleting={isDeleting}
+                        onConfirm={() => doDelete(match.id)}
                       />
-                      <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="撤回申報">
-                        <Trash2 size={15} />
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -545,5 +588,251 @@ function WaitingOnOthersGroup({ matches }: { matches: Match[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// 撤回確認 — 自訂 Dialog/Drawer 組件（取代 window.confirm）
+function DeleteConfirmButton({ match, isDeleting, onConfirm }: {
+  match: any;
+  isDeleting: boolean;
+  onConfirm: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isLoss = match.score[0] < match.score[1];
+
+  const handleConfirm = () => {
+    setOpen(false);
+    setTimeout(() => onConfirm(), 150); // 讓 Dialog 先關上再觸發刪除動畫
+  };
+
+  const confirmContent = (
+    <div className="px-6 pb-8 space-y-6">
+      {/* Match Preview Card */}
+      <div className="bg-slate-50 border border-slate-100 rounded-3xl p-4 flex items-center gap-4">
+        <div className="flex -space-x-3">
+          {match.opponent.map((p: any, i: number) => (
+            <img
+              key={p.id || i}
+              src={p.avatar}
+              alt={p.name}
+              referrerPolicy="no-referrer"
+              className="size-10 rounded-xl border-2 border-white shadow-sm object-cover"
+            />
+          ))}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-sm font-black text-primary-navy uppercase tracking-tight truncate">
+              {match.opponent.length > 1
+                ? match.opponent.map((p: any) => p.name?.split(' ')[0] || '?').join(' / ')
+                : match.opponent[0]?.name}
+            </span>
+            <span className={cn(
+              "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0",
+              isLoss ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-600"
+            )}>
+              {isLoss ? 'LOSS' : 'WIN'}
+            </span>
+          </div>
+          <span className="text-xs font-black text-slate-400 tabular-nums">
+            {match.score[0]} : {match.score[1]}
+          </span>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Score</span>
+          <span className="text-xl font-display font-black text-primary-navy tabular-nums">
+            {match.score[0]}:{match.score[1]}
+          </span>
+        </div>
+      </div>
+
+      {/* Warning Notice */}
+      <div className="flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3">
+        <div className="size-5 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black">!</div>
+        <p className="text-xs font-bold text-rose-700 leading-relaxed">
+          撤回後，對方將不再收到待確認通知。<br />
+          <span className="text-rose-500">此動作無法復原。</span>
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-3">
+        <Button
+          onClick={handleConfirm}
+          className="w-full h-13 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-display font-black tracking-widest uppercase transition-all shadow-xl shadow-rose-500/25 gap-2 border-none"
+        >
+          <Trash2 size={16} strokeWidth={2.5} />
+          確認撤回申報
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setOpen(false)}
+          className="w-full h-12 rounded-2xl border-slate-100 text-slate-500 font-bold hover:bg-slate-50 transition-all"
+        >
+          取消，繼續等待
+        </Button>
+      </div>
+    </div>
+  );
+
+  return isDesktop ? (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={isDeleting}
+          className="size-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+          title="撤回申報"
+        >
+          <Trash2 size={15} />
+        </Button>
+      } />
+      <DialogContent className="max-w-sm p-0 border-none bg-white overflow-hidden">
+        <DialogHeader className="px-6 pt-8 pb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="size-10 rounded-2xl bg-rose-100 flex items-center justify-center">
+              <Trash2 size={18} className="text-rose-500" strokeWidth={2.5} />
+            </div>
+            <DialogTitle className="text-xl font-display font-black text-primary-navy tracking-tight">
+              撤回申報
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-slate-500 font-medium leading-relaxed">
+            您確定要撤回這筆待確認賽果嗎？
+          </DialogDescription>
+        </DialogHeader>
+        {confirmContent}
+      </DialogContent>
+    </Dialog>
+  ) : (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={isDeleting}
+          className="size-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+          title="撤回申報"
+        >
+          <Trash2 size={15} />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="p-0 border-none bg-white">
+        {/* Pull bar */}
+        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-0" />
+        <DrawerHeader className="px-6 pt-6 pb-4 text-center">
+          <div className="size-16 rounded-3xl bg-rose-100 flex items-center justify-center mx-auto mb-4">
+            <Trash2 size={28} className="text-rose-500" strokeWidth={2} />
+          </div>
+          <DrawerTitle className="text-2xl font-display font-black text-primary-navy tracking-tight">
+            撤回申報
+          </DrawerTitle>
+          <DrawerDescription className="text-slate-500 font-medium leading-relaxed">
+            您確定要撤回這筆待確認賽果嗎？
+          </DrawerDescription>
+        </DrawerHeader>
+        {confirmContent}
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+// 修改比分 — 獨立的小 Dialog 組件
+function EditScoreButton({ match, onSuccess }: { match: any; onSuccess: (id: string, a: number, b: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [scoreA, setScoreA] = useState<number>(match.score[0]);
+  const [scoreB, setScoreB] = useState<number>(match.score[1]);
+  const [saving, setSaving] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  const handleSave = async () => {
+    if (scoreA === scoreB) return alert('比分不得相同');
+    setSaving(true);
+    const token = localStorage.getItem('auth_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/matches/${match.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ score_a: scoreA, score_b: scoreB })
+      });
+      if (res.ok) {
+        onSuccess(match.id, scoreA, scoreB);
+        setOpen(false);
+      } else {
+        const err = await res.json();
+        alert('修改失敗：' + (err.detail || '未知錯誤'));
+      }
+    } catch {
+      alert('網路錯誤，請稍後再試');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const editContent = (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-center gap-6">
+        {/* Score A */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">我方</span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setScoreA(Math.max(0, scoreA - 1))} className="size-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-lg transition-all active:scale-95">−</button>
+            <span className="text-4xl font-display font-black text-primary-navy tabular-nums w-10 text-center">{scoreA}</span>
+            <button onClick={() => setScoreA(Math.min(3, scoreA + 1))} className="size-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-lg transition-all active:scale-95">+</button>
+          </div>
+        </div>
+        <span className="text-3xl font-display font-black text-slate-200 mt-6">:</span>
+        {/* Score B */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">對方</span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setScoreB(Math.max(0, scoreB - 1))} className="size-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-lg transition-all active:scale-95">−</button>
+            <span className="text-4xl font-display font-black text-primary-navy tabular-nums w-10 text-center">{scoreB}</span>
+            <button onClick={() => setScoreB(Math.min(3, scoreB + 1))} className="size-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black text-lg transition-all active:scale-95">+</button>
+          </div>
+        </div>
+      </div>
+      <Button
+        onClick={handleSave}
+        disabled={saving || scoreA === scoreB}
+        className="w-full h-12 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-widest transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
+      >
+        {saving ? '儲存中...' : '確認修改'}
+      </Button>
+    </div>
+  );
+
+  return isDesktop ? (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={
+        <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors" title="修改賽果">
+          <Pencil size={15} />
+        </Button>
+      } />
+      <DialogContent className="max-w-sm p-0 border-none bg-white overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="flex items-center gap-2 text-primary-navy"><Pencil size={18} className="text-sapphire-blue" /> 修改比分</DialogTitle>
+          <DialogDescription>修改後對方仍需確認。</DialogDescription>
+        </DialogHeader>
+        {editContent}
+      </DialogContent>
+    </Dialog>
+  ) : (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8 rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors" title="修改賽果">
+          <Pencil size={15} />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="p-0 border-none bg-white">
+        <DrawerHeader className="p-6 pb-2 text-center">
+          <DrawerTitle className="flex items-center justify-center gap-2 text-primary-navy"><Pencil size={18} className="text-sapphire-blue" /> 修改比分</DrawerTitle>
+          <DrawerDescription>修改後對方仍需確認。</DrawerDescription>
+        </DrawerHeader>
+        {editContent}
+      </DrawerContent>
+    </Drawer>
   );
 }

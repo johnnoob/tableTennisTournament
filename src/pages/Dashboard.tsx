@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
 import { currentUser, players } from '@/data/mockData';
 // import { currentUser, players, matches, nemesis, minions } from '@/data/mockData';
-import type { Match, RivalryItem } from '@/data/mockData';
 import { RankingCard } from '@/components/RankingCard';
 import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Search, Plus, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Info, Timer } from 'lucide-react';
+import { Bell, Search, Plus, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Info, Timer, Medal, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from '@/components/ReportScore';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 
 // 📢 公告假資料 (未來可由 FastAPI 後端提供)
@@ -160,19 +158,20 @@ function AnnouncementBanner() {
 
 export function Dashboard() {
   const [rivalMode, setRivalMode] = useState<'singles' | 'doubles'>('singles');
-  const navigate = useNavigate();
 
   // 🌟 從倉庫拿取全域的使用者資料
   const { user } = useAuthStore();
 
   // 🌟 本地狀態：儲存最新的比賽陣列
-  const [recentFeed, setRecentFeed] = useState<Match[]>([]);
+  const [recentFeed, setRecentFeed] = useState<any[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   // 🌟 用來存戰力資料的 State
   const [myStats, setMyStats] = useState<any>(null);
   const [chartInterval, setChartInterval] = useState<string>('recent'); // 🌟 新增：目前選中的圖表維度
   // 🌟 用來裝天敵與提款機的狀態
   const [rivals, setRivals] = useState<{ nemesis: any[], minions: any[] }>({ nemesis: [], minions: [] });
+  // 🌟 新增：用來裝黃金搭檔與豬隊友的狀態
+  const [partners, setPartners] = useState<{ golden_partners: any[], worst_partners: any[] }>({ golden_partners: [], worst_partners: [] });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -200,6 +199,12 @@ export function Dashboard() {
           headers: { "Authorization": `Bearer ${savedToken}` }
         });
         if (rivalsRes.ok) setRivals(await rivalsRes.json());
+
+        // 🌟 3. 新增：抓取搭檔資料
+        const partnersRes = await fetch("http://localhost:8000/api/users/me/partners", {
+          headers: { "Authorization": `Bearer ${savedToken}` }
+        });
+        if (partnersRes.ok) setPartners(await partnersRes.json());
 
       } catch (err) {
         console.error("無法連線後端抓取資料", err);
@@ -339,7 +344,7 @@ export function Dashboard() {
             <div className="space-y-4">
               {/* 判斷如果有資料就 mapping，沒有的話顯示空狀態 */}
               {recentFeed.length > 0 ? (
-                recentFeed.map((match: Match) => (
+                recentFeed.map((match: any) => (
                   <div key={match.id} className="transform transition-all active:scale-[0.98]">
                     <MatchItem match={match} />
                   </div>
@@ -394,6 +399,51 @@ export function Dashboard() {
                   ))
                 ) : (
                   <p className="text-sm text-slate-400 font-bold text-center py-4">尚無提款機資料</p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* New Section: Synergy Insights (Golden & Worst Partners) */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            {/* 🌟 Golden Partner Card */}
+            <div className="rounded-[2.5rem] bg-amber-50/40 p-8 border border-amber-100/50 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Medal size={24} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-display font-black text-primary-navy">黃金搭檔 <span className="text-sm uppercase text-slate-500 ml-2 tracking-widest font-sans">Golden</span></h3>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {partners.golden_partners.length > 0 ? (
+                  partners.golden_partners.map((item: any) => (
+                    <PartnerRow key={item.id} {...item} type="golden" />
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400 font-bold text-center py-4">尚無黃金搭檔資料</p>
+                )}
+              </div>
+            </div>
+
+            {/* 🐷 Worst Partner Card */}
+            <div className="rounded-[2.5rem] bg-slate-100/60 p-8 border border-slate-200/50 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-slate-600 flex items-center justify-center shadow-lg shadow-slate-600/20">
+                  <Shield size={24} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-display font-black text-primary-navy">豬隊友 <span className="text-sm uppercase text-slate-500 ml-2 tracking-widest font-sans">Worst</span></h3>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {partners.worst_partners.length > 0 ? (
+                  partners.worst_partners.map((item: any) => (
+                    <PartnerRow key={item.id} {...item} type="worst" />
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400 font-bold text-center py-4">尚無豬隊友資料</p>
                 )}
               </div>
             </div>
@@ -473,6 +523,28 @@ function RivalRow({ name, avatar, winRate, matches, pointsExchanged, type }: any
       <span className={cn(
         "font-display font-black text-lg",
         type === 'nemesis' ? 'text-red-500' : 'text-green-500'
+      )}>
+        {winRate}% <span className="text-sm uppercase text-slate-500 ml-1">WR</span>
+      </span>
+    </div>
+  );
+}
+
+function PartnerRow({ name, avatar, winRate, matches, pointsExchanged, type }: any) {
+  return (
+    <div className="flex items-center gap-4 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100/50 group hover:shadow-md transition-all">
+      <img src={avatar || '/api/placeholder/150/150'} referrerPolicy="no-referrer" alt={name} className="size-10 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all border border-slate-100" />
+
+      <div className="flex-1 flex flex-col">
+        <span className="font-sans font-black text-primary-navy text-sm">{name}</span>
+        <span className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">
+          搭檔 {matches} 次 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} LP
+        </span>
+      </div>
+
+      <span className={cn(
+        "font-display font-black text-lg",
+        type === 'golden' ? 'text-amber-500' : 'text-slate-600'
       )}>
         {winRate}% <span className="text-sm uppercase text-slate-500 ml-1">WR</span>
       </span>

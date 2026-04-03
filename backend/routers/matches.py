@@ -81,6 +81,54 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
         "match_id": new_match.id
     }
 
+# ==========================================
+# 撤回待確認比賽 (DELETE)
+# ==========================================
+@router.delete("/api/matches/{match_id}", summary="撤回待確認比賽")
+def retract_match(match_id: UUID, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    match = session.get(Match, match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="找不到此比賽")
+    if match.status != "pending":
+        raise HTTPException(status_code=400, detail="此比賽已確認或已結算，無法撤回")
+    # 只有申報者才能撤回
+    if current_user.id not in [match.team_a_p1_id, match.team_a_p2_id] or match.reported_by != current_user.id:
+        raise HTTPException(status_code=403, detail="只有申報者可以撤回此比賽")
+
+    # 刪除相關通知
+    notifs = session.exec(select(Notification).where(Notification.match_id == match.id)).all()
+    for n in notifs:
+        session.delete(n)
+
+    session.delete(match)
+    session.commit()
+    return {"message": "已成功撤回申報"}
+
+
+# ==========================================
+# 修改待確認比賽比分 (PATCH)
+# ==========================================
+@router.patch("/api/matches/{match_id}", summary="修改待確認比賽比分")
+def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    match = session.get(Match, match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="找不到此比賽")
+    if match.status != "pending":
+        raise HTTPException(status_code=400, detail="此比賽已確認，無法修改")
+    # 只有申報者才能修改
+    if match.reported_by != current_user.id:
+        raise HTTPException(status_code=403, detail="只有申報者可以修改此比賽")
+
+    if "score_a" in req:
+        match.score_a = int(req["score_a"])
+    if "score_b" in req:
+        match.score_b = int(req["score_b"])
+
+    session.add(match)
+    session.commit()
+    return {"message": "比分已更新", "score_a": match.score_a, "score_b": match.score_b}
+
+
 # 🌟 注意：我們把原本參數裡的 confirm_by 拔掉，改用 current_user 自動驗證身分！
 @router.post("/api/matches/{match_id}/confirm", summary="確認比分並結算積分 (觸發 Elo 引擎)")
 def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
@@ -101,6 +149,8 @@ def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user)
     # 抓取雙方玩家目前的隱藏實力分 (MMR)
     team_a_p1 = session.get(User, match.team_a_p1_id)
     team_b_p1 = session.get(User, match.team_b_p1_id)
+    team_a_p2 = session.get(User, match.team_a_p2_id) if match.team_a_p2_id else None
+    team_b_p2 = session.get(User, match.team_b_p2_id) if match.team_b_p2_id else None
     
     # 判斷輸贏 (假設比分 A > B 就是 A 贏)
     a_won = match.score_a > match.score_b
@@ -172,7 +222,11 @@ def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user)
 
     # 執行派發分數
     update_player_stats(team_a_p1, is_winner=a_won, team_name="A")
+    if team_a_p2:
+        update_player_stats(team_a_p2, is_winner=a_won, team_name="A")
     update_player_stats(team_b_p1, is_winner=not a_won, team_name="B")
+    if team_b_p2:
+        update_player_stats(team_b_p2, is_winner=not a_won, team_name="B")
 
     # 5. 變更比賽狀態
     match.status = "confirmed"
@@ -263,6 +317,81 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
         })
         
     return result
+
+@router.get("/api/users/me/matches", summary="取得我的個人完整對戰紀錄")
+def get_my_matches(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    limit: int = 20,
+    offset: int = 0,
+    result_filter: str = "all"  # "all" | "win" | "loss"
+):
+    # 撈出所有與我有關的比賽（不限狀態），依時間倒序
+    statement = select(Match).where(
+        or_(
+            Match.team_a_p1_id == current_user.id,
+            Match.team_a_p2_id == current_user.id,
+            Match.team_b_p1_id == current_user.id,
+            Match.team_b_p2_id == current_user.id
+        )
+    ).order_by(Match.created_at.desc())
+
+    all_matches = session.exec(statement).all()
+
+    result = []
+    for m in all_matches:
+        team_a_p1 = session.get(User, m.team_a_p1_id)
+        team_b_p1 = session.get(User, m.team_b_p1_id)
+        if not team_a_p1 or not team_b_p1:
+            continue
+
+        # 判斷目前使用者是哪一邊的
+        i_am_team_a = current_user.id in [m.team_a_p1_id, m.team_a_p2_id]
+        a_won = m.score_a > m.score_b
+        i_won = (i_am_team_a and a_won) or (not i_am_team_a and not a_won)
+        my_result = "win" if i_won else "loss"
+
+        # 套用篩選
+        if result_filter == "win" and not i_won:
+            continue
+        if result_filter == "loss" and i_won:
+            continue
+
+        # 組裝兩隊玩家資料
+        player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
+        opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
+
+        if m.match_type == "doubles":
+            if m.team_a_p2_id:
+                team_a_p2 = session.get(User, m.team_a_p2_id)
+                if team_a_p2:
+                    player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+            if m.team_b_p2_id:
+                team_b_p2 = session.get(User, m.team_b_p2_id)
+                if team_b_p2:
+                    opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+
+        # LP 變動（只有 confirmed 的比賽才有真實數字）
+        delta = m.lp_exchanged if m.lp_exchanged else 0
+        a_change = round(delta) if a_won else -round(delta)
+        b_change = -round(delta) if a_won else round(delta)
+
+        result.append({
+            "id": str(m.id),
+            "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
+            "score": [m.score_a, m.score_b],
+            "result": my_result,
+            "status": m.status,
+            "type": m.match_type if m.match_type else "singles",
+            "tournament": "雙打積分賽" if m.match_type == "doubles" else "單打積分賽",
+            "mmrChange": [a_change, b_change],
+            "player1": player1_data,
+            "opponent": opponent_data,
+        })
+
+    total = len(result)
+    paginated = result[offset: offset + limit]
+    return {"total": total, "matches": paginated, "hasMore": (offset + limit) < total}
 
 @router.get("/api/matches/recent", summary="取得最近的比賽紀錄 (Recent Feed)")
 def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):

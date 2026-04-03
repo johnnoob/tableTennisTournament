@@ -42,6 +42,42 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
         "gender": current_user.gender,
     }
 
+# ==========================================
+# 更新當前登入者的個人資料 (PATCH)
+# ==========================================
+@router.patch("/api/users/me", summary="更新當前登入者的個人資料")
+def update_my_profile(
+    req: dict,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    EDITABLE_FIELDS = {"name", "department", "gender", "dominant_hand", "rubber_forehand", "rubber_backhand"}
+
+    for field, value in req.items():
+        if field in EDITABLE_FIELDS:
+            setattr(current_user, field, value if value else None)
+
+    if not current_user.name or not current_user.name.strip():
+        raise HTTPException(status_code=422, detail="顯示姓名不得為空")
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
+    return {
+        "id": str(current_user.id),
+        "name": current_user.name,
+        "email": current_user.email,
+        "department": current_user.department,
+        "avatar": current_user.avatar_url,
+        "mmr": current_user.global_mmr,
+        "role": current_user.role,
+        "dominant_hand": current_user.dominant_hand,
+        "rubber_forehand": current_user.rubber_forehand,
+        "rubber_backhand": current_user.rubber_backhand,
+        "gender": current_user.gender,
+    }
+
 # backend/routers/users.py
 
 @router.get("/api/users/me/stats", summary="獲取當前登入者的戰力與歷史數據")
@@ -217,6 +253,84 @@ def get_my_rivals(current_user: User = Depends(get_current_user), session: Sessi
     }
 
 # ==========================================
+# 4.5 取得黃金搭檔與豬隊友 (Golden & Worst Partners)
+# ==========================================
+@router.get("/api/users/me/partners", summary="取得黃金搭檔與豬隊友資料")
+def get_my_partners(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    # 1. 🔍 找到我參與過的所有比賽紀錄
+    my_participations = session.exec(
+        select(MatchParticipation).where(MatchParticipation.user_id == current_user.id)
+    ).all()
+    
+    if not my_participations:
+        return {"golden_partners": [], "worst_partners": []}
+
+    partners_stats = {}
+    
+    for p in my_participations:
+        # 🤝 找到這場比賽的搭檔 (同一場比賽，且同一陣營，但不是我自己)
+        teammates = session.exec(
+            select(MatchParticipation).where(
+                MatchParticipation.match_id == p.match_id,
+                MatchParticipation.team == p.team,
+                MatchParticipation.user_id != p.user_id
+            )
+        ).all()
+        
+        for tm in teammates:
+            if tm.user_id not in partners_stats:
+                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": tm.user_id}
+            
+            partners_stats[tm.user_id]["matches"] += 1
+            if p.is_winner:
+                partners_stats[tm.user_id]["wins"] += 1
+                
+            # 搭檔時，自己獲得或失去的積分總和 (使用 user 本人的 lp_delta)
+            partners_stats[tm.user_id]["lp_exchanged"] += p.lp_delta
+            
+    # 2. 📊 整理與排序資料
+    partners_list = list(partners_stats.values())
+    sorted_partners = sorted(partners_list, key=lambda x: x["lp_exchanged"], reverse=True)
+    
+    def format_partner(stats):
+        if not stats: return None
+        tm_user = session.get(User, stats["user_id"])
+        win_rate = int((stats["wins"] / stats["matches"]) * 100)
+        return {
+            "id": str(tm_user.id),
+            "name": tm_user.name,
+            "avatar": tm_user.avatar_url,
+            "winRate": win_rate,
+            "matches": stats["matches"],
+            "pointsExchanged": round(stats["lp_exchanged"])
+        }
+
+    golden_list = []
+    worst_list = []
+    
+    if sorted_partners:
+        # 🌟 黃金搭檔：讓我賺最多分的前兩名 (lp >= 0)
+        for g in sorted_partners:
+            if len(golden_list) >= 2:
+                break
+            if g["lp_exchanged"] >= 0:
+                golden_list.append(format_partner(g))
+            
+        # 🐷 豬隊友：讓我掉最多分的前兩名 (lp < 0)
+        # 只排除真正進入 golden_list 的人，不排除所有 sorted_partners[:2]
+        golden_ids = {g["id"] for g in golden_list}
+        for w in reversed(sorted_partners):
+            if len(worst_list) >= 2:
+                break
+            if w["lp_exchanged"] < 0 and str(w["user_id"]) not in golden_ids:
+                worst_list.append(format_partner(w))
+
+    return {
+        "golden_partners": golden_list,
+        "worst_partners": worst_list
+    }
+
+# ==========================================
 # 5. 取得特定玩家的全域資料卡 (Global Profile)
 # ==========================================
 @router.get("/api/users/{target_id}/profile", summary="取得特定玩家的全局資料卡")
@@ -270,6 +384,38 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
                 rivals_stats[opp.user_id]["wins"] += 1
             rivals_stats[opp.user_id]["lp_exchanged"] += p.lp_delta
             
+    # 4. 👿 宿命天敵與最佳搭檔
+    rivals_stats = {}
+    partners_stats = {}
+
+    for p in participations:
+        # 計算天敵
+        opponents = session.exec(select(MatchParticipation).where(
+            MatchParticipation.match_id == p.match_id, 
+            MatchParticipation.team != p.team
+        )).all()
+        for opp in opponents:
+            if opp.user_id not in rivals_stats:
+                rivals_stats[opp.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": opp.user_id}
+            rivals_stats[opp.user_id]["matches"] += 1
+            if p.is_winner:
+                rivals_stats[opp.user_id]["wins"] += 1
+            rivals_stats[opp.user_id]["lp_exchanged"] += p.lp_delta
+
+        # 計算搭檔
+        teammates = session.exec(select(MatchParticipation).where(
+            MatchParticipation.match_id == p.match_id, 
+            MatchParticipation.team == p.team,
+            MatchParticipation.user_id != p.user_id
+        )).all()
+        for tm in teammates:
+            if tm.user_id not in partners_stats:
+                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": tm.user_id}
+            partners_stats[tm.user_id]["matches"] += 1
+            if p.is_winner:
+                partners_stats[tm.user_id]["wins"] += 1
+            partners_stats[tm.user_id]["lp_exchanged"] += p.lp_delta
+            
     sorted_rivals = sorted(rivals_stats.values(), key=lambda x: x["lp_exchanged"])
     nemesis_list = []
     for m in sorted_rivals[:3]: # 取前三名扣最多分的
@@ -280,6 +426,18 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
             "avatar": opp_user.avatar_url,
             "winRate": int((m["wins"]/m["matches"])*100) if m["matches"] > 0 else 0
         })
+
+    sorted_partners = sorted(partners_stats.values(), key=lambda x: x["lp_exchanged"], reverse=True)
+    golden_list = []
+    for g in sorted_partners[:3]: # 取前三名加最多分的
+        if g["lp_exchanged"] >= 0:
+            tm_user = session.get(User, g["user_id"])
+            golden_list.append({
+                "id": str(tm_user.id),
+                "name": tm_user.name,
+                "avatar": tm_user.avatar_url,
+                "winRate": int((g["wins"]/g["matches"])*100) if g["matches"] > 0 else 0
+            })
 
     # 5. 📦 打包成前端需要的格式
     return {
@@ -297,7 +455,7 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
             "forehand": user.rubber_forehand or "未設定",
             "backhand": user.rubber_backhand or "未設定",
         },
-        "goldenPartner": [],
+        "goldenPartner": golden_list,
         "nemesis": nemesis_list,
         "chart_data": chart_data
     }

@@ -1,19 +1,39 @@
-import type { Match } from '@/data/mockData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Scale } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
+// 統一 match 的資料形狀（相容後端真實資料與 mock data）
+interface MatchPlayer {
+  id?: string;
+  name: string;
+  avatar: string;
+}
+
+interface MatchData {
+  id: string;
+  date: string;
+  score: [number, number];
+  result: 'win' | 'loss';
+  status: string;
+  type?: string;
+  tournament?: string;
+  mmrChange?: [number, number];
+  player1: MatchPlayer[];
+  opponent: MatchPlayer[];
+}
+
 interface MatchItemProps {
-  match: Match;
+  match: MatchData;
 }
 
 export function MatchItem({ match }: Readonly<MatchItemProps>) {
-  const getStatusConfig = (status: Match['status']) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'completed':
-        return { label: 'COMPLETED', color: 'bg-slate-50 text-slate-500 border-slate-100' };
+      case 'confirmed':
+        return { label: 'CONFIRMED', color: 'bg-slate-50 text-slate-500 border-slate-100' };
       case 'pending':
         return { label: 'PENDING', color: 'bg-amber-50 text-amber-600 border-amber-100' };
       case 'disputed':

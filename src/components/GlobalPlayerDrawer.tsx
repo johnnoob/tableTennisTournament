@@ -148,8 +148,25 @@ export function GlobalPlayerDrawer() {
             </div>
           </div>
 
-          {/* 進階戰情洞察 (天敵) */}
+          {/* 進階戰情洞察 (搭檔與天敵) */}
           <div className="space-y-4">
+            {player.goldenPartner && player.goldenPartner.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black text-amber-600/80 uppercase tracking-widest ml-1">最佳雙打搭檔</p>
+                <div className="grid gap-2">
+                  {player.goldenPartner.map((p: any) => (
+                    <div key={p.id} className="bg-amber-50/50 border border-amber-100 rounded-xl md:rounded-2xl p-2.5 md:p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <img src={p.avatar} referrerPolicy="no-referrer" className="size-8 md:size-10 rounded-lg md:rounded-xl object-cover border border-amber-200" alt="" />
+                        <span className="text-sm font-black text-primary-navy">{p.name}</span>
+                      </div>
+                      <span className="text-base md:text-lg font-display font-black text-amber-600">{p.winRate}% <span className="text-[10px] font-sans text-amber-400 uppercase">勝率</span></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {player.nemesis && player.nemesis.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[9px] font-black text-rose-600/80 uppercase tracking-widest ml-1">他的宿命天敵</p>

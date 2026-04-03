@@ -5,6 +5,7 @@ interface AuthState {
     user: any;
     loading: boolean;
     fetchUser: () => Promise<void>;
+    updateUser: (partial: Record<string, any>) => void;
     logout: () => void;
 }
 
@@ -36,6 +37,13 @@ export const useAuthStore = create<AuthState>((set) => ({
             console.error("獲取身分失敗", err);
             set({ loading: false });
         }
+    },
+
+    // 本地更新使用者資料（儲存成功後呼叫）
+    updateUser: (partial: Record<string, any>) => {
+        set((state: AuthState) => ({
+            user: state.user ? { ...state.user, ...partial } : state.user
+        }));
     },
 
     // 登出動作
