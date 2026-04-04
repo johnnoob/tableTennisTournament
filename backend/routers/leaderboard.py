@@ -62,8 +62,9 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "player_name": user.name,
             "department": user.department,
             "avatar_url": user.avatar_url,
-            "season_lp": round(record.season_lp, 1),
+            "season_lp": round(record.season_lp),
             "matches_played": record.matches_played,
+            "global_mmr": round(user.global_mmr),
             "wins": record.wins,
             "win_rate": win_rate_str,
             "trend": trend,              # 前端透過 'up', 'down', 'same', 'new' 來決定顯示綠色或紅色

@@ -1,31 +1,22 @@
 import type { Player } from '@/data/mockData';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldCheck, TrendingUp, Building2, Shield, Trophy, Medal, Award, Star } from 'lucide-react';
+import { ShieldCheck, TrendingUp, Building2, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-
-// 段位徽章邏輯 (保持與全域一致)
-const getTierBadge = (mmr: number) => {
-  if (mmr >= 2000) return { name: '菁英 (Elite)', icon: <Shield size={14} />, color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20' };
-  if (mmr >= 1700) return { name: '金牌 (Gold)', icon: <Trophy size={14} />, color: 'bg-amber-100 text-amber-700 border-amber-300' };
-  if (mmr >= 1400) return { name: '銀牌 (Silver)', icon: <Medal size={14} />, color: 'bg-slate-100 text-slate-600 border-slate-300' };
-  return { name: '銅牌 (Bronze)', icon: <Award size={14} />, color: 'bg-orange-50 text-orange-700 border-orange-200' };
-};
+import { getTierBadge } from '@/lib/ranking';
 
 interface RankingCardProps {
   player: Player;
   variant?: 'featured' | 'standard';
-  mode?: 'singles' | 'doubles';
 }
 
-export function RankingCard({ player, variant = 'standard', mode = 'singles' }: Readonly<RankingCardProps>) {
+export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCardProps>) {
   const isFeatured = variant === 'featured';
 
-  // Dynamic stats based on mode
-  const isDoubles = mode === 'doubles';
-  const displayRating = isDoubles ? (player.doublesRating ?? player.rating) : player.rating;
-  const displayRank = isDoubles ? (player.doublesRank ?? player.rank) : player.rank;
-  const displayStats = isDoubles ? (player.doublesStats ?? player.stats) : player.stats;
+  // 直接使用傳入的屬性，不再區分單雙打邏輯
+  const displayRating = player.rating;
+  const displayRank = player.rank;
+  const displayStats = player.stats;
   const careerMMR = player.mmr || player.rating || 1200; // 生涯實力
   const tier = getTierBadge(careerMMR);
 
@@ -90,20 +81,23 @@ export function RankingCard({ player, variant = 'standard', mode = 'singles' }: 
                 "font-display font-black tracking-tighter leading-none",
                 isFeatured ? "text-3xl md:text-5xl text-white" : "text-2xl md:text-3xl text-primary-navy"
               )}>
-                {displayRating}
+                {Math.round(displayRating)}
               </div>
               <p className="text-[9px] md:text-[10px] uppercase underline underline-offset-4 decoration-olympic-gold/50 tracking-[0.2em] md:tracking-[0.3em] font-sans font-black opacity-60 mt-1 md:mt-2 flex items-center gap-1 md:gap-2 justify-end">
-                本季積分
+                {isFeatured ? "本季積分" : "本季積分"}
                 <TrendingUp size={10} className={isFeatured ? "text-olympic-gold md:size-[12px]" : "text-sapphire-blue md:size-[12px]"} />
               </p>
-              {isFeatured && (
-                <div className="mt-4 flex flex-col items-end">
-                  <div className="flex items-center gap-2 text-white/40 font-black tracking-widest text-[10px] md:text-xs">
-                    <span>生涯積分: {careerMMR}</span>
-                    <Star size={10} className="text-olympic-gold" />
-                  </div>
+
+              {/* 🌟 統一顯示生涯積分 (不論是否為 Featured) */}
+              <div className={cn("mt-2 flex flex-col items-end transition-all opacity-0 group-hover:opacity-100", isFeatured && "opacity-100")}>
+                <div className={cn(
+                  "flex items-center gap-1.5 font-black tracking-widest text-[9px]",
+                  isFeatured ? "text-white/40 md:text-xs" : "text-slate-400"
+                )}>
+                  <span>生涯積分: {Math.round(careerMMR)}</span>
+                  <Star size={10} className="text-olympic-gold" />
                 </div>
-              )}
+              </div>
             </div>
           </div>
 

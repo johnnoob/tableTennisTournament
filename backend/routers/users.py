@@ -78,7 +78,7 @@ def update_my_profile(
         "gender": current_user.gender,
     }
 
-# backend/routers/users.py
+from services.season_service import get_or_create_current_season
 
 @router.get("/api/users/me/stats", summary="獲取當前登入者的戰力與歷史數據")
 def get_my_stats(
@@ -86,7 +86,8 @@ def get_my_stats(
     current_user: User = Depends(get_current_user), 
     session: Session = Depends(get_session)
 ):
-    active_season = session.exec(select(Season).where(Season.status == "active")).first()
+    # 🌟 使用與排行榜一致的自動賽季引擎
+    active_season = get_or_create_current_season(session)
     
     rank, win_rate, trend = "-", "0%", "new"
     lp, matches_played = current_user.global_mmr, 0
@@ -172,7 +173,9 @@ def get_my_stats(
             pts_change = round(history[-1].mmr - 1200) # 若只有一場，跟初始分 1200 比
 
     return {
-        "rank": rank, "win_rate": win_rate, "trend": trend, "lp": round(lp),
+        "rank": rank, "win_rate": win_rate, "trend": trend, 
+        "season_lp": round(lp), 
+        "global_mmr": round(current_user.global_mmr),
         "matches_played": matches_played, 
         "wins": my_record.wins if my_record else 0,
         "losses": (my_record.matches_played - my_record.wins) if my_record else 0,

@@ -135,7 +135,6 @@ function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
 }
 
 function ActionMatchCard({ match }: { match: PendingMatch }) {
-  const { user: currentUser } = useAuthStore(); // 🌟 加上這行，拿取真實 user
   const opponentPlayers = match.opponent;
   const isLoss = match.score[1] < match.score[0];
   const lpChange = match.mmrChange[1];
@@ -202,15 +201,24 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
             </div>
 
             <div className="flex items-center justify-between relative z-10">
-              {/* Me */}
+              {/* Player 1 */}
               <div className="flex flex-col items-center gap-2">
                 <div className={cn(
-                  "size-14 rounded-2xl p-0.5 border-2",
-                  !isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                  "flex transition-all",
+                  match.player1.length > 1 ? "-space-x-3" : ""
                 )}>
-                  <img src={currentUser.avatar} className="size-full rounded-xl object-cover" alt={currentUser.name} />
+                  {match.player1.map((p, i) => (
+                    <div key={p.id || i} className={cn(
+                      "size-12 rounded-2xl p-0.5 border-2 z-10",
+                      isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                    )}>
+                      <img src={p.avatar} className="size-full rounded-xl object-cover" alt={p.name} />
+                    </div>
+                  ))}
                 </div>
-                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{currentUser.name}</span>
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest truncate w-24 text-center">
+                  {match.player1.length > 1 ? match.player1.map(p => p.name?.split(' ')[0] || '?').join('/') : match.player1[0]?.name}
+                </span>
               </div>
 
               {/* Score */}
@@ -226,7 +234,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 </div>
               </div>
 
-              {/* Opponent */}
+              {/* Opponent (Me) */}
               <div className="flex flex-col items-center gap-2">
                 <div className={cn(
                   "flex transition-all",
@@ -235,7 +243,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                   {opponentPlayers.map((p, i) => (
                     <div key={p.id || i} className={cn(
                       "size-12 rounded-2xl p-0.5 border-2 z-10",
-                      isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
+                      !isLoss ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
                     )}>
                       <img src={p.avatar} className="size-full rounded-xl object-cover" alt={p.name} />
                     </div>
