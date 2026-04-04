@@ -5,21 +5,23 @@ from typing import Optional
 from database import get_session
 from models import Season, SeasonRecord, User
 
+from services.season_service import get_or_create_current_season
+
 router = APIRouter(tags=["Leaderboard"])
 
 @router.get("/api/leaderboard", summary="取得本季排行榜與動能指標")
 def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(get_session)):
-    # 1. 🔍 決定查詢哪個賽季 (若未指定，預設抓取 active 進行中的賽季)
+    
+    # 🌟 2. 結合您的邏輯與自動引擎
     if season_id:
         season = session.get(Season, season_id)
+        if not season:
+            raise HTTPException(status_code=404, detail="找不到指定的賽季")
     else:
-        statement = select(Season).where(Season.status == "active")
-        season = session.exec(statement).first()
+        # 如果沒有指定賽季，就呼叫我們的 10 分鐘自動推進引擎！
+        season = get_or_create_current_season(session)
 
-    if not season:
-        raise HTTPException(status_code=404, detail="目前沒有進行中的賽季")
-
-    # 2. 📝 撈取該賽季所有有戰績的玩家，並依照 season_lp (賽季積分) 降序排列
+    # 📝 撈取該賽季所有有戰績的玩家，並依照 season_lp (賽季積分) 降序排列
     statement = (
         select(SeasonRecord, User)
         .join(User)
@@ -28,7 +30,7 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
     )
     results = session.exec(statement).all()
 
-    # 3. 📈 計算排名、勝率與動能趨勢
+    # 📈 計算排名、勝率與動能趨勢 (🌟 以下完全保留您原本完美的邏輯！)
     leaderboard_data = []
     current_rank = 1
 
@@ -56,7 +58,7 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
         # C. 打包資料給前端
         leaderboard_data.append({
             "rank": current_rank,
-            "player_id": user.id,
+            "player_id": str(user.id),  # 🌟 轉成字串以防 JSON 解析報錯
             "player_name": user.name,
             "department": user.department,
             "avatar_url": user.avatar_url,

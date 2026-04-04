@@ -173,7 +173,10 @@ def get_my_stats(
 
     return {
         "rank": rank, "win_rate": win_rate, "trend": trend, "lp": round(lp),
-        "matches_played": matches_played, "chart_data": chart_data, "pts_change": pts_change
+        "matches_played": matches_played, 
+        "wins": my_record.wins if my_record else 0,
+        "losses": (my_record.matches_played - my_record.wins) if my_record else 0,
+        "chart_data": chart_data, "pts_change": pts_change
     }
 
 # ==========================================

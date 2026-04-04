@@ -162,7 +162,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "確認失敗");
       }
-
+      window.dispatchEvent(new Event('match_updated'));
       setIsConfirming(false);
       setIsSuccess(true);
     } catch (err: any) {

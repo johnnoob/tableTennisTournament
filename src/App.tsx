@@ -12,13 +12,17 @@ import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
 
 import { useAuthStore } from '@/store/authStore';
 
+import { ReportScore } from './components/ReportScore';
+import { Button } from './components/ui/button';
+import { Plus } from 'lucide-react';
+
 function AppContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
 
   // 🌟 3. 從倉庫拿出 fetchUser 方法與 loading 狀態
-  const { fetchUser, loading } = useAuthStore();
+  const { fetchUser, loading, user } = useAuthStore();
 
   // 🌟 4. 當整個網站第一次掛載時，執行身分驗證
   useEffect(() => {
@@ -73,6 +77,19 @@ function AppContent() {
           </Routes>
         </div>
       </main>
+      {/* 🌟全域懸浮報分按鈕 (Global Floating Action Button) */}
+      {/* 判斷：必須是登入狀態，且不能在登入頁面，才會顯示 */}
+      {user && !isLoginPage && (
+        <div className="fixed bottom-24 right-6 lg:bottom-10 lg:right-12 z-[100] lg:hidden">
+          <ReportScore
+            trigger={
+              <Button className="size-14 lg:size-16 rounded-full bg-sapphire-blue shadow-xl shadow-sapphire-blue/40 border-none group transition-all duration-300 hover:scale-110 active:scale-95">
+                <Plus size={28} className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
+              </Button>
+            }
+          />
+        </div>
+      )}
 
     </div>
   );

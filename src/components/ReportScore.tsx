@@ -184,6 +184,7 @@ export function ReportScore({
         throw new Error(errorMessage)
       }
       // 4. 成功！切換到成功畫面
+      window.dispatchEvent(new Event('match_updated'));
       setIsSubmitting(false)
       setIsSuccess(true)
 

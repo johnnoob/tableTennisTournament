@@ -16,28 +16,55 @@ const getTierBadge = (mmr: number) => {
 export function Leaderboard() {
   const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSeason, setSelectedSeason] = useState('s4');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // 🌟 1. 新增：用來存取後端真實排行榜資料的 State
+  // 🌟 動態賽季狀態
+  const [seasons, setSeasons] = useState<any[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string>('');
+
   const [realLeaderboard, setRealLeaderboard] = useState<any[]>([]);
-  const [seasonName, setSeasonName] = useState<string>("Active Season");
+  const [seasonName, setSeasonName] = useState<string>("讀取中...");
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🌟 2. 新增：透過 useEffect 去後端抓資料
+  // 🌟 加入全域更新觸發器 (跟 Dashboard 一樣)
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   useEffect(() => {
+    const handleUpdate = () => setRefreshTrigger(prev => prev + 1);
+    window.addEventListener('match_updated', handleUpdate);
+    return () => window.removeEventListener('match_updated', handleUpdate);
+  }, []);
+
+  // 🌟 1. 抓取所有賽季清單
+  useEffect(() => {
+    fetch('http://localhost:8000/api/seasons')
+      .then(res => res.json())
+      .then(data => {
+        setSeasons(data);
+        // 如果還沒有選中賽季，或者剛載入，就預設選擇第一個 (最新的)
+        if (data.length > 0 && !selectedSeason) {
+          setSelectedSeason(data[0].id);
+        }
+      })
+      .catch(err => console.error("無法取得賽季清單", err));
+  }, [refreshTrigger]); // 當有人報分導致賽季推進時，選單也會自動更新
+
+  // 🌟 2. 抓取該賽季的排行榜
+  useEffect(() => {
+    // 必須等到有 selectedSeason 才去抓資料
+    if (!selectedSeason) return;
+
     const fetchLeaderboard = async () => {
       setIsLoading(true);
       try {
-        // 根據選擇的賽季加上 Query 參數 (如果是 all-time，我們就先不傳 season_id 讓後端處理)
-        const url = selectedSeason && selectedSeason !== 'all-time'
+        const url = selectedSeason !== 'all-time'
           ? `http://localhost:8000/api/leaderboard?season_id=${selectedSeason}`
-          : "http://localhost:8000/api/leaderboard";
+          : "http://localhost:8000/api/leaderboard"; // 若未來實作總榜可用
 
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          setRealLeaderboard(data.leaderboard || []); // 後端回傳的是 {"season_id": "...", "leaderboard": [...]}
+          setRealLeaderboard(data.leaderboard || []);
           setSeasonName(data.season_name);
         }
       } catch (err) {
@@ -48,15 +75,17 @@ export function Leaderboard() {
     };
 
     fetchLeaderboard();
-  }, [selectedSeason]); // 當選擇的賽季改變時，重新抓取
+  }, [selectedSeason, refreshTrigger]); // 當切換賽季，或有人報分時，重新抓取
 
-  // 動態判斷賽季狀態
-  const isSeasonEnded = selectedSeason === 's3'; // S3 已結算
-  const isAllTime = selectedSeason === 'all-time'; // 總榜模式
-  // 🌟 修正 2：只要有輸入搜尋字串，就強制隱藏頒獎台
+  // 🌟 3. 動態判斷當前選中賽季的狀態
+  const currentSeasonObj = seasons.find(s => s.id === selectedSeason);
+  const isSeasonEnded = currentSeasonObj?.status === 'completed';
+  const isAllTime = selectedSeason === 'all-time';
+
+  // 顯示頒獎台邏輯 (結算賽季才顯示，且沒有搜尋時)
   const showPodium = (isSeasonEnded || isAllTime) && !searchTerm;
 
-  // 🌟 核心數據邏輯：根據選擇的賽季進行過濾與排序
+  // 核心數據邏輯：根據選擇的賽季進行過濾與排序
   const sortedPlayers = useMemo(() => {
     return realLeaderboard.filter(p =>
       p.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,7 +111,8 @@ export function Leaderboard() {
                 isSeasonEnded ? "bg-amber-500 text-white" : "bg-emerald-100 text-emerald-700"
             )}>
               {isAllTime ? <Crown size={12} /> : isSeasonEnded ? <Trophy size={12} /> : <Timer size={12} />}
-              {isAllTime ? "All-Time Legends" : isSeasonEnded ? "Season 3 Completed" : "Season 4 Active"}
+              {/* 🌟 動態顯示賽季名稱 */}
+              {isAllTime ? "All-Time Legends" : isSeasonEnded ? `${seasonName} (已結算)` : `${seasonName} (進行中)`}
             </span>
           </div>
         </div>
@@ -92,18 +122,31 @@ export function Leaderboard() {
       <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl md:rounded-4xl border border-slate-100 shadow-sm relative z-30">
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
+          {/* 🌟 動態產生的下拉選單 */}
           <Select value={selectedSeason} onValueChange={(val) => val && setSelectedSeason(val)}>
-            <SelectTrigger className="w-full sm:w-[220px] h-12 bg-slate-50 border-slate-200 rounded-xl font-bold text-primary-navy shadow-inner focus:ring-sapphire-blue/20">
-              <div className="flex items-center gap-2">
-                <History size={16} className="text-slate-400" />
+            <SelectTrigger className="w-full sm:w-[260px] h-12 bg-slate-50 border-slate-200 rounded-xl font-bold text-primary-navy shadow-inner focus:ring-sapphire-blue/20">
+              <div className="flex items-center gap-2 truncate">
+                <History size={16} className="text-slate-400 shrink-0" />
                 <SelectValue placeholder="選擇賽季" />
               </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-100 shadow-xl font-sans">
-              <SelectItem value="s4" className="font-bold text-emerald-700 focus:bg-emerald-50 focus:text-emerald-900 py-3">🟢 Season 4 (本季進行中)</SelectItem>
-              <SelectItem value="s3" className="font-bold text-slate-600 focus:bg-slate-50 focus:text-slate-900 py-3">🏆 Season 3 (2025 秋季)</SelectItem>
-              <div className="h-px bg-slate-100 my-1" />
-              <SelectItem value="all-time" className="font-black text-amber-600 focus:bg-amber-50 focus:text-amber-900 py-3">👑 All-Time 總榜 (依實力分)</SelectItem>
+              {seasons.map((s) => (
+                <SelectItem
+                  key={s.id}
+                  value={s.id}
+                  className={cn("py-3 font-bold", s.status === 'active' ? "text-emerald-700 focus:bg-emerald-50" : "text-slate-600 focus:bg-slate-50")}
+                >
+                  {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
+                </SelectItem>
+              ))}
+              {/* 保留 All-Time 選項 (若後端未來支援) */}
+              {seasons.length > 0 && (
+                <>
+                  <div className="h-px bg-slate-100 my-1" />
+                  <SelectItem value="all-time" className="font-black text-amber-600 focus:bg-amber-50 focus:text-amber-900 py-3">👑 All-Time 總榜 (依實力分)</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
 
@@ -211,7 +254,7 @@ export function Leaderboard() {
                           {rank}
                         </span>
 
-                        {/* 🌟 動能指示器：改用後端的 trend 和 rank_change */}
+                        {/* 🌟 動能指示器 */}
                         <div className={cn(
                           "flex items-center gap-0.5 mt-1.5 text-[10px] font-black tracking-tighter",
                           player.trend === 'up' ? "text-emerald-500" :
@@ -223,7 +266,6 @@ export function Leaderboard() {
                           {player.trend === 'same' && <Minus size={10} strokeWidth={4} />}
                           {player.trend === 'new' && <Star size={10} strokeWidth={4} />}
 
-                          {/* 如果有改變才顯示數字，'new' 顯示 NEW */}
                           {player.trend === 'new' ? <span>NEW</span> :
                             player.trend !== 'same' ? <span>{player.rank_change}</span> : null}
                         </div>
@@ -242,7 +284,6 @@ export function Leaderboard() {
                       <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-black uppercase tracking-widest shadow-sm", tier.color)}>
                         {tier.icon} {tier.name}
                       </div>
-                      {/* 🌟 隱藏小資訊：勝率 */}
                       <div className="mt-1 text-[10px] text-slate-400 font-bold tracking-widest">
                         Win Rate: {player.win_rate}
                       </div>
@@ -261,8 +302,8 @@ export function Leaderboard() {
                 );
               })}
 
-              {/* 🌟 修正 3：加入找不到人時的防呆提示 */}
-              {sortedPlayers.length === 0 && (
+              {/* 找不到人的防呆提示 */}
+              {sortedPlayers.length === 0 && !isLoading && (
                 <tr>
                   <td colSpan={4} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-300">

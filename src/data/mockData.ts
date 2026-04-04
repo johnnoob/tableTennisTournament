@@ -4,6 +4,7 @@ export interface Player {
   username: string;
   rank: number;
   rating: number;
+  mmr?: number;
   avatar: string;
   isVerified: boolean;
   department?: string;

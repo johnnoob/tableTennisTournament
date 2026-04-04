@@ -10,6 +10,7 @@ from routers.matches import router as matches_router
 from routers.users import router as users_router
 from routers.leaderboard import router as leaderboard_router
 from routers.auth import router as auth_router
+from routers.seasons import router as seasons_router
 
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -55,6 +56,7 @@ app.include_router(matches_router)
 app.include_router(users_router)
 app.include_router(leaderboard_router)
 app.include_router(auth_router)
+app.include_router(seasons_router)
 
 # 3. 定義測試用的起手式 Endpoints (路由)
 
