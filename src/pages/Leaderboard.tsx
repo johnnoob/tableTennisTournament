@@ -5,7 +5,7 @@ import { getTierBadge } from '@/lib/ranking';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from 'framer-motion';
-import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
+import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
 
 export function Leaderboard() {
@@ -196,10 +196,7 @@ export function Leaderboard() {
           )}
 
           {/* 數據表格 */}
-          <motion.div 
-            variants={fadeInUp}
-            className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden relative z-20"
-          >
+          <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden relative z-20">
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -212,21 +209,15 @@ export function Leaderboard() {
                     </th>
                   </tr>
                 </thead>
-                <motion.tbody 
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="divide-y divide-slate-50"
-                >
+                <tbody className="divide-y divide-slate-50">
                   {sortedPlayers.map((player) => {
                     const rank = player.rank;
                     const tier = getTierBadge(player.global_mmr);
                     const isTop1 = rank === 1 && showPodium;
 
                     return (
-                      <motion.tr
+                      <tr
                         key={player.player_id}
-                        variants={itemVariants}
                         onClick={() => {
                           const newParams = new URLSearchParams(searchParams);
                           newParams.set('inspect', player.player_id);
@@ -292,10 +283,10 @@ export function Leaderboard() {
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">LP</span>
                           </div>
                         </td>
-                      </motion.tr>
+                      </tr>
                     );
                   })}
-                </motion.tbody>
+                </tbody>
               </table>
             </div>
             {sortedPlayers.length === 0 && (
@@ -304,7 +295,7 @@ export function Leaderboard() {
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">找不到符合條件的人選</p>
               </div>
             )}
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

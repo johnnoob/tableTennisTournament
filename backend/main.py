@@ -11,17 +11,37 @@ from routers.users import router as users_router
 from routers.leaderboard import router as leaderboard_router
 from routers.auth import router as auth_router
 from routers.seasons import router as seasons_router
+from routers.admin import router as admin_router
 
 from starlette.middleware.sessions import SessionMiddleware
 
 from contextlib import asynccontextmanager
-from database import create_db_and_tables
+from database import create_db_and_tables, get_session
+from services.scheduler import scheduler, setup_scheduler
+from services.season_service import ensure_current_quarter_season
+import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 啟動時執行：建立資料庫與資料表
     create_db_and_tables()
+    
+    # 啟動排程器
+    setup_scheduler()
+    scheduler.start()
+    
+    # 開機預檢：確保現在的季度有賽季可打
+    generator = get_session()
+    session = next(generator)
+    try:
+        logging.info("伺服器重啟預檢：檢查當前賽季是否建立...")
+        ensure_current_quarter_season(session)
+    finally:
+        session.close()
+
     yield
+    # 關閉時執行
+    scheduler.shutdown()
     # 關閉時執行 (如有需要)
 
 # 1. 建立 FastAPI 應用程式實例，並加上晨星奧運風的專屬標題
@@ -57,6 +77,7 @@ app.include_router(users_router)
 app.include_router(leaderboard_router)
 app.include_router(auth_router)
 app.include_router(seasons_router)
+app.include_router(admin_router)
 
 # 3. 定義測試用的起手式 Endpoints (路由)
 

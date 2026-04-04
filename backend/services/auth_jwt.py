@@ -59,3 +59,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise credentials_exception
         
     return user
+
+def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    驗證當前登入的使用者是否具有管理員 (admin) 權限。
+    如果不是管理員，直接阻擋請求並回傳 403 Forbidden。
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="權限不足：此操作需要管理員 (Admin) 權限",
+        )
+    return current_user

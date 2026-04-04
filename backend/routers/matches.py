@@ -10,7 +10,7 @@ from schemas import MatchCreateReq
 # 🌟 匯入我們的 Elo 引擎
 from services.elo_engine import get_team_mmr, calculate_elo_delta
 from services.auth_jwt import get_current_user # 🌟 匯入警衛
-from services.season_service import get_or_create_current_season
+from services.season_service import get_current_season
 
 router = APIRouter(tags=["Matches"])
 
@@ -21,7 +21,7 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     # 1. 🔍 尋找當前進行中的賽季
     # statement = select(Season).where(Season.status == "active")
     # current_season = session.exec(statement).first()
-    current_season = get_or_create_current_season(session)
+    current_season = get_current_season(session)
     
     if not current_season:
         raise HTTPException(status_code=400, detail="目前沒有進行中的賽季，無法報分！")
