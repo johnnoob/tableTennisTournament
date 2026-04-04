@@ -1,84 +1,149 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
+from typing import List
+from uuid import UUID
+
 from database import get_session
-from models import User, Season
-from schemas import SeasonCreate
-from services.auth_jwt import get_current_admin_user
-from datetime import datetime
-import re
+from services.auth_jwt import get_current_user
+from models import User, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
+from schemas import ConfigUpdate, AnnouncementCreate, SeasonPrizeCreate, TournamentEventCreate, ParticipantAdd
 
-# 宣告這是一個獨立的 Router，並全面套用管理員驗證
-router = APIRouter(
-    prefix="/api/admin",
-    tags=["Admin Control Center"],
-    dependencies=[Depends(get_current_admin_user)]
-)
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
-@router.get("/status")
-def check_admin_access(current_admin: User = Depends(get_current_admin_user)):
-    """
-    測試用 API：確認管理員身分驗證是否成功。
-    """
-    return {
-        "status": "success",
-        "message": f"歡迎進入控制中心，管理員 {current_admin.name}！"
-    }
+# 依賴注入：確認是否為管理員
+def require_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="無管理員權限")
+    return current_user
 
-# ==========================================
-# 🌟 開啟新賽季的 API
-# ==========================================
-@router.post("/seasons")
-def create_new_season(
-    season_in: SeasonCreate,
-    session: Session = Depends(get_session),
-    # 這裡雖然有 dependencies 幫忙擋，但我們還是可以把 admin 拿進來做紀錄(若未來有需要)
-    current_admin: User = Depends(get_current_admin_user) 
-):
-    """
-    管理員專屬：手動開啟全新賽季。
-    強制命名格式為 YYYY-QX，例如 2026-Q2。
-    """
-    # 1. 檢核賽季命名格式
-    if not re.match(r"^\d{4}-Q[1-4]$", season_in.id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="賽季 ID 必須符合 YYYY-QX 格式，例如：2026-Q1"
-        )
-        
-    # 2. 檢查這個賽季代號是否已經被用過了
-    existing_season = session.get(Season, season_in.id)
-    if existing_season:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="這個賽季代號已經存在了，請換一個！"
-        )
+# ================================
+# System Configs
+# ================================
+@router.get("/config", dependencies=[Depends(require_admin)])
+def get_configs(session: Session = Depends(get_session)):
+    return session.exec(select(SystemConfig)).all()
 
-    now = datetime.utcnow()
-    # 3. 把舊的賽季關閉 (跟排程器邏輯一致)
-    expired_seasons = session.exec(
-        select(Season).where(Season.status == "active")
-    ).all()
-    for old_season in expired_seasons:
-        old_season.status = "completed"
-        if not old_season.end_date:
-            old_season.end_date = now
-        session.add(old_season)
-
-    # 4. 建立新的賽季物件 (如果前端沒傳開始時間，預設為現在)
-    new_season = Season(
-        id=season_in.id,
-        name=season_in.name,
-        start_date=season_in.start_date or now,
-        end_date=season_in.end_date,
-        status="active"
-    )
-    
-    # 5. 寫入資料庫
-    session.add(new_season)
+@router.put("/config/{key}", dependencies=[Depends(require_admin)])
+def update_config(key: str, config_update: ConfigUpdate, session: Session = Depends(get_session)):
+    config = session.get(SystemConfig, key)
+    if not config:
+        config = SystemConfig(key=key, value=config_update.value)
+        session.add(config)
+    else:
+        config.value = config_update.value
     session.commit()
-    session.refresh(new_season)
+    session.refresh(config)
+    return config
+
+# ================================
+# Announcements
+# ================================
+@router.get("/announcements", dependencies=[Depends(require_admin)])
+def get_announcements(session: Session = Depends(get_session)):
+    return session.exec(select(Announcement).order_by(Announcement.created_at.desc())).all()
+
+@router.post("/announcements", dependencies=[Depends(require_admin)])
+def create_announcement(ann: AnnouncementCreate, session: Session = Depends(get_session)):
+    new_ann = Announcement(**ann.model_dump())
+    session.add(new_ann)
+    session.commit()
+    session.refresh(new_ann)
+    return new_ann
+
+@router.delete("/announcements/{id}", dependencies=[Depends(require_admin)])
+def delete_announcement(id: UUID, session: Session = Depends(get_session)):
+    ann = session.get(Announcement, id)
+    if not ann:
+        raise HTTPException(status_code=404, detail="找不到公告")
+    session.delete(ann)
+    session.commit()
+    return {"message": "公告已刪除"}
+
+# ================================
+# Season Prizes
+# ================================
+@router.get("/season-prizes/{season_id}", dependencies=[Depends(require_admin)])
+def get_prizes(season_id: str, session: Session = Depends(get_session)):
+    statement = select(SeasonPrize).where(SeasonPrize.season_id == season_id).order_by(SeasonPrize.rank)
+    return session.exec(statement).all()
+
+@router.post("/season-prizes", dependencies=[Depends(require_admin)])
+def create_prize(prize: SeasonPrizeCreate, session: Session = Depends(get_session)):
+    # 檢查是否已存在該名次的獎品
+    statement = select(SeasonPrize).where(SeasonPrize.season_id == prize.season_id, SeasonPrize.rank == prize.rank)
+    existing = session.exec(statement).first()
+    if existing:
+        existing.item_name = prize.item_name
+        existing.quantity = prize.quantity
+        existing.image_url = prize.image_url
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
+
+    new_prize = SeasonPrize(**prize.model_dump())
+    session.add(new_prize)
+    session.commit()
+    session.refresh(new_prize)
+    return new_prize
+
+# ================================
+# Tournaments
+# ================================
+@router.get("/tournaments", dependencies=[Depends(require_admin)])
+def get_tournaments(session: Session = Depends(get_session)):
+    return session.exec(select(TournamentEvent).order_by(TournamentEvent.created_at.desc())).all()
+
+@router.post("/tournaments", dependencies=[Depends(require_admin)])
+def create_tournament(evt: TournamentEventCreate, session: Session = Depends(get_session)):
+    new_evt = TournamentEvent(**evt.model_dump())
+    session.add(new_evt)
+    session.commit()
+    session.refresh(new_evt)
+    return new_evt
+
+@router.put("/tournaments/{id}/status", dependencies=[Depends(require_admin)])
+def update_tournament_status(id: UUID, status: str, session: Session = Depends(get_session)):
+    evt = session.get(TournamentEvent, id)
+    if not evt:
+        raise HTTPException(status_code=404, detail="找不到錦標賽")
+    evt.status = status
+    session.commit()
+    session.refresh(evt)
+    return evt
+
+@router.get("/tournaments/{id}/participants", dependencies=[Depends(require_admin)])
+def get_participants(id: UUID, session: Session = Depends(get_session)):
+    statement = select(TournamentParticipant).where(TournamentParticipant.tournament_id == id)
+    parts = session.exec(statement).all()
+    # 我們也需要給前端使用者的詳細資料
+    res = []
+    for p in parts:
+        user = session.get(User, p.user_id)
+        if user:
+            res.append({"participant": p, "user": user})
+    return res
+
+@router.post("/tournaments/{id}/participants", dependencies=[Depends(require_admin)])
+def add_participant(id: UUID, participant: ParticipantAdd, session: Session = Depends(get_session)):
+    # 檢查是否已加入
+    statement = select(TournamentParticipant).where(TournamentParticipant.tournament_id == id, TournamentParticipant.user_id == participant.user_id)
+    existing = session.exec(statement).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="該同仁已在參賽名單中")
     
-    return {
-        "message": f"成功結算舊賽季並開啟新賽季：{new_season.name}！",
-        "season": new_season
-    }
+    new_part = TournamentParticipant(tournament_id=id, user_id=participant.user_id)
+    session.add(new_part)
+    session.commit()
+    session.refresh(new_part)
+    return new_part
+
+@router.delete("/tournaments/{id}/participants/{user_id}", dependencies=[Depends(require_admin)])
+def remove_participant(id: UUID, user_id: UUID, session: Session = Depends(get_session)):
+    statement = select(TournamentParticipant).where(TournamentParticipant.tournament_id == id, TournamentParticipant.user_id == user_id)
+    part = session.exec(statement).first()
+    if not part:
+        raise HTTPException(status_code=404, detail="該同仁不在參賽名單中")
+    session.delete(part)
+    session.commit()
+    return {"message": "已移除參賽者"}

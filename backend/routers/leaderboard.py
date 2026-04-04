@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from typing import Optional
 
 from database import get_session
-from models import Season, SeasonRecord, User
+from models import Season, SeasonRecord, User, Match, MatchParticipation
 
 from services.season_service import get_current_season
 
@@ -76,20 +76,32 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             win_rate_val = 0.0
         win_rate_str = f"{win_rate_val:.1f}%" # 格式化為小數點後一位
         
-        # B. 🔼 計算動能指標 (Trend)
-        trend = "same"
-        rank_change = 0
+        # B. 🔼 計算動能指標 (Trend) - 以符號字串形式返回 (例如: +2, -1, 0)
+        trend_str = "0"
+        if previous_rank is not None:
+            if current_rank < previous_rank:
+                # 名次上升
+                trend_str = f"+{previous_rank - current_rank}"
+            elif current_rank > previous_rank:
+                # 名次下降
+                trend_str = f"-{current_rank - previous_rank}"
+        
+        # C. 🟢 近期狀態 (Recent Form) - 撈取最近 5 場已確認的比賽
+        recent_matches = session.exec(
+            select(MatchParticipation)
+            .join(Match, MatchParticipation.match_id == Match.id)
+            .where(MatchParticipation.user_id == user.id)
+            .where(Match.status == "confirmed")
+            .where(Match.season_id == season.id)
+            .order_by(Match.created_at.desc())
+            .limit(5)
+        ).all()
+        
+        # 轉換為 ["W", "L", "W", ...] 格式
+        # 這裡我們按時間由新到舊排列，如果要前端左到右是新到舊，就這樣即可
+        recent_form = ["W" if p.is_winner else "L" for p in recent_matches]
 
-        if previous_rank is None:
-            trend = "new"  # 新進榜 或 剛開季尚未定榜
-        elif current_rank < previous_rank:
-            trend = "up"   # 名次上升
-            rank_change = previous_rank - current_rank
-        elif current_rank > previous_rank:
-            trend = "down" # 名次下降
-            rank_change = current_rank - previous_rank
-
-        # C. 打包資料給前端
+        # D. 打包資料給前端
         leaderboard_data.append({
             "rank": current_rank,
             "player_id": str(user.id),
@@ -100,9 +112,10 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "matches_played": matches_played,
             "global_mmr": round(user.global_mmr),
             "wins": wins,
+            "losses": matches_played - wins,
             "win_rate": win_rate_str,
-            "trend": trend,
-            "rank_change": rank_change
+            "trend": trend_str,
+            "recent_form": recent_form
         })
         
         current_rank += 1

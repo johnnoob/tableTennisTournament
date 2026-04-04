@@ -12,6 +12,7 @@ from routers.leaderboard import router as leaderboard_router
 from routers.auth import router as auth_router
 from routers.seasons import router as seasons_router
 from routers.admin import router as admin_router
+from routers.content import router as content_router
 
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -78,6 +79,7 @@ app.include_router(leaderboard_router)
 app.include_router(auth_router)
 app.include_router(seasons_router)
 app.include_router(admin_router)
+app.include_router(content_router)
 
 # 3. 定義測試用的起手式 Endpoints (路由)
 

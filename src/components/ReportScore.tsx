@@ -57,15 +57,25 @@ export function ReportScore({
   const [isSuccess, setIsSuccess] = React.useState(false)
   // 🌟 1. 新增一個 State 用來存真實玩家名單
   const [realPlayers, setRealPlayers] = React.useState<any[]>([])
+  const [seasonPaused, setSeasonPaused] = React.useState(false)
 
 
-  // 🌟 2. 元件載入或打開時，去後端拉取玩家清單
+  // 🌟 2. 元件載入或打開時，去後端拉取玩家清單與系統狀態
   React.useEffect(() => {
     if (open) {
-      const fetchPlayers = async () => {
+      const fetchInitialData = async () => {
         const token = localStorage.getItem('auth_token')
-        if (!token) return
+        
         try {
+          // 抓取公共設定
+          const configRes = await fetch("http://localhost:8000/api/config/public")
+          if (configRes.ok) {
+            const config = await configRes.json()
+            setSeasonPaused(config.season_paused === 'true')
+          }
+
+          if (!token) return
+          // 抓取玩家清單
           const res = await fetch("http://localhost:8000/api/users", {
             headers: { "Authorization": `Bearer ${token}` }
           })
@@ -73,10 +83,10 @@ export function ReportScore({
             setRealPlayers(await res.json())
           }
         } catch (err) {
-          console.error("無法取得玩家清單", err)
+          console.error("無法取得初始化資料", err)
         }
       }
-      fetchPlayers()
+      fetchInitialData()
     }
   }, [open])
 
@@ -106,6 +116,7 @@ export function ReportScore({
     const max = Math.max(a, b);
     const min = Math.min(a, b);
 
+    if (seasonPaused) return { valid: false, text: "⛔ 賽季已暫停，目前無法申報新比分", style: "bg-rose-50 text-rose-600 border-rose-200 shadow-sm" };
     if (a === 0 && b === 0) return { valid: false, text: "請輸入最終局數", style: "bg-slate-50 text-slate-400 border-slate-200" };
     if (a === b) return { valid: false, text: "平手無法送出", style: "bg-slate-50 text-slate-500 border-slate-200" };
 
@@ -135,7 +146,7 @@ export function ReportScore({
   const validation = getScoreValidation(scoreA, scoreB, isReady);
 
   const handleSubmit = async () => {
-    if (!isReady || !validation.valid || !currentUser) return
+    if (seasonPaused || !isReady || !validation.valid || !currentUser) return
     setIsSubmitting(true)
     // 1. 從 Local Storage 取得識別證
     const token = localStorage.getItem('auth_token')
@@ -502,7 +513,7 @@ export function ReportScore({
             <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={!isReady || isSubmitting || !validation.valid}
+                disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
                 className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
                 {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -519,7 +530,7 @@ export function ReportScore({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={!isReady || isSubmitting || !validation.valid}
+                disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
                 className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
                 {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}
@@ -579,7 +590,7 @@ export function ReportScore({
           {!isSuccess && (
             <Button
               onClick={handleSubmit}
-              disabled={!isReady || isSubmitting || !validation.valid}
+              disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
               className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20 mb-4"
             >
               {isSubmitting ? "正在送出..." : editMode ? "送出修改" : "確認申報"}

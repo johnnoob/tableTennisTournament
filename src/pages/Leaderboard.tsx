@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
+import { useAuthStore } from '@/store/authStore';
 
 export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user: currentUser } = useAuthStore();
 
   // 🌟 動態賽季狀態
   const [seasons, setSeasons] = useState<any[]>([]);
@@ -104,56 +106,58 @@ export function Leaderboard() {
           exit="exit"
           className="pb-24 pt-8 md:pt-12 px-4 md:px-12 space-y-8 bg-slate-50/30 min-h-screen relative"
         >
-          {/* 頁面標題區 */}
-          <motion.header variants={fadeInUp} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black uppercase italic flex items-center gap-4">
-                {isAllTime ? "Hall of Fame" : "Leaderboard"}
-              </h1>
-              <div className="flex items-center gap-3 mt-4">
-                <div className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] md:text-sm uppercase tracking-widest transition-colors",
-                  isAllTime ? "bg-purple-100 text-purple-700" :
-                  isSeasonEnded ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                )}>
-                  {isAllTime ? <Crown size={14} /> : <Timer size={14} />} {seasonName}
-                </div>
-                <p className="text-[10px] md:text-xs text-slate-500 uppercase font-sans font-black tracking-widest opacity-60">
-                  Precision Arena · Ranking System
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-              <Select value={selectedSeason} onValueChange={(val) => val && setSelectedSeason(val)}>
-                <SelectTrigger className="w-full md:w-64 h-12 bg-white border-slate-100 rounded-xl font-bold text-primary-navy shadow-sm ring-4 ring-slate-100/50">
-                  <div className="flex items-center gap-2 truncate">
-                    <History size={16} className="text-slate-400 shrink-0" />
-                    <SelectValue placeholder="選擇賽季" />
+          <motion.header variants={fadeInUp} className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-2 md:w-3 bg-gradient-to-b from-sapphire-blue to-blue-800 rounded-full h-12 md:h-16 mr-4 md:mr-6 shrink-0" />
+              <div className="space-y-1">
+                <h1 className="text-4xl md:text-5xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none">
+                  {isAllTime ? "Hall of Fame" : "Leaderboard"}
+                </h1>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-colors",
+                    isAllTime ? "bg-purple-100 text-purple-700" :
+                    isSeasonEnded ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                  )}>
+                    {isAllTime ? <Crown size={14} /> : <Timer size={14} />} {seasonName}
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {seasons.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="font-bold">
-                      {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="all-time" className="font-bold">👑 All-Time 總榜</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="relative w-full xl:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="搜尋同仁姓名或單位..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-100 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/20 focus:border-sapphire-blue transition-all font-bold text-slate-600 placeholder:text-slate-400 shadow-sm"
-                />
+                  <p className="text-[10px] md:text-xs text-slate-400 font-sans font-black uppercase tracking-[0.3em] opacity-60">
+                    Precision Arena · Ranking System
+                  </p>
+                </div>
               </div>
             </div>
           </motion.header>
+
+          <motion.div variants={fadeInUp} className="bg-white/50 backdrop-blur-sm p-3 rounded-[2.5rem] border border-slate-100/50 flex flex-col md:flex-row items-stretch md:items-center gap-4">
+            <Select value={selectedSeason} onValueChange={(val) => val && setSelectedSeason(val)}>
+              <SelectTrigger className="w-full md:w-64 h-12 bg-white border-slate-100 rounded-2xl font-bold text-primary-navy shadow-sm">
+                <div className="flex items-center gap-2 truncate">
+                  <History size={16} className="text-slate-400 shrink-0" />
+                  <SelectValue placeholder="選擇賽季" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {seasons.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="font-bold">
+                    {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="all-time" className="font-bold">👑 All-Time 總榜</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="relative flex-1 max-w-xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="搜尋同仁姓名或單位..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-12 pl-11 pr-4 rounded-2xl border border-slate-100 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/20 focus:border-sapphire-blue transition-all font-bold text-slate-600 placeholder:text-slate-400 shadow-sm"
+              />
+            </div>
+          </motion.div>
 
           {/* 榮譽頒獎台 */}
           {showPodium && top3.length >= 3 && (
@@ -196,15 +200,18 @@ export function Leaderboard() {
           )}
 
           {/* 數據表格 */}
-          <div className="bg-white rounded-4xl border border-slate-100 shadow-sm overflow-hidden relative z-20">
-            <div className="overflow-x-auto no-scrollbar">
+          <div className="bg-white rounded-4xl border border-slate-100 shadow-sm relative z-20">
+            <div className="no-scrollbar rounded-4xl">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100">
-                    <th className="py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest w-20 text-center">Rank</th>
-                    <th className="py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest">Player</th>
-                    <th className="py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest">Tier Badge</th>
-                    <th className="py-5 px-6 text-xs font-black uppercase tracking-widest text-right text-primary-navy">
+                <thead className="z-30">
+                  <tr className="border-b border-slate-100">
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest w-24 text-center bg-slate-50/90 backdrop-blur-md z-30">Rank</th>
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/90 backdrop-blur-md z-30">Player</th>
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/90 backdrop-blur-md z-30">Tier Badge</th>
+                    {/* 新增戰績與近期狀態欄位 */}
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden md:table-cell bg-slate-50/90 backdrop-blur-md z-30">Record</th>
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden lg:table-cell bg-slate-50/90 backdrop-blur-md z-30">Recent Form</th>
+                    <th className="sticky top-0 py-5 px-6 text-xs font-black uppercase tracking-widest text-right text-primary-navy bg-slate-50/90 backdrop-blur-md z-30">
                       {isAllTime ? "Total MMR" : "Season LP"}
                     </th>
                   </tr>
@@ -224,11 +231,12 @@ export function Leaderboard() {
                           setSearchParams(newParams);
                         }}
                         className={cn(
-                          "group hover:bg-slate-50/50 transition-all cursor-pointer active:scale-[0.99]",
-                          isTop1 && "bg-amber-50/30"
+                          "group hover:bg-slate-50/50 transition-all cursor-pointer active:scale-[0.99] relative",
+                          isTop1 && "bg-amber-50/30",
+                          currentUser?.id === player.player_id && "bg-sapphire-blue/5 border-l-4 border-sapphire-blue ring-1 ring-sapphire-blue/10"
                         )}
                       >
-                        <td className="py-4 px-4 md:px-6 w-20 md:w-24">
+                        <td className="py-4 px-4 md:px-6 w-24">
                           <div className="flex flex-col items-center justify-center">
                             <span className={cn(
                               "font-display font-black text-xl tabular-nums leading-none",
@@ -236,7 +244,16 @@ export function Leaderboard() {
                             )}>
                               {rank}
                             </span>
-                            {rank === 1 && <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter mt-1 italic">☆ TOP</span>}
+                            {/* Trend Indicator */}
+                            {player.trend !== "0" && (
+                              <span className={cn(
+                                "text-[10px] font-black mt-1",
+                                typeof player.trend === 'string' && player.trend.startsWith('+') ? "text-emerald-500" : "text-rose-500"
+                              )}>
+                                {typeof player.trend === 'string' && player.trend.startsWith('+') ? '▲' : '▼'} {String(player.trend).replace(/[+-]/, '')}
+                              </span>
+                            )}
+                            {rank === 1 && player.trend === "0" && <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter mt-1 italic">☆ TOP</span>}
                           </div>
                         </td>
                         <td className="py-4 px-4 md:px-6">
@@ -270,6 +287,34 @@ export function Leaderboard() {
                             <div className="text-[9px] font-bold text-slate-400 tracking-wider ml-1 uppercase">
                               Win Rate: {player.win_rate}
                             </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 md:px-6 text-center hidden md:table-cell">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-600 font-black text-sm">{player.wins}W</span>
+                              <span className="text-slate-300 text-xs">-</span>
+                              <span className="text-rose-600 font-black text-sm">{player.losses}L</span>
+                            </div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{player.matches_played} Total</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 md:px-6 text-center hidden lg:table-cell">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {player.recent_form && player.recent_form.length > 0 ? (
+                                player.recent_form.map((result: string, idx: number) => (
+                                  <div 
+                                    key={idx} 
+                                    className={cn(
+                                      "size-2.5 rounded-full shadow-sm border border-white/50",
+                                      result === 'W' ? "bg-emerald-500" : "bg-rose-500"
+                                    )}
+                                    title={result === 'W' ? 'Win' : 'Loss'}
+                                  />
+                                ))
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-300 uppercase italic opacity-40">No Data</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-4 px-4 md:px-6 text-right">

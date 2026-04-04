@@ -19,8 +19,10 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     real_reporter_id = current_user.id
 
     # 1. 🔍 尋找當前進行中的賽季
-    # statement = select(Season).where(Season.status == "active")
-    # current_season = session.exec(statement).first()
+    from services.season_service import is_season_paused
+    if is_season_paused(session):
+        raise HTTPException(status_code=403, detail="積分賽季目前處於暫停狀態，暫時無法報分！")
+
     current_season = get_current_season(session)
     
     if not current_season:

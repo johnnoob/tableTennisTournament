@@ -1,16 +1,14 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { tournaments, players } from '@/data/mockData';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Trophy, MapPin, Scale, Calendar } from 'lucide-react';
+import { Trophy, MapPin, Scale, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 
 export function TournamentDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const tournament = tournaments.find(t => t.id === id) || tournaments[0];
 
   const now = new Date();
@@ -28,20 +26,15 @@ export function TournamentDetail() {
       className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-8 bg-white min-h-screen"
     >
       {/* Header */}
-      <motion.header variants={fadeInUp} className="flex items-center gap-6">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="rounded-2xl bg-slate-50 shadow-sm border border-slate-100 p-6 md:p-8"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={22} className="text-primary-navy" />
-        </Button>
-        <div>
-          <h1 className="text-2xl md:text-5xl text-primary-navy font-display tracking-tight font-black">
-            {tournament.title}
-          </h1>
-          <p className="text-xs md:text-xs text-slate-500 uppercase tracking-[0.3em] font-sans font-black mt-2">Active Tournament Details</p>
+      <motion.header variants={fadeInUp} className="flex items-center justify-between">
+        <div className="flex items-center">
+          <div className="w-2 md:w-3 bg-gradient-to-b from-sapphire-blue to-blue-800 rounded-full h-12 md:h-16 mr-4 md:mr-6 shrink-0" />
+          <div className="space-y-1">
+            <h1 className="text-4xl md:text-5xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none">
+              {tournament.title}
+            </h1>
+            <p className="text-[10px] md:text-xs text-slate-400 font-sans font-black uppercase tracking-[0.3em] opacity-60">Active Tournament Details</p>
+          </div>
         </div>
       </motion.header>
 

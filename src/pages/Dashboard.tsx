@@ -7,52 +7,40 @@ import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Info, Timer, History, ArrowRight } from 'lucide-react';
+import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, History, ArrowRight, Zap, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
 import { useAuthStore } from '@/store/authStore';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 
-// 📢 公告假資料
-const announcements = [
-  {
-    id: '1',
-    type: 'tournament',
-    title: '2026 春季長官盃雙打邀請賽，現正開放登記！',
-    description: '本季最大型賽事即將開打，請於本週五前完成搭檔登記與報名。',
-    tag: '特殊賽事',
-    urgency: 'high',
-    actionText: '立即前往報名',
-    date: '2天後截止'
-  },
-  {
-    id: '2',
-    type: 'system',
-    title: '全新常態天梯制上線：免報名，隨時開打！',
-    description: '中午吃完飯直接找人切磋，點擊右下角「+」送出比分，系統自動將您納入本季排行。',
-    tag: '系統公告',
-    urgency: 'normal',
-    actionText: '了解天梯規則',
-    date: '剛剛發布'
-  }
-];
+interface AnnouncementProp {
+  id: string;
+  title: string;
+  content: string;
+  link_text?: string;
+  link_url?: string;
+  created_at: string;
+}
 
-function AnnouncementBanner() {
+function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const current = announcements[currentIndex];
-
-  const nextMsg = () => setCurrentIndex((prev) => (prev + 1) % announcements.length);
-  const prevMsg = () => setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
+  
+  const current = items[currentIndex];
 
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || items.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % announcements.length);
+      setCurrentIndex((prev) => (prev + 1) % items.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, items.length]);
+
+  if (!items || items.length === 0) return null;
+
+  const nextMsg = () => setCurrentIndex((prev) => (prev + 1) % items.length);
+  const prevMsg = () => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
 
   return (
     <section>
@@ -61,37 +49,31 @@ function AnnouncementBanner() {
         onMouseLeave={() => setIsPaused(false)}
         className="bg-primary-navy rounded-4xl p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group"
       >
-        <div className="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700">
-          {current.type === 'tournament' ? <Trophy size={250} /> : <Info size={250} />}
+        <div className="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700 text-white">
+          <Trophy size={250} />
         </div>
 
         <div className="flex items-start md:items-center gap-4 md:gap-6 relative z-10 flex-1 w-full">
           <div className={cn(
-            "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
-            current.type === 'tournament' ? "bg-olympic-gold text-white shadow-olympic-gold/20" : "bg-sapphire-blue text-white shadow-sapphire-blue/20"
+            "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg bg-sapphire-blue text-white shadow-sapphire-blue/20"
           )}>
-            {current.type === 'tournament' ? <Trophy size={28} /> : <Info size={28} />}
+            <Megaphone size={28} />
           </div>
 
           <div className="space-y-1.5 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn(
-                "text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest",
-                current.type === 'tournament' ? "bg-olympic-gold/20 text-amber-400" : "bg-sapphire-blue/20 text-blue-300"
-              )}>
-                {current.tag}
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest bg-sapphire-blue/20 text-blue-300">
+                系統公告
               </span>
-              {current.type === 'tournament' && (
-                <span className="flex items-center gap-1 text-amber-400/80 text-[11px] font-bold">
-                  <Timer size={12} /> {current.date}
-                </span>
-              )}
+              <span className="flex items-center gap-1 text-blue-300/60 text-[11px] font-bold">
+                  <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
+              </span>
             </div>
             <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
               {current.title}
             </h3>
             <p className="text-xs md:text-sm text-slate-300 font-medium line-clamp-1 md:line-clamp-2">
-              {current.description}
+              {current.content}
             </p>
           </div>
         </div>
@@ -106,15 +88,15 @@ function AnnouncementBanner() {
                 <ChevronRight size={18} strokeWidth={3} />
               </button>
             </div>
-            <Button className={cn(
-              "flex-1 md:flex-none h-12 md:h-14 px-6 md:px-8 rounded-xl font-black text-sm tracking-widest transition-all active:scale-95 gap-2 border-none",
-              current.type === 'tournament'
-                ? "bg-olympic-gold hover:bg-amber-400 text-primary-navy shadow-lg shadow-olympic-gold/20"
-                : "bg-white hover:bg-slate-100 text-primary-navy shadow-lg shadow-white/10"
-            )}>
-              {current.actionText}
-              <ChevronRight size={18} strokeWidth={3} />
-            </Button>
+            {current.link_url && (
+              <Button 
+                onClick={() => window.open(current.link_url, '_blank')}
+                className="flex-1 md:flex-none h-12 md:h-14 px-6 md:px-8 rounded-xl font-black text-sm tracking-widest transition-all active:scale-95 gap-2 border-none bg-white hover:bg-slate-100 text-primary-navy shadow-lg shadow-white/10"
+              >
+                {current.link_text || '了解詳情'}
+                <ChevronRight size={18} strokeWidth={3} />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -133,6 +115,8 @@ export function Dashboard() {
   const [rivals, setRivals] = useState<{ nemesis: any[], minions: any[] }>({ nemesis: [], minions: [] });
   const [topPlayers, setTopPlayers] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [partners, setPartners] = useState<{ golden_partners: any[], worst_partners: any[] }>({ golden_partners: [], worst_partners: [] });
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
   useEffect(() => {
     const handleUpdate = () => setRefreshTrigger(prev => prev + 1);
@@ -142,6 +126,12 @@ export function Dashboard() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // 📣 抓取公告 (不需要 Token 的公共 API)
+      try {
+        const annRes = await fetch("http://localhost:8000/api/announcements");
+        if (annRes.ok) setAnnouncements(await annRes.json());
+      } catch (e) { console.error("抓取公告失敗", e); }
+
       const savedToken = localStorage.getItem('auth_token');
       if (!savedToken) {
         setFeedLoading(false);
@@ -158,6 +148,11 @@ export function Dashboard() {
           headers: { "Authorization": `Bearer ${savedToken}` }
         });
         if (rivalsRes.ok) setRivals(await rivalsRes.json());
+
+        const partnersRes = await fetch("http://localhost:8000/api/users/me/partners", {
+          headers: { "Authorization": `Bearer ${savedToken}` }
+        });
+        if (partnersRes.ok) setPartners(await partnersRes.json());
 
         const leaderRes = await fetch("http://localhost:8000/api/leaderboard");
         if (leaderRes.ok) {
@@ -229,12 +224,15 @@ export function Dashboard() {
           className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-12 bg-white relative"
         >
           <motion.header variants={fadeInUp} className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-3xl md:text-5xl text-primary-navy font-display tracking-tight font-black uppercase italic">
-                {user.name}
-              </h1>
-              <div className="flex items-center gap-2 text-primary-slate text-sm font-sans font-bold opacity-60">
-                <Timer size={14} /> Welcome Back · Season 4
+            <div className="flex items-center">
+              <div className="w-2 md:w-3 bg-gradient-to-b from-sapphire-blue to-blue-800 rounded-full h-12 md:h-16 mr-4 md:mr-6 shrink-0" />
+              <div className="space-y-1">
+                <h1 className="text-4xl md:text-5xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none">
+                  {user.name}
+                </h1>
+                <div className="flex items-center gap-2 text-slate-400 text-[10px] md:text-xs font-sans font-black uppercase tracking-[0.3em] opacity-60">
+                  <Timer size={14} /> Welcome Back · Season 4
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
@@ -259,7 +257,7 @@ export function Dashboard() {
           </motion.header>
 
           <motion.div variants={fadeInUp}>
-             <AnnouncementBanner />
+             <AnnouncementBanner items={announcements} />
           </motion.div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 md:gap-16 items-start">
@@ -368,6 +366,31 @@ export function Dashboard() {
                     </div>
                   </div>
                 </motion.section>
+
+                <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="rounded-[2.5rem] bg-amber-50/40 p-8 border border-amber-100/50 space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="size-12 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                        <Trophy size={24} className="text-white" />
+                      </div>
+                      <h3 className="text-xl font-display font-black text-primary-navy">黃金搭檔</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {partners.golden_partners.length > 0 ? partners.golden_partners.map((item: any) => (<RivalRow key={item.id} {...item} type="minions" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無黃金搭檔資料</p>)}
+                    </div>
+                  </div>
+                  <div className="rounded-[2.5rem] bg-slate-50 p-8 border border-slate-200/50 space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="size-12 rounded-2xl bg-slate-600 flex items-center justify-center shadow-lg shadow-slate-600/20">
+                        <Zap size={24} className="text-white" />
+                      </div>
+                      <h3 className="text-xl font-display font-black text-primary-navy">豬隊友</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {partners.worst_partners.length > 0 ? partners.worst_partners.map((item: any) => (<RivalRow key={item.id} {...item} type="nemesis" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無豬隊友資料</p>)}
+                    </div>
+                  </div>
+                </motion.section>
               </motion.div>
             </div>
 
@@ -389,7 +412,7 @@ export function Dashboard() {
                 </div>
                 <div className="space-y-4">
                   {topPlayers.length > 0 ? topPlayers.map(player => (
-                    <div key={player.id} className="group cursor-pointer transform transition-all active:scale-[0.98]" onClick={() => navigate(`/leaderboard?inspect=${player.id}`)}>
+                    <div key={player.id}>
                       <RankingCard player={player} />
                     </div>
                   )) : (

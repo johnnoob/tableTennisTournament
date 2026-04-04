@@ -217,3 +217,65 @@ class Notification(SQLModel, table=True):
     # 🔗 建立與 User 和 Match 的關係
     recipient: "User" = Relationship(back_populates="notifications")
     match: Optional["Match"] = Relationship()
+
+# ==========================================
+# 8. SystemConfig 表 (全站系統設定)
+# ==========================================
+class SystemConfig(SQLModel, table=True):
+    key: str = Field(primary_key=True, description="設定鍵值，例如: 'season_paused'")
+    value: str = Field(description="字串值，前端或後端需自行轉換(如布林轉字串)")
+    description: Optional[str] = Field(default=None, description="設定說明")
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# ==========================================
+# 9. Announcement 表 (全站公告)
+# ==========================================
+class Announcement(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    title: str = Field(description="公告標題")
+    content: str = Field(description="公告內容")
+    link_url: Optional[str] = Field(default=None, description="按鈕連結URL")
+    link_text: Optional[str] = Field(default=None, description="按鈕文字")
+    is_active: bool = Field(default=True, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# ==========================================
+# 10. SeasonPrize 表 (賽季獎勵)
+# ==========================================
+class SeasonPrize(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    season_id: str = Field(foreign_key="season.id", index=True, description="關聯的賽季 ID")
+    rank: int = Field(description="名次(1, 2, 3)")
+    item_name: str = Field(description="獎品名稱")
+    quantity: int = Field(default=1, description="獎品數量")
+    image_url: Optional[str] = Field(default=None, description="圖片URL")
+    
+    season: Season = Relationship()
+
+# ==========================================
+# 11. TournamentEvent 表 (獨立錦標賽)
+# ==========================================
+class TournamentEvent(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    title: str = Field(description="賽事名稱")
+    image_url: Optional[str] = Field(default=None, description="錦標賽封面圖")
+    start_date: Optional[datetime] = Field(default=None)
+    end_date: Optional[datetime] = Field(default=None)
+    rules: Optional[str] = Field(default=None, description="賽事規則描述 或 Challonge 連結")
+    status: str = Field(default="upcoming", description="upcoming, ongoing, completed")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # 參與者
+    participants: List["TournamentParticipant"] = Relationship(back_populates="tournament")
+
+# ==========================================
+# 12. TournamentParticipant 表 (錦標賽參賽者)
+# ==========================================
+class TournamentParticipant(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    tournament_id: UUID = Field(foreign_key="tournamentevent.id", index=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    joined_at: datetime = Field(default_factory=datetime.utcnow)
+
+    tournament: TournamentEvent = Relationship(back_populates="participants")
+    user: User = Relationship()

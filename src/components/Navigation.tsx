@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, Trophy, Crown, Plus, Shield, Settings } from 'lucide-react';
+import { LayoutDashboard, History, Trophy, Crown, Plus, Shield, Settings, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
@@ -10,12 +10,16 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: History, label: 'Matches', path: '/history' },
   { icon: Trophy, label: 'Tournament', path: '/tournament' },
-  { icon: Shield, label: 'Leaderboard', path: '/leaderboard' },
+  { icon: LayoutGrid, label: 'Leaderboard', path: '/leaderboard' },
 ];
 
 export function Navigation() {
-  // 🌟 2. 直接從倉庫拿出真實 user
   const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+
+  const displayedNavItems = isAdmin 
+    ? [...navItems, { icon: Shield, label: 'Admin', path: '/admin' }]
+    : navItems;
 
   return (
     <>
@@ -27,7 +31,7 @@ export function Navigation() {
         )}
       >
         <div className="max-w-md mx-auto h-full flex items-center justify-between pb-[env(safe-area-inset-bottom,0px)]">
-          {navItems.map((item) => (
+          {displayedNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -72,7 +76,7 @@ export function Navigation() {
             />
           </div>
           <p className="text-xs text-slate-500 uppercase tracking-[0.2em] font-sans font-black ml-4 mb-4">Main Navigation</p>
-          {navItems.map((item) => (
+          {displayedNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -100,7 +104,7 @@ export function Navigation() {
             trigger={
               <button className="w-full bg-white/60 hover:bg-white p-3 rounded-2xl border border-slate-200/50 backdrop-blur-sm transition-all flex items-center gap-3 text-left group shadow-sm hover:shadow-md">
                 <div className="size-10 rounded-xl overflow-hidden border border-slate-200 shrink-0 relative group-hover:border-sapphire-blue transition-colors">
-                  <img src={user.avatar} alt={user.name} className="size-full object-cover" />
+                  <img src={user.avatar_url || user.avatar || '/api/placeholder/40/40'} alt={user.name} className="size-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-primary-navy truncate group-hover:text-sapphire-blue transition-colors">{user.name}</p>

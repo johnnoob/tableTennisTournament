@@ -10,7 +10,7 @@ sys.path.insert(0, _dir)
 
 from sqlmodel import Session, SQLModel
 from database import engine, create_db_and_tables
-from models import User, Season, SeasonRecord, PlayerStatHistory, Match, MatchParticipation, Notification
+from models import User, Season, SeasonRecord, PlayerStatHistory, Match, MatchParticipation, Notification, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
 from services.elo_engine import calculate_elo_delta
 
 random.seed(42)  # 固定隨機種子，確保每次執行結果一致
@@ -107,7 +107,37 @@ def seed_data():
         print("🌱 開始種植完整假資料...\n")
 
         # ==========================================
-        # 1. 建立賽季
+        # 1. System Configs, Announcements, Tournaments
+        # ==========================================
+        print("🔧 設定系統參數與公告...")
+        sys_pause = SystemConfig(key="season_paused", value="false", description="是否暫停積分賽")
+        sys_interval = SystemConfig(key="season_interval_months", value="3", description="積分賽自動生成的間隔月份(1-12)")
+        sys_start = SystemConfig(key="season_start_date", value="2026-01-01T00:00:00", description="首個賽季的基準起始時間")
+        session.add_all([sys_pause, sys_interval, sys_start])
+
+        ann1 = Announcement(
+            title="S4 企業盃桌球賽報名開跑！",
+            content="今年的桌球賽即將開打，各單位好手千萬別錯過！",
+            link_text="前往報名",
+            link_url="https://challonge.com/xxxyyy",
+            is_active=True
+        )
+        ann2 = Announcement(
+            title="系統升級預告",
+            content="為了更好的體驗，我們即將上線「名人堂」與「獨立錦標賽」功能，敬請期待！",
+        )
+        session.add_all([ann1, ann2])
+
+        tourn = TournamentEvent(
+            title="2026 秋季跨部門友誼賽",
+            image_url="https://images.unsplash.com/photo-1511067007398-7e4b90cfa4bc?w=800&q=80",
+            status="upcoming",
+            rules="https://challonge.com/friendship2026"
+        )
+        session.add(tourn)
+
+        # ==========================================
+        # 1.5 建立賽季
         # ==========================================
         season = Season(
             id="2026-S1",
@@ -117,6 +147,12 @@ def seed_data():
         )
         session.add(season)
         print("✅ 賽季建立完成: 2026 春季例行賽")
+
+        prize1 = SeasonPrize(season_id=season.id, rank=1, item_name="BTY-Viscaria (限量版)", quantity=1)
+        prize2 = SeasonPrize(season_id=season.id, rank=2, item_name="Nittaku 3星比賽球 (整盒)", quantity=1)
+        prize3 = SeasonPrize(season_id=season.id, rank=3, item_name="高級運動毛巾", quantity=2)
+        session.add_all([prize1, prize2, prize3])
+
 
         # ==========================================
         # 2. 建立所有球員

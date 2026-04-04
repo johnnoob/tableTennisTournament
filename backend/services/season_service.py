@@ -1,12 +1,27 @@
 from sqlmodel import Session, select
-from datetime import datetime
-from models import Season
+from datetime import datetime, timedelta
+from models import Season, SystemConfig
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
+def get_config_value(session: Session, key: str, default: str) -> str:
+    config = session.get(SystemConfig, key)
+    return config.value if config else default
+
+def is_season_paused(session: Session) -> bool:
+    val = get_config_value(session, "season_paused", "false")
+    return val.lower() == "true"
 
 def get_current_season(session: Session) -> Season | None:
     """
-    取得目前的正式賽季。
+    取得目前的正式賽季。如果系統設定為暫停，則不回傳任何賽季(阻斷報分)。
     """
-    now = datetime.utcnow()
+    if is_season_paused(session):
+        return None
+
+    now = datetime.now()
     
     # 1. 巡視並結算過期賽季
     expired_seasons = session.exec(
@@ -37,43 +52,54 @@ def get_current_season(session: Session) -> Season | None:
     return None
 
 
-def get_quarter_id(date_obj: datetime) -> str:
-    """計算給定時間對應的季度 ID，回傳例如: 2026-Q2"""
-    year = date_obj.year
-    quarter = (date_obj.month - 1) // 3 + 1
-    return f"{year}-Q{quarter}"
+def get_dynamic_season_meta(session: Session, now: datetime):
+    """
+    依據 SystemConfig 計算目前的賽季 ID 與時間區間。
+    支持 天(days), 時(hours), 分(minutes) 的組合間隔。
+    """
+    # 1. 讀取基準點與間隔
+    start_date_str = get_config_value(session, "season_start_date", "2026-01-01T00:00:00")
+    base_start = datetime.fromisoformat(start_date_str)
 
-def get_quarter_start_date(date_obj: datetime) -> datetime:
-    """計算給定時間該季度的開始日期"""
-    year = date_obj.year
-    quarter = (date_obj.month - 1) // 3 + 1
-    start_month = 3 * quarter - 2
-    return datetime(year, start_month, 1)
+    # 2. 讀取顆粒度更高的間隔設定
+    i_days = int(get_config_value(session, "season_interval_days", "90"))
+    i_hours = int(get_config_value(session, "season_interval_hours", "0"))
+    i_mins = int(get_config_value(session, "season_interval_minutes", "0"))
+    
+    # 總秒數作為計算基準
+    interval_seconds = (i_days * 86400) + (i_hours * 3600) + (i_mins * 60)
 
-import os
+    if interval_seconds <= 0:
+        interval_seconds = 3600 * 24 * 90 # 預案：防止除以 0，預設 90 天
+        
+    # 3. 計算目前的「桶 (Bucket)」索引
+    total_elapsed_seconds = (now - base_start).total_seconds()
+    
+    if total_elapsed_seconds < 0:
+        # 如果現在時間早於起始基準，則使用基準點作為第一個桶
+        bucket_index = 0
+    else:
+        bucket_index = int(total_elapsed_seconds // interval_seconds)
+    
+    # 4. 生成賽季元數據
+    # 使用 S{index} 作為 ID 避免時間格式的侷限
+    current_id = f"S{bucket_index}"
+    name = f"正式賽季 #{bucket_index + 1}"
+    
+    calc_start_date = base_start + timedelta(seconds=bucket_index * interval_seconds)
+    calc_end_date = calc_start_date + timedelta(seconds=interval_seconds)
+    
+    return current_id, name, calc_start_date, calc_end_date
 
 def ensure_current_quarter_season(session: Session) -> Season:
     """
-    確保目前季度的賽季存在。如果不存在，則建立它並作為目前的賽季。
-    無論是重啟自動預檢，還是定期排程，都呼叫這支 API 確保賽季健康。
+    確保目前的賽季存在。
     """
-    now = datetime.utcnow()
-    test_mode = os.getenv("TEST_MODE_SCHEDULER", "false").lower() == "true"
+    now = datetime.now()
+    current_id, name, start_date, end_date = get_dynamic_season_meta(session, now)
     
-    if test_mode:
-        current_q_id = f"TEST-{now.strftime('%H%M')}"
-        name = f"測試賽季 {now.strftime('%H:%M')}"
-        start_date = now
-    else:
-        current_q_id = get_quarter_id(now)
-        year = now.year
-        quarter = (now.month - 1) // 3 + 1
-        name = f"{year} 積分賽 Q{quarter}"
-        start_date = get_quarter_start_date(now)
-    
-    existing_season = session.get(Season, current_q_id)
+    existing_season = session.get(Season, current_id)
     if existing_season:
-        # 如果對應季度的賽季已經存在但不處於 active，可以視需求把它變回去
         if existing_season.status != "active":
             existing_season.status = "active"
             session.add(existing_season)
@@ -82,21 +108,23 @@ def ensure_current_quarter_season(session: Session) -> Season:
         return existing_season
         
     # 關閉所有現存的活躍賽季
-    expired_seasons = session.exec(
+    active_seasons = session.exec(
         select(Season).where(Season.status == "active")
     ).all()
-    for old_season in expired_seasons:
+    for old_season in active_seasons:
         old_season.status = "completed"
-        if not old_season.end_date:
+        # 確保過期賽季有 end_date
+        if not old_season.end_date or old_season.end_date > now:
              old_season.end_date = now
         session.add(old_season)
         
-    # 生產這(分/季)的新賽季
+    # 產生新賽季
     new_season = Season(
-        id=current_q_id,
+        id=current_id,
         name=name,
         status="active",
-        start_date=start_date
+        start_date=start_date,
+        end_date=end_date
     )
     session.add(new_season)
     session.commit()
@@ -105,12 +133,14 @@ def ensure_current_quarter_season(session: Session) -> Season:
 
 def auto_generate_quarterly_season(session_factory):
     """
-    由 APScheduler 從背景呼叫的方法，無法直接注入 Depends，因此接受一個 generator。
+    排程器呼叫入口，若系統暫停則不動作。
     """
-    # 建立獨立的 Session
     generator = session_factory()
     session = next(generator)
     try:
+        # 如果管理員設定暫停，則不自動產生新賽季
+        if is_season_paused(session):
+            return
         ensure_current_quarter_season(session)
     finally:
         session.close()

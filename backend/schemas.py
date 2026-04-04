@@ -28,3 +28,31 @@ class SeasonCreate(BaseModel):
     name: str 
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+
+class ConfigUpdate(BaseModel):
+    value: str
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    content: str
+    link_url: Optional[str] = None
+    link_text: Optional[str] = None
+    is_active: bool = True
+
+class SeasonPrizeCreate(BaseModel):
+    season_id: str
+    rank: int
+    item_name: str
+    quantity: int = 1
+    image_url: Optional[str] = None
+
+class TournamentEventCreate(BaseModel):
+    title: str
+    image_url: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    rules: Optional[str] = None
+    status: str = "upcoming"
+
+class ParticipantAdd(BaseModel):
+    user_id: UUID
