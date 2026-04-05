@@ -35,15 +35,32 @@ class ConfigUpdate(BaseModel):
 class AnnouncementCreate(BaseModel):
     title: str
     content: str
+    type: str = "system" # club, system, tournament
     link_url: Optional[str] = None
     link_text: Optional[str] = None
     is_active: bool = True
 
+class AnnouncementUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    type: Optional[str] = None
+    link_url: Optional[str] = None
+    link_text: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class SeasonPrizeCreate(BaseModel):
     season_id: str
     rank: int
+    label: Optional[str] = None
     item_name: str
     quantity: int = 1
+    image_url: Optional[str] = None
+
+class SeasonPrizeUpdate(BaseModel):
+    rank: Optional[int] = None
+    label: Optional[str] = None
+    item_name: Optional[str] = None
+    quantity: Optional[int] = None
     image_url: Optional[str] = None
 
 class TournamentEventCreate(BaseModel):

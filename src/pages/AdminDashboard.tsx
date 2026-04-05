@@ -10,6 +10,7 @@ import {
   Plus, 
   Trash2, 
   Save, 
+  Edit,
   Calendar, 
   ExternalLink,
   ChevronRight,
@@ -23,6 +24,26 @@ import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize, AdminPar
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { useMediaQuery } from '@/hooks/use-media-query';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 
 const tabs = [
   { id: 'general', label: '系統設定', icon: Settings },
@@ -77,7 +98,7 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto pb-32 lg:pb-10">
+    <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-12 bg-white relative">
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-6">
@@ -199,9 +220,9 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                 adminApi.updateConfig('season_start_date', `${localStartDate}T00:00:00`),
             ]);
             onUpdate();
-            alert("系統設定已更新！");
-        } catch (err) {
-            alert("更新失敗");
+            toast.success("系統設定已更新！");
+        } catch (err: any) {
+            toast.error("更新失敗", { description: err.message || "請檢查網路連線" });
         } finally {
             setSaving(false);
         }
@@ -325,16 +346,43 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
 
 function AnnouncementManager({ announcements, onUpdate }: { announcements: Announcement[], onUpdate: () => void }) {
     const [isAdding, setIsAdding] = useState(false);
-    const [formData, setFormData] = useState({ title: '', content: '', link_text: '', link_url: '' });
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [formData, setFormData] = useState({ 
+        title: '', 
+        content: '', 
+        link_text: '', 
+        link_url: '',
+        type: 'system' as 'club' | 'system' | 'tournament',
+        is_active: true
+    });
 
-    const handleCreate = async () => {
-        if (!formData.title || !formData.content) return;
+    const handleCreate = async (data: any) => {
         try {
-            await adminApi.createAnnouncement(formData);
-            setFormData({ title: '', content: '', link_text: '', link_url: '' });
+            if (editingId) {
+                await adminApi.updateAnnouncement(editingId, data);
+            } else {
+                await adminApi.createAnnouncement(data);
+            }
             setIsAdding(false);
+            setEditingId(null);
             onUpdate();
-        } catch (err) { alert("發布失敗"); }
+            toast.success(editingId ? "公告已更新" : "公告發布成功");
+        } catch (err: any) { 
+            toast.error(editingId ? "更新失敗" : "發布失敗", { description: err.message });
+        }
+    };
+
+    const handleEdit = (ann: Announcement) => {
+        setEditingId(ann.id);
+        setFormData({
+            title: ann.title,
+            content: ann.content,
+            link_text: ann.link_text || '',
+            link_url: ann.link_url || '',
+            type: ann.type,
+            is_active: ann.is_active
+        });
+        setIsAdding(true);
     };
 
     const handleDelete = async (id: string) => {
@@ -342,145 +390,298 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
         try {
             await adminApi.deleteAnnouncement(id);
             onUpdate();
-        } catch (err) { alert("刪除失敗"); }
+            toast.success("公告已刪除");
+        } catch (err: any) { 
+            toast.error("刪除失敗", { description: err.message });
+        }
+    };
+
+    const getTypeBadge = (type: string) => {
+        switch(type) {
+            case 'tournament': return { label: '賽事公告', bg: 'bg-amber-100', text: 'text-amber-600' };
+            case 'club': return { label: '社團公告', bg: 'bg-emerald-100', text: 'text-emerald-600' };
+            default: return { label: '系統公告', bg: 'bg-indigo-100', text: 'text-indigo-600' };
+        }
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* List */}
-            <div className="lg:col-span-2 space-y-4">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-primary-navy">所有公告</h3>
-                    <Button 
-                        onClick={() => setIsAdding(!isAdding)}
-                        variant="outline" 
-                        className="rounded-xl border-slate-200 hover:bg-slate-50 font-bold"
-                    >
-                        {isAdding ? '取消' : <><Plus size={18} className="mr-2" /> 新增公告</>}
-                    </Button>
+        <div className="space-y-8">
+            {/* Header / New Button */}
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <h3 className="text-2xl font-black text-primary-navy">公告管理</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">系統、社團與賽事即時資訊發布</p>
                 </div>
+                <Button 
+                    onClick={() => {
+                        setEditingId(null);
+                        setFormData({ title: '', content: '', link_text: '', link_url: '', type: 'system', is_active: true });
+                        setIsAdding(true);
+                    }}
+                    className="h-12 px-6 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white transition-all shadow-lg shadow-sapphire-blue/20 flex items-center gap-2 font-black uppercase tracking-widest"
+                >
+                    <Plus size={18} /> 新增公告
+                </Button>
+            </div>
 
-                {announcements.map(ann => (
-                    <Card key={ann.id} className="p-6 border-none shadow-md hover:shadow-lg transition-shadow bg-white rounded-2xl group flex items-start justify-between gap-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                                <h4 className="font-bold text-lg text-primary-navy">{ann.title}</h4>
-                                {!ann.is_active && <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-black uppercase rounded">已下架</span>}
-                            </div>
-                            <p className="text-sm text-slate-500 leading-relaxed">{ann.content}</p>
-                            {ann.link_url && (
-                                <div className="flex items-center gap-2 text-xs font-bold text-sapphire-blue pt-2">
-                                    <ExternalLink size={14} />
-                                    {ann.link_text || '連結'} : {ann.link_url}
+            {/* List */}
+            <div className="space-y-4">
+
+                {announcements.map(ann => {
+                    const badge = getTypeBadge(ann.type || 'system');
+                    return (
+                        <Card key={ann.id} className="p-4 md:p-6 border-none shadow-md hover:shadow-lg transition-shadow bg-white rounded-2xl group flex flex-col gap-4">
+                            <div className="space-y-1 w-full">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <h4 className="font-bold text-base md:text-lg text-primary-navy truncate">{ann.title}</h4>
+                                    <span className={cn(
+                                        "px-2 py-0.5 text-[9px] md:text-[10px] font-black uppercase rounded",
+                                        badge.bg, badge.text
+                                    )}>
+                                        {badge.label}
+                                    </span>
+                                    {!ann.is_active && <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[9px] md:text-[10px] font-black uppercase rounded">已下架</span>}
                                 </div>
-                            )}
-                        </div>
-                        <button 
-                            onClick={() => handleDelete(ann.id)}
-                            className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                        >
-                            <Trash2 size={20} />
-                        </button>
-                    </Card>
-                ))}
+                                <p className="text-xs md:text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">{ann.content}</p>
+                                {ann.link_url && (
+                                    <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-sapphire-blue pt-1">
+                                        <ExternalLink size={12} />
+                                        {ann.link_text || '連結'} : <span className="opacity-60 truncate">{ann.link_url}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50 transition-all">
+                                <button 
+                                    onClick={() => handleEdit(ann)}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 rounded-lg transition-all"
+                                >
+                                    <Edit size={14} />
+                                    <span>編輯</span>
+                                </button>
+                                <button 
+                                    onClick={() => handleDelete(ann.id)}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
+                                >
+                                    <Trash2 size={14} />
+                                    <span>刪除</span>
+                                </button>
+                            </div>
+                        </Card>
+                    );
+                })}
 
                 {announcements.length === 0 && (
-                    <div className="py-20 text-center text-slate-400">
+                    <div className="py-20 text-center text-slate-400 bg-slate-50/50 rounded-4xl border border-dashed border-slate-200">
                         目前沒有任何公開公告
                     </div>
                 )}
             </div>
 
-            {/* Form Side */}
-            <div>
-                {isAdding && (
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                        <Card className="p-8 border-none shadow-2xl bg-white rounded-[2rem] sticky top-8">
-                            <h3 className="text-xl font-black text-primary-navy mb-8">發布新公告</h3>
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">標題</label>
-                                    <input 
-                                        placeholder="請輸入標題"
-                                        value={formData.title}
-                                        onChange={e => setFormData({...formData, title: e.target.value})}
-                                        className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">內文詳情</label>
-                                    <textarea 
-                                        placeholder="公告內容..."
-                                        rows={4}
-                                        value={formData.content}
-                                        onChange={e => setFormData({...formData, content: e.target.value})}
-                                        className="w-full px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm resize-none"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">按鈕文字</label>
-                                        <input 
-                                            placeholder="例：前往報名"
-                                            value={formData.link_text}
-                                            onChange={e => setFormData({...formData, link_text: e.target.value})}
-                                            className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">連結 URL</label>
-                                        <input 
-                                            placeholder="https://..."
-                                            value={formData.link_url}
-                                            onChange={e => setFormData({...formData, link_url: e.target.value})}
-                                            className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
-                                        />
-                                    </div>
-                                </div>
-                                <Button 
-                                    onClick={handleCreate}
-                                    className="w-full h-14 bg-sapphire-blue hover:bg-primary-navy text-white rounded-2xl border-none font-black uppercase tracking-widest mt-4 transition-all shadow-lg shadow-sapphire-blue/20"
+            {/* Modal / Drawer Section */}
+            <ResponsiveAnnouncementModal 
+                isOpen={isAdding}
+                onClose={() => setIsAdding(false)}
+                title={editingId ? '編輯公告' : '發布新公告'}
+                data={formData}
+                onSave={handleCreate}
+                getTypeBadge={getTypeBadge}
+            />
+        </div>
+    );
+}
+
+// ==========================================
+// Specialized UI for Form/Modal
+// ==========================================
+
+function AnnouncementFormContent({ data, onChange, getTypeBadge }: any) {
+    return (
+        <div className="p-1 space-y-6">
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">公告類型</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {(['system', 'club', 'tournament'] as const).map(t => {
+                            const badge = getTypeBadge(t);
+                            const isSelected = data.type === t;
+                            return (
+                                <button
+                                    key={t}
+                                    onClick={() => onChange({...data, type: t})}
+                                    className={cn(
+                                        "px-2 py-3 rounded-xl border-2 transition-all text-[11px] font-bold flex items-center justify-center",
+                                        isSelected 
+                                            ? cn(badge.bg, "border-current shadow-sm", badge.text) 
+                                            : "bg-white border-slate-100 text-slate-300 hover:bg-slate-50"
+                                    )}
                                 >
-                                    立即發布
-                                </Button>
-                            </div>
-                        </Card>
-                    </motion.div>
-                )}
+                                    {badge.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">標題</label>
+                    <input 
+                        placeholder="請輸入標題"
+                        value={data.title}
+                        onChange={e => onChange({...data, title: e.target.value})}
+                        className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">內文詳情</label>
+                    <textarea 
+                        placeholder="公告內容..."
+                        rows={4}
+                        value={data.content}
+                        onChange={e => onChange({...data, content: e.target.value})}
+                        className="w-full px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm resize-none"
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">按鈕文字</label>
+                        <input 
+                            placeholder="例：前往報名"
+                            value={data.link_text}
+                            onChange={e => onChange({...data, link_text: e.target.value})}
+                            className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">連結 URL</label>
+                        <input 
+                            placeholder="https://..."
+                            value={data.link_url}
+                            onChange={e => onChange({...data, link_url: e.target.value})}
+                            className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
+                        />
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
+                    <input 
+                        type="checkbox" 
+                        id="is_active" 
+                        checked={data.is_active}
+                        onChange={e => onChange({...data, is_active: e.target.checked})}
+                        className="size-5 rounded border-slate-300 text-sapphire-blue focus:ring-sapphire-blue"
+                    />
+                    <label htmlFor="is_active" className="text-xs font-bold text-slate-600">上架狀態 (開啟則對外顯示)</label>
+                </div>
             </div>
         </div>
     );
 }
 
-function PrizeManager({ seasons }: { seasons: any[], onUpdate: () => void }) {
+function ResponsiveAnnouncementModal({ isOpen, onClose, title, data, onSave, getTypeBadge }: any) {
+    const isDesktop = useMediaQuery("(min-width: 1024px)");
+    const [localData, setLocalData] = useState(data);
+
+    useEffect(() => {
+        setLocalData(data);
+    }, [data, isOpen]);
+
+    if (isDesktop) {
+        return (
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{title}</DialogTitle>
+                        <DialogDescription>發布新的公告資訊到對戰主卡片中</DialogDescription>
+                    </DialogHeader>
+                    <AnnouncementFormContent 
+                        data={localData} 
+                        onChange={setLocalData} 
+                        getTypeBadge={getTypeBadge}
+                    />
+                    <DialogFooter>
+                        <Button 
+                            onClick={() => onSave(localData)}
+                            className="w-full h-14 bg-sapphire-blue hover:bg-primary-navy text-white rounded-2xl border-none font-black uppercase tracking-widest shadow-lg"
+                        >
+                            確定儲存
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent>
+                 <DrawerHeader className="text-left border-b border-slate-50">
+                    <DrawerTitle className="text-xl font-black text-primary-navy tracking-tight">{title}</DrawerTitle>
+                    <DrawerDescription>填寫公告詳情後點擊發布</DrawerDescription>
+                </DrawerHeader>
+                <div className="px-6 py-4 pb-12 overflow-y-auto max-h-[70vh]">
+                    <AnnouncementFormContent 
+                        data={localData} 
+                        onChange={setLocalData} 
+                        getTypeBadge={getTypeBadge}
+                    />
+                    <DrawerFooter className="px-0 pt-6">
+                        <Button 
+                            onClick={() => onSave(localData)}
+                            className="w-full h-14 bg-sapphire-blue hover:bg-primary-navy text-white rounded-2xl border-none font-black uppercase tracking-widest shadow-md"
+                        >
+                            確認發布
+                        </Button>
+                    </DrawerFooter>
+                </div>
+            </DrawerContent>
+        </Drawer>
+    );
+}
+
+function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => void }) {
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]?.id || '');
     const [prizes, setPrizes] = useState<SeasonPrize[]>([]);
+    const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
 
     useEffect(() => {
         if (selectedSeason) fetchPrizes();
+        setExtraPrizes([]);
     }, [selectedSeason]);
 
     const fetchPrizes = async () => {
         try {
             const data = await adminApi.getSeasonPrizes(selectedSeason);
             setPrizes(data);
-        } catch (err) {
-            console.error(err);
+        } catch (err) { console.error(err); }
+    };
+
+    const handleSavePrize = async (p: Partial<SeasonPrize>) => {
+        try {
+            if (p.id) {
+                await adminApi.updateSeasonPrize(p.id, p);
+            } else {
+                await adminApi.saveSeasonPrize({ ...p, season_id: selectedSeason });
+            }
+            fetchPrizes();
+            setExtraPrizes(prev => prev.filter(ep => ep !== p));
+            toast.success("獎項已更新");
+            onUpdate();
+        } catch (err: any) { 
+            toast.error("儲存失敗", { description: err.message });
         }
     };
 
-    const handleSavePrize = async (rank: number, name: string, qty: number, url: string) => {
+    const handleDeletePrize = async (id?: string) => {
+        if (!id) return;
+        if (!confirm("確定要刪除這個獎項嗎？")) return;
         try {
-            await adminApi.saveSeasonPrize({
-                season_id: selectedSeason,
-                rank,
-                item_name: name,
-                quantity: qty,
-                image_url: url
-            });
+            await adminApi.deleteSeasonPrize(id);
             fetchPrizes();
-            alert("獎項已更新");
-        } catch (err) { alert("儲存失敗"); }
+            onUpdate();
+            toast.success("獎項已刪除");
+        } catch (err: any) { 
+            toast.error("刪除失敗", { description: err.message });
+        }
     };
 
     return (
@@ -488,59 +689,140 @@ function PrizeManager({ seasons }: { seasons: any[], onUpdate: () => void }) {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h3 className="text-xl font-black text-primary-navy">賽季獎勵設置</h3>
-                    <p className="text-sm text-slate-400 mt-1">選定具體賽季並設置前三名的專屬獎勵</p>
+                    <p className="text-sm text-slate-400 mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
-                <select 
-                    value={selectedSeason}
-                    onChange={e => setSelectedSeason(e.target.value)}
-                    className="h-12 px-6 rounded-xl bg-white border border-slate-200 shadow-sm font-bold min-w-[200px] outline-none focus:ring-2 focus:ring-sapphire-blue transition-all"
-                >
-                    {seasons.map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
-                </select>
+                <div className="flex items-center gap-4">
+                    <select 
+                        value={selectedSeason}
+                        onChange={e => setSelectedSeason(e.target.value)}
+                        className="h-12 px-6 rounded-xl bg-white border border-slate-200 shadow-sm font-bold min-w-[200px] outline-none focus:ring-2 focus:ring-sapphire-blue transition-all"
+                    >
+                        {seasons.map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
+                    </select>
+                    <Button 
+                        onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}
+                        className="h-12 px-6 bg-sapphire-blue hover:bg-primary-navy text-white rounded-xl border-none shadow-md"
+                    >
+                        <Plus size={18} className="mr-2" /> 新增特殊獎項
+                    </Button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Standard Ranks 1, 2, 3 */}
                 {[1, 2, 3].map(rank => {
+                    // 優先找到該名次的獎項，不論有無標籤
                     const prize = prizes.find(p => p.rank === rank);
                     return (
                         <PrizeFormCard 
-                            key={rank} 
+                            key={`rank-${rank}`} 
                             rank={rank} 
                             prize={prize} 
-                            onSave={(name, qty, url) => handleSavePrize(rank, name, qty, url)} 
+                            onSave={handleSavePrize}
+                            onDelete={handleDeletePrize}
                         />
                     );
                 })}
+
+                {/* Existing Extra / Labelled Prizes (排除已經在 1, 2, 3 顯示的) */}
+                {prizes.filter(p => p.rank <= 0 || p.rank > 3).map(prize => (
+                    <PrizeFormCard 
+                        key={prize.id} 
+                        prize={prize} 
+                        onSave={handleSavePrize}
+                        onDelete={handleDeletePrize}
+                    />
+                ))}
+
+                {/* Temporary New Extra Prizes */}
+                {extraPrizes.map((p, idx) => (
+                    <PrizeFormCard 
+                        key={`extra-${idx}`}
+                        prize={p as SeasonPrize}
+                        isNew
+                        onSave={handleSavePrize}
+                        onDelete={() => setExtraPrizes(extraPrizes.filter((_, i) => i !== idx))}
+                    />
+                ))}
             </div>
         </div>
     );
 }
 
-function PrizeFormCard({ rank, prize, onSave }: { rank: number, prize?: SeasonPrize, onSave: (n: string, q: number, u: string) => void }) {
+function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: { 
+    rank?: number, 
+    prize?: SeasonPrize, 
+    onSave: (p: Partial<SeasonPrize>) => void, 
+    onDelete: (id?: string) => void,
+    isNew?: boolean
+}) {
     const [name, setName] = useState(prize?.item_name || '');
     const [qty, setQty] = useState(prize?.quantity || 1);
     const [url, setUrl] = useState(prize?.image_url || '');
+    const [rank, setRank] = useState(prize?.rank ?? initialRank ?? 0);
+    const [label, setLabel] = useState(prize?.label || '');
 
     useEffect(() => {
         setName(prize?.item_name || '');
         setQty(prize?.quantity || 1);
         setUrl(prize?.image_url || '');
-    }, [prize]);
+        setRank(prize?.rank ?? initialRank ?? 0);
+        setLabel(prize?.label || '');
+    }, [prize, initialRank]);
+
+    const isStandard = rank >= 1 && rank <= 3;
+    const defaultLabel = rank === 1 ? '冠軍' : rank === 2 ? '亞軍' : rank === 3 ? '季軍' : '';
+    const displayLabel = label || defaultLabel;
 
     return (
-        <Card className="p-8 border-none shadow-xl bg-white rounded-[2rem] space-y-6">
+        <Card className={cn(
+            "p-8 border-none shadow-xl bg-white rounded-[2rem] space-y-6 relative group",
+            isNew && "ring-2 ring-sapphire-blue ring-offset-4"
+        )}>
+            {prize?.id && (
+                <button 
+                    onClick={() => onDelete(prize.id)}
+                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Trash2 size={18} />
+                </button>
+            )}
+
             <div className="flex items-center justify-between">
                 <div className={cn(
                     "size-12 rounded-2xl flex items-center justify-center font-black text-xl",
-                    rank === 1 ? "bg-olympic-gold/20 text-olympic-gold" : 
-                    rank === 2 ? "bg-slate-200 text-slate-500" : "bg-orange-100 text-orange-600"
+                    isStandard && !label ? (
+                        rank === 1 ? "bg-olympic-gold/20 text-olympic-gold" : 
+                        rank === 2 ? "bg-slate-200 text-slate-500" : "bg-orange-100 text-orange-600"
+                    ) : "bg-sapphire-blue/10 text-sapphire-blue"
                 )}>
-                    {rank}
+                    {rank || '★'}
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 underline decoration-slate-200 underline-offset-4">Rank {rank} Prize</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 underline decoration-slate-200 underline-offset-4">
+                    {displayLabel || `Rank ${rank} Prize`}
+                </p>
             </div>
 
             <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">名次 (Rank)</label>
+                        <input 
+                            type="number"
+                            value={rank} onChange={e => setRank(parseInt(e.target.value) || 0)}
+                            className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">標籤 (Label)</label>
+                        <input 
+                            placeholder={defaultLabel || "例：MVP"}
+                            value={label} onChange={e => setLabel(e.target.value)}
+                            className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
+                        />
+                    </div>
+                </div>
+
                 <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">物品名稱</label>
                     <input 
@@ -548,27 +830,36 @@ function PrizeFormCard({ rank, prize, onSave }: { rank: number, prize?: SeasonPr
                         className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
                     />
                 </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">數量</label>
-                    <input 
-                        type="number" value={qty} onChange={e => setQty(parseInt(e.target.value))}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">圖片網址</label>
-                    <input 
-                        value={url} onChange={e => setUrl(e.target.value)}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-xs"
-                    />
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">數量</label>
+                        <input 
+                            type="number" value={qty} onChange={e => setQty(parseInt(e.target.value) || 0)}
+                            className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
+                        />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">圖片網址</label>
+                        <input 
+                            value={url} onChange={e => setUrl(e.target.value)}
+                            className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-xs"
+                        />
+                    </div>
                 </div>
             </div>
 
             <Button 
-                onClick={() => onSave(name, qty, url)}
-                className="w-full h-12 bg-primary-navy hover:bg-slate-800 text-white rounded-xl border-none transition-all"
+                onClick={() => onSave({ 
+                    ...prize, 
+                    rank, 
+                    label: label || defaultLabel, 
+                    item_name: name, 
+                    quantity: qty, 
+                    image_url: url 
+                })}
+                className="w-full h-12 bg-primary-navy hover:bg-slate-800 text-white rounded-xl border-none transition-all font-bold"
             >
-                更新項目
+                {prize?.id ? '更新項目' : '建立獎項'}
             </Button>
         </Card>
     );

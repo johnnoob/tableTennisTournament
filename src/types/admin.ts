@@ -9,6 +9,7 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
+  type: 'club' | 'system' | 'tournament';
   link_url?: string;
   link_text?: string;
   is_active: boolean;
@@ -19,6 +20,7 @@ export interface SeasonPrize {
   id: string;
   season_id: string;
   rank: number;
+  label?: string;
   item_name: string;
   quantity: number;
   image_url?: string;

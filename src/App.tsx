@@ -13,6 +13,7 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
 
 import { useAuthStore } from '@/store/authStore';
+import { Toaster } from 'sonner';
 
 import { ReportScore } from '@/components/ReportScore';
 import { Button } from './components/ui/button';
@@ -65,6 +66,7 @@ function AppContent() {
       {/* Navigation Layer (Contains Fixed Mobile & Desktop Navs) */}
       <Navigation />
       <GlobalPlayerDrawer />
+      <Toaster richColors position="top-center" />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full min-w-0 lg:ml-72 xl:ml-80 transition-all duration-300">

@@ -6,7 +6,7 @@ from uuid import UUID
 from database import get_session
 from services.auth_jwt import get_current_user
 from models import User, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
-from schemas import ConfigUpdate, AnnouncementCreate, SeasonPrizeCreate, TournamentEventCreate, ParticipantAdd
+from schemas import ConfigUpdate, AnnouncementCreate, AnnouncementUpdate, SeasonPrizeUpdate, SeasonPrizeCreate, TournamentEventCreate, ParticipantAdd
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -59,6 +59,21 @@ def delete_announcement(id: UUID, session: Session = Depends(get_session)):
     session.commit()
     return {"message": "公告已刪除"}
 
+@router.put("/announcements/{id}", dependencies=[Depends(require_admin)])
+def update_announcement(id: UUID, ann_update: AnnouncementUpdate, session: Session = Depends(get_session)):
+    ann = session.get(Announcement, id)
+    if not ann:
+        raise HTTPException(status_code=404, detail="找不到公告")
+    
+    update_data = ann_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(ann, key, value)
+    
+    session.add(ann)
+    session.commit()
+    session.refresh(ann)
+    return ann
+
 # ================================
 # Season Prizes
 # ================================
@@ -69,23 +84,35 @@ def get_prizes(season_id: str, session: Session = Depends(get_session)):
 
 @router.post("/season-prizes", dependencies=[Depends(require_admin)])
 def create_prize(prize: SeasonPrizeCreate, session: Session = Depends(get_session)):
-    # 檢查是否已存在該名次的獎品
-    statement = select(SeasonPrize).where(SeasonPrize.season_id == prize.season_id, SeasonPrize.rank == prize.rank)
-    existing = session.exec(statement).first()
-    if existing:
-        existing.item_name = prize.item_name
-        existing.quantity = prize.quantity
-        existing.image_url = prize.image_url
-        session.add(existing)
-        session.commit()
-        session.refresh(existing)
-        return existing
-
     new_prize = SeasonPrize(**prize.model_dump())
     session.add(new_prize)
     session.commit()
     session.refresh(new_prize)
     return new_prize
+
+@router.put("/season-prizes/{id}", dependencies=[Depends(require_admin)])
+def update_prize(id: UUID, prize_update: SeasonPrizeUpdate, session: Session = Depends(get_session)):
+    prize = session.get(SeasonPrize, id)
+    if not prize:
+        raise HTTPException(status_code=404, detail="找不到獎項")
+    
+    update_data = prize_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(prize, key, value)
+    
+    session.add(prize)
+    session.commit()
+    session.refresh(prize)
+    return prize
+
+@router.delete("/season-prizes/{id}", dependencies=[Depends(require_admin)])
+def delete_prize(id: UUID, session: Session = Depends(get_session)):
+    prize = session.get(SeasonPrize, id)
+    if not prize:
+        raise HTTPException(status_code=404, detail="找不到獎項")
+    session.delete(prize)
+    session.commit()
+    return {"message": "獎項已刪除"}
 
 # ================================
 # Tournaments

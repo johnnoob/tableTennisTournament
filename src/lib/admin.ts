@@ -27,6 +27,8 @@ export const adminApi = {
   getAnnouncements: () => adminFetch("/announcements"),
   createAnnouncement: (data: any) => 
     adminFetch("/announcements", { method: "POST", body: JSON.stringify(data) }),
+  updateAnnouncement: (id: string, data: any) => 
+    adminFetch(`/announcements/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteAnnouncement: (id: string) => 
     adminFetch(`/announcements/${id}`, { method: "DELETE" }),
 
@@ -34,6 +36,10 @@ export const adminApi = {
   getSeasonPrizes: (seasonId: string) => adminFetch(`/season-prizes/${seasonId}`),
   saveSeasonPrize: (data: any) => 
     adminFetch("/season-prizes", { method: "POST", body: JSON.stringify(data) }),
+  updateSeasonPrize: (id: string, data: any) => 
+    adminFetch(`/season-prizes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteSeasonPrize: (id: string) => 
+    adminFetch(`/season-prizes/${id}`, { method: "DELETE" }),
 
   // Tournaments
   getTournaments: () => adminFetch("/tournaments"),

@@ -7,7 +7,7 @@ import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, History, ArrowRight, Zap, Megaphone } from 'lucide-react';
+import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, History, ArrowRight, Zap, Megaphone, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
@@ -18,6 +18,7 @@ interface AnnouncementProp {
   id: string;
   title: string;
   content: string;
+  type: 'system' | 'club' | 'tournament';
   link_text?: string;
   link_url?: string;
   created_at: string;
@@ -26,66 +27,164 @@ interface AnnouncementProp {
 function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
   
   const current = items[currentIndex];
 
   useEffect(() => {
     if (isPaused || items.length <= 1) return;
     const interval = setInterval(() => {
+      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 5000);
+    }, 6000); // 延長一點時間讓閱讀更輕鬆
     return () => clearInterval(interval);
   }, [isPaused, items.length]);
 
   if (!items || items.length === 0) return null;
 
-  const nextMsg = () => setCurrentIndex((prev) => (prev + 1) % items.length);
-  const prevMsg = () => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+  const getStyle = (type: string) => {
+    switch (type) {
+      case 'tournament':
+        return {
+          icon: Trophy,
+          bg: 'bg-amber-500',
+          badgeBg: 'bg-amber-500/20',
+          badgeText: 'text-amber-300',
+          label: '賽事公告'
+        };
+      case 'club':
+        return {
+          icon: Users,
+          bg: 'bg-emerald-500',
+          badgeBg: 'bg-emerald-500/20',
+          badgeText: 'text-emerald-300',
+          label: '社團公告'
+        };
+      default:
+        return {
+          icon: Megaphone,
+          bg: 'bg-sapphire-blue',
+          badgeBg: 'bg-sapphire-blue/20',
+          badgeText: 'text-blue-300',
+          label: '系統公告'
+        };
+    }
+  };
+
+  const style = getStyle(current.type || 'system');
+  const Icon = style.icon;
+
+  const nextMsg = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % items.length);
+  };
+  const prevMsg = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+  };
+
+  // 動畫變體 (Slide effect)
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 50 : -50,
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 50 : -50,
+      opacity: 0
+    })
+  };
 
   return (
     <section>
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="bg-primary-navy rounded-4xl p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group"
+        className="bg-primary-navy rounded-4xl p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl shadow-primary-navy/20 relative overflow-hidden group min-h-[160px]"
       >
+        {/* 背景裝飾圖標 */}
         <div className="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700 text-white">
-          <Trophy size={250} />
+          <Icon size={250} />
+        </div>
+
+        {/* 分頁指示器 (Modern Pill) */}
+        <div className="absolute top-4 right-4 z-20 px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center gap-2">
+            <span className="text-[10px] font-black tracking-widest text-white/40">
+                {(currentIndex + 1).toString().padStart(2, '0')}
+            </span>
+            <div className="w-4 h-[1px] bg-white/20" />
+            <span className="text-[10px] font-black tracking-widest text-white/80">
+                {items.length.toString().padStart(2, '0')}
+            </span>
         </div>
 
         <div className="flex items-start md:items-center gap-4 md:gap-6 relative z-10 flex-1 w-full">
-          <div className={cn(
-            "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg bg-sapphire-blue text-white shadow-sapphire-blue/20"
-          )}>
-            <Megaphone size={28} />
-          </div>
+          <AnimatePresence initial={false} custom={direction} mode="wait">
+            <motion.div 
+               key={current.id + '-icon'}
+               custom={direction}
+               variants={variants}
+               initial="enter"
+               animate="center"
+               exit="exit"
+               transition={{ duration: 0.4, ease: "easeOut" }}
+               className={cn(
+                "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white transition-colors duration-500",
+                style.bg,
+                style.bg === 'bg-sapphire-blue' ? 'shadow-sapphire-blue/20' : 
+                style.bg === 'bg-amber-500' ? 'shadow-amber-500/20' : 'shadow-emerald-500/20'
+              )}>
+              <Icon size={28} />
+            </motion.div>
+          </AnimatePresence>
 
           <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest bg-sapphire-blue/20 text-blue-300">
-                系統公告
-              </span>
-              <span className="flex items-center gap-1 text-blue-300/60 text-[11px] font-bold">
-                  <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
-              </span>
-            </div>
-            <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
-              {current.title}
-            </h3>
-            <p className="text-xs md:text-sm text-slate-300 font-medium line-clamp-1 md:line-clamp-2">
-              {current.content}
-            </p>
+            <AnimatePresence initial={false} custom={direction} mode="wait">
+              <motion.div
+                key={current.id}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="space-y-1.5"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={cn(
+                    "text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-widest transition-colors duration-500",
+                    style.badgeBg, style.badgeText
+                  )}>
+                    {style.label}
+                  </span>
+                  <span className="flex items-center gap-1 text-blue-300/40 text-[11px] font-bold">
+                      <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
+                  {current.title}
+                </h3>
+                <p className="text-xs md:text-sm text-slate-300 font-medium line-clamp-1 md:line-clamp-2">
+                  {current.content}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
         <div className="flex items-center justify-between w-full md:w-auto gap-4 relative z-10 shrink-0 border-t border-white/10 md:border-none pt-4 md:pt-0">
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="hidden md:flex items-center gap-1.5 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <button onClick={prevMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-md">
-                <ChevronLeft size={18} strokeWidth={3} />
+            {/* 手動控制按鈕 (Always visible but responsive styling) */}
+            <div className="flex items-center gap-1.5 mr-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+              <button onClick={prevMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-sm">
+                <ChevronLeft size={16} strokeWidth={3} />
               </button>
-              <button onClick={nextMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-md">
-                <ChevronRight size={18} strokeWidth={3} />
+              <button onClick={nextMsg} className="size-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 border border-white/5 shadow-lg backdrop-blur-sm">
+                <ChevronRight size={16} strokeWidth={3} />
               </button>
             </div>
             {current.link_url && (
