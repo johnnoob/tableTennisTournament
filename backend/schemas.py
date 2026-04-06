@@ -69,7 +69,7 @@ class TournamentEventCreate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     rules: Optional[str] = None
-    status: str = "upcoming"
+    status: str = "registering"
 
 class ParticipantAdd(BaseModel):
     user_id: UUID

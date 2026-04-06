@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, ArrowLeft, Crown, ExternalLink, Timer } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 export function SeasonDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState<any>(null);
   const [topPlayers, setTopPlayers] = useState<any[]>([]);
@@ -61,11 +62,11 @@ export function SeasonDetail() {
   const start = new Date(season.start_date);
   const end = new Date(season.end_date);
   const isCompleted = season.status === 'completed' || now > end;
-  
+
   const totalDuration = end.getTime() - start.getTime();
   const elapsed = now.getTime() - start.getTime();
   const progress = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
-  
+
   const diffTime = end.getTime() - now.getTime();
   const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -86,30 +87,30 @@ export function SeasonDetail() {
               {season.name}
             </h1>
             <p className="text-[10px] md:text-xs text-slate-400 font-sans font-black uppercase tracking-[0.3em] opacity-60">
-                {isCompleted ? "Completed League Season" : "Active League Season Detail"}
+              {isCompleted ? "Completed League Season" : "Active League Season Detail"}
             </p>
           </div>
         </div>
-        <Button 
-            variant="outline" 
-            onClick={() => navigate('/tournament')}
-            className="rounded-xl border-slate-100 text-slate-500 font-bold hover:bg-slate-50 w-fit"
+        <Button
+          variant="outline"
+          onClick={() => navigate('/tournament')}
+          className="rounded-xl border-slate-100 text-slate-500 font-bold hover:bg-slate-50 w-fit"
         >
-            <ArrowLeft size={16} className="mr-2" /> 返回賽事列表
+          <ArrowLeft size={16} className="mr-2" /> 返回賽事列表
         </Button>
       </motion.header>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 md:gap-16">
-        
+
         {/* Left Column: Progress & Prizes (8 cols) */}
         <div className="xl:col-span-8 space-y-12">
-          
+
           {/* Progress Card */}
           <motion.section variants={fadeInUp}>
             <Card className="no-line-card rounded-[2.5rem] bg-[#fbfcff] p-8 md:p-12 shadow-sm border border-slate-50 overflow-hidden relative group">
               <div className="absolute -top-10 -right-10 p-4 opacity-5 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-700">
-                 <Timer size={200} />
+                <Timer size={200} />
               </div>
               <div className="flex justify-between items-end mb-6 relative z-10">
                 <div>
@@ -119,19 +120,19 @@ export function SeasonDetail() {
                   </h3>
                 </div>
                 <div className="text-right">
-                   <span className={cn(
-                       "text-xs md:sm font-sans font-black px-4 py-2 rounded-xl block",
-                       isCompleted ? "bg-amber-100 text-amber-700" : "bg-sapphire-blue/5 text-sapphire-blue"
-                   )}>
-                     {isCompleted ? "🏆 賽季已結束" : `${Math.round(progress)}% 賽程進度`}
-                   </span>
+                  <span className={cn(
+                    "text-xs md:sm font-sans font-black px-4 py-2 rounded-xl block",
+                    isCompleted ? "bg-amber-100 text-amber-700" : "bg-sapphire-blue/5 text-sapphire-blue"
+                  )}>
+                    {isCompleted ? "🏆 賽季已結束" : `${Math.round(progress)}% 賽程進度`}
+                  </span>
                 </div>
               </div>
               <div className="relative z-10">
                 <Progress value={progress} className="h-4 bg-slate-100 rounded-full" />
                 <div className="flex justify-between mt-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <span>{start.toLocaleDateString()} Start</span>
-                    <span>{end.toLocaleDateString()} Deadline</span>
+                  <span>{start.toLocaleDateString()} Start</span>
+                  <span>{end.toLocaleDateString()} Deadline</span>
                 </div>
               </div>
             </Card>
@@ -140,7 +141,7 @@ export function SeasonDetail() {
           {/* Prizes Grid */}
           <section className="space-y-6">
             <motion.h2 variants={fadeInUp} className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Season Rewards</motion.h2>
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -151,31 +152,31 @@ export function SeasonDetail() {
                 return (
                   <motion.div key={rank} variants={itemVariants} className="relative mt-4 group">
                     <div className={cn(
-                        "absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border z-20 transform group-hover:scale-110 transition-transform",
-                        rank === 1 ? "text-olympic-gold border-amber-100" : rank === 2 ? "text-slate-400 border-slate-100" : "text-orange-600 border-orange-100"
+                      "absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border z-20 transform group-hover:scale-110 transition-transform",
+                      rank === 1 ? "text-olympic-gold border-amber-100" : rank === 2 ? "text-slate-400 border-slate-100" : "text-orange-600 border-orange-100"
                     )}>
                       {rank === 1 ? <Crown size={20} /> : rank}
                     </div>
-                    
+
                     <Card className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative p-0 h-full flex flex-col">
                       <div className="h-48 relative overflow-hidden bg-slate-50">
                         {prize?.image_url ? (
-                            <img src={prize.image_url} alt={prize.item_name} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
+                          <img src={prize.image_url} alt={prize.item_name} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
                         ) : (
-                            <div className="size-full flex items-center justify-center text-slate-200">
-                                <Trophy size={64} />
-                            </div>
+                          <div className="size-full flex items-center justify-center text-slate-200">
+                            <Trophy size={64} />
+                          </div>
                         )}
                       </div>
                       <div className="p-6 text-center flex-1">
                         <span className="text-xs uppercase font-sans font-black text-sapphire-blue tracking-tighter block mb-2">
-                            {rank === 1 ? "Champion" : rank === 2 ? "Runner-up" : "Third Place"}
+                          {rank === 1 ? "Champion" : rank === 2 ? "Runner-up" : "Third Place"}
                         </span>
                         <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">
-                            {prize?.item_name || "即將公布"}
+                          {prize?.item_name || "即將公布"}
                         </h4>
                         <p className="text-xs text-slate-500 font-sans">
-                            {prize?.quantity ? `數量: ${prize.quantity}` : "神秘驚喜獎項"}
+                          {prize?.quantity ? `數量: ${prize.quantity}` : "神秘驚喜獎項"}
                         </p>
                       </div>
                     </Card>
@@ -194,45 +195,64 @@ export function SeasonDetail() {
               <h2 className="text-xl text-primary-navy font-display font-black">Live Standings</h2>
               <Trophy size={20} className="text-primary-navy/20" />
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="space-y-4"
             >
               {topPlayers.map((player, idx) => (
-                <motion.div 
-                  key={player.player_id} 
+                <motion.div
+                  key={player.player_id}
                   variants={itemVariants}
-                  onClick={() => navigate(`/leaderboard?season_id=${id}&inspect=${player.player_id}`)}
+                  onClick={() => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('inspect', player.player_id);
+                    setSearchParams(newParams);
+                  }}
                   className="flex items-center gap-4 p-4 rounded-3xl bg-[#fbfcff] hover:bg-slate-50 transition-colors border border-slate-100 relative overflow-visible group mt-2 cursor-pointer"
                 >
                   <div className={cn(
                     "absolute -left-3 -top-3 size-10 md:size-12 rounded-2xl flex items-center justify-center font-display font-black text-xl shrink-0 transition-all shadow-md z-20 border-2 border-white",
                     idx === 0 ? "bg-olympic-gold text-white" : "bg-white text-primary-slate"
                   )}>
-                    {idx + 1}
+                    {player.rank}
                   </div>
-                  <div className="flex-1 pl-8">
-                     <h4 className="font-sans font-black text-primary-navy text-sm md:text-base">{player.player_name}</h4>
-                     <p className="text-xs uppercase font-sans font-bold text-slate-500 tracking-wider">
-                       {player.win_rate} Win Rate • {player.department}
-                     </p>
+                  <div className="flex-1 pl-8 flex items-center gap-4">
+                    {player.avatar_url ? (
+                      <img
+                        src={player.avatar_url}
+                        alt={player.player_name}
+                        className="size-10 md:size-12 rounded-full object-cover shadow-sm bg-slate-50 border border-slate-100 shrink-0"
+                      />
+                    ) : (
+                      <div className="size-10 md:size-12 rounded-full bg-gradient-to-br from-sapphire-blue/10 to-blue-500/10 flex items-center justify-center border border-sapphire-blue/20 shadow-inner shrink-0">
+                        <span className="text-sm md:text-base font-display font-black text-sapphire-blue">
+                          {player.player_name?.charAt(0) || '?'}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-sans font-black text-primary-navy text-sm md:text-base">{player.player_name}</h4>
+                      <p className="text-[10px] md:text-xs uppercase font-sans font-bold text-slate-500 tracking-wider mt-0.5">
+                        {player.win_rate} Win Rate • {player.department}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
-                     <span className="font-display font-black text-lg md:text-xl text-primary-navy">{Math.round(player.season_lp)}</span>
+                    <span className="font-display font-black text-lg md:text-xl text-primary-navy">{Math.round(player.season_lp)}</span>
                   </div>
                 </motion.div>
               ))}
 
               {topPlayers.length === 0 && (
-                  <div className="py-20 text-center text-slate-300 font-bold uppercase tracking-widest text-xs">
-                      目前尚無比賽數據
-                  </div>
+                <div className="py-20 text-center text-slate-300 font-bold uppercase tracking-widest text-xs">
+                  目前尚無比賽數據
+                </div>
               )}
 
-              <Button 
+              <Button
                 onClick={() => navigate(`/leaderboard?season_id=${id}`)}
                 className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-widest group shadow-xl shadow-primary-navy/20"
               >
@@ -258,18 +278,18 @@ function SeasonDetailSkeleton() {
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
         <div className="xl:col-span-8 space-y-12">
-            <Skeleton className="h-64 rounded-[2.5rem]" />
-            <div className="grid grid-cols-3 gap-6">
-                <Skeleton className="h-80 rounded-[2.5rem]" />
-                <Skeleton className="h-80 rounded-[2.5rem]" />
-                <Skeleton className="h-80 rounded-[2.5rem]" />
-            </div>
+          <Skeleton className="h-64 rounded-[2.5rem]" />
+          <div className="grid grid-cols-3 gap-6">
+            <Skeleton className="h-80 rounded-[2.5rem]" />
+            <Skeleton className="h-80 rounded-[2.5rem]" />
+            <Skeleton className="h-80 rounded-[2.5rem]" />
+          </div>
         </div>
         <div className="xl:col-span-4 space-y-6">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full rounded-3xl" />
-            <Skeleton className="h-20 w-full rounded-3xl" />
-            <Skeleton className="h-20 w-full rounded-3xl" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full rounded-3xl" />
+          <Skeleton className="h-20 w-full rounded-3xl" />
+          <Skeleton className="h-20 w-full rounded-3xl" />
         </div>
       </div>
     </div>

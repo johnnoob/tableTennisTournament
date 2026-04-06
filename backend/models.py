@@ -264,7 +264,7 @@ class TournamentEvent(SQLModel, table=True):
     start_date: Optional[datetime] = Field(default=None)
     end_date: Optional[datetime] = Field(default=None)
     rules: Optional[str] = Field(default=None, description="賽事規則描述 或 Challonge 連結")
-    status: str = Field(default="upcoming", description="upcoming, ongoing, completed")
+    status: str = Field(default="registering", description="registering, ongoing, completed")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # 參與者

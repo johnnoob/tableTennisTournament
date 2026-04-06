@@ -37,7 +37,13 @@ export function Leaderboard() {
       .then(res => res.json())
       .then(data => {
         setSeasons(data);
-        if (data.length > 0 && !selectedSeason) {
+        
+        // 🌟 優先讀取網址中的 season_id
+        const urlSeasonId = searchParams.get('season_id');
+        
+        if (urlSeasonId) {
+          setSelectedSeason(urlSeasonId);
+        } else if (data.length > 0 && !selectedSeason) {
           setSelectedSeason(data[0].id);
         }
       })
@@ -83,7 +89,9 @@ export function Leaderboard() {
     );
   }, [realLeaderboard, searchTerm]);
 
-  const top3 = sortedPlayers.slice(0, 3);
+  const podiumPlayers = useMemo(() => {
+    return sortedPlayers.filter(p => p.rank !== '-').slice(0, 3);
+  }, [sortedPlayers]);
 
   return (
     <AnimatePresence mode="wait">
@@ -130,7 +138,22 @@ export function Leaderboard() {
           </motion.header>
 
           <motion.div variants={fadeInUp} className="bg-white/50 backdrop-blur-sm p-3 rounded-[2.5rem] border border-slate-100/50 flex flex-col md:flex-row items-stretch md:items-center gap-4">
-            <Select value={selectedSeason} onValueChange={(val) => val && setSelectedSeason(val)}>
+            <Select 
+              value={selectedSeason} 
+              onValueChange={(val) => {
+                if (val) {
+                  setSelectedSeason(val);
+                  // 🌟 同步更新網址，讓重新整理或分享連結也能維持在同一賽季
+                  const newParams = new URLSearchParams(searchParams);
+                  if (val === 'all-time') {
+                    newParams.delete('season_id');
+                  } else {
+                    newParams.set('season_id', val);
+                  }
+                  setSearchParams(newParams);
+                }
+              }}
+            >
               <SelectTrigger className="w-full md:w-64 h-12 bg-white border-slate-100 rounded-2xl font-bold text-primary-navy shadow-sm">
                 <div className="flex items-center gap-2 truncate">
                   <History size={16} className="text-slate-400 shrink-0" />
@@ -160,38 +183,82 @@ export function Leaderboard() {
           </motion.div>
 
           {/* 榮譽頒獎台 */}
-          {showPodium && top3.length >= 3 && (
+          {showPodium && podiumPlayers.length > 0 && (
             <motion.div 
               variants={fadeInUp}
-              className="flex justify-center items-end h-64 md:h-72 gap-2 md:gap-4 mt-12 mb-16 relative"
+              className="flex justify-center items-end h-64 md:h-72 gap-2 md:gap-4 mt-24 mb-16 relative"
             >
+              {/* 2nd Place */}
               <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
-                <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                  <img src={top3[1].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-slate-300 object-cover shadow-lg" alt="" />
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-300 text-slate-700 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">2</div>
-                </div>
-                <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[1].player_name}</p>
+                {podiumPlayers[1] ? (
+                  <>
+                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
+                      <img src={podiumPlayers[1].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-slate-300 object-cover shadow-lg" alt="" />
+                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-300 text-slate-700 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">2</div>
+                    </div>
+                    <p className="font-black text-primary-navy text-sm truncate w-full text-center">{podiumPlayers[1].player_name}</p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="size-16 md:size-20 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50/50">
+                      <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
+                        <span className="text-xl font-bold">?</span>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Vacant</p>
+                  </div>
+                )}
                 <div className="w-full h-24 md:h-32 bg-linear-to-t from-slate-200 to-slate-100 rounded-t-xl mt-4 border-t-4 border-slate-300 flex justify-center pt-4">
                   <span className="font-display font-black text-slate-400/50 text-2xl">II</span>
                 </div>
               </div>
+
+              {/* 1st Place */}
               <div className="flex flex-col items-center relative z-20 w-28 md:w-40 -mt-8">
-                <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                  <Crown size={32} className="absolute -top-6 left-1/2 -translate-x-1/2 text-amber-500 animate-bounce" />
-                  <img src={top3[0].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-20 md:size-24 rounded-full border-4 border-amber-400 object-cover shadow-xl" alt="" />
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white size-7 md:size-9 rounded-full flex items-center justify-center font-black border-2 border-white">1</div>
-                </div>
-                <p className="font-black text-amber-600 text-base truncate w-full text-center">{top3[0].player_name}</p>
+                {podiumPlayers[0] ? (
+                  <>
+                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
+                      <Crown size={32} className="absolute -top-10 left-1/2 -translate-x-1/2 text-amber-500 animate-bounce" />
+                      <img src={podiumPlayers[0].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-20 md:size-24 rounded-full border-4 border-amber-400 object-cover shadow-xl" alt="" />
+                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white size-7 md:size-9 rounded-full flex items-center justify-center font-black border-2 border-white">1</div>
+                    </div>
+                    <p className="font-black text-amber-600 text-base truncate w-full text-center">{podiumPlayers[0].player_name}</p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="size-20 md:size-24 rounded-full border-2 border-dashed border-amber-200 flex items-center justify-center bg-amber-50/30">
+                      <div className="size-10 rounded-full bg-amber-100/50 flex items-center justify-center text-amber-400">
+                        <Crown size={20} />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-[10px] font-black text-amber-400/60 uppercase tracking-[0.4em]">No.1 Vacancy</p>
+                  </div>
+                )}
                 <div className="w-full h-32 md:h-44 bg-linear-to-t from-amber-200 to-amber-100 rounded-t-xl mt-4 border-t-4 border-amber-400 flex justify-center pt-4">
                   <span className="font-display font-black text-amber-500/30 text-4xl">I</span>
                 </div>
               </div>
+
+              {/* 3rd Place */}
               <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
-                <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                  <img src={top3[2].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-orange-300 object-cover shadow-lg" alt="" />
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange-300 text-orange-800 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">3</div>
-                </div>
-                <p className="font-black text-primary-navy text-sm truncate w-full text-center">{top3[2].player_name}</p>
+                {podiumPlayers[2] ? (
+                  <>
+                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
+                      <img src={podiumPlayers[2].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-orange-300 object-cover shadow-lg" alt="" />
+                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange-300 text-orange-800 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">3</div>
+                    </div>
+                    <p className="font-black text-primary-navy text-sm truncate w-full text-center">{podiumPlayers[2].player_name}</p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="size-16 md:size-20 rounded-full border-2 border-dashed border-orange-200 flex items-center justify-center bg-orange-50/50">
+                      <div className="size-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-300">
+                        <span className="text-xl font-bold">?</span>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[9px] font-black text-orange-300 uppercase tracking-[0.3em]">Vacant</p>
+                  </div>
+                )}
                 <div className="w-full h-20 md:h-24 bg-linear-to-t from-orange-100 to-orange-50 rounded-t-xl mt-4 border-t-4 border-orange-300 flex justify-center pt-4">
                   <span className="font-display font-black text-orange-800/20 text-xl">III</span>
                 </div>

@@ -71,6 +71,14 @@
   .power-button {
     @apply bg-gradient-to-r from-sapphire-blue to-blue-700 text-white rounded-2xl shadow-md border-none hover:opacity-90 active:scale-95 transition-all;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Custom Scrollbar - 微調為長輩易辨識的深色度 */

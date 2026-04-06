@@ -33,7 +33,7 @@ export interface TournamentEvent {
   start_date?: string;
   end_date?: string;
   rules?: string;
-  status: 'upcoming' | 'ongoing' | 'completed';
+  status: 'registering' | 'ongoing' | 'completed';
   created_at: string;
 }
 

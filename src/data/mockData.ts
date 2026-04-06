@@ -62,7 +62,7 @@ export interface Prize {
 export interface Tournament {
   id: string;
   title: string;
-  status: 'ongoing' | 'upcoming' | 'completed';
+  status: 'ongoing' | 'registering' | 'completed';
   startDate: string;
   endDate: string;
   location: string;
@@ -308,7 +308,7 @@ export const matches: Match[] = [
   {
     id: 'm-wait-2',
     player1: [{ name: '陳大文', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop' }],
-    opponent: [{ id: 'p6',name: '張雅婷', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=400&h=400&fit=crop' }],
+    opponent: [{ id: 'p6', name: '張雅婷', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=400&h=400&fit=crop' }],
     date: '昨天 15:30',
     score: [3, 1],
     result: 'win',

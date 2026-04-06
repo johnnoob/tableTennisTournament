@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { tournaments, players } from '@/data/mockData';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +9,7 @@ import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/a
 
 export function TournamentDetail() {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tournament = tournaments.find(t => t.id === id) || tournaments[0];
 
   const now = new Date();
@@ -40,15 +41,15 @@ export function TournamentDetail() {
 
       {/* Main Content Grid (Responsive) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 md:gap-16">
-        
+
         {/* Left Column: Stats & Information (8 cols) */}
         <div className="xl:col-span-8 space-y-12">
-          
+
           {/* Season Progress Card */}
           <motion.section variants={fadeInUp}>
             <Card className="no-line-card rounded-[2.5rem] bg-[#fbfcff] p-8 md:p-12 shadow-sm border border-slate-50 overflow-hidden relative group">
               <div className="absolute -top-10 -right-10 p-4 opacity-5 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-700">
-                 <Trophy size={200} />
+                <Trophy size={200} />
               </div>
               <div className="flex justify-between items-end mb-6">
                 <div>
@@ -58,9 +59,9 @@ export function TournamentDetail() {
                   </h3>
                 </div>
                 <div className="text-right">
-                   <span className="text-xs md:sm font-sans font-black text-sapphire-blue bg-sapphire-blue/5 px-4 py-2 rounded-xl">
-                     {Math.round(progress)}% Season Compete
-                   </span>
+                  <span className="text-xs md:sm font-sans font-black text-sapphire-blue bg-sapphire-blue/5 px-4 py-2 rounded-xl">
+                    {Math.round(progress)}% Season Compete
+                  </span>
                 </div>
               </div>
               <Progress value={progress} className="h-4 bg-slate-100 rounded-full" />
@@ -72,46 +73,46 @@ export function TournamentDetail() {
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Technical Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
-                   <Calendar size={28} />
-                 </div>
-                 <div>
-                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Duration</p>
-                   <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Jan 1st - Mar 31st</p>
-                 </div>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
+                  <Calendar size={28} />
+                </div>
+                <div>
+                  <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Duration</p>
+                  <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Jan 1st - Mar 31st</p>
+                </div>
               </div>
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
-                   <MapPin size={28} />
-                 </div>
-                 <div>
-                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Office Location</p>
-                   <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Building B, Main Hall</p>
-                 </div>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
+                  <MapPin size={28} />
+                </div>
+                <div>
+                  <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Office Location</p>
+                  <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Building B, Main Hall</p>
+                </div>
               </div>
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
-                   <Scale size={28} />
-                 </div>
-                 <div>
-                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Comp. Rules</p>
-                   <p className="text-xs font-sans font-bold text-primary-navy mt-1">Stardard ITTF (Best of 5)</p>
-                 </div>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-sapphire-blue w-fit">
+                  <Scale size={28} />
+                </div>
+                <div>
+                  <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Comp. Rules</p>
+                  <p className="text-xs font-sans font-bold text-primary-navy mt-1">Stardard ITTF (Best of 5)</p>
+                </div>
               </div>
             </div>
-            
+
             <div className="bg-slate-50/40 p-10 rounded-[2.5rem] border border-slate-50">
-               <h4 className="font-display font-black text-primary-navy text-xl md:text-2xl mb-4">Official Participation Guidelines</h4>
-               <p className="text-sm md:text-base text-primary-slate/60 font-sans leading-relaxed">
-                 {tournament.rules}
-               </p>
+              <h4 className="font-display font-black text-primary-navy text-xl md:text-2xl mb-4">Official Participation Guidelines</h4>
+              <p className="text-sm md:text-base text-primary-slate/60 font-sans leading-relaxed">
+                {tournament.rules}
+              </p>
             </div>
           </motion.section>
 
           {/* Large Prizes Grid */}
           <section className="space-y-6">
             <motion.h2 variants={fadeInUp} className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 font-sans border-b border-slate-50 pb-4 inline-block">Official Rewards</motion.h2>
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -122,7 +123,7 @@ export function TournamentDetail() {
                   <div className="absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border border-slate-100 z-20 transform group-hover:scale-110 transition-transform">
                     {prize.position}
                   </div>
-                  
+
                   <Card className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative p-0">
                     <div className="h-56 relative overflow-hidden">
                       <img src={prize.image} alt={prize.item} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
@@ -146,33 +147,53 @@ export function TournamentDetail() {
               <h2 className="text-xl text-primary-navy font-display font-black">Season Rankings</h2>
               <Trophy size={20} className="text-primary-navy/20" />
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="space-y-4"
             >
               {players.slice(0, 5).map((player, idx) => (
-                <motion.div 
-                  key={player.id} 
+                <motion.div
+                  key={player.id}
                   variants={itemVariants}
+                  onClick={() => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('inspect', player.id);
+                    setSearchParams(newParams);
+                  }}
                   className="flex items-center gap-4 p-4 rounded-3xl bg-[#fbfcff] hover:bg-slate-50 transition-colors border border-slate-100 relative overflow-visible group mt-2 cursor-pointer"
                 >
                   <div className={cn(
                     "absolute -left-3 -top-3 size-10 md:size-12 rounded-2xl flex items-center justify-center font-display font-black text-xl shrink-0 transition-all shadow-md z-20 border-2 border-white",
                     idx === 0 ? "bg-olympic-gold text-white" : "bg-white text-primary-slate"
                   )}>
-                    {idx + 1}
+                    {player.rank}
                   </div>
-                  <div className="flex-1 pl-8">
-                     <h4 className="font-sans font-black text-primary-navy text-sm md:text-base">{player.name}</h4>
-                     <p className="text-xs uppercase font-sans font-bold text-slate-500 tracking-wider">
-                       WR {player.stats.winRate}% • {player.title}
-                     </p>
+                  <div className="flex-1 pl-8 flex items-center gap-4">
+                    {player.avatar ? (
+                      <img
+                        src={player.avatar}
+                        alt={player.name}
+                        className="size-10 md:size-12 rounded-full object-cover shadow-sm bg-slate-50 border border-slate-100 shrink-0"
+                      />
+                    ) : (
+                      <div className="size-10 md:size-12 rounded-full bg-gradient-to-br from-sapphire-blue/10 to-blue-500/10 flex items-center justify-center border border-sapphire-blue/20 shadow-inner shrink-0">
+                        <span className="text-sm md:text-base font-display font-black text-sapphire-blue">
+                          {player.name?.charAt(0) || '?'}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-sans font-black text-primary-navy text-sm md:text-base">{player.name}</h4>
+                      <p className="text-[10px] md:text-xs uppercase font-sans font-bold text-slate-500 tracking-wider mt-0.5">
+                        WR {player.stats.winRate}% • {player.title}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
-                     <span className="font-display font-black text-lg md:text-xl text-primary-navy">{player.rating.toLocaleString()}</span>
+                    <span className="font-display font-black text-lg md:text-xl text-primary-navy">{player.rating.toLocaleString()}</span>
                   </div>
                 </motion.div>
               ))}

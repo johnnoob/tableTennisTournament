@@ -131,7 +131,7 @@ def seed_data():
         tourn = TournamentEvent(
             title="2026 秋季跨部門友誼賽",
             image_url="https://images.unsplash.com/photo-1511067007398-7e4b90cfa4bc?w=800&q=80",
-            status="upcoming",
+            status="registering",
             rules="https://challonge.com/friendship2026"
         )
         session.add(tourn)

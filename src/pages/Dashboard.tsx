@@ -28,7 +28,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
-  
+
   const current = items[currentIndex];
 
   useEffect(() => {
@@ -113,30 +113,30 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
 
         {/* 分頁指示器 (Modern Pill) */}
         <div className="absolute top-4 right-4 z-20 px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center gap-2">
-            <span className="text-[10px] font-black tracking-widest text-white/40">
-                {(currentIndex + 1).toString().padStart(2, '0')}
-            </span>
-            <div className="w-4 h-[1px] bg-white/20" />
-            <span className="text-[10px] font-black tracking-widest text-white/80">
-                {items.length.toString().padStart(2, '0')}
-            </span>
+          <span className="text-[10px] font-black tracking-widest text-white/40">
+            {(currentIndex + 1).toString().padStart(2, '0')}
+          </span>
+          <div className="w-4 h-[1px] bg-white/20" />
+          <span className="text-[10px] font-black tracking-widest text-white/80">
+            {items.length.toString().padStart(2, '0')}
+          </span>
         </div>
 
         <div className="flex items-start md:items-center gap-4 md:gap-6 relative z-10 flex-1 w-full">
           <AnimatePresence initial={false} custom={direction} mode="wait">
-            <motion.div 
-               key={current.id + '-icon'}
-               custom={direction}
-               variants={variants}
-               initial="enter"
-               animate="center"
-               exit="exit"
-               transition={{ duration: 0.4, ease: "easeOut" }}
-               className={cn(
+            <motion.div
+              key={current.id + '-icon'}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className={cn(
                 "size-12 md:size-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white transition-colors duration-500",
                 style.bg,
-                style.bg === 'bg-sapphire-blue' ? 'shadow-sapphire-blue/20' : 
-                style.bg === 'bg-amber-500' ? 'shadow-amber-500/20' : 'shadow-emerald-500/20'
+                style.bg === 'bg-sapphire-blue' ? 'shadow-sapphire-blue/20' :
+                  style.bg === 'bg-amber-500' ? 'shadow-amber-500/20' : 'shadow-emerald-500/20'
               )}>
               <Icon size={28} />
             </motion.div>
@@ -162,7 +162,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
                     {style.label}
                   </span>
                   <span className="flex items-center gap-1 text-blue-300/40 text-[11px] font-bold">
-                      <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
+                    <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
@@ -188,7 +188,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
               </button>
             </div>
             {current.link_url && (
-              <Button 
+              <Button
                 onClick={() => window.open(current.link_url, '_blank')}
                 className="flex-1 md:flex-none h-12 md:h-14 px-6 md:px-8 rounded-xl font-black text-sm tracking-widest transition-all active:scale-95 gap-2 border-none bg-white hover:bg-slate-100 text-primary-navy shadow-lg shadow-white/10"
               >
@@ -264,7 +264,7 @@ export function Dashboard() {
             rating: Math.round(p.season_lp),
             mmr: p.global_mmr ? Math.round(p.global_mmr) : Math.round(p.season_lp),
             avatar: p.avatar_url || '/api/placeholder/150/150',
-            isVerified: p.rank <= 2,
+            isVerified: p.rank != "-" && parseInt(p.rank) <= 2,
             department: p.department,
             stats: {
               wins: p.wins,
@@ -336,17 +336,17 @@ export function Dashboard() {
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               <div className="hidden md:block">
-                <UserProfileSettings 
+                <UserProfileSettings
                   trigger={
                     <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-slate-50 shadow-sm border border-slate-100 hover:bg-slate-100 transition-all p-0 overflow-hidden">
-                       <img src={user.avatar} className="size-full object-cover" />
+                      <img src={user.avatar} className="size-full object-cover" />
                     </Button>
                   }
                 />
               </div>
               <Button
-                variant="ghost" 
-                size="icon" 
+                variant="ghost"
+                size="icon"
                 className="size-10 md:size-14 rounded-xl md:rounded-2xl bg-slate-50 shadow-sm border border-slate-100 hover:bg-slate-100 transition-colors relative"
               >
                 <div className="absolute top-3 right-3 size-2 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
@@ -356,12 +356,12 @@ export function Dashboard() {
           </motion.header>
 
           <motion.div variants={fadeInUp}>
-             <AnnouncementBanner items={announcements} />
+            <AnnouncementBanner items={announcements} />
           </motion.div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 md:gap-16 items-start">
             <div className="xl:col-span-8 space-y-16">
-              
+
               <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-16">
                 <motion.div variants={itemVariants}><PendingActions /></motion.div>
 
@@ -416,15 +416,15 @@ export function Dashboard() {
                       <h2 className="text-2xl text-primary-navy font-display font-black tracking-tight">Recent Feed</h2>
                       <p className="text-[10px] text-slate-400 uppercase font-sans font-black tracking-widest opacity-60">Match History · Live Updates</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="text-xs font-black uppercase tracking-widest text-sapphire-blue hover:bg-sapphire-blue/5 rounded-xl px-4"
                       onClick={() => navigate('/history')}
                     >
                       View All
                     </Button>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {recentFeed.length > 0 ? (
                       recentFeed.map((match: any) => (

@@ -216,8 +216,8 @@ export function MatchHistory() {
               </div>
 
               {/* 右側統計欄位 */}
-              <div className="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last mb-8 lg:mb-0">
-                <div className="lg:sticky lg:top-8 space-y-6">
+              <div className="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last mb-8 lg:mb-0 lg:mt-32">
+                <div className="lg:sticky lg:top-32 space-y-6">
 
                   <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-slate-50 overflow-hidden">
                     <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-50">

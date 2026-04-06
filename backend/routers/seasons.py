@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, desc
+from sqlmodel import Session, select, desc, func
 from database import get_session
-from models import Season, SeasonPrize
+from models import Season, SeasonPrize, SeasonRecord
 
 router = APIRouter(tags=["Seasons"])
 
@@ -14,7 +14,24 @@ def get_all_seasons(session: Session = Depends(get_session)):
     completed_seasons = [s for s in seasons if s.status != 'active']
     sorted_seasons = active_seasons + completed_seasons
     
-    return [{"id": s.id, "name": s.name, "status": s.status, "start_date": s.start_date, "end_date": s.end_date} for s in sorted_seasons]
+    result = []
+    for s in sorted_seasons:
+        participants_count = session.exec(
+            select(func.count(SeasonRecord.id))
+            .where(SeasonRecord.season_id == s.id)
+            .where(SeasonRecord.matches_played > 0)
+        ).one()
+        
+        result.append({
+            "id": s.id, 
+            "name": s.name, 
+            "status": s.status, 
+            "start_date": s.start_date, 
+            "end_date": s.end_date,
+            "participants_count": participants_count
+        })
+        
+    return result
 
 @router.get("/api/seasons/{season_id}", summary="取得特定賽季詳情(含獎品)")
 def get_season_detail(season_id: str, session: Session = Depends(get_session)):

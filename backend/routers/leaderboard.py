@@ -55,19 +55,35 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "previous_rank": previous_rank
         })
         
-    # 依照 season_lp 降序排列
-    combined_data.sort(key=lambda x: x["season_lp"], reverse=True)
+    # 🌟 2-B. 區分有/無比賽紀錄玩家
+    active_data = [d for d in combined_data if d["matches_played"] > 0]
+    inactive_data = [d for d in combined_data if d["matches_played"] == 0]
 
-    # 📈 3. 計算排名、勝率與動能趨勢
-    leaderboard_data = []
+    # 依照 season_lp 降序排列 (Active)
+    active_data.sort(key=lambda x: x["season_lp"], reverse=True)
+
+    # 計算並列名次 (Standard Competition Ranking)
     current_rank = 1
+    for i, data in enumerate(active_data):
+        if i > 0 and data["season_lp"] < active_data[i-1]["season_lp"]:
+            current_rank = i + 1
+        data["computed_rank"] = current_rank
+        
+    for data in inactive_data:
+        data["computed_rank"] = "-"
 
-    for data in combined_data:
+    final_combined = active_data + inactive_data
+
+    # 📈 3. 處理勝率與動能趨勢
+    leaderboard_data = []
+
+    for data in final_combined:
         user = data["user"]
         matches_played = data["matches_played"]
         wins = data["wins"]
         previous_rank = data["previous_rank"]
         season_lp = data["season_lp"]
+        computed_rank = data["computed_rank"]
         
         # A. 計算勝率 (防呆：避免除以零的錯誤)
         if matches_played > 0:
@@ -76,15 +92,20 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             win_rate_val = 0.0
         win_rate_str = f"{win_rate_val:.1f}%" # 格式化為小數點後一位
         
-        # B. 🔼 計算動能指標 (Trend) - 以符號字串形式返回 (例如: +2, -1, 0)
+        # B. 🔼 計算動能指標 (Trend)
         trend_str = "0"
-        if previous_rank is not None:
-            if current_rank < previous_rank:
-                # 名次上升
-                trend_str = f"+{previous_rank - current_rank}"
-            elif current_rank > previous_rank:
-                # 名次下降
-                trend_str = f"-{current_rank - previous_rank}"
+        if previous_rank is not None and computed_rank != "-":
+            try:
+                prev_rnk = int(previous_rank)
+                curr_rnk = int(computed_rank)
+                if curr_rnk < prev_rnk:
+                    # 名次上升
+                    trend_str = f"+{prev_rnk - curr_rnk}"
+                elif curr_rnk > prev_rnk:
+                    # 名次下降
+                    trend_str = f"-{curr_rnk - prev_rnk}"
+            except (ValueError, TypeError):
+                pass
         
         # C. 🟢 近期狀態 (Recent Form) - 撈取最近 5 場已確認的比賽
         recent_matches = session.exec(
@@ -98,12 +119,11 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
         ).all()
         
         # 轉換為 ["W", "L", "W", ...] 格式
-        # 這裡我們按時間由新到舊排列，如果要前端左到右是新到舊，就這樣即可
         recent_form = ["W" if p.is_winner else "L" for p in recent_matches]
 
         # D. 打包資料給前端
         leaderboard_data.append({
-            "rank": current_rank,
+            "rank": computed_rank,
             "player_id": str(user.id),
             "player_name": user.name,
             "department": user.department,
@@ -117,8 +137,6 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "trend": trend_str,
             "recent_form": recent_form
         })
-        
-        current_rank += 1
 
     return {
         "season_id": season.id,
