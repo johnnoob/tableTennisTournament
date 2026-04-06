@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+import cloudinary
+import cloudinary.uploader
+import os
 from sqlmodel import Session, select
 from typing import List
 from uuid import UUID
@@ -8,6 +11,13 @@ from services.auth_jwt import get_current_user
 from models import User, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
 from schemas import ConfigUpdate, AnnouncementCreate, AnnouncementUpdate, SeasonPrizeUpdate, SeasonPrizeCreate, TournamentEventCreate, ParticipantAdd
 
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True # 強制使用 HTTPS
+)
+
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 # 依賴注入：確認是否為管理員
@@ -15,6 +25,23 @@ def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="無管理員權限")
     return current_user
+
+# ================================
+# Common Utilities (Image Upload)
+# ================================
+@router.post("/upload-image", dependencies=[Depends(require_admin)])
+async def upload_image(file: UploadFile = File(...)):
+    # 限制格式: JPG, PNG, GIF
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if ext not in ["jpg", "jpeg", "png", "gif"]:
+        raise HTTPException(status_code=400, detail="僅允許升傳 JPG, PNG, 或 GIF 格式的圖片")
+    
+    try:
+        result = cloudinary.uploader.upload(file.file)
+        return {"url": result.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"上傳圖片失敗: {str(e)}")
+
 
 # ================================
 # System Configs

@@ -1,5 +1,6 @@
-import { useParams, useSearchParams } from 'react-router-dom';
-import { tournaments, players } from '@/data/mockData';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { players } from '@/data/mockData';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, MapPin, Scale, Calendar } from 'lucide-react';
@@ -9,14 +10,70 @@ import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/a
 
 export function TournamentDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tournament = tournaments.find(t => t.id === id) || tournaments[0];
+  const [tournament, setTournament] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
 
-  const now = new Date();
-  const start = new Date(tournament.startDate);
-  const end = new Date(tournament.endDate);
-  const progress = Math.min(100, Math.max(0, ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100));
-  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  useEffect(() => {
+    fetch("http://localhost:8000/api/tournaments")
+      .then(res => res.json())
+      .then(data => {
+        const found = data.find((t: any) => t.id === id) || data[0];
+        setTournament(found);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!tournament || tournament.status === 'completed') return;
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [tournament]);
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center font-bold text-slate-400">載入賽事中...</div>;
+  }
+
+  if (!tournament) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-slate-400 font-bold">找不到該賽事資訊</p>
+        <button onClick={() => navigate('/tournament')} className="px-6 py-2 bg-sapphire-blue text-white rounded-xl">返回列表</button>
+      </div>
+    );
+  }
+
+  const isCompleted = tournament.status === 'completed';
+
+  const sDate = tournament.start_date || tournament.startDate;
+  const eDate = tournament.end_date || tournament.endDate;
+  
+  const hasValidTimeline = Boolean(sDate && eDate);
+  const start = hasValidTimeline ? new Date(sDate) : new Date();
+  const end = hasValidTimeline ? new Date(eDate) : new Date();
+
+  let totalDuration = 1;
+  let elapsed = 0;
+  let progress = 0;
+  let diffTime = 0;
+
+  if (hasValidTimeline) {
+    totalDuration = end.getTime() - start.getTime();
+    if (totalDuration <= 0) totalDuration = 1; // 避免除以 0
+    elapsed = now.getTime() - start.getTime();
+    progress = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+    diffTime = Math.max(0, end.getTime() - now.getTime());
+  }
+
+  const rDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const rHours = Math.floor((diffTime / (1000 * 60 * 60)) % 24);
+  const rMinutes = Math.floor((diffTime / 1000 / 60) % 60);
+  const rSeconds = Math.floor((diffTime / 1000) % 60);
 
   return (
     <motion.div
@@ -53,14 +110,43 @@ export function TournamentDetail() {
               </div>
               <div className="flex justify-between items-end mb-6">
                 <div>
-                  <p className="text-[11px] uppercase font-sans tracking-widest text-primary-slate/50 font-black mb-2">Season Status</p>
-                  <h3 className="text-4xl md:text-6xl font-display font-black text-primary-navy tracking-tighter">
-                    {daysLeft} Days <span className="text-primary-slate/20">Remains</span>
-                  </h3>
+                  <p className="text-[11px] uppercase font-sans tracking-widest text-primary-slate/50 font-black mb-2">Tournament Timeline</p>
+                  <div className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-primary-navy tracking-tighter">
+                    {isCompleted ? (
+                      <>Tournament <span className="text-primary-slate/20">Ended</span></>
+                    ) : !hasValidTimeline ? (
+                      <>Time <span className="text-primary-slate/20">TBA</span></>
+                    ) : (
+                      <div className="flex items-baseline gap-2 md:gap-4 tabular-nums">
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rDays}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Days</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rHours.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Hrs</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rMinutes.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Min</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none text-sapphire-blue">{rSeconds.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-sapphire-blue/60 mt-2 font-black">Sec</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs md:sm font-sans font-black text-sapphire-blue bg-sapphire-blue/5 px-4 py-2 rounded-xl">
-                    {Math.round(progress)}% Season Compete
+                  <span className={cn(
+                    "text-xs md:text-sm font-sans font-black px-4 py-2 rounded-xl block mb-2 transition-all duration-300",
+                    isCompleted ? "bg-amber-100 text-amber-700" : "bg-sapphire-blue/5 text-sapphire-blue"
+                  )}>
+                    {isCompleted ? "🏆 賽事已結束" : `${progress.toFixed(2)}% 進度`}
                   </span>
                 </div>
               </div>
@@ -118,8 +204,8 @@ export function TournamentDetail() {
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-3 gap-6"
             >
-              {tournament.prizes.map((prize) => (
-                <motion.div key={prize.position} variants={itemVariants} className="relative mt-4 group">
+              {(tournament.prizes || []).map((prize: any, idx: number) => (
+                <motion.div key={prize.position || idx} variants={itemVariants} className="relative mt-4 group">
                   <div className="absolute -top-3 -left-3 size-12 rounded-2xl bg-white/90 backdrop-blur-md flex items-center justify-center font-display font-black shadow-lg border border-slate-100 z-20 transform group-hover:scale-110 transition-transform">
                     {prize.position}
                   </div>

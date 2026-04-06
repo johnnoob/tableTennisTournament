@@ -54,4 +54,21 @@ export const adminApi = {
     adminFetch(`/tournaments/${tournamentId}/participants`, { method: "POST", body: JSON.stringify({ user_id: userId }) }),
   removeParticipant: (tournamentId: string, userId: string) => 
     adminFetch(`/tournaments/${tournamentId}/participants/${userId}`, { method: "DELETE" }),
+
+  // Utilities
+  uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('auth_token');
+    const res = await fetch(`${BASE_URL}/upload-image`, {
+      method: 'POST',
+      headers: { "Authorization": `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || "圖片上傳失敗");
+    }
+    return res.json();
+  },
 };

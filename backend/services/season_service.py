@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
-from models import Season, SystemConfig
+from models import Season, SystemConfig, tw_now
 import logging
 import os
 
@@ -21,7 +21,7 @@ def get_current_season(session: Session) -> Season | None:
     if is_season_paused(session):
         return None
 
-    now = datetime.now()
+    now = tw_now()
     
     # 1. 巡視並結算過期賽季
     expired_seasons = session.exec(
@@ -95,13 +95,30 @@ def ensure_current_quarter_season(session: Session) -> Season:
     """
     確保目前的賽季存在。
     """
-    now = datetime.now()
+    now = tw_now()
     current_id, name, start_date, end_date = get_dynamic_season_meta(session, now)
     
     existing_season = session.get(Season, current_id)
+    
     if existing_season:
+        needs_update = False
+        # 檢查並同步狀態、名稱、開始與結束時間
         if existing_season.status != "active":
             existing_season.status = "active"
+            needs_update = True
+        
+        # 如果系統設定 (interval) 改變了，同步更新現有的 S 桶時間
+        if existing_season.name != name:
+            existing_season.name = name
+            needs_update = True
+        if existing_season.start_date != start_date:
+            existing_season.start_date = start_date
+            needs_update = True
+        if existing_season.end_date != end_date:
+            existing_season.end_date = end_date
+            needs_update = True
+            
+        if needs_update:
             session.add(existing_season)
             session.commit()
             session.refresh(existing_season)

@@ -104,11 +104,11 @@ export function Navigation() {
             trigger={
               <button className="w-full bg-white/60 hover:bg-white p-3 rounded-2xl border border-slate-200/50 backdrop-blur-sm transition-all flex items-center gap-3 text-left group shadow-sm hover:shadow-md">
                 <div className="size-10 rounded-xl overflow-hidden border border-slate-200 shrink-0 relative group-hover:border-sapphire-blue transition-colors">
-                  <img src={user.avatar_url || user.avatar || '/api/placeholder/40/40'} alt={user.name} className="size-full object-cover" />
+                  <img src={user?.avatar_url || user?.avatar || '/api/placeholder/40/40'} alt={user?.name || 'Guest'} className="size-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-primary-navy truncate group-hover:text-sapphire-blue transition-colors">{user.name}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{user.department || '設定單位...'}</p>
+                  <p className="text-sm font-black text-primary-navy truncate group-hover:text-sapphire-blue transition-colors">{user?.name || 'Guest'}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{user?.department || '請先登入...'}</p>
                 </div>
                 <Settings size={18} className="text-slate-400 group-hover:text-sapphire-blue transition-colors shrink-0 mr-1 group-hover:rotate-90 duration-500" />
               </button>

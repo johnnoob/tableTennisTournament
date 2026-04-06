@@ -45,6 +45,17 @@ export function SeasonDetail() {
     fetchData();
   }, [id]);
 
+  // 🌟 動態倒數計時與進度條
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    if (season?.status === 'completed') return;
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000); // 每秒更新
+    return () => clearInterval(interval);
+  }, [season]);
+
   if (loading) {
     return <SeasonDetailSkeleton />;
   }
@@ -58,17 +69,29 @@ export function SeasonDetail() {
     );
   }
 
-  const now = new Date();
-  const start = new Date(season.start_date);
-  const end = new Date(season.end_date);
-  const isCompleted = season.status === 'completed' || now > end;
+  const isCompleted = season.status === 'completed';
 
-  const totalDuration = end.getTime() - start.getTime();
-  const elapsed = now.getTime() - start.getTime();
-  const progress = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+  const hasValidTimeline = Boolean(season.start_date && season.end_date);
+  const start = hasValidTimeline ? new Date(season.start_date) : new Date();
+  const end = hasValidTimeline ? new Date(season.end_date) : new Date();
 
-  const diffTime = end.getTime() - now.getTime();
-  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  let totalDuration = 1;
+  let elapsed = 0;
+  let progress = 0;
+  let diffTime = 0;
+
+  if (hasValidTimeline) {
+    totalDuration = end.getTime() - start.getTime();
+    if (totalDuration <= 0) totalDuration = 1;
+    elapsed = now.getTime() - start.getTime();
+    progress = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+    diffTime = Math.max(0, end.getTime() - now.getTime());
+  }
+
+  const rDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const rHours = Math.floor((diffTime / (1000 * 60 * 60)) % 24);
+  const rMinutes = Math.floor((diffTime / 1000 / 60) % 60);
+  const rSeconds = Math.floor((diffTime / 1000) % 60);
 
   return (
     <motion.div
@@ -115,18 +138,45 @@ export function SeasonDetail() {
               <div className="flex justify-between items-end mb-6 relative z-10">
                 <div>
                   <p className="text-[11px] uppercase font-sans tracking-widest text-primary-slate/50 font-black mb-2">Season Timeline</p>
-                  <h3 className="text-4xl md:text-6xl font-display font-black text-primary-navy tracking-tighter">
-                    {isCompleted ? "Season" : daysLeft} <span className="text-primary-slate/20">{isCompleted ? "Ended" : "Days Left"}</span>
-                  </h3>
+                  <div className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-primary-navy tracking-tighter">
+                    {isCompleted ? (
+                      <>Season <span className="text-primary-slate/20">Ended</span></>
+                    ) : !hasValidTimeline ? (
+                      <>Time <span className="text-primary-slate/20">TBA</span></>
+                    ) : (
+                      <div className="flex items-baseline gap-2 md:gap-4 tabular-nums">
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rDays}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Days</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rHours.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Hrs</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none">{rMinutes.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-slate-400 mt-2 font-black">Min</span>
+                        </div>
+                        <span className="text-primary-slate/20 pb-4 md:pb-6">:</span>
+                        <div className="flex flex-col items-center">
+                          <span className="leading-none text-sapphire-blue">{rSeconds.toString().padStart(2, '0')}</span>
+                          <span className="text-[10px] md:text-xs uppercase font-sans tracking-widest text-sapphire-blue/60 mt-2 font-black">Sec</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className={cn(
-                    "text-xs md:sm font-sans font-black px-4 py-2 rounded-xl block",
+                    "text-xs md:text-sm font-sans font-black px-4 py-2 rounded-xl block mb-2 transition-all duration-300",
                     isCompleted ? "bg-amber-100 text-amber-700" : "bg-sapphire-blue/5 text-sapphire-blue"
                   )}>
-                    {isCompleted ? "🏆 賽季已結束" : `${Math.round(progress)}% 賽程進度`}
+                    {isCompleted ? "🏆 賽季已結束" : `${progress.toFixed(2)}% 進度`}
                   </span>
                 </div>
+
               </div>
               <div className="relative z-10">
                 <Progress value={progress} className="h-4 bg-slate-100 rounded-full" />

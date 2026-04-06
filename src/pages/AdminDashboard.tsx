@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings, 
@@ -15,7 +15,9 @@ import {
   ExternalLink,
   ChevronRight,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  UploadCloud,
+  X
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
@@ -207,7 +209,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     const [localDays, setLocalDays] = useState(intervalDays);
     const [localHours, setLocalHours] = useState(intervalHours);
     const [localMinutes, setLocalMinutes] = useState(intervalMinutes);
-    const [localStartDate, setLocalStartDate] = useState(startDate.split('T')[0]);
+    const [localStartDate, setLocalStartDate] = useState(startDate);
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
@@ -217,7 +219,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                 adminApi.updateConfig('season_interval_days', localDays),
                 adminApi.updateConfig('season_interval_hours', localHours),
                 adminApi.updateConfig('season_interval_minutes', localMinutes),
-                adminApi.updateConfig('season_start_date', `${localStartDate}T00:00:00`),
+                adminApi.updateConfig('season_start_date', localStartDate),
             ]);
             onUpdate();
             toast.success("系統設定已更新！");
@@ -301,9 +303,10 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">首季起始基準日</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">首季起始基準時間 (含秒)</label>
                         <input 
-                            type="date" 
+                            type="datetime-local" 
+                            step="1"
                             value={localStartDate}
                             onChange={e => setLocalStartDate(e.target.value)}
                             className="w-full h-14 px-6 rounded-2xl bg-white border border-slate-100 shadow-sm focus:ring-2 focus:ring-sapphire-blue focus:border-transparent transition-all outline-none font-bold"
@@ -761,6 +764,29 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
     const [url, setUrl] = useState(prize?.image_url || '');
     const [rank, setRank] = useState(prize?.rank ?? initialRank ?? 0);
     const [label, setLabel] = useState(prize?.label || '');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const res = await adminApi.uploadImage(file);
+            let uploadedUrl = res.url;
+            // 要求 Cloudinary 幫助轉 WebP 並優化 (q_auto, f_auto)
+            if (uploadedUrl.includes("cloudinary.com")) {
+                uploadedUrl = uploadedUrl.replace("/upload/", "/upload/q_auto,f_auto/");
+            }
+            setUrl(uploadedUrl);
+            toast.success("圖片上傳成功！");
+        } catch (err: any) {
+            toast.error(err.message || "上傳失敗");
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = ''; // 允許重複上傳相同檔案
+        }
+    };
 
     useEffect(() => {
         setName(prize?.item_name || '');
@@ -839,13 +865,37 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                         />
                     </div>
                     <div className="col-span-2 space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">圖片網址</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">圖片</label>
                         <input 
-                            value={url} onChange={e => setUrl(e.target.value)}
-                            className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-xs"
+                            type="file"
+                            accept="image/jpeg, image/png, image/gif"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
                         />
+                        <Button
+                            variant="outline"
+                            onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
+                            disabled={uploading}
+                            className="w-full h-11 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 relative overflow-hidden"
+                        >
+                            {uploading ? <Loader2 className="animate-spin mr-2" size={16} /> : <UploadCloud className="mr-2" size={16} />}
+                            {uploading ? '上傳中...' : url ? '重新上傳圖片' : '上傳圖片'}
+                        </Button>
                     </div>
                 </div>
+
+                {url && (
+                    <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative flex items-center justify-center p-2 min-h-[120px]">
+                        <img src={url} alt="獎品預覽" className="max-h-32 object-contain" />
+                        <button 
+                            onClick={(e) => { e.preventDefault(); setUrl(''); }}
+                            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-colors shadow-sm"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             <Button 
@@ -871,7 +921,13 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     const [participants, setParticipants] = useState<AdminParticipantResponse[]>([]);
     
     // Create Form
-    const [formData, setFormData] = useState({ title: '', rules: '', image_url: '' });
+    const [formData, setFormData] = useState({ 
+        title: '', 
+        rules: '', 
+        image_url: '',
+        start_date: '',
+        end_date: ''
+    });
 
     useEffect(() => {
         if (selectedTourn) fetchParticipants();
@@ -886,7 +942,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     const handleCreate = async () => {
         await adminApi.createTournament(formData);
         setIsAdding(false);
-        setFormData({ title: '', rules: '', image_url: '' });
+        setFormData({ title: '', rules: '', image_url: '', start_date: '', end_date: '' });
         onUpdate();
     };
 
@@ -950,6 +1006,28 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                     onChange={e => setFormData({...formData, rules: e.target.value})}
                                     className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold"
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">賽事開始時間 (含秒)</label>
+                                    <input 
+                                        type="datetime-local"
+                                        step="1"
+                                        value={formData.start_date}
+                                        onChange={e => setFormData({...formData, start_date: e.target.value})}
+                                        className="w-full h-14 px-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">賽事結束時間 (含秒)</label>
+                                    <input 
+                                        type="datetime-local"
+                                        step="1"
+                                        value={formData.end_date}
+                                        onChange={e => setFormData({...formData, end_date: e.target.value})}
+                                        className="w-full h-14 px-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">預覽圖 URL</label>
