@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import apiClient from '@/utils/apiClient';
 
 // 定義倉庫裡有哪些東西
 interface AuthState {
@@ -23,16 +24,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         try {
-            const res = await fetch("http://localhost:8000/api/users/me", {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                set({ user: data, loading: false }); // 把抓到的資料存進倉庫
-            } else {
-                localStorage.removeItem('auth_token');
-                set({ loading: false });
-            }
+            const res = await apiClient.get('/users/me');
+            set({ user: res.data, loading: false }); // 把抓到的資料存進倉庫
         } catch (err) {
             console.error("獲取身分失敗", err);
             set({ loading: false });

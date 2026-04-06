@@ -8,6 +8,7 @@ import { TournamentSkeleton } from '@/components/TournamentSkeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import apiClient from '@/utils/apiClient';
 
 // Premium Empty State Component
 function EmptyState({ icon: Icon, title, description, className }: { icon: any, title: string, description: string, className?: string }) {
@@ -73,12 +74,12 @@ export function Tournament() {
     setIsLoading(true);
     try {
       const [tRes, sRes] = await Promise.all([
-        fetch("http://localhost:8000/api/tournaments"),
-        fetch("http://localhost:8000/api/seasons")
+        apiClient.get('/tournaments'),
+        apiClient.get('/seasons')
       ]);
       
-      if (tRes.ok) setTournamentList(await tRes.json());
-      if (sRes.ok) setSeasonList(await sRes.json());
+      setTournamentList(tRes.data);
+      setSeasonList(sRes.data);
     } catch (err) {
       console.error("Failed to fetch tournaments", err);
     } finally {

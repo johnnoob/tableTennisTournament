@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Trophy, Medal, Shield, Award, Crown,
+  Trophy, Medal, Shield, Award,
   TrendingUp, Swords, Zap, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import apiClient from '@/utils/apiClient';
 
 const getTierBadge = (mmr: number) => {
   if (mmr >= 2000) return { name: '菁英 (Elite)', icon: <Shield size={16} />, color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20' };
@@ -36,13 +37,8 @@ export function GlobalPlayerDrawer() {
     const fetchPlayerProfile = async () => {
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('auth_token');
-        const res = await fetch(`http://localhost:8000/api/users/${inspectingId}/profile`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setPlayer(await res.json());
-        }
+        const res = await apiClient.get(`/users/${inspectingId}/profile`);
+        setPlayer(res.data);
       } catch (err) {
         console.error("無法取得玩家資料", err);
       } finally {

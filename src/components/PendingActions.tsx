@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import apiClient from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
@@ -65,10 +66,8 @@ export function PendingActions() {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
       try {
-        const res = await fetch("http://localhost:8000/api/matches/pending", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) setPendingMatches(await res.json());
+        const res = await apiClient.get<PendingMatch[]>("/matches/pending");
+        setPendingMatches(res.data);
       } catch (err) {
         console.error("無法取得待確認比賽", err);
       }
@@ -150,17 +149,8 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
   const handleConfirmAction = async () => {
     setIsConfirming(true);
     // 🌟 發送真實的 Confirm 請求給 FastAPI
-    const token = localStorage.getItem('auth_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/matches/${match.id}/confirm`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || "確認失敗");
-      }
+      await apiClient.post(`/matches/${match.id}/confirm`);
       window.dispatchEvent(new Event('match_updated'));
       setIsConfirming(false);
       setIsSuccess(true);
@@ -499,20 +489,11 @@ function WaitingOnOthersGroup({ matches: initialMatches }: { matches: any[] }) {
 
   const doDelete = async (matchId: string) => {
     setDeletingId(matchId);
-    const token = localStorage.getItem('auth_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/matches/${matchId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        setMatches(prev => prev.filter(m => m.id !== matchId));
-      } else {
-        const err = await res.json();
-        alert('撤回失敗：' + (err.detail || '未知錯誤'));
-      }
-    } catch {
-      alert('網路錯誤，請稍後再試');
+      await apiClient.delete(`/matches/${matchId}`);
+      setMatches(prev => prev.filter(m => m.id !== matchId));
+    } catch (error: any) {
+      alert('撤回失敗：' + (error.response?.data?.detail || '未知網路錯誤'));
     } finally {
       setDeletingId(null);
     }
@@ -758,22 +739,12 @@ function EditScoreButton({ match, onSuccess }: { match: any; onSuccess: (id: str
   const handleSave = async () => {
     if (scoreA === scoreB) return alert('比分不得相同');
     setSaving(true);
-    const token = localStorage.getItem('auth_token');
     try {
-      const res = await fetch(`http://localhost:8000/api/matches/${match.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ score_a: scoreA, score_b: scoreB })
-      });
-      if (res.ok) {
-        onSuccess(match.id, scoreA, scoreB);
-        setOpen(false);
-      } else {
-        const err = await res.json();
-        alert('修改失敗：' + (err.detail || '未知錯誤'));
-      }
-    } catch {
-      alert('網路錯誤，請稍後再試');
+      await apiClient.patch(`/matches/${match.id}`, { score_a: scoreA, score_b: scoreB });
+      onSuccess(match.id, scoreA, scoreB);
+      setOpen(false);
+    } catch (error: any) {
+      alert('修改失敗：' + (error.response?.data?.detail || '未知網路錯誤'));
     } finally {
       setSaving(false);
     }

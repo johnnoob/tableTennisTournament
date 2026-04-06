@@ -22,6 +22,7 @@ import {
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { adminApi } from '@/lib/admin';
+import apiClient from '@/utils/apiClient';
 import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize, AdminParticipantResponse } from '@/types/admin';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -87,11 +88,8 @@ export function AdminDashboard() {
       setTournaments(tour);
       
       // Fetch seasons from existing leaderboard/season API if available
-      const sRes = await fetch("http://localhost:8000/api/seasons");
-      if (sRes.ok) {
-          const sData = await sRes.json();
-          setSeasons(sData);
-      }
+      const sRes = await apiClient.get('/seasons');
+      setSeasons(sRes.data);
     } catch (err) {
       console.error("Failed to fetch admin data", err);
     } finally {

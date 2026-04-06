@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import apiClient from '@/utils/apiClient';
 import { MatchItem } from '@/components/MatchItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,12 +32,10 @@ export function MatchHistory() {
     else setLoadingMore(true);
 
     try {
-      const res = await fetch(
-        `http://localhost:8000/api/users/me/matches?limit=${PAGE_SIZE}&offset=${newOffset}&result_filter=${newFilter}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await apiClient.get(
+        `/users/me/matches?limit=${PAGE_SIZE}&offset=${newOffset}&result_filter=${newFilter}`
       );
-      if (!res.ok) throw new Error('Failed to fetch matches');
-      const data = await res.json();
+      const data = res.data;
       setMatches(prev => append ? [...prev, ...data.matches] : data.matches);
       setTotal(data.total);
       setHasMore(data.hasMore);

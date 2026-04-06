@@ -1,4 +1,5 @@
 import * as React from "react"
+import apiClient from '@/utils/apiClient'
 import { Plus, Minus, Trophy, User, CheckCircle2, Swords, Search } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import {
@@ -68,20 +69,15 @@ export function ReportScore({
         
         try {
           // 抓取公共設定
-          const configRes = await fetch("http://localhost:8000/api/config/public")
-          if (configRes.ok) {
-            const config = await configRes.json()
-            setSeasonPaused(config.season_paused === 'true')
-          }
+          try {
+            const configRes = await apiClient.get("/config/public")
+            setSeasonPaused(configRes.data.season_paused === 'true')
+          } catch(e) {}
 
           if (!token) return
           // 抓取玩家清單
-          const res = await fetch("http://localhost:8000/api/users", {
-            headers: { "Authorization": `Bearer ${token}` }
-          })
-          if (res.ok) {
-            setRealPlayers(await res.json())
-          }
+          const res = await apiClient.get<any[]>("/users")
+          setRealPlayers(res.data)
         } catch (err) {
           console.error("無法取得初始化資料", err)
         }
@@ -171,36 +167,28 @@ export function ReportScore({
 
     try {
       // 3. 發送 POST 請求到您的 FastAPI 報分路由
-      const response = await fetch("http://localhost:8000/api/matches", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // 戴上識別證
-        },
-        body: JSON.stringify(payload)
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-
-        // 🌟 4. 新增這段：把 FastAPI 的詳細錯誤轉換成看得懂的文字
-        let errorMessage = "報分失敗";
-        if (typeof errorData.detail === "string") {
-          errorMessage = errorData.detail;
-        } else if (Array.isArray(errorData.detail)) {
-          // 將每個錯誤的欄位名稱與原因列出來
-          errorMessage = errorData.detail.map((err: any) =>
-            `欄位 [${err.loc[err.loc.length - 1]}]: ${err.msg}`
-          ).join('\n');
-        }
-        throw new Error(errorMessage)
-      }
+      await apiClient.post("/matches", payload)
+      
       // 4. 成功！切換到成功畫面
       window.dispatchEvent(new Event('match_updated'));
       setIsSubmitting(false)
       setIsSuccess(true)
 
     } catch (error: any) {
-      alert(`報分發生錯誤: ${error.message}`)
+      let errorMessage = "報分失敗";
+      const errorData = error.response?.data;
+      if (errorData?.detail) {
+        if (typeof errorData.detail === "string") {
+          errorMessage = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map((err: any) =>
+            `欄位 [${err.loc[err.loc.length - 1]}]: ${err.msg}`
+          ).join('\n');
+        }
+      } else if (error.message) {
+          errorMessage = error.message;
+      }
+      alert(`報分發生錯誤: ${errorMessage}`)
       setIsSubmitting(false)
     }
   }

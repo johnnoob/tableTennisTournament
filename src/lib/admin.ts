@@ -1,20 +1,17 @@
-const BASE_URL = "http://localhost:8000/api/admin";
+import apiClient from '@/utils/apiClient';
 
-async function adminFetch(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('auth_token');
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || "管理員請求失敗");
+async function adminFetch(endpoint: string, options: any = {}) {
+  try {
+    const res = await apiClient.request({
+      url: `/admin${endpoint}`,
+      method: options.method || "GET",
+      data: options.body ? JSON.parse(options.body) : undefined,
+      headers: options.headers,
+    });
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || "管理員請求失敗");
   }
-  return res.json();
 }
 
 export const adminApi = {
@@ -59,16 +56,13 @@ export const adminApi = {
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const token = localStorage.getItem('auth_token');
-    const res = await fetch(`${BASE_URL}/upload-image`, {
-      method: 'POST',
-      headers: { "Authorization": `Bearer ${token}` },
-      body: formData
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.detail || "圖片上傳失敗");
+    try {
+      const res = await apiClient.post('/admin/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || "圖片上傳失敗");
     }
-    return res.json();
   },
 };

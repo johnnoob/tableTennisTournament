@@ -7,6 +7,7 @@ import { Trophy, MapPin, Scale, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
+import apiClient from '@/utils/apiClient';
 
 export function TournamentDetail() {
   const { id } = useParams();
@@ -17,9 +18,9 @@ export function TournamentDetail() {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/tournaments")
-      .then(res => res.json())
-      .then(data => {
+    apiClient.get('/tournaments')
+      .then(res => {
+        const data = res.data;
         const found = data.find((t: any) => t.id === id) || data[0];
         setTournament(found);
         setLoading(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import apiClient from '@/utils/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { RankingCard } from '@/components/RankingCard';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
@@ -227,8 +228,8 @@ export function Dashboard() {
     const fetchDashboardData = async () => {
       // 📣 抓取公告 (不需要 Token 的公共 API)
       try {
-        const annRes = await fetch("http://localhost:8000/api/announcements");
-        if (annRes.ok) setAnnouncements(await annRes.json());
+        const annRes = await apiClient.get<any[]>("/announcements");
+        setAnnouncements(annRes.data);
       } catch (e) { console.error("抓取公告失敗", e); }
 
       const savedToken = localStorage.getItem('auth_token');
@@ -238,24 +239,18 @@ export function Dashboard() {
       }
 
       try {
-        const feedRes = await fetch("http://localhost:8000/api/matches/recent", {
-          headers: { "Authorization": `Bearer ${savedToken}` }
-        });
-        if (feedRes.ok) setRecentFeed(await feedRes.json());
+        const feedRes = await apiClient.get<any[]>("/matches/recent");
+        setRecentFeed(feedRes.data);
 
-        const rivalsRes = await fetch("http://localhost:8000/api/users/me/rivals", {
-          headers: { "Authorization": `Bearer ${savedToken}` }
-        });
-        if (rivalsRes.ok) setRivals(await rivalsRes.json());
+        const rivalsRes = await apiClient.get<any>("/users/me/rivals");
+        setRivals(rivalsRes.data);
 
-        const partnersRes = await fetch("http://localhost:8000/api/users/me/partners", {
-          headers: { "Authorization": `Bearer ${savedToken}` }
-        });
-        if (partnersRes.ok) setPartners(await partnersRes.json());
+        const partnersRes = await apiClient.get<any>("/users/me/partners");
+        setPartners(partnersRes.data);
 
-        const leaderRes = await fetch("http://localhost:8000/api/leaderboard");
-        if (leaderRes.ok) {
-          const leaderData = await leaderRes.json();
+        const leaderRes = await apiClient.get<any>("/leaderboard");
+        if (leaderRes.data) {
+          const leaderData = leaderRes.data;
           const mapped = (leaderData.leaderboard || []).slice(0, 3).map((p: any) => ({
             id: p.player_id,
             name: p.player_name,
@@ -290,10 +285,8 @@ export function Dashboard() {
       const savedToken = localStorage.getItem('auth_token');
       if (!savedToken) return;
       try {
-        const statsRes = await fetch(`http://localhost:8000/api/users/me/stats?interval=${chartInterval}`, {
-          headers: { "Authorization": `Bearer ${savedToken}` }
-        });
-        if (statsRes.ok) setMyStats(await statsRes.json());
+        const statsRes = await apiClient.get<any>(`/users/me/stats?interval=${chartInterval}`);
+        setMyStats(statsRes.data);
       } catch (err) {
         console.error("無法分析戰力資料", err);
       }

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from '@/store/authStore'
+import apiClient from '@/utils/apiClient'
 
 // ===================== 選項常數 =====================
 const RUBBER_OPTIONS = [
@@ -83,26 +84,17 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
     if (!name.trim()) { setErrorMsg("顯示姓名不得為空"); return }
     setIsSaving(true)
     setErrorMsg("")
-    const token = localStorage.getItem('auth_token')
     const startTime = Date.now();
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
+      const res = await apiClient.patch('/users/me', {
           name: name.trim(),
           department: department.trim() || null,
           gender: gender || null,
           dominant_hand: dominantHand || null,
           rubber_forehand: forehand || null,
           rubber_backhand: backhand || null,
-        })
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || "儲存失敗")
-      }
-      const updated = await res.json()
+      });
+      const updated = res.data;
 
       // 🛑 Ensure at least 800ms duration for meaningful feedback
       const elapsedTime = Date.now() - startTime;

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
 import { useAuthStore } from '@/store/authStore';
+import apiClient from '@/utils/apiClient';
 
 export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,9 +34,9 @@ export function Leaderboard() {
 
   // 🌟 1. 抓取所有賽季清單
   useEffect(() => {
-    fetch('http://localhost:8000/api/seasons')
-      .then(res => res.json())
-      .then(data => {
+    apiClient.get('/seasons')
+      .then(res => {
+        const data = res.data;
         setSeasons(data);
         
         // 🌟 優先讀取網址中的 season_id
@@ -58,15 +59,12 @@ export function Leaderboard() {
       setIsLoading(true);
       try {
         const url = selectedSeason !== 'all-time'
-          ? `http://localhost:8000/api/leaderboard?season_id=${selectedSeason}`
-          : "http://localhost:8000/api/leaderboard";
+          ? `/leaderboard?season_id=${selectedSeason}`
+          : "/leaderboard";
 
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          setRealLeaderboard(data.leaderboard || []);
-          setSeasonName(data.season_name);
-        }
+        const res = await apiClient.get(url);
+        setRealLeaderboard(res.data.leaderboard || []);
+        setSeasonName(res.data.season_name);
       } catch (err) {
         console.error("無法取得排行榜資料", err);
       } finally {

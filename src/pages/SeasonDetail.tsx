@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import apiClient from '@/utils/apiClient';
 
 export function SeasonDetail() {
   const { id } = useParams();
@@ -24,17 +25,13 @@ export function SeasonDetail() {
       setLoading(true);
       try {
         // 1. Fetch Season Meta & Prizes
-        const seasonRes = await fetch(`http://localhost:8000/api/seasons/${id}`);
-        if (seasonRes.ok) {
-          setSeason(await seasonRes.json());
-        }
+        const seasonRes = await apiClient.get(`/seasons/${id}`);
+        setSeason(seasonRes.data);
 
         // 2. Fetch Top 5 Players for this season
-        const lbRes = await fetch(`http://localhost:8000/api/leaderboard?season_id=${id}`);
-        if (lbRes.ok) {
-          const lbData = await lbRes.json();
-          setTopPlayers((lbData.leaderboard || []).slice(0, 5));
-        }
+        const lbRes = await apiClient.get(`/leaderboard?season_id=${id}`);
+        const lbData = lbRes.data;
+        setTopPlayers((lbData.leaderboard || []).slice(0, 5));
       } catch (err) {
         console.error("Failed to fetch season details", err);
       } finally {
