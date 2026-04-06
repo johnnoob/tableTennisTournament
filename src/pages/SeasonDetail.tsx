@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,33 +15,26 @@ export function SeasonDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [season, setSeason] = useState<any>(null);
-  const [topPlayers, setTopPlayers] = useState<any[]>([]);
+  const { data: season, isPending: isSeasonLoading } = useQuery({
+    queryKey: ['seasons', 'detail', id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/seasons/${id}`);
+      return res.data;
+    },
+    enabled: !!id
+  });
 
-  useEffect(() => {
-    if (!id) return;
+  const { data: lbData, isPending: isLbLoading } = useQuery({
+    queryKey: ['leaderboard', id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/leaderboard?season_id=${id}`);
+      return res.data;
+    },
+    enabled: !!id
+  });
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // 1. Fetch Season Meta & Prizes
-        const seasonRes = await apiClient.get(`/seasons/${id}`);
-        setSeason(seasonRes.data);
-
-        // 2. Fetch Top 5 Players for this season
-        const lbRes = await apiClient.get(`/leaderboard?season_id=${id}`);
-        const lbData = lbRes.data;
-        setTopPlayers((lbData.leaderboard || []).slice(0, 5));
-      } catch (err) {
-        console.error("Failed to fetch season details", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
+  const loading = isSeasonLoading || isLbLoading;
+  const topPlayers = lbData?.leaderboard?.slice(0, 5) || [];
 
   // 🌟 動態倒數計時與進度條
   const [now, setNow] = useState(new Date());
@@ -249,7 +243,7 @@ export function SeasonDetail() {
               animate="visible"
               className="space-y-4"
             >
-              {topPlayers.map((player, idx) => (
+              {topPlayers.map((player: any, idx: number) => (
                 <motion.div
                   key={player.player_id}
                   variants={itemVariants}

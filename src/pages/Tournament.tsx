@@ -8,6 +8,7 @@ import { TournamentSkeleton } from '@/components/TournamentSkeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
 
 // Premium Empty State Component
@@ -58,51 +59,43 @@ function EmptyState({ icon: Icon, title, description, className }: { icon: any, 
 
 export function Tournament() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [tournamentList, setTournamentList] = useState<any[]>([]);
-  const [seasonList, setSeasonList] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('seasons');
   const [tournamentStatusFilter, setTournamentStatusFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(6);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
-
-  const fetchTournaments = async () => {
-    setIsLoading(true);
-    try {
-      const [tRes, sRes] = await Promise.all([
-        apiClient.get('/tournaments'),
-        apiClient.get('/seasons')
-      ]);
-      
-      setTournamentList(tRes.data);
-      setSeasonList(sRes.data);
-    } catch (err) {
-      console.error("Failed to fetch tournaments", err);
-    } finally {
-      setIsLoading(false);
+  const { data: tournamentList = [], isPending: isTournamentsLoading } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: async () => {
+      const res = await apiClient.get('/tournaments');
+      return res.data;
     }
-  };
+  });
 
-  // Reset pagination when filter or tab changes
+  const { data: seasonList = [], isPending: isSeasonsLoading } = useQuery({
+    queryKey: ['seasons', 'list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/seasons');
+      return res.data;
+    }
+  });
+
+  const isLoading = isTournamentsLoading || isSeasonsLoading;
   useEffect(() => {
     setVisibleCount(6);
   }, [tournamentStatusFilter, activeTab]);
 
   // Enhanced Filtering Logic for Tournaments
-  const filteredTournaments = tournamentList.filter(t => {
+  const filteredTournaments = tournamentList.filter((t: any) => {
     if (tournamentStatusFilter === 'all') return true;
     return t.status === tournamentStatusFilter;
   });
 
-  const displayHeroTournaments = filteredTournaments.filter(t => ['ongoing', 'registering'].includes(t.status));
-  const displayStandardTournaments = filteredTournaments.filter(t => !['ongoing', 'registering'].includes(t.status));
+  const displayHeroTournaments = filteredTournaments.filter((t: any) => ['ongoing', 'registering'].includes(t.status));
+  const displayStandardTournaments = filteredTournaments.filter((t: any) => !['ongoing', 'registering'].includes(t.status));
 
   // Filtering Logic for Seasons
-  const filteredSeasons = seasonList.filter(s => {
+  const filteredSeasons = seasonList.filter((s: any) => {
     if (tournamentStatusFilter === 'all') return true;
     if (tournamentStatusFilter === 'ongoing') return s.status === 'active';
     if (tournamentStatusFilter === 'completed') return s.status === 'completed';
@@ -266,7 +259,7 @@ export function Tournament() {
                       animate="visible"
                       className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6"
                     >
-                      {filteredSeasons.slice(0, visibleCount).map((s, idx) => (
+                      {filteredSeasons.slice(0, visibleCount).map((s: any, idx: number) => (
                         <motion.div key={s.id || idx} variants={itemVariants}>
                           <Card 
                             onClick={() => navigate(`/season/${s.id}`)}
@@ -349,7 +342,7 @@ export function Tournament() {
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider opacity-60">熱門活動進行中</p>
                           </div>
                         </div>
-                        {displayHeroTournaments.map((t, idx) => (
+                        {displayHeroTournaments.map((t: any, idx: number) => (
                           <motion.section 
                             key={t.id || idx} 
                             variants={fadeInUp}
@@ -413,7 +406,7 @@ export function Tournament() {
                           animate="visible"
                           className="grid grid-cols-1 2xl:grid-cols-2 gap-5"
                         >
-                          {displayStandardTournaments.slice(0, visibleCount).map((t, idx) => (
+                          {displayStandardTournaments.slice(0, visibleCount).map((t: any, idx: number) => (
                             <motion.div key={t.id || idx} variants={itemVariants}>
                               <Card 
                                 onClick={() => navigate(`/tournament/${t.id}`)}

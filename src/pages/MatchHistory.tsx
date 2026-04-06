@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
 import { MatchItem } from '@/components/MatchItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Trophy, XCircle, LayoutGrid, Loader2, Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Trophy, XCircle, LayoutGrid, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
@@ -16,55 +17,48 @@ export function MatchHistory() {
   const { user } = useAuthStore();
   const [filter, setFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [matches, setMatches] = useState<any[]>([]);
-  const [recentMatches, setRecentMatches] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const fetchMatches = useCallback(async (newFilter: 'all' | 'win' | 'loss', newOffset: number, append: boolean) => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) { setLoading(false); return; }
-
-    if (newOffset === 0) setLoading(true);
-    else setLoadingMore(true);
-
-    try {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useInfiniteQuery({
+    queryKey: ['matches', 'history', filter],
+    queryFn: async ({ pageParam = 0 }) => {
       const res = await apiClient.get(
-        `/users/me/matches?limit=${PAGE_SIZE}&offset=${newOffset}&result_filter=${newFilter}`
+        `/users/me/matches?limit=${PAGE_SIZE}&offset=${pageParam}&result_filter=${filter}`
       );
-      const data = res.data;
-      setMatches(prev => append ? [...prev, ...data.matches] : data.matches);
-      setTotal(data.total);
-      setHasMore(data.hasMore);
+      return res.data;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage.hasMore) return undefined;
+      return allPages.length * PAGE_SIZE;
+    },
+    enabled: !!localStorage.getItem('auth_token')
+  });
 
-      // 如果是第一次載入且篩選為 'all'，同步更新近況摘要用的數據
-      if (newFilter === 'all' && newOffset === 0) {
-        setRecentMatches(data.matches.slice(0, 5));
-      }
-    } catch (err) {
-      console.error('無法取得對戰紀錄', err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
+  const matches = data ? data.pages.flatMap(page => page.matches) : [];
+  const total = data?.pages[0]?.total || 0;
+  // We use the first page's matches to calculate recent matches when filter is 'all',
+  // but to keep it stable across filters, we ideally should have a separate query for recent form.
+  // However, mimicking the original behavior:
+  const recentMatches = filter === 'all' && data?.pages[0] ? data.pages[0].matches.slice(0, 5) : [];
+  const loading = isPending;
+
+  // Sentinel Ref for automatic triggering
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    if (node && hasNextPage && !loading && !searchQuery) {
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      }, { threshold: 0, rootMargin: '100px' });
+      observerRef.current.observe(node);
     }
-  }, []);
-
-  useEffect(() => {
-    setOffset(0);
-    fetchMatches(filter, 0, false);
-  }, [filter, fetchMatches]);
-
-  const handleLoadMore = () => {
-    const newOffset = offset + PAGE_SIZE;
-    setOffset(newOffset);
-    fetchMatches(filter, newOffset, true);
-  };
+  }, [hasNextPage, loading, isFetchingNextPage, searchQuery, fetchNextPage]);
 
   const displayed = searchQuery
-    ? matches.filter(m =>
+    ? matches.filter((m: any) =>
       [...(m.player1 || []), ...(m.opponent || [])].some((p: any) =>
         p.name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -74,15 +68,15 @@ export function MatchHistory() {
   // 根據「獨立的近況紀錄」計算固定數據 (不受 Timeline Filter 影響)
   const stats = useMemo(() => {
     // 使用 recentMatches 確保切換篩選器時數據保持不變
-    const wins = recentMatches.filter(m => m.result === 'win').length;
+    const wins = recentMatches.filter((m: any) => m.result === 'win').length;
     const losses = recentMatches.length - wins;
     const winRate = recentMatches.length > 0 ? Math.round((wins / recentMatches.length) * 100) : 0;
 
     // 計算近5場戰績 (Form Guide)
-    const recentForm = recentMatches.map(m => m.result === 'win' ? 'W' : 'L');
+    const recentForm = recentMatches.map((m: any) => m.result === 'win' ? 'W' : 'L');
 
     // 🌟 近五場積分變動計算 (及時回報近五場表現)
-    const netMmr = recentMatches.reduce((acc, m) => {
+    const netMmr = recentMatches.reduce((acc: number, m: any) => {
       const isTeamA = m.player1?.some((p: any) => String(p.id) === String(user?.id));
       const change = isTeamA ? (m.mmrChange?.[0] || 0) : (m.mmrChange?.[1] || 0);
       return acc + change;
@@ -93,7 +87,7 @@ export function MatchHistory() {
 
   return (
     <AnimatePresence mode="wait">
-      {loading && offset === 0 ? (
+      {loading ? (
         <motion.div
           key="skeleton"
           initial={{ opacity: 0 }}
@@ -196,22 +190,62 @@ export function MatchHistory() {
                   )}
                 </section>
 
-                {hasMore && !loading && !searchQuery && (
-                  <motion.div variants={fadeInUp} className="pt-4 pb-12">
-                    <Button
-                      variant="outline"
-                      onClick={handleLoadMore}
-                      disabled={loadingMore}
-                      className="w-full rounded-2xl border-none bg-white shadow-sm py-8 text-[11px] font-bold uppercase tracking-widest text-primary-navy hover:bg-slate-50 transition-all font-sans gap-3 shadow-slate-100"
+                {/* Modern Infinite Scroll Sentinel */}
+                <div 
+                  key={`${filter}-${searchQuery}`}
+                  ref={sentinelRef} 
+                  className="w-full flex flex-col items-center justify-center py-16 gap-4 min-h-[120px]"
+                >
+                  <AnimatePresence>
+                    {(isFetchingNextPage || (hasNextPage && loading)) && (
+                      <motion.div 
+                        key="loader"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col items-center gap-4"
+                      >
+                        <div className="flex gap-2">
+                          {[0, 1, 2].map((i) => (
+                            <motion.div 
+                              key={i}
+                              animate={{ 
+                                scale: [1, 1.5, 1],
+                                opacity: [0.3, 1, 0.3],
+                              }}
+                              transition={{ 
+                                duration: 1, 
+                                repeat: Infinity, 
+                                delay: i * 0.2 
+                              }}
+                              className="size-2.5 rounded-full bg-sapphire-blue shadow-[0_0_15px_rgba(15,82,186,0.3)]"
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-display font-black uppercase tracking-[0.4em] text-slate-400 italic">
+                          Syncing matches...
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {!hasNextPage && matches.length > 0 && !searchQuery && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      className="flex flex-col items-center gap-4 py-8"
                     >
-                      {loadingMore ? (
-                        <><Loader2 size={14} className="animate-spin" /> 載入中...</>
-                      ) : (
-                        `載入更多 (還有 ${total - offset - PAGE_SIZE > 0 ? total - offset - PAGE_SIZE : 0} 場)`
-                      )}
-                    </Button>
-                  </motion.div>
-                )}
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-px bg-gradient-to-r from-transparent to-slate-200" />
+                          <Trophy size={14} className="text-slate-300" />
+                          <div className="w-12 h-px bg-gradient-to-l from-transparent to-slate-200" />
+                       </div>
+                       <span className="text-[9px] font-display font-bold uppercase tracking-[0.6em] text-slate-300">
+                          Glory Awaits the Vigilant
+                       </span>
+                    </motion.div>
+                  )}
+                </div>
               </div>
 
               {/* 右側統計欄位 */}
@@ -254,7 +288,7 @@ export function MatchHistory() {
                       <div className="space-y-3">
                         <span className="text-xs font-black uppercase tracking-widest text-slate-400">近期表現 (Last 5)</span>
                         <div className="flex items-center gap-2">
-                          {stats.recentForm.length > 0 ? stats.recentForm.map((result, idx) => (
+                          {stats.recentForm.length > 0 ? stats.recentForm.map((result: string, idx: number) => (
                             <div
                               key={idx}
                               className={cn(

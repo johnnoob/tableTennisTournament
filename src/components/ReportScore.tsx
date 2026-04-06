@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/utils/apiClient'
 import { Plus, Minus, Trophy, User, CheckCircle2, Swords, Search } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -54,37 +55,85 @@ export function ReportScore({
   const [selectedOpponentId, setSelectedOpponentId] = React.useState<string | null>(initialOpponentId)
   const [selectedPartnerId, setSelectedPartnerId] = React.useState<string | null>(null)
   const [selectedOpponentIds, setSelectedOpponentIds] = React.useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
-  // 🌟 1. 新增一個 State 用來存真實玩家名單
-  const [realPlayers, setRealPlayers] = React.useState<any[]>([])
-  const [seasonPaused, setSeasonPaused] = React.useState(false)
 
+  const queryClient = useQueryClient();
 
-  // 🌟 2. 元件載入或打開時，去後端拉取玩家清單與系統狀態
-  React.useEffect(() => {
-    if (open) {
-      const fetchInitialData = async () => {
-        const token = localStorage.getItem('auth_token')
-        
-        try {
-          // 抓取公共設定
-          try {
-            const configRes = await apiClient.get("/config/public")
-            setSeasonPaused(configRes.data.season_paused === 'true')
-          } catch(e) {}
+  const { data: configData } = useQuery({
+    queryKey: ['config', 'public'],
+    queryFn: async () => {
+      const res = await apiClient.get("/config/public");
+      return res.data;
+    },
+    enabled: open
+  });
+  const seasonPaused = configData?.season_paused === 'true';
 
-          if (!token) return
-          // 抓取玩家清單
-          const res = await apiClient.get<any[]>("/users")
-          setRealPlayers(res.data)
-        } catch (err) {
-          console.error("無法取得初始化資料", err)
-        }
+  const { data: realPlayers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await apiClient.get<any[]>("/users");
+      return res.data;
+    },
+    enabled: open && !!localStorage.getItem('auth_token')
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (payload: any) => {
+      return apiClient.post("/matches", payload);
+    },
+    onMutate: async (newMatch) => {
+      await queryClient.cancelQueries({ queryKey: ['matches', 'recent'] });
+      const previousMatches = queryClient.getQueryData(['matches', 'recent']);
+
+      const optimisticMatch = {
+        id: 'temp-' + Date.now(),
+        score_a: newMatch.score_a,
+        score_b: newMatch.score_b,
+        match_type: newMatch.match_type,
+        created_at: new Date().toISOString(),
+        status: 'pending',
+      };
+
+      queryClient.setQueryData(['matches', 'recent'], (old: any) => {
+        return old ? [optimisticMatch, ...old] : [optimisticMatch];
+      });
+
+      return { previousMatches };
+    },
+    onError: (err, _newMatch, context) => {
+      if (context?.previousMatches) {
+        queryClient.setQueryData(['matches', 'recent'], context.previousMatches);
       }
-      fetchInitialData()
-    }
-  }, [open])
+      
+      let errorMessage = "報分失敗";
+      const errorData = (err as any).response?.data;
+      if (errorData?.detail) {
+        if (typeof errorData.detail === "string") {
+          errorMessage = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map((e: any) =>
+            `欄位 [${e.loc[e.loc.length - 1]}]: ${e.msg}`
+          ).join('\n');
+        }
+      } else if ((err as any).message) {
+          errorMessage = (err as any).message;
+      }
+      alert(`報分發生錯誤: ${errorMessage}`);
+    },
+    onSuccess: () => {
+      setIsSuccess(true);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'partners'] });
+    },
+  });
+
+  const isSubmitting = mutation.isPending;
 
   // Reset or initialize state when opening the dialog
   React.useEffect(() => {
@@ -143,12 +192,11 @@ export function ReportScore({
 
   const handleSubmit = async () => {
     if (seasonPaused || !isReady || !validation.valid || !currentUser) return
-    setIsSubmitting(true)
+    
     // 1. 從 Local Storage 取得識別證
     const token = localStorage.getItem('auth_token')
     if (!token) {
       alert("找不到登入資訊，請重新登入！")
-      setIsSubmitting(false)
       return
     }
 
@@ -157,40 +205,15 @@ export function ReportScore({
       score_a: scoreA,
       score_b: scoreB,
       match_type: matchType,
-      team_a_p1_id: currentUser.id, // 發起人 (注意：這裡暫時用假資料的 currentUser，下一步會教您怎麼換)
+      team_a_p1_id: currentUser.id,
       team_a_p2_id: matchType === 'doubles' ? selectedPartnerId : null,
       team_b_p1_id: matchType === 'singles' ? selectedOpponentId : selectedOpponentIds[0],
       team_b_p2_id: matchType === 'doubles' ? selectedOpponentIds[1] : null,
-      format: scoreA + scoreB >= 5 ? "BO5" : "BO3", // 根據總分判斷賽制
+      format: scoreA + scoreB >= 5 ? "BO5" : "BO3",
       reported_by: currentUser.id
     }
 
-    try {
-      // 3. 發送 POST 請求到您的 FastAPI 報分路由
-      await apiClient.post("/matches", payload)
-      
-      // 4. 成功！切換到成功畫面
-      window.dispatchEvent(new Event('match_updated'));
-      setIsSubmitting(false)
-      setIsSuccess(true)
-
-    } catch (error: any) {
-      let errorMessage = "報分失敗";
-      const errorData = error.response?.data;
-      if (errorData?.detail) {
-        if (typeof errorData.detail === "string") {
-          errorMessage = errorData.detail;
-        } else if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail.map((err: any) =>
-            `欄位 [${err.loc[err.loc.length - 1]}]: ${err.msg}`
-          ).join('\n');
-        }
-      } else if (error.message) {
-          errorMessage = error.message;
-      }
-      alert(`報分發生錯誤: ${errorMessage}`)
-      setIsSubmitting(false)
-    }
+    mutation.mutate(payload)
   }
 
   const content = (

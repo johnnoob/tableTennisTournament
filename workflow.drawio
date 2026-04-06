@@ -1,0 +1,97 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram name="TableTennisArchitecture_Detailed" id="tt_arch_detailed">
+    <mxGraphModel dx="1427" dy="849" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;fontColor=#000000;" value="Web Browser / User Client" vertex="1">
+          <mxGeometry height="50" width="200" x="500" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend_bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#000000;" value="Frontend (React + Vite + TS)" vertex="1">
+          <mxGeometry height="280" width="1000" x="100" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="fe_pages" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;fontColor=#000000;" value="Pages Layer (src/pages)&#xa;- Login, Dashboard, AdminDashboard&#xa;- Leaderboard, Tournament, TournamentDetail&#xa;- MatchHistory, SeasonDetail" vertex="1">
+          <mxGeometry height="80" width="240" x="140" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="fe_components" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;fontColor=#000000;" value="Components Layer (src/components)&#xa;- Domain: ReportScore, RankingCard, MatchItem&#xa;- Layout: Navigation, GlobalPlayerDrawer&#xa;- UI: ui/ (Shadcn) &amp; Skeletons" vertex="1">
+          <mxGeometry height="80" width="300" x="400" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="fe_state" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;fontColor=#000000;" value="State Management (src/store)&#xa;- authStore.ts (Zustand)&#xa;- Local UI State / Hooks" vertex="1">
+          <mxGeometry height="80" width="180" x="720" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="fe_api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;fontColor=#000000;" value="Lib, Utils &amp; Types (src/lib, src/utils, src/types)&#xa;- apiClient.ts (Axios Base)&#xa;- admin.ts, ranking.tsx, utils.ts&#xa;- mockData.ts, animations.ts" vertex="1">
+          <mxGeometry height="80" width="300" x="440" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="backend_bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#000000;" value="Backend (Python + FastAPI)" vertex="1">
+          <mxGeometry height="300" width="1000" x="100" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="be_routers" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;fontColor=#000000;" value="API Routers Layer (backend/routers)&#xa;- auth.py, admin.py, users.py&#xa;- matches.py, leaderboard.py&#xa;- seasons.py, content.py" vertex="1">
+          <mxGeometry height="80" width="260" x="140" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="be_services" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=10;fontColor=#000000;" value="Business Logic Services (backend/services)&#xa;- elo_engine.py (積分計算核心)&#xa;- auth_jwt.py (驗證與 Token 管理)&#xa;- season_service.py (賽季結算與管理)&#xa;- scheduler.py (排程任務)" vertex="1">
+          <mxGeometry height="80" width="280" x="440" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="be_schemas" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;fontColor=#000000;" value="Data Transfer Objects&#xa;- schemas.py (Pydantic Validation)" vertex="1">
+          <mxGeometry height="60" width="260" x="140" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="be_models" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;fontColor=#000000;" value="ORM, DB &amp; Scripts (backend/)&#xa;- models.py (SQLAlchemy Models)&#xa;- database.py (Engine &amp; Session)&#xa;- seed.py (DB Initialization)" vertex="1">
+          <mxGeometry height="70" width="280" x="440" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="database" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontColor=#000000;" value="SQLite Database&#xa;(arena.db)" vertex="1">
+          <mxGeometry height="80" width="140" x="510" y="790" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_client_fe" edge="1" parent="1" source="client" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="fe_pages">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="100" />
+              <mxPoint x="260" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_fe_pages_comp" edge="1" parent="1" source="fe_pages" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="fe_components">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_fe_comp_state" edge="1" parent="1" source="fe_components" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="fe_state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_fe_pages_api" edge="1" parent="1" source="fe_pages" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="fe_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_fe_state_api" edge="1" parent="1" source="fe_state" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="fe_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_api_routers" edge="1" parent="1" source="fe_api" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#000000;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="be_routers">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="410" />
+              <mxPoint x="270" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_be_routers_services" edge="1" parent="1" source="be_routers" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="be_services">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_be_routers_schemas" edge="1" parent="1" source="be_routers" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="be_schemas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_be_services_models" edge="1" parent="1" source="be_services" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;" target="be_models">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_be_schemas_models" edge="1" parent="1" source="be_schemas" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#333333;dashed=1;" target="be_models">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_be_db" edge="1" parent="1" source="be_models" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#000000;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

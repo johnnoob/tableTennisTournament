@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { players } from '@/data/mockData';
 import { Card } from '@/components/ui/card';
@@ -13,20 +14,16 @@ export function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tournament, setTournament] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(new Date());
+  const { data: tournaments, isPending: loading } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: async () => {
+      const res = await apiClient.get('/tournaments');
+      return res.data;
+    }
+  });
 
-  useEffect(() => {
-    apiClient.get('/tournaments')
-      .then(res => {
-        const data = res.data;
-        const found = data.find((t: any) => t.id === id) || data[0];
-        setTournament(found);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [id]);
+  const tournament = tournaments?.find((t: any) => t.id === id) || tournaments?.[0];
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     if (!tournament || tournament.status === 'completed') return;
@@ -213,11 +210,11 @@ export function TournamentDetail() {
 
                   <Card className="no-line-card rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-primary-navy/5 transition-all duration-700 relative p-0">
                     <div className="h-56 relative overflow-hidden">
-                      <img src={prize.image} alt={prize.item} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
+                      <img src={prize.image_url} alt={prize.item_name} className="size-full object-cover transform group-hover:scale-110 transition-transform duration-1000" />
                     </div>
                     <div className="p-6 text-center">
                       <span className="text-xs uppercase font-sans font-black text-sapphire-blue tracking-tighter block mb-2">{prize.label}</span>
-                      <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">{prize.item}</h4>
+                      <h4 className="font-display font-bold text-primary-navy text-lg leading-tight mb-2">{prize.item_name}</h4>
                       <p className="text-xs text-slate-500 font-sans">{prize.description}</p>
                     </div>
                   </Card>

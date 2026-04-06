@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '@/utils/apiClient';
 import { useNavigate } from 'react-router-dom';
@@ -207,92 +208,81 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-
-  const [recentFeed, setRecentFeed] = useState<any[]>([]);
-  const [feedLoading, setFeedLoading] = useState(true);
-  const [myStats, setMyStats] = useState<any>(null);
   const [chartInterval, setChartInterval] = useState<string>('recent');
-  const [rivals, setRivals] = useState<{ nemesis: any[], minions: any[] }>({ nemesis: [], minions: [] });
-  const [topPlayers, setTopPlayers] = useState<any[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [partners, setPartners] = useState<{ golden_partners: any[], worst_partners: any[] }>({ golden_partners: [], worst_partners: [] });
-  const [announcements, setAnnouncements] = useState<any[]>([]);
 
-  useEffect(() => {
-    const handleUpdate = () => setRefreshTrigger(prev => prev + 1);
-    window.addEventListener('match_updated', handleUpdate);
-    return () => window.removeEventListener('match_updated', handleUpdate);
-  }, []);
+  const hasToken = !!localStorage.getItem('auth_token');
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      // 📣 抓取公告 (不需要 Token 的公共 API)
-      try {
-        const annRes = await apiClient.get<any[]>("/announcements");
-        setAnnouncements(annRes.data);
-      } catch (e) { console.error("抓取公告失敗", e); }
+  const { data: announcements = [] } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: async () => {
+      const res = await apiClient.get<any[]>("/announcements");
+      return res.data;
+    }
+  });
 
-      const savedToken = localStorage.getItem('auth_token');
-      if (!savedToken) {
-        setFeedLoading(false);
-        return;
-      }
+  const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
+    queryKey: ['matches', 'recent'],
+    queryFn: async () => {
+      const res = await apiClient.get<any[]>("/matches/recent");
+      return res.data;
+    },
+    enabled: hasToken,
+  });
 
-      try {
-        const feedRes = await apiClient.get<any[]>("/matches/recent");
-        setRecentFeed(feedRes.data);
+  const { data: rivals = { nemesis: [], minions: [] }, isPending: isRivalsLoading } = useQuery({
+    queryKey: ['users', 'me', 'rivals'],
+    queryFn: async () => {
+      const res = await apiClient.get<any>("/users/me/rivals");
+      return res.data;
+    },
+    enabled: hasToken,
+  });
 
-        const rivalsRes = await apiClient.get<any>("/users/me/rivals");
-        setRivals(rivalsRes.data);
+  const { data: partners = { golden_partners: [], worst_partners: [] }, isPending: isPartnersLoading } = useQuery({
+    queryKey: ['users', 'me', 'partners'],
+    queryFn: async () => {
+      const res = await apiClient.get<any>("/users/me/partners");
+      return res.data;
+    },
+    enabled: hasToken,
+  });
 
-        const partnersRes = await apiClient.get<any>("/users/me/partners");
-        setPartners(partnersRes.data);
+  const { data: topPlayers = [], isPending: isLeaderboardLoading } = useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: async () => {
+      const leaderRes = await apiClient.get<any>("/leaderboard");
+      if (!leaderRes.data || !leaderRes.data.leaderboard) return [];
+      return leaderRes.data.leaderboard.slice(0, 3).map((p: any) => ({
+        id: p.player_id,
+        name: p.player_name,
+        username: p.player_name,
+        rank: p.rank,
+        rating: Math.round(p.season_lp),
+        mmr: p.global_mmr ? Math.round(p.global_mmr) : Math.round(p.season_lp),
+        avatar: p.avatar_url || '/api/placeholder/150/150',
+        isVerified: p.rank != "-" && parseInt(p.rank) <= 2,
+        department: p.department,
+        stats: {
+          wins: p.wins,
+          losses: p.matches_played - p.wins,
+          winRate: parseFloat(p.win_rate),
+          avgScore: 0,
+        },
+      }));
+    },
+    enabled: hasToken,
+  });
 
-        const leaderRes = await apiClient.get<any>("/leaderboard");
-        if (leaderRes.data) {
-          const leaderData = leaderRes.data;
-          const mapped = (leaderData.leaderboard || []).slice(0, 3).map((p: any) => ({
-            id: p.player_id,
-            name: p.player_name,
-            username: p.player_name,
-            rank: p.rank,
-            rating: Math.round(p.season_lp),
-            mmr: p.global_mmr ? Math.round(p.global_mmr) : Math.round(p.season_lp),
-            avatar: p.avatar_url || '/api/placeholder/150/150',
-            isVerified: p.rank != "-" && parseInt(p.rank) <= 2,
-            department: p.department,
-            stats: {
-              wins: p.wins,
-              losses: p.matches_played - p.wins,
-              winRate: parseFloat(p.win_rate),
-              avgScore: 0,
-            },
-          }));
-          setTopPlayers(mapped);
-        }
-      } catch (err) {
-        console.error("無法連線後端抓取資料", err);
-      } finally {
-        setFeedLoading(false);
-      }
-    };
+  const { data: myStats, isPending: isStatsLoading } = useQuery({
+    queryKey: ['users', 'me', 'stats', chartInterval],
+    queryFn: async () => {
+      const statsRes = await apiClient.get<any>(`/users/me/stats?interval=${chartInterval}`);
+      return statsRes.data;
+    },
+    enabled: hasToken,
+  });
 
-    fetchDashboardData();
-  }, [refreshTrigger]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      const savedToken = localStorage.getItem('auth_token');
-      if (!savedToken) return;
-      try {
-        const statsRes = await apiClient.get<any>(`/users/me/stats?interval=${chartInterval}`);
-        setMyStats(statsRes.data);
-      } catch (err) {
-        console.error("無法分析戰力資料", err);
-      }
-    };
-    fetchStats();
-  }, [chartInterval, refreshTrigger]);
+  const feedLoading = isFeedLoading || isRivalsLoading || isPartnersLoading || isLeaderboardLoading || isStatsLoading;
 
   return (
     <AnimatePresence mode="wait">
@@ -503,7 +493,7 @@ export function Dashboard() {
                   </Button>
                 </div>
                 <div className="space-y-4">
-                  {topPlayers.length > 0 ? topPlayers.map(player => (
+                  {topPlayers.length > 0 ? topPlayers.map((player: any) => (
                     <div key={player.id}>
                       <RankingCard player={player} />
                     </div>

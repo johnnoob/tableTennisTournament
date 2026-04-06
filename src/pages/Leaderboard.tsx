@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Timer, Crown, History } from 'lucide-react';
 import { getTierBadge } from '@/lib/ranking';
@@ -15,80 +16,53 @@ export function Leaderboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentUser } = useAuthStore();
 
-  // 🌟 動態賽季狀態
-  const [seasons, setSeasons] = useState<any[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const urlSeasonId = searchParams.get('season_id');
+  const [selectedSeason, setSelectedSeason] = useState<string>(urlSeasonId || '');
 
-  const [realLeaderboard, setRealLeaderboard] = useState<any[]>([]);
-  const [seasonName, setSeasonName] = useState<string>("讀取中...");
-  const [isLoading, setIsLoading] = useState(true);
-
-  // 🌟 加入全域更新觸發器 (跟 Dashboard 一樣)
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { data: seasons = [], isPending: isSeasonsLoading } = useQuery({
+    queryKey: ['seasons', 'list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/seasons');
+      return res.data;
+    }
+  });
 
   useEffect(() => {
-    const handleUpdate = () => setRefreshTrigger(prev => prev + 1);
-    window.addEventListener('match_updated', handleUpdate);
-    return () => window.removeEventListener('match_updated', handleUpdate);
-  }, []);
+    if (!selectedSeason && seasons.length > 0) {
+      setSelectedSeason(seasons[0].id);
+    }
+  }, [seasons, selectedSeason]);
 
-  // 🌟 1. 抓取所有賽季清單
-  useEffect(() => {
-    apiClient.get('/seasons')
-      .then(res => {
-        const data = res.data;
-        setSeasons(data);
-        
-        // 🌟 優先讀取網址中的 season_id
-        const urlSeasonId = searchParams.get('season_id');
-        
-        if (urlSeasonId) {
-          setSelectedSeason(urlSeasonId);
-        } else if (data.length > 0 && !selectedSeason) {
-          setSelectedSeason(data[0].id);
-        }
-      })
-      .catch(err => console.error("無法取得賽季清單", err));
-  }, [refreshTrigger]);
+  const { data: leaderboardData, isPending: isLeaderboardLoading } = useQuery({
+    queryKey: ['leaderboard', selectedSeason],
+    queryFn: async () => {
+      const url = selectedSeason !== 'all-time'
+        ? `/leaderboard?season_id=${selectedSeason}`
+        : "/leaderboard";
+      const res = await apiClient.get(url);
+      return res.data;
+    },
+    enabled: !!selectedSeason
+  });
 
-  // 🌟 2. 抓取該賽季的排行榜
-  useEffect(() => {
-    if (!selectedSeason) return;
+  const realLeaderboard = leaderboardData?.leaderboard || [];
+  const seasonName = leaderboardData?.season_name || "讀取中...";
+  const isLoading = isSeasonsLoading || isLeaderboardLoading;
 
-    const fetchLeaderboard = async () => {
-      setIsLoading(true);
-      try {
-        const url = selectedSeason !== 'all-time'
-          ? `/leaderboard?season_id=${selectedSeason}`
-          : "/leaderboard";
-
-        const res = await apiClient.get(url);
-        setRealLeaderboard(res.data.leaderboard || []);
-        setSeasonName(res.data.season_name);
-      } catch (err) {
-        console.error("無法取得排行榜資料", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-  }, [selectedSeason, refreshTrigger]);
-
-  const currentSeasonObj = seasons.find(s => s.id === selectedSeason);
+  const currentSeasonObj = seasons.find((s: any) => s.id === selectedSeason);
   const isSeasonEnded = currentSeasonObj?.status === 'completed';
   const isAllTime = selectedSeason === 'all-time';
   const showPodium = (isSeasonEnded || isAllTime) && !searchTerm;
 
   const sortedPlayers = useMemo(() => {
-    return realLeaderboard.filter(p =>
+    return realLeaderboard.filter((p: any) =>
       p.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.department && p.department.includes(searchTerm))
     );
   }, [realLeaderboard, searchTerm]);
 
   const podiumPlayers = useMemo(() => {
-    return sortedPlayers.filter(p => p.rank !== '-').slice(0, 3);
+    return sortedPlayers.filter((p: any) => p.rank !== '-').slice(0, 3);
   }, [sortedPlayers]);
 
   return (
@@ -159,7 +133,7 @@ export function Leaderboard() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {seasons.map((s) => (
+                {seasons.map((s: any) => (
                   <SelectItem key={s.id} value={s.id} className="font-bold">
                     {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
                   </SelectItem>
@@ -282,7 +256,7 @@ export function Leaderboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {sortedPlayers.map((player) => {
+                  {sortedPlayers.map((player: any) => {
                     const rank = player.rank;
                     const tier = getTierBadge(player.global_mmr);
                     const isTop1 = rank === 1 && showPodium;

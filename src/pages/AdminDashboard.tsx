@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings, 
@@ -23,7 +24,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { adminApi } from '@/lib/admin';
 import apiClient from '@/utils/apiClient';
-import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize, AdminParticipantResponse } from '@/types/admin';
+import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize } from '@/types/admin';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -57,44 +58,46 @@ const tabs = [
 
 export function AdminDashboard() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
-  const [loading, setLoading] = useState(true);
-  
-  // State for various data
-  const [configs, setConfigs] = useState<SystemConfig[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [tournaments, setTournaments] = useState<TournamentEvent[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]); // To select season for prizes
+
+  // Fetch configs
+  const { data: configs = [], isLoading: isConfigsLoading } = useQuery({
+    queryKey: ['admin', 'configs'],
+    queryFn: () => adminApi.getConfigs()
+  });
+
+  // Fetch announcements
+  const { data: announcements = [], isLoading: isAnnouncementsLoading } = useQuery({
+    queryKey: ['admin', 'announcements'],
+    queryFn: () => adminApi.getAnnouncements()
+  });
+
+  // Fetch tournaments
+  const { data: tournaments = [], isLoading: isTournamentsLoading } = useQuery({
+    queryKey: ['admin', 'tournaments'],
+    queryFn: () => adminApi.getTournaments()
+  });
+
+  // Fetch seasons
+  const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery({
+    queryKey: ['seasons', 'list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/seasons');
+      return res.data;
+    }
+  });
+
+  const loading = isConfigsLoading || isAnnouncementsLoading || isTournamentsLoading || isSeasonsLoading;
   
   // Security: Redirect if not admin
   if (user && user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
-    setLoading(true);
-    try {
-      const [cfg, ann, tour] = await Promise.all([
-        adminApi.getConfigs(),
-        adminApi.getAnnouncements(),
-        adminApi.getTournaments(),
-      ]);
-      setConfigs(cfg);
-      setAnnouncements(ann);
-      setTournaments(tour);
-      
-      // Fetch seasons from existing leaderboard/season API if available
-      const sRes = await apiClient.get('/seasons');
-      setSeasons(sRes.data);
-    } catch (err) {
-      console.error("Failed to fetch admin data", err);
-    } finally {
-      setLoading(false);
-    }
+  const handleUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin'] });
+    queryClient.invalidateQueries({ queryKey: ['seasons'] });
   };
 
   return (
@@ -119,19 +122,19 @@ export function AdminDashboard() {
         <div className="flex gap-4">
             <Card className={cn(
                 "px-6 py-4 flex items-center gap-4 border-none shadow-lg transition-all duration-500",
-                configs.find(c => c.key === 'season_paused')?.value === 'true' 
+                configs.find((c: any) => c.key === 'season_paused')?.value === 'true' 
                     ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" 
                     : "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
             )}>
                 <div className={cn(
                     "size-10 rounded-xl flex items-center justify-center",
-                    configs.find(c => c.key === 'season_paused')?.value === 'true' ? "bg-rose-100" : "bg-emerald-100"
+                    configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? "bg-rose-100" : "bg-emerald-100"
                 )}>
-                    {configs.find(c => c.key === 'season_paused')?.value === 'true' ? <Pause size={20} /> : <Play size={20} />}
+                    {configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? <Pause size={20} /> : <Play size={20} />}
                 </div>
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-70">賽季狀態</p>
-                    <p className="font-bold">{configs.find(c => c.key === 'season_paused')?.value === 'true' ? '已暫停報分' : '正常運作中'}</p>
+                    <p className="font-bold">{configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? '已暫停報分' : '正常運作中'}</p>
                 </div>
             </Card>
         </div>
@@ -181,10 +184,10 @@ export function AdminDashboard() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
-              {activeTab === 'general' && <GeneralConfig configs={configs} onUpdate={fetchInitialData} />}
-              {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={fetchInitialData} />}
-              {activeTab === 'prizes' && <PrizeManager seasons={seasons} onUpdate={fetchInitialData} />}
-              {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={fetchInitialData} />}
+              {activeTab === 'general' && <GeneralConfig configs={configs} onUpdate={handleUpdate} />}
+              {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={handleUpdate} />}
+              {activeTab === 'prizes' && <PrizeManager seasons={seasons} onUpdate={handleUpdate} />}
+              {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={handleUpdate} />}
             </motion.div>
           </AnimatePresence>
         )}
@@ -198,45 +201,44 @@ export function AdminDashboard() {
 // ==========================================
 
 function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdate: () => void }) {
-    const isPaused = configs.find(c => c.key === 'season_paused')?.value === 'true';
-    const intervalDays = configs.find(c => c.key === 'season_interval_days')?.value || '90';
-    const intervalHours = configs.find(c => c.key === 'season_interval_hours')?.value || '0';
-    const intervalMinutes = configs.find(c => c.key === 'season_interval_minutes')?.value || '0';
-    const startDate = configs.find(c => c.key === 'season_start_date')?.value || '';
+    const isPaused = configs.find((c: any) => c.key === 'season_paused')?.value === 'true';
+    const intervalDays = configs.find((c: any) => c.key === 'season_interval_days')?.value || '90';
+    const intervalHours = configs.find((c: any) => c.key === 'season_interval_hours')?.value || '0';
+    const intervalMinutes = configs.find((c: any) => c.key === 'season_interval_minutes')?.value || '0';
+    const startDate = configs.find((c: any) => c.key === 'season_start_date')?.value || '';
 
     const [localDays, setLocalDays] = useState(intervalDays);
     const [localHours, setLocalHours] = useState(intervalHours);
     const [localMinutes, setLocalMinutes] = useState(intervalMinutes);
     const [localStartDate, setLocalStartDate] = useState(startDate);
-    const [saving, setSaving] = useState(false);
 
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            await Promise.all([
-                adminApi.updateConfig('season_interval_days', localDays),
-                adminApi.updateConfig('season_interval_hours', localHours),
-                adminApi.updateConfig('season_interval_minutes', localMinutes),
-                adminApi.updateConfig('season_start_date', localStartDate),
-            ]);
+    const updateConfigsMutation = useMutation({
+        mutationFn: async (updates: { key: string, value: string }[]) => {
+            return Promise.all(updates.map(u => adminApi.updateConfig(u.key, u.value)));
+        },
+        onSuccess: () => {
             onUpdate();
             toast.success("系統設定已更新！");
-        } catch (err: any) {
+        },
+        onError: (err: any) => {
             toast.error("更新失敗", { description: err.message || "請檢查網路連線" });
-        } finally {
-            setSaving(false);
         }
+    });
+
+    const handleSave = () => {
+        updateConfigsMutation.mutate([
+            { key: 'season_interval_days', value: localDays },
+            { key: 'season_interval_hours', value: localHours },
+            { key: 'season_interval_minutes', value: localMinutes },
+            { key: 'season_start_date', value: localStartDate },
+        ]);
     };
 
-    const handleTogglePause = async () => {
-        setSaving(true);
-        try {
-            await adminApi.updateConfig('season_paused', String(!isPaused));
-            onUpdate();
-        } finally {
-            setSaving(false);
-        }
+    const handleTogglePause = () => {
+        updateConfigsMutation.mutate([{ key: 'season_paused', value: String(!isPaused) }]);
     };
+
+    const saving = updateConfigsMutation.isPending;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -357,19 +359,41 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
         is_active: true
     });
 
-    const handleCreate = async (data: any) => {
-        try {
-            if (editingId) {
-                await adminApi.updateAnnouncement(editingId, data);
-            } else {
-                await adminApi.createAnnouncement(data);
-            }
+    const createMutation = useMutation({
+        mutationFn: (data: any) => adminApi.createAnnouncement(data),
+        onSuccess: () => {
+            setIsAdding(false);
+            onUpdate();
+            toast.success("公告發布成功");
+        },
+        onError: (err: any) => toast.error("發布失敗", { description: err.message })
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: (data: { id: string, payload: any }) => adminApi.updateAnnouncement(data.id, data.payload),
+        onSuccess: () => {
             setIsAdding(false);
             setEditingId(null);
             onUpdate();
-            toast.success(editingId ? "公告已更新" : "公告發布成功");
-        } catch (err: any) { 
-            toast.error(editingId ? "更新失敗" : "發布失敗", { description: err.message });
+            toast.success("公告已更新");
+        },
+        onError: (err: any) => toast.error("更新失敗", { description: err.message })
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => adminApi.deleteAnnouncement(id),
+        onSuccess: () => {
+            onUpdate();
+            toast.success("公告已刪除");
+        },
+        onError: (err: any) => toast.error("刪除失敗", { description: err.message })
+    });
+
+    const handleCreate = (data: any) => {
+        if (editingId) {
+            updateMutation.mutate({ id: editingId, payload: data });
+        } else {
+            createMutation.mutate(data);
         }
     };
 
@@ -386,15 +410,9 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
         setIsAdding(true);
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = (id: string) => {
         if (!confirm("確定要刪除這條公告嗎？")) return;
-        try {
-            await adminApi.deleteAnnouncement(id);
-            onUpdate();
-            toast.success("公告已刪除");
-        } catch (err: any) { 
-            toast.error("刪除失敗", { description: err.message });
-        }
+        deleteMutation.mutate(id);
     };
 
     const getTypeBadge = (type: string) => {
@@ -641,48 +659,52 @@ function ResponsiveAnnouncementModal({ isOpen, onClose, title, data, onSave, get
 
 function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => void }) {
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]?.id || '');
-    const [prizes, setPrizes] = useState<SeasonPrize[]>([]);
     const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
 
+    const { data: prizes = [], refetch: fetchPrizes } = useQuery({
+        queryKey: ['admin', 'prizes', selectedSeason],
+        queryFn: () => adminApi.getSeasonPrizes(selectedSeason),
+        enabled: !!selectedSeason
+    });
+
     useEffect(() => {
-        if (selectedSeason) fetchPrizes();
         setExtraPrizes([]);
     }, [selectedSeason]);
 
-    const fetchPrizes = async () => {
-        try {
-            const data = await adminApi.getSeasonPrizes(selectedSeason);
-            setPrizes(data);
-        } catch (err) { console.error(err); }
-    };
-
-    const handleSavePrize = async (p: Partial<SeasonPrize>) => {
-        try {
-            if (p.id) {
-                await adminApi.updateSeasonPrize(p.id, p);
-            } else {
-                await adminApi.saveSeasonPrize({ ...p, season_id: selectedSeason });
-            }
+    const saveMutation = useMutation({
+        mutationFn: (p: Partial<SeasonPrize>) => {
+            if (p.id) return adminApi.updateSeasonPrize(p.id, p);
+            return adminApi.saveSeasonPrize({ ...p, season_id: selectedSeason });
+        },
+        onSuccess: (_res, variables) => {
             fetchPrizes();
-            setExtraPrizes(prev => prev.filter(ep => ep !== p));
+            if (!variables.id) {
+                setExtraPrizes(prev => prev.filter(ep => ep !== variables));
+            }
             toast.success("獎項已更新");
             onUpdate();
-        } catch (err: any) { 
-            toast.error("儲存失敗", { description: err.message });
-        }
-    };
+        },
+        onError: (err: any) => toast.error("儲存失敗", { description: err.message })
+    });
 
-    const handleDeletePrize = async (id?: string) => {
-        if (!id) return;
-        if (!confirm("確定要刪除這個獎項嗎？")) return;
-        try {
-            await adminApi.deleteSeasonPrize(id);
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => adminApi.deleteSeasonPrize(id),
+        onSuccess: () => {
             fetchPrizes();
             onUpdate();
             toast.success("獎項已刪除");
-        } catch (err: any) { 
-            toast.error("刪除失敗", { description: err.message });
-        }
+        },
+        onError: (err: any) => toast.error("刪除失敗", { description: err.message })
+    });
+
+    const handleSavePrize = (p: Partial<SeasonPrize>) => {
+        saveMutation.mutate(p);
+    };
+
+    const handleDeletePrize = (id?: string) => {
+        if (!id) return;
+        if (!confirm("確定要刪除這個獎項嗎？")) return;
+        deleteMutation.mutate(id);
     };
 
     return (
@@ -713,7 +735,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                 {/* Standard Ranks 1, 2, 3 */}
                 {[1, 2, 3].map(rank => {
                     // 優先找到該名次的獎項，不論有無標籤
-                    const prize = prizes.find(p => p.rank === rank);
+                    const prize = (prizes as SeasonPrize[]).find((p: SeasonPrize) => p.rank === rank);
                     return (
                         <PrizeFormCard 
                             key={`rank-${rank}`} 
@@ -726,7 +748,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                 })}
 
                 {/* Existing Extra / Labelled Prizes (排除已經在 1, 2, 3 顯示的) */}
-                {prizes.filter(p => p.rank <= 0 || p.rank > 3).map(prize => (
+                {(prizes as SeasonPrize[]).filter((p: SeasonPrize) => (p.rank || 0) <= 0 || (p.rank || 0) > 3).map((prize: SeasonPrize) => (
                     <PrizeFormCard 
                         key={prize.id} 
                         prize={prize} 
@@ -736,7 +758,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                 ))}
 
                 {/* Temporary New Extra Prizes */}
-                {extraPrizes.map((p, idx) => (
+                {extraPrizes.map((p: any, idx: number) => (
                     <PrizeFormCard 
                         key={`extra-${idx}`}
                         prize={p as SeasonPrize}
@@ -753,7 +775,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
 function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: { 
     rank?: number, 
     prize?: SeasonPrize, 
-    onSave: (p: Partial<SeasonPrize>) => void, 
+    onSave: (p: any) => void, 
     onDelete: (id?: string) => void,
     isNew?: boolean
 }) {
@@ -916,7 +938,6 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentEvent[], onUpdate: () => void }) {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedTourn, setSelectedTourn] = useState<string | null>(null);
-    const [participants, setParticipants] = useState<AdminParticipantResponse[]>([]);
     
     // Create Form
     const [formData, setFormData] = useState({ 
@@ -927,27 +948,39 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
         end_date: ''
     });
 
-    useEffect(() => {
-        if (selectedTourn) fetchParticipants();
-    }, [selectedTourn]);
+    const { data: participants = [], refetch: fetchParticipants } = useQuery({
+        queryKey: ['admin', 'tournament-participants', selectedTourn],
+        queryFn: () => adminApi.getParticipants(selectedTourn!),
+        enabled: !!selectedTourn
+    });
 
-    const fetchParticipants = async () => {
-        if (!selectedTourn) return;
-        const res = await adminApi.getParticipants(selectedTourn);
-        setParticipants(res);
+    const createMutation = useMutation({
+        mutationFn: (data: any) => adminApi.createTournament(data),
+        onSuccess: () => {
+            setIsAdding(false);
+            setFormData({ title: '', rules: '', image_url: '', start_date: '', end_date: '' });
+            onUpdate();
+            toast.success("賽事建立成功");
+        },
+        onError: (err: any) => toast.error("建立失敗", { description: err.message })
+    });
+
+    const removeParticipantMutation = useMutation({
+        mutationFn: (userId: string) => adminApi.removeParticipant(selectedTourn!, userId),
+        onSuccess: () => {
+            fetchParticipants();
+            toast.success("已移除參賽者");
+        },
+        onError: (err: any) => toast.error("移除失敗", { description: err.message })
+    });
+
+    const handleCreate = () => {
+        createMutation.mutate(formData);
     };
 
-    const handleCreate = async () => {
-        await adminApi.createTournament(formData);
-        setIsAdding(false);
-        setFormData({ title: '', rules: '', image_url: '', start_date: '', end_date: '' });
-        onUpdate();
-    };
-
-    const handleRemovePlayer = async (userId: string) => {
+    const handleRemovePlayer = (userId: string) => {
         if (!selectedTourn) return;
-        await adminApi.removeParticipant(selectedTourn, userId);
-        fetchParticipants();
+        removeParticipantMutation.mutate(userId);
     };
 
     return (
