@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
@@ -58,22 +59,17 @@ const getRemainingTimeStr = (expiresAtStr?: string) => {
 
 export function PendingActions() {
   const { user: currentUser } = useAuthStore();
-  const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
 
-  // 🌟 一開網頁就去後端撈取我的待確認清單
-  useEffect(() => {
-    const fetchPending = async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-      try {
-        const res = await apiClient.get<PendingMatch[]>("/matches/pending");
-        setPendingMatches(res.data);
-      } catch (err) {
-        console.error("無法取得待確認比賽", err);
-      }
-    };
-    fetchPending();
-  }, []);
+  // 🌟 使用 React Query 撈取待確認清單
+  const { data: pendingMatches = [] } = useQuery({
+    queryKey: ['matches', 'pending'],
+    queryFn: async () => {
+      const res = await apiClient.get<PendingMatch[]>("/matches/pending");
+      return res.data;
+    },
+    enabled: !!localStorage.getItem('auth_token'),
+    refetchInterval: 10000, // 每 10 秒自動刷新一次，確保即時性
+  });
 
   if (pendingMatches.length === 0) return null;
 
@@ -134,6 +130,7 @@ function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
 }
 
 function ActionMatchCard({ match }: { match: PendingMatch }) {
+  const queryClient = useQueryClient();
   const opponentPlayers = match.opponent;
   const isLoss = match.score[1] < match.score[0];
   const lpChange = match.mmrChange[1];
@@ -148,10 +145,16 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
 
   const handleConfirmAction = async () => {
     setIsConfirming(true);
-    // 🌟 發送真實的 Confirm 請求給 FastAPI
     try {
       await apiClient.post(`/matches/${match.id}/confirm`);
-      window.dispatchEvent(new Event('match_updated'));
+      // 🌟 核心數據刷新
+      queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'partners'] });
+      
       setIsConfirming(false);
       setIsSuccess(true);
     } catch (err: any) {
@@ -164,7 +167,6 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
     setOpen(false);
     setTimeout(() => {
       setIsSuccess(false);
-      window.location.reload(); // 🌟 確認成功後，自動重新整理頁面，讓 Feed 跟分數更新！
     }, 300);
   };
 
@@ -484,14 +486,19 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
 // Group 2: Waiting on Opponent (Low Priority, Collapsible)
 function WaitingOnOthersGroup({ matches: initialMatches }: { matches: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [matches, setMatches] = useState<any[]>(initialMatches);
+  const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const matches = initialMatches; // 現在直接使用從外部傳入的 matches，由 React Query 控制
 
   const doDelete = async (matchId: string) => {
     setDeletingId(matchId);
     try {
       await apiClient.delete(`/matches/${matchId}`);
-      setMatches(prev => prev.filter(m => m.id !== matchId));
+      // 🌟 立即刷新清單與相關數據
+      queryClient.invalidateQueries({ queryKey: ['matches'] }); // 寬泛一點包含 pending/recent
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] }); // 涵蓋 stats/rivals/partners
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     } catch (error: any) {
       alert('撤回失敗：' + (error.response?.data?.detail || '未知網路錯誤'));
     } finally {
@@ -499,8 +506,9 @@ function WaitingOnOthersGroup({ matches: initialMatches }: { matches: any[] }) {
     }
   };
 
-  const handleEditSuccess = (matchId: string, newScoreA: number, newScoreB: number) => {
-    setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score: [newScoreA, newScoreB] } : m));
+  const handleEditSuccess = () => {
+    // 🌟 修改成功後直接刷新清單
+    queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
   };
 
   if (matches.length === 0) return null;

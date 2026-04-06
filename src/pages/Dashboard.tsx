@@ -217,7 +217,8 @@ export function Dashboard() {
     queryFn: async () => {
       const res = await apiClient.get<any[]>("/announcements");
       return res.data;
-    }
+    },
+    enabled: hasToken,
   });
 
   const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
@@ -229,7 +230,7 @@ export function Dashboard() {
     enabled: hasToken,
   });
 
-  const { data: rivals = { nemesis: [], minions: [] }, isPending: isRivalsLoading } = useQuery({
+  const { data: rivals = { nemesis: [], minions: [] } } = useQuery({
     queryKey: ['users', 'me', 'rivals'],
     queryFn: async () => {
       const res = await apiClient.get<any>("/users/me/rivals");
@@ -238,7 +239,7 @@ export function Dashboard() {
     enabled: hasToken,
   });
 
-  const { data: partners = { golden_partners: [], worst_partners: [] }, isPending: isPartnersLoading } = useQuery({
+  const { data: partners = { golden_partners: [], worst_partners: [] } } = useQuery({
     queryKey: ['users', 'me', 'partners'],
     queryFn: async () => {
       const res = await apiClient.get<any>("/users/me/partners");
@@ -282,7 +283,13 @@ export function Dashboard() {
     enabled: hasToken,
   });
 
-  const feedLoading = isFeedLoading || isRivalsLoading || isPartnersLoading || isLeaderboardLoading || isStatsLoading;
+  // 🌟 修改 Loading 邏輯：只有在第一次加載且沒有資料時才顯示 Skeleton
+  // 如果已經有資料（例如 Invalidation 後的背景刷新），則保持顯示現有內容，提供更流暢的體驗
+  const isFirstLoading = (isFeedLoading && recentFeed.length === 0) || 
+                         (isLeaderboardLoading && topPlayers.length === 0) ||
+                         (isStatsLoading && !myStats);
+  
+  const feedLoading = isFirstLoading;
 
   return (
     <AnimatePresence mode="wait">
@@ -310,7 +317,7 @@ export function Dashboard() {
               <div className="w-2 md:w-3 bg-gradient-to-b from-sapphire-blue to-blue-800 rounded-full h-12 md:h-16 mr-4 md:mr-6 shrink-0" />
               <div className="space-y-1">
                 <h1 className="text-4xl md:text-5xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none">
-                  {user.name}
+                  {user?.name || "Player"}
                 </h1>
                 <div className="flex items-center gap-2 text-slate-400 text-[10px] md:text-xs font-sans font-black uppercase tracking-[0.3em] opacity-60">
                   <Timer size={14} /> Welcome Back · Season 4
@@ -322,7 +329,11 @@ export function Dashboard() {
                 <UserProfileSettings
                   trigger={
                     <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-slate-50 shadow-sm border border-slate-100 hover:bg-slate-100 transition-all p-0 overflow-hidden">
-                      <img src={user.avatar} className="size-full object-cover" />
+                      {user?.avatar ? (
+                        <img src={user.avatar} className="size-full object-cover" alt={user?.name} />
+                      ) : (
+                        <Users className="text-slate-300" />
+                      )}
                     </Button>
                   }
                 />
@@ -350,14 +361,14 @@ export function Dashboard() {
 
                 <motion.section variants={itemVariants}>
                   <RankingCard player={{
-                    id: user.id,
-                    name: user.name,
-                    username: user.username || user.name,
-                    avatar: user.avatar,
-                    isVerified: user.isVerified,
-                    department: user.department,
-                    rating: myStats?.season_lp || 1200,
-                    mmr: myStats?.global_mmr || user.mmr || 1200,
+                    id: user?.id || 'me',
+                    name: user?.name || 'Me',
+                    username: user?.username || user?.name || 'Me',
+                    avatar: user?.avatar || '',
+                    isVerified: user?.isVerified || false,
+                    department: user?.department || '',
+                    rating: myStats?.season_lp || user?.mmr || 1200,
+                    mmr: myStats?.global_mmr || user?.mmr || 1200,
                     rank: myStats?.rank || '-',
                     stats: {
                       winRate: myStats?.win_rate || "0%",

@@ -43,9 +43,12 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
     }
   };
 
-  const status = getStatusConfig(match.status);
-  const p1Change = match.mmrChange?.[0] || 0;
-  const p2Change = match.mmrChange?.[1] || 0;
+  const status = getStatusConfig(match?.status || 'unknown');
+  const score = match?.score || [0, 0];
+  const player1 = match?.player1 || [];
+  const opponent = match?.opponent || [];
+  const p1Change = match?.mmrChange?.[0] || 0;
+  const p2Change = match?.mmrChange?.[1] || 0;
 
   return (
     <Card className="no-line-card rounded-[2.5rem] bg-white p-6 md:p-8 shadow-sm border border-slate-50 hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -54,9 +57,9 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
         {/* Header Bar */}
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-2 md:gap-3 text-sm md:text-sm font-black uppercase tracking-widest text-slate-500">
-            <span>{match.date}</span>
+            <span>{match?.date || new Date().toLocaleDateString()}</span>
             <span className="text-slate-200 text-lg leading-none">•</span>
-            <span className="text-sapphire-blue/70">{match.tournament || 'DIVISION I'}</span>
+            <span className="text-sapphire-blue/70">{match?.tournament || 'DIVISION I'}</span>
           </div>
           <Badge variant="secondary" className={cn("px-4 py-1.5 rounded-full text-sm font-black border tracking-widest shadow-none", status.color)}>
             {status.label}
@@ -68,28 +71,31 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
            
            {/* Team 1 - Left Section */}
            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-              <div className={cn("flex shrink-0 transition-all", match.player1.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
-                 {match.player1.map((p, i) => (
+              <div className={cn("flex shrink-0 transition-all", player1.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
+                 {player1.map((p, i) => (
                     <div key={p.id || i} className="relative z-10">
                        <img 
-                          src={p.avatar} 
+                          src={p.avatar || '/api/placeholder/150/150'} 
                           alt={p.name} 
                           className="size-10 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-white shadow-sm ring-1 ring-slate-100" 
                        />
                     </div>
                  ))}
+                 {player1.length === 0 && <div className="size-10 md:size-20 rounded-xl bg-slate-100 animate-pulse" />}
               </div>
               <div className="flex flex-col min-w-0">
                  <span className="font-display font-black text-primary-navy text-xs md:text-xl truncate leading-tight uppercase tracking-tight">
-                    {match.player1.length > 1 
-                       ? match.player1.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
-                       : match.player1[0]?.name}
+                    {player1.length > 0 
+                       ? (player1.length > 1 
+                          ? player1.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
+                          : player1[0]?.name)
+                       : "Player Loading..."}
                  </span>
                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={cn("text-[10px] md:text-sm font-black font-display", p1Change > 0 ? "text-emerald-600" : "text-rose-500")}>
+                    <span className={cn("text-[10px] md:text-sm font-black font-display", p1Change >= 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p1Change > 0 ? `+${p1Change}` : p1Change} LP
                     </span>
-                    <TrendingUp size={12} strokeWidth={3} className={cn(p1Change > 0 ? "text-emerald-500" : "text-rose-400 rotate-180")} />
+                    <TrendingUp size={12} strokeWidth={3} className={cn(p1Change >= 0 ? "text-emerald-500" : "text-rose-400 rotate-180")} />
                  </div>
               </div>
            </div>
@@ -98,16 +104,16 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
            <div className="flex flex-col items-center justify-center px-1 md:px-4 shrink-0">
               <div className="flex items-center gap-1 md:gap-3">
                  <span className="text-xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
-                    {match.score[0]}
+                    {score[0]}
                  </span>
                  <span className="text-slate-200 text-sm md:text-2xl font-black">:</span>
                  <span className="text-xl md:text-5xl font-display font-black text-primary-navy tracking-tighter leading-none">
-                    {match.score[1]}
+                    {score[1]}
                  </span>
               </div>
               <div className="mt-1 md:mt-3 px-1.5 py-0.5 md:px-3 md:py-1 bg-slate-50 rounded-sm md:rounded-md">
                  <span className="text-[10px] md:text-sm font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                   {match.type === 'doubles' ? '2V2' : match.score[0] + match.score[1] >= 5 ? 'BO5' : 'BO3'}
+                   {match?.type === 'doubles' ? '2V2' : (score[0] + score[1] >= 5 ? 'BO5' : 'BO3')}
                  </span>
               </div>
            </div>
@@ -116,27 +122,30 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
            <div className="flex items-center justify-end gap-3 md:gap-4 flex-1 min-w-0 text-right">
               <div className="flex flex-col min-w-0 order-1">
                  <span className="font-display font-black text-primary-navy text-xs md:text-xl truncate leading-tight uppercase tracking-tight">
-                    {match.opponent.length > 1 
-                       ? match.opponent.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
-                       : match.opponent[0]?.name}
+                    {opponent.length > 0 
+                       ? (opponent.length > 1 
+                          ? opponent.map(p => p.name?.split(' ')[0] || '?').join(' / ') 
+                          : opponent[0]?.name)
+                       : "Opponent Loading..."}
                  </span>
                  <div className="flex items-center justify-end gap-1.5 mt-1">
-                    <span className={cn("text-[10px] md:text-sm font-black font-display", p2Change > 0 ? "text-emerald-600" : "text-rose-500")}>
+                    <span className={cn("text-[10px] md:text-sm font-black font-display", p2Change >= 0 ? "text-emerald-600" : "text-rose-500")}>
                        {p2Change > 0 ? `+${p2Change}` : p2Change} LP
                     </span>
-                    <TrendingDown size={12} strokeWidth={3} className={cn(p2Change < 0 ? "text-rose-400" : "text-emerald-500 rotate-180")} />
+                    <TrendingDown size={12} strokeWidth={3} className={cn(p2Change <= 0 ? "text-rose-400" : "text-emerald-500 rotate-180")} />
                  </div>
               </div>
-              <div className={cn("flex shrink-0 order-2 transition-all", match.opponent.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
-                 {match.opponent.map((p, i) => (
+              <div className={cn("flex shrink-0 order-2 transition-all", opponent.length > 1 ? "-space-x-3 md:-space-x-6" : "")}>
+                 {opponent.map((p, i) => (
                     <div key={p.id || i} className="relative z-10">
                        <img 
-                          src={p.avatar} 
+                          src={p.avatar || '/api/placeholder/150/150'} 
                           alt={p.name} 
                           className="size-10 md:size-20 rounded-xl md:rounded-[1.5rem] object-cover border-2 border-white shadow-sm ring-1 ring-slate-100" 
                        />
                     </div>
                  ))}
+                 {opponent.length === 0 && <div className="size-10 md:size-20 rounded-xl bg-slate-100 animate-pulse" />}
               </div>
            </div>
         </div>

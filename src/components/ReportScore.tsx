@@ -88,11 +88,17 @@ export function ReportScore({
 
       const optimisticMatch = {
         id: 'temp-' + Date.now(),
-        score_a: newMatch.score_a,
-        score_b: newMatch.score_b,
+        date: new Date().toLocaleDateString(),
+        score: [newMatch.score_a, newMatch.score_b],
         match_type: newMatch.match_type,
         created_at: new Date().toISOString(),
         status: 'pending',
+        player1: matchType === 'doubles' && selectedPartner 
+          ? [currentUser, selectedPartner] 
+          : [currentUser],
+        opponent: matchType === 'doubles' 
+          ? selectedOpponents 
+          : (selectedOpponent ? [selectedOpponent] : []),
       };
 
       queryClient.setQueryData(['matches', 'recent'], (old: any) => {
