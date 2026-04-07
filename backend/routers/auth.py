@@ -7,7 +7,14 @@ from uuid import UUID
 
 from database import get_session
 from models import User
-from services.auth_jwt import create_access_token, SECRET_KEY, ALGORITHM
+from services.auth_jwt import (
+    create_access_token, 
+    create_refresh_token, 
+    SECRET_KEY, 
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS
+)
 import jwt
 
 router = APIRouter(tags=["Auth"])
@@ -73,65 +80,94 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         session.commit()
         session.refresh(user)
 
-    # 🔐 3. 發行我們自己的 JWT 識別證
-    jwt_token = create_access_token(user.id)
+    # 🔐 3. 發行 Access Token 與 Refresh Token
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
 
-    # 🚀 4. 不再將 Token 放在網址中，改用 HttpOnly Cookie
+    # 🚀 4. 使用 HttpOnly Cookie 儲存雙 Token
     frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
     response = RedirectResponse(url=f"{frontend_base}/")
     
-    # 🔐 設定 Cookie (開發環境 secure 先設為 False)
+    # 🔐 設定 Access Token Cookie (短效)
     response.set_cookie(
         key="auth_token",
-        value=jwt_token,
+        value=access_token,
         httponly=True,
         samesite="lax",
-        max_age=60*60*24*7, # 7 天
-        secure=is_production  # 生產環境應設為 True
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=is_production 
+    )
+
+    # 🔐 設定 Refresh Token Cookie (長效)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        secure=is_production 
     )
     return response
 
 @router.post("/api/auth/logout")
 async def logout(response: Response):
-    """清除 Cookie 登出"""
+    """清除所有 Auth 相關的 Cookie 登出"""
     response.delete_cookie("auth_token")
+    response.delete_cookie("refresh_token")
     return {"message": "Logged out successfully"}
 
 @router.post("/api/auth/refresh")
-async def refresh_token(request: Request, response: Response):
+async def refresh_token(
+    request: Request, 
+    response: Response, 
+    session: Session = Depends(get_session)
+):
     """
-    無感刷新 (Silent Refresh)：使用舊的（可能已過期）JWT 換取新 JWT。
-    前提：Token 簽名必須合法且存在於 Cookie 中。
+    使用 Refresh Token 換取新的 Access Token。
+    1. 驗證 Refresh Token 簽名與效期。
+    2. 驗證使用者是否仍存在於資料庫。
     """
-    auth_token = request.cookies.get("auth_token")
-    if not auth_token:
-        raise HTTPException(status_code=401, detail="找不到憑證，無法刷新")
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="找不到 Refresh Token，請重新登入")
 
     try:
-        # 🌟 略過 exp 檢查 (verify_exp=False)，但仍驗證簽名 SECRET_KEY
+        # 🌟 驗證 Refresh Token (包含過期檢查)
         payload = jwt.decode(
-            auth_token, 
+            refresh_token, 
             SECRET_KEY, 
-            algorithms=[ALGORITHM], 
-            options={"verify_exp": False}
+            algorithms=[ALGORITHM]
         )
+        
+        # 確保 Token 類型正確
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="憑證類型錯誤")
+
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="無效的憑證內容")
             
-        # 簽發新 Token
-        new_token = create_access_token(UUID(user_id))
+        # 🔍 驗證資料庫使用者狀態 (Fix Issue 1)
+        # 根據用戶指示：僅檢查使用者是否存在於資料庫 (非 None)
+        user = session.get(User, UUID(user_id))
+        if user is None:
+            raise HTTPException(status_code=401, detail="使用者不存在或已被刪除，拒絕刷新")
 
-        # 塞回 Cookie
+        # 簽發新的短效 Access Token
+        new_access_token = create_access_token(user.id)
+
+        # 塞回 Cookie (僅更新 Access Token)
         response.set_cookie(
             key="auth_token",
-            value=new_token,
+            value=new_access_token,
             httponly=True,
             samesite="lax",
-            max_age=60*60*24*7, # 1 星期
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             secure=is_production 
         )
-        return {"status": "success", "message": "Token refreshed"}
+        return {"status": "success", "message": "Access token refreshed"}
         
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh Token 已過期，請重新登入")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="憑證損毀或身分異常，請重新登入")

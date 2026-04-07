@@ -10,7 +10,8 @@ from models import User
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-secret-for-dev-only")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60*24*7  # 1 星期
+ACCESS_TOKEN_EXPIRE_MINUTES = 1          # Access Token 縮短為 15 分鐘
+REFRESH_TOKEN_EXPIRE_DAYS = 7             # Refresh Token 為 7 天
 
 # 移除 HTTPBearer，改用 Cookie
 # security = HTTPBearer()
@@ -26,6 +27,19 @@ def create_access_token(user_id: UUID) -> str:
     }
     
     # 使用 SECRET_KEY 簽名防偽造
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(user_id: UUID) -> str:
+    """發行長效型 Refresh Token (7 天)"""
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    to_encode = {
+        "sub": str(user_id),
+        "exp": expire,
+        "type": "refresh"  # 標記為 refresh 類型以供驗證區分
+    }
+    
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
