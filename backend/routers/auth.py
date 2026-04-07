@@ -11,6 +11,7 @@ from services.auth_jwt import create_access_token, SECRET_KEY, ALGORITHM
 import jwt
 
 router = APIRouter(tags=["Auth"])
+is_production = os.getenv("ENV_STATUS", "development") == "production"
 
 # 🌟 初始化 OAuth
 oauth = OAuth()
@@ -86,7 +87,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         httponly=True,
         samesite="lax",
         max_age=60*60*24*7, # 7 天
-        secure=False  # 生產環境應設為 True
+        secure=is_production  # 生產環境應設為 True
     )
     return response
 
@@ -128,7 +129,7 @@ async def refresh_token(request: Request, response: Response):
             httponly=True,
             samesite="lax",
             max_age=60*60*24*7, # 1 星期
-            secure=False 
+            secure=is_production 
         )
         return {"status": "success", "message": "Token refreshed"}
         

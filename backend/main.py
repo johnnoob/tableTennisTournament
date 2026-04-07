@@ -57,13 +57,13 @@ app = FastAPI(
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "fallback-secret-string"))
 
 # 2. 設定 CORS (跨來源資源共用)
-# 允許來自 Vite 本地開發環境的請求
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-]
+# 從環境變數讀取 ALLOWED_ORIGINS，若未設定則使用本地開發預設值
+allowed_origins_str = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
+)
+origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -102,3 +102,6 @@ def health_check():
         "system": "Table Tennis Tournament Engine",
         "version": "1.0.0"
     }
+
+if __name__ == '__main__':
+    print(os.getenv("ALLOWED_ORIGINS").split(","))

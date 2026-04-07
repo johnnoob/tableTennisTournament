@@ -228,6 +228,7 @@ export function Dashboard() {
       return res.data;
     },
     enabled: isLoggedIn,
+    refetchInterval: 10000,
   });
 
   const { data: rivals = { nemesis: [], minions: [] } } = useQuery({
@@ -237,6 +238,7 @@ export function Dashboard() {
       return res.data;
     },
     enabled: isLoggedIn,
+    refetchInterval: 15000,
   });
 
   const { data: partners = { golden_partners: [], worst_partners: [] } } = useQuery({
@@ -246,6 +248,7 @@ export function Dashboard() {
       return res.data;
     },
     enabled: isLoggedIn,
+    refetchInterval: 15000,
   });
 
   const { data: topPlayers = [], isPending: isLeaderboardLoading } = useQuery({
@@ -272,6 +275,7 @@ export function Dashboard() {
       }));
     },
     enabled: isLoggedIn,
+    refetchInterval: 10000,
   });
 
   const { data: myStats, isPending: isStatsLoading } = useQuery({
@@ -281,14 +285,15 @@ export function Dashboard() {
       return statsRes.data;
     },
     enabled: isLoggedIn,
+    refetchInterval: 10000,
   });
 
   // 🌟 修改 Loading 邏輯：只有在第一次加載且沒有資料時才顯示 Skeleton
   // 如果已經有資料（例如 Invalidation 後的背景刷新），則保持顯示現有內容，提供更流暢的體驗
-  const isFirstLoading = (isFeedLoading && recentFeed.length === 0) || 
-                         (isLeaderboardLoading && topPlayers.length === 0) ||
-                         (isStatsLoading && !myStats);
-  
+  const isFirstLoading = (isFeedLoading && recentFeed.length === 0) ||
+    (isLeaderboardLoading && topPlayers.length === 0) ||
+    (isStatsLoading && !myStats);
+
   const feedLoading = isFirstLoading;
 
   return (
