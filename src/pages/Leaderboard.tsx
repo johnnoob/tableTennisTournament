@@ -8,13 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/utils/apiClient';
 
 export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user: currentUser } = useAuthStore();
+  const { data: currentUser } = useAuth();
 
   const urlSeasonId = searchParams.get('season_id');
   const [selectedSeason, setSelectedSeason] = useState<string>(urlSeasonId || '');

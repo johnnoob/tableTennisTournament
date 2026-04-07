@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
 import { UserProfileSettings } from './UserProfileSettings';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -14,7 +14,7 @@ const navItems = [
 ];
 
 export function Navigation() {
-  const { user } = useAuthStore();
+  const { data: user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
   const displayedNavItems = isAdmin 

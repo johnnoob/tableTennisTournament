@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Dashboard } from '@/pages/Dashboard';
 import { MatchHistory } from '@/pages/MatchHistory';
@@ -12,7 +11,7 @@ import { Leaderboard } from '@/pages/Leaderboard';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
 
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
 
 import { ReportScore } from '@/components/ReportScore';
@@ -23,21 +22,11 @@ function AppContent() {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
 
-  // 🌟 3. 從倉庫拿出 fetchUser 方法與 loading 狀態
-  const { fetchUser, loading, user } = useAuthStore();
+  // 🌟 改用 React Query Hook 獲取使用者資料
+  const { data: user, isLoading: loading } = useAuth();
 
-  // 🌟 4. 當整個網站第一次掛載時，執行身分驗證
-  useEffect(() => {
-    if (location.pathname !== '/login') {
-      fetchUser();
-    } else {
-      // 如果已經在登入頁面，就不需要進行身分驗證 check
-      useAuthStore.setState({ loading: false });
-    }
-  }, [fetchUser, location.pathname]);
-
-  // 🌟 5. 如果正在跟後端確認身分，顯示全域的載入畫面（防止畫面閃爍）
-  if (loading) {
+  // 🌟 如果正在跟後端確認身分，顯示全域的載入畫面（防止畫面閃爍）
+  if (loading && !isLoginPage) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -47,6 +36,7 @@ function AppContent() {
       </div>
     );
   }
+
 
   if (isLoginPage) {
     return (

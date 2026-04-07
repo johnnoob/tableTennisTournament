@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/store/authStore'
+import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/utils/apiClient'
 
 // ===================== 選項常數 =====================
@@ -53,7 +55,9 @@ interface UserProfileSettingsProps {
 export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
-  const { user, logout, updateUser } = useAuthStore()
+  const { data: user } = useAuth()
+  const { logout } = useAuthStore()
+  const queryClient = useQueryClient()
 
   // 表單狀態
   const [name, setName] = React.useState("")
@@ -86,7 +90,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
     setErrorMsg("")
     const startTime = Date.now();
     try {
-      const res = await apiClient.patch('/users/me', {
+      await apiClient.patch('/users/me', {
           name: name.trim(),
           department: department.trim() || null,
           gender: gender || null,
@@ -94,7 +98,6 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           rubber_forehand: forehand || null,
           rubber_backhand: backhand || null,
       });
-      const updated = res.data;
 
       // 🛑 Ensure at least 800ms duration for meaningful feedback
       const elapsedTime = Date.now() - startTime;
@@ -102,15 +105,8 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
         await new Promise(resolve => setTimeout(resolve, 800 - elapsedTime));
       }
 
-      // 同步更新 authStore，讓 Dashboard 即時反映
-      updateUser({
-        name: updated.name,
-        department: updated.department,
-        gender: updated.gender,
-        dominant_hand: updated.dominant_hand,
-        rubber_forehand: updated.rubber_forehand,
-        rubber_backhand: updated.rubber_backhand,
-      })
+      // 同步更新 React Query 快取，讓 Dashboard 即時反映
+      queryClient.invalidateQueries({ queryKey: ['authUser'] })
       setIsSuccess(true)
       setTimeout(() => setOpen(false), 1200) // Reduced from 1600ms
     } catch (e: any) {

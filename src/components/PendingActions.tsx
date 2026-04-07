@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
@@ -59,7 +59,7 @@ const getRemainingTimeStr = (expiresAtStr?: string) => {
 };
 
 export function PendingActions() {
-  const { user: currentUser } = useAuthStore();
+  const { data: currentUser } = useAuth();
 
   // 🌟 使用 React Query 撈取待確認清單
   const { data: pendingMatches = [] } = useQuery({

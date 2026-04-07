@@ -9,12 +9,12 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import { MatchHistorySkeleton } from '@/components/MatchHistorySkeleton';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 
 const PAGE_SIZE = 15;
 
 export function MatchHistory() {
-  const { user } = useAuthStore();
+  const { data: user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);

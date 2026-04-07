@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { cn, formatLocalTime } from "@/lib/utils"
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ReportScoreProps {
   trigger: React.ReactElement;
@@ -45,7 +45,7 @@ export function ReportScore({
   initialScoreA = 0,
   initialScoreB = 0
 }: ReportScoreProps) {
-  const currentUser = useAuthStore((state) => state.user);
+  const { data: currentUser } = useAuth();
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [scoreA, setScoreA] = React.useState(initialScoreA)

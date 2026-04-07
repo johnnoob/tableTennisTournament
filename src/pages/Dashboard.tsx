@@ -13,7 +13,7 @@ import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, H
 import { cn, formatLocalTime } from '@/lib/utils';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 
 interface AnnouncementProp {
@@ -207,7 +207,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { data: user } = useAuth();
   const [chartInterval, setChartInterval] = useState<string>('recent');
 
   const isLoggedIn = !!user;

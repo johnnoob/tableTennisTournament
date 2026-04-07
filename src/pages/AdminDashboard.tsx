@@ -22,7 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { adminApi } from '@/lib/admin';
 import apiClient from '@/utils/apiClient';
 import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize } from '@/types/admin';
@@ -58,7 +58,7 @@ const tabs = [
 ];
 
 export function AdminDashboard() {
-  const { user } = useAuthStore();
+  const { data: user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
 
