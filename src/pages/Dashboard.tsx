@@ -10,7 +10,7 @@ import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bell, Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, History, ArrowRight, Zap, Megaphone, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { PendingActions } from '@/components/PendingActions';
 import { UserProfileSettings } from '@/components/UserProfileSettings';
 import { useAuthStore } from '@/store/authStore';
@@ -118,7 +118,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
           <span className="text-[10px] font-black tracking-widest text-white/40">
             {(currentIndex + 1).toString().padStart(2, '0')}
           </span>
-          <div className="w-4 h-[1px] bg-white/20" />
+          <div className="w-4 h-px bg-white/20" />
           <span className="text-[10px] font-black tracking-widest text-white/80">
             {items.length.toString().padStart(2, '0')}
           </span>
@@ -164,7 +164,7 @@ function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
                     {style.label}
                   </span>
                   <span className="flex items-center gap-1 text-blue-300/40 text-[11px] font-bold">
-                    <Timer size={12} /> {new Date(current.created_at).toLocaleDateString()}
+                    <Timer size={12} /> {formatLocalTime(current.created_at, 'yyyy-MM-dd')}
                   </span>
                 </div>
                 <h3 className="text-base md:text-xl font-display font-black text-white tracking-wide leading-tight truncate">
@@ -210,7 +210,7 @@ export function Dashboard() {
   const { user } = useAuthStore();
   const [chartInterval, setChartInterval] = useState<string>('recent');
 
-  const hasToken = !!localStorage.getItem('auth_token');
+  const isLoggedIn = !!user;
 
   const { data: announcements = [] } = useQuery({
     queryKey: ['announcements'],
@@ -218,7 +218,7 @@ export function Dashboard() {
       const res = await apiClient.get<any[]>("/announcements");
       return res.data;
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
@@ -227,7 +227,7 @@ export function Dashboard() {
       const res = await apiClient.get<any[]>("/matches/recent");
       return res.data;
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   const { data: rivals = { nemesis: [], minions: [] } } = useQuery({
@@ -236,7 +236,7 @@ export function Dashboard() {
       const res = await apiClient.get<any>("/users/me/rivals");
       return res.data;
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   const { data: partners = { golden_partners: [], worst_partners: [] } } = useQuery({
@@ -245,7 +245,7 @@ export function Dashboard() {
       const res = await apiClient.get<any>("/users/me/partners");
       return res.data;
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   const { data: topPlayers = [], isPending: isLeaderboardLoading } = useQuery({
@@ -271,7 +271,7 @@ export function Dashboard() {
         },
       }));
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   const { data: myStats, isPending: isStatsLoading } = useQuery({
@@ -280,7 +280,7 @@ export function Dashboard() {
       const statsRes = await apiClient.get<any>(`/users/me/stats?interval=${chartInterval}`);
       return statsRes.data;
     },
-    enabled: hasToken,
+    enabled: isLoggedIn,
   });
 
   // 🌟 修改 Loading 邏輯：只有在第一次加載且沒有資料時才顯示 Skeleton

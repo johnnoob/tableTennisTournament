@@ -1,11 +1,11 @@
 from typing import Optional, List
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field, Relationship
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 
-def tw_now() -> datetime:
-    """取得台灣當地時間 (UTC+8) 的 naive datetime，讓前端可以直接讀取不需轉換"""
-    return datetime.utcnow() + timedelta(hours=8)
+def utc_now() -> datetime:
+    """取得帶時區資訊的標準 UTC 時間"""
+    return datetime.now(timezone.utc)
 
 class User(SQLModel, table=True):
     # 1. 基本身分識別
@@ -61,7 +61,7 @@ class Season(SQLModel, table=True):
     
     # 2. 狀態與時間軸
     status: str = Field(default="active", description="狀態：active(進行中), completed(已結算)")
-    start_date: datetime = Field(default_factory=tw_now, description="賽季開始時間")
+    start_date: datetime = Field(default_factory=utc_now, description="賽季開始時間")
     end_date: Optional[datetime] = Field(default=None, description="賽季結束時間")
 
     # 🔗 關聯：一個賽季包含多筆玩家的季賽紀錄
@@ -124,7 +124,7 @@ class Match(SQLModel, table=True):
     
     # 6. 時間與關聯 ID
     season_id: str = Field(foreign_key="season.id", index=True)
-    created_at: datetime = Field(default_factory=tw_now)
+    created_at: datetime = Field(default_factory=utc_now)
 
     # ==========================================
     # 🌟 導航捷徑 (Relationships)
@@ -167,7 +167,7 @@ class PlayerStatHistory(SQLModel, table=True):
     season_lp: float = Field(description="紀錄當下的賽季積分")
     
     # 4. 📅 紀錄時間 (建立索引，方便依時間區間撈取資料)
-    recorded_at: datetime = Field(default_factory=tw_now, index=True)
+    recorded_at: datetime = Field(default_factory=utc_now, index=True)
 
     # 🔗 建立與 User 的關係
     user: "User" = Relationship(back_populates="stat_history")
@@ -216,7 +216,7 @@ class Notification(SQLModel, table=True):
     is_read: bool = Field(default=False, index=True)
     
     # 5. ⏳ 時間戳記
-    created_at: datetime = Field(default_factory=tw_now)
+    created_at: datetime = Field(default_factory=utc_now)
 
     # 🔗 建立與 User 和 Match 的關係
     recipient: "User" = Relationship(back_populates="notifications")
@@ -229,7 +229,7 @@ class SystemConfig(SQLModel, table=True):
     key: str = Field(primary_key=True, description="設定鍵值，例如: 'season_paused'")
     value: str = Field(description="字串值，前端或後端需自行轉換(如布林轉字串)")
     description: Optional[str] = Field(default=None, description="設定說明")
-    updated_at: datetime = Field(default_factory=tw_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 # ==========================================
 # 9. Announcement 表 (全站公告)
@@ -242,7 +242,7 @@ class Announcement(SQLModel, table=True):
     link_url: Optional[str] = Field(default=None, description="按鈕連結URL")
     link_text: Optional[str] = Field(default=None, description="按鈕文字")
     is_active: bool = Field(default=True, index=True)
-    created_at: datetime = Field(default_factory=tw_now)
+    created_at: datetime = Field(default_factory=utc_now)
 
 # ==========================================
 # 10. SeasonPrize 表 (賽季獎勵)
@@ -269,7 +269,7 @@ class TournamentEvent(SQLModel, table=True):
     end_date: Optional[datetime] = Field(default=None)
     rules: Optional[str] = Field(default=None, description="賽事規則描述 或 Challonge 連結")
     status: str = Field(default="registering", description="registering, ongoing, completed")
-    created_at: datetime = Field(default_factory=tw_now)
+    created_at: datetime = Field(default_factory=utc_now)
 
     # 參與者
     participants: List["TournamentParticipant"] = Relationship(back_populates="tournament")
@@ -281,7 +281,7 @@ class TournamentParticipant(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     tournament_id: UUID = Field(foreign_key="tournamentevent.id", index=True)
     user_id: UUID = Field(foreign_key="user.id", index=True)
-    joined_at: datetime = Field(default_factory=tw_now)
+    joined_at: datetime = Field(default_factory=utc_now)
 
     tournament: TournamentEvent = Relationship(back_populates="participants")
     user: User = Relationship()

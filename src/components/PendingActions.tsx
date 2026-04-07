@@ -4,7 +4,7 @@ import apiClient from '@/utils/apiClient';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import {
   Dialog,
@@ -46,14 +46,15 @@ interface PendingMatch {
 
 // Helper to format remaining time
 const getRemainingTimeStr = (expiresAtStr?: string) => {
-  if (!expiresAtStr) return '48h 00m'; // Default fallback
+  if (!expiresAtStr) return '--:--';
   const expiresAt = new Date(expiresAtStr).getTime();
-  const now = new Date().getTime();
-  const diffHours = (expiresAt - now) / (1000 * 60 * 60);
+  const now = Date.now();
+  const diffMs = expiresAt - now;
 
-  if (diffHours < 0) return '已逾期 (Expired)';
-  const h = Math.floor(diffHours);
-  const m = Math.floor((diffHours - h) * 60);
+  if (diffMs <= 0) return '已逾期';
+  
+  const h = Math.floor(diffMs / (1000 * 60 * 60));
+  const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
@@ -67,7 +68,7 @@ export function PendingActions() {
       const res = await apiClient.get<PendingMatch[]>("/matches/pending");
       return res.data;
     },
-    enabled: !!localStorage.getItem('auth_token'),
+    enabled: !!currentUser,
     refetchInterval: 10000, // 每 10 秒自動刷新一次，確保即時性
   });
 
@@ -253,7 +254,9 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 <span>LP Change</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-600">{new Date().toLocaleDateString('zh-TW')} {new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-xs font-bold text-slate-600">
+                  {formatLocalTime(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}
+                </span>
                 <span className={cn("text-sm font-display font-black", lpChange < 0 ? 'text-rose-500' : 'text-emerald-500')}>
                   {lpChange > 0 ? `+${lpChange}` : lpChange} LP
                 </span>

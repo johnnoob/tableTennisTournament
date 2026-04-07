@@ -5,7 +5,7 @@ import { players } from '@/data/mockData';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, MapPin, Scale, Calendar } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import apiClient from '@/utils/apiClient';
@@ -162,7 +162,9 @@ export function TournamentDetail() {
                 </div>
                 <div>
                   <p className="text-xs uppercase font-sans font-black text-slate-500 tracking-widest">Duration</p>
-                  <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">Jan 1st - Mar 31st</p>
+                  <p className="text-sm md:text-base font-sans font-extrabold text-primary-navy mt-1">
+                    {formatLocalTime(tournament.start_date, 'MMM dd')} - {formatLocalTime(tournament.end_date, 'MMM dd')}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-colors">

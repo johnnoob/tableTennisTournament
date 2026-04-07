@@ -1,13 +1,14 @@
 import os
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Response, HTTPException
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from sqlmodel import Session, select
-from uuid import uuid4
+from uuid import UUID
 
 from database import get_session
 from models import User
-from services.auth_jwt import create_access_token
+from services.auth_jwt import create_access_token, SECRET_KEY, ALGORITHM
+import jwt
 
 router = APIRouter(tags=["Auth"])
 
@@ -74,8 +75,62 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
     # 🔐 3. 發行我們自己的 JWT 識別證
     jwt_token = create_access_token(user.id)
 
-    # 🚀 4. 帶著 Token 重新導向回前端 (Vite) 的 Dashboard 頁面
-    # 這樣前端就能從網址列拿到 Token 了！
+    # 🚀 4. 不再將 Token 放在網址中，改用 HttpOnly Cookie
     frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    frontend_url = f"{frontend_base}/?token={jwt_token}"
-    return RedirectResponse(url=frontend_url)
+    response = RedirectResponse(url=f"{frontend_base}/")
+    
+    # 🔐 設定 Cookie (開發環境 secure 先設為 False)
+    response.set_cookie(
+        key="auth_token",
+        value=jwt_token,
+        httponly=True,
+        samesite="lax",
+        max_age=60*60*24*7, # 7 天
+        secure=False  # 生產環境應設為 True
+    )
+    return response
+
+@router.post("/api/auth/logout")
+async def logout(response: Response):
+    """清除 Cookie 登出"""
+    response.delete_cookie("auth_token")
+    return {"message": "Logged out successfully"}
+
+@router.post("/api/auth/refresh")
+async def refresh_token(request: Request, response: Response):
+    """
+    無感刷新 (Silent Refresh)：使用舊的（可能已過期）JWT 換取新 JWT。
+    前提：Token 簽名必須合法且存在於 Cookie 中。
+    """
+    auth_token = request.cookies.get("auth_token")
+    if not auth_token:
+        raise HTTPException(status_code=401, detail="找不到憑證，無法刷新")
+
+    try:
+        # 🌟 略過 exp 檢查 (verify_exp=False)，但仍驗證簽名 SECRET_KEY
+        payload = jwt.decode(
+            auth_token, 
+            SECRET_KEY, 
+            algorithms=[ALGORITHM], 
+            options={"verify_exp": False}
+        )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="無效的憑證內容")
+            
+        # 簽發新 Token
+        new_token = create_access_token(UUID(user_id))
+
+        # 塞回 Cookie
+        response.set_cookie(
+            key="auth_token",
+            value=new_token,
+            httponly=True,
+            samesite="lax",
+            max_age=60*60*24*7, # 1 星期
+            secure=False 
+        )
+        return {"status": "success", "message": "Token refreshed"}
+        
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="憑證損毀或身分異常，請重新登入")

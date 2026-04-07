@@ -4,7 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, ArrowLeft, Crown, ExternalLink, Timer } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -172,8 +172,8 @@ export function SeasonDetail() {
               <div className="relative z-10">
                 <Progress value={progress} className="h-4 bg-slate-100 rounded-full" />
                 <div className="flex justify-between mt-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <span>{start.toLocaleDateString()} Start</span>
-                  <span>{end.toLocaleDateString()} Deadline</span>
+                  <span>{formatLocalTime(season.start_date, 'yyyy/MM/dd')} Start</span>
+                  <span>{formatLocalTime(season.end_date, 'yyyy/MM/dd')} Deadline</span>
                 </div>
               </div>
             </Card>

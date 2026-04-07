@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Scale } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { TrendingUp, TrendingDown, Scale, CalendarDays } from 'lucide-react';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { Button } from './ui/button';
 
 // 統一 match 的資料形狀（相容後端真實資料與 mock data）
@@ -13,7 +13,8 @@ interface MatchPlayer {
 
 interface MatchData {
   id: string;
-  date: string;
+  date?: string;
+  created_at?: string;
   score: [number, number];
   result: 'win' | 'loss';
   status: string;
@@ -50,6 +51,11 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
   const p1Change = match?.mmrChange?.[0] || 0;
   const p2Change = match?.mmrChange?.[1] || 0;
 
+  // 強化時間讀取邏輯：優先取 date 欄位，次取 created_at
+  const rawDate = match?.date || match?.created_at;
+  // 雙重保險：若 formatLocalTime 正常則顯示格式化時間，若失敗則顯示原始字串供查驗
+  const displayDate = rawDate ? (formatLocalTime(rawDate) || rawDate) : '-';
+
   return (
     <Card className="no-line-card rounded-[2.5rem] bg-white p-6 md:p-8 shadow-sm border border-slate-50 hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-300">
       <CardContent className="p-0 space-y-6 md:space-y-4">
@@ -57,9 +63,12 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
         {/* Header Bar */}
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-2 md:gap-3 text-sm md:text-sm font-black uppercase tracking-widest text-slate-500">
-            <span>{match?.date || new Date().toLocaleDateString()}</span>
-            <span className="text-slate-200 text-lg leading-none">•</span>
             <span className="text-sapphire-blue/70">{match?.tournament || 'DIVISION I'}</span>
+            <span className="text-slate-200 text-lg leading-none">•</span>
+            <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-full text-[10px] text-slate-400">
+                <CalendarDays size={12} />
+                {displayDate}
+            </span>
           </div>
           <Badge variant="secondary" className={cn("px-4 py-1.5 rounded-full text-sm font-black border tracking-widest shadow-none", status.color)}>
             {status.label}

@@ -7,7 +7,7 @@ interface AuthState {
     loading: boolean;
     fetchUser: () => Promise<void>;
     updateUser: (partial: Record<string, any>) => void;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
 // 建立並匯出這個倉庫
@@ -17,17 +17,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     // 去後端抓使用者的動作
     fetchUser: async () => {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            set({ loading: false }); // 沒 token 就直接結束 loading
-            return;
-        }
-
+        // 🌟 不再檢查 localStorage，直接打 API 讓後端驗證 Cookie
         try {
             const res = await apiClient.get('/users/me');
             set({ user: res.data, loading: false }); // 把抓到的資料存進倉庫
         } catch (err) {
-            console.error("獲取身分失敗", err);
+            // 如果 401，apiClient 的攔截器會處理導向
             set({ loading: false });
         }
     },
@@ -40,8 +35,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 
     // 登出動作
-    logout: () => {
-        localStorage.removeItem('auth_token');
+    logout: async () => {
+        try {
+            await apiClient.post('/auth/logout'); // 🌟 呼叫後端 API 清除 Cookie
+        } catch (err) {
+            console.error("登出失敗", err);
+        }
         set({ user: null });
         window.location.href = '/login';
     }

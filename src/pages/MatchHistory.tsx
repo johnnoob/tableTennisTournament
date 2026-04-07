@@ -32,7 +32,7 @@ export function MatchHistory() {
       if (!lastPage.hasMore) return undefined;
       return allPages.length * PAGE_SIZE;
     },
-    enabled: !!localStorage.getItem('auth_token')
+    enabled: !!user
   });
 
   const matches = data ? data.pages.flatMap(page => page.matches) : [];

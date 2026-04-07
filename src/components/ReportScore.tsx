@@ -27,7 +27,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, formatLocalTime } from "@/lib/utils"
 import { useAuthStore } from '@/store/authStore';
 
 interface ReportScoreProps {
@@ -75,7 +75,7 @@ export function ReportScore({
       const res = await apiClient.get<any[]>("/users");
       return res.data;
     },
-    enabled: open && !!localStorage.getItem('auth_token')
+    enabled: open && !!currentUser
   });
 
   const mutation = useMutation({
@@ -88,7 +88,7 @@ export function ReportScore({
 
       const optimisticMatch = {
         id: 'temp-' + Date.now(),
-        date: new Date().toLocaleDateString(),
+        date: formatLocalTime(new Date().toISOString(), 'yyyy/MM/dd'),
         score: [newMatch.score_a, newMatch.score_b],
         match_type: newMatch.match_type,
         created_at: new Date().toISOString(),
@@ -199,12 +199,7 @@ export function ReportScore({
   const handleSubmit = async () => {
     if (seasonPaused || !isReady || !validation.valid || !currentUser) return
     
-    // 1. 從 Local Storage 取得識別證
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      alert("找不到登入資訊，請重新登入！")
-      return
-    }
+    // 1. 已改用 HttpOnly Cookie，由瀏覽器自動處理，無需手動取得 Token
 
     // 2. 依照選擇的賽制，整理要送給後端的資料格式
     const payload = {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { format, parseISO, isValid } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -210,7 +211,15 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     const [localDays, setLocalDays] = useState(intervalDays);
     const [localHours, setLocalHours] = useState(intervalHours);
     const [localMinutes, setLocalMinutes] = useState(intervalMinutes);
-    const [localStartDate, setLocalStartDate] = useState(startDate);
+    
+    // 初始化時將 UTC 轉為本地格式給 datetime-local 使用
+    const [localStartDate, setLocalStartDate] = useState(() => {
+        if (!startDate) return '';
+        try {
+            const date = parseISO(startDate);
+            return isValid(date) ? format(date, "yyyy-MM-dd'T'HH:mm:ss") : startDate;
+        } catch { return startDate; }
+    });
 
     const updateConfigsMutation = useMutation({
         mutationFn: async (updates: { key: string, value: string }[]) => {
@@ -226,11 +235,25 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     });
 
     const handleSave = () => {
+        // 存檔前轉回 UTC ISO 字串
+        let finalStartDate = localStartDate;
+        if (localStartDate) {
+            try {
+                // 如果輸入格式正確，轉為標準 ISO (帶 Z)
+                const date = new Date(localStartDate);
+                if (!isNaN(date.getTime())) {
+                    finalStartDate = date.toISOString();
+                }
+            } catch (e) {
+                console.error("Date conversion error", e);
+            }
+        }
+
         updateConfigsMutation.mutate([
             { key: 'season_interval_days', value: localDays },
             { key: 'season_interval_hours', value: localHours },
             { key: 'season_interval_minutes', value: localMinutes },
-            { key: 'season_start_date', value: localStartDate },
+            { key: 'season_start_date', value: finalStartDate },
         ]);
     };
 
@@ -975,7 +998,13 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     });
 
     const handleCreate = () => {
-        createMutation.mutate(formData);
+        // 將本地時間輸入轉為 UTC ISO
+        const payload = {
+            ...formData,
+            start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+            end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+        };
+        createMutation.mutate(payload);
     };
 
     const handleRemovePlayer = (userId: string) => {

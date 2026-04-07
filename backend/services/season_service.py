@@ -1,10 +1,16 @@
 from sqlmodel import Session, select
-from datetime import datetime, timedelta
-from models import Season, SystemConfig, tw_now
+from datetime import datetime, timedelta, timezone
+from models import Season, SystemConfig, utc_now
 import logging
 import os
 
 logger = logging.getLogger(__name__)
+
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    """確保 datetime 對象帶有 UTC 時區資訊，若為 naive 則補上 UTC"""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 def get_config_value(session: Session, key: str, default: str) -> str:
     config = session.get(SystemConfig, key)
@@ -21,7 +27,7 @@ def get_current_season(session: Session) -> Season | None:
     if is_season_paused(session):
         return None
 
-    now = tw_now()
+    now = utc_now()
     
     # 1. 巡視並結算過期賽季
     expired_seasons = session.exec(
@@ -42,7 +48,7 @@ def get_current_season(session: Session) -> Season | None:
     
     valid_season = None
     for s in active_seasons:
-        if s.end_date is None or s.end_date > now:
+        if s.end_date is None or ensure_utc(s.end_date) > now:
             valid_season = s
             break
             
@@ -59,7 +65,7 @@ def get_dynamic_season_meta(session: Session, now: datetime):
     """
     # 1. 讀取基準點與間隔
     start_date_str = get_config_value(session, "season_start_date", "2026-01-01T00:00:00")
-    base_start = datetime.fromisoformat(start_date_str)
+    base_start = datetime.fromisoformat(start_date_str).replace(tzinfo=timezone.utc)
 
     # 2. 讀取顆粒度更高的間隔設定
     i_days = int(get_config_value(session, "season_interval_days", "90"))
@@ -95,7 +101,7 @@ def ensure_current_quarter_season(session: Session) -> Season:
     """
     確保目前的賽季存在。
     """
-    now = tw_now()
+    now = utc_now()
     current_id, name, start_date, end_date = get_dynamic_season_meta(session, now)
     
     existing_season = session.get(Season, current_id)
@@ -111,10 +117,10 @@ def ensure_current_quarter_season(session: Session) -> Season:
         if existing_season.name != name:
             existing_season.name = name
             needs_update = True
-        if existing_season.start_date != start_date:
+        if ensure_utc(existing_season.start_date) != start_date:
             existing_season.start_date = start_date
             needs_update = True
-        if existing_season.end_date != end_date:
+        if ensure_utc(existing_season.end_date) != end_date:
             existing_season.end_date = end_date
             needs_update = True
             
@@ -131,7 +137,7 @@ def ensure_current_quarter_season(session: Session) -> Season:
     for old_season in active_seasons:
         old_season.status = "completed"
         # 確保過期賽季有 end_date
-        if not old_season.end_date or old_season.end_date > now:
+        if not old_season.end_date or ensure_utc(old_season.end_date) > now:
              old_season.end_date = now
         session.add(old_season)
         

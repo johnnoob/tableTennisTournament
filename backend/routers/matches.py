@@ -10,7 +10,7 @@ from schemas import MatchCreateReq
 # 🌟 匯入我們的 Elo 引擎
 from services.elo_engine import get_team_mmr, calculate_elo_delta
 from services.auth_jwt import get_current_user # 🌟 匯入警衛
-from services.season_service import get_current_season
+from services.season_service import get_current_season, ensure_utc
 
 router = APIRouter(tags=["Matches"])
 
@@ -262,7 +262,8 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
 
         result.append({
             "id": str(m.id),
-            "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
+            "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
             "result": "win" if m.score_a > m.score_b else "loss",
             "status": m.status,
@@ -329,7 +330,8 @@ def get_my_matches(
 
         result.append({
             "id": str(m.id),
-            "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
+            "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
             "result": my_result,
             "status": m.status,
@@ -388,7 +390,8 @@ def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
 
         result.append({
             "id": str(m.id),
-            "date": m.created_at.strftime("%Y-%m-%d %H:%M"), 
+            "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"), 
+            "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
             "result": "win" if is_a_win else "loss",
             "status": m.status,

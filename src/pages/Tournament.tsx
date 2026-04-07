@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import { TournamentSkeleton } from '@/components/TournamentSkeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
@@ -158,7 +158,7 @@ export function Tournament() {
           <div className="flex flex-col space-y-8 max-w-7xl mx-auto w-full">
             <motion.header variants={fadeInUp} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="flex items-center">
-                <div className="w-2.5 md:w-3.5 bg-gradient-to-b from-sapphire-blue to-blue-900 rounded-full h-14 md:h-20 mr-5 md:mr-8 shrink-0 shadow-lg shadow-sapphire-blue/20" />
+                <div className="w-2.5 md:w-3.5 bg-linear-to-b from-sapphire-blue to-blue-900 rounded-full h-14 md:h-20 mr-5 md:mr-8 shrink-0 shadow-lg shadow-sapphire-blue/20" />
                 <div className="space-y-1.5">
                   <h1 className="text-5xl md:text-6xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none italic">Arena</h1>
                   <p className="text-[11px] md:text-sm text-slate-400 font-sans font-black uppercase tracking-[0.4em] opacity-80 pl-1">Champion's Proving Ground</p>
@@ -296,8 +296,7 @@ export function Tournament() {
                                 <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mt-2">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-70">
-                                      <Calendar size={12} className="text-sapphire-blue" />
-                                      {new Date(s.start_date).toLocaleDateString()} - {new Date(s.end_date).toLocaleDateString()}
+                                      {formatLocalTime(s.start_date, 'yyyy/MM/dd')} - {formatLocalTime(s.end_date, 'yyyy/MM/dd')}
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-70">
                                       <Users size={12} className="text-emerald-500" />
@@ -367,7 +366,7 @@ export function Tournament() {
                                   <div className="flex flex-wrap items-center gap-x-8 gap-y-4 text-[11px] font-sans font-black opacity-60 uppercase tracking-[0.2em]">
                                     <span className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
                                       <Calendar size={18} className="text-sapphire-blue" />
-                                      {new Date(t.created_at).toLocaleDateString()}
+                                      {formatLocalTime(t.created_at, 'yyyy/MM/dd')}
                                     </span>
                                     <span className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
                                       <Trophy size={18} className="text-olympic-gold" />
@@ -430,7 +429,7 @@ export function Tournament() {
                                           </Badge>
                                           <div className="size-1 rounded-full bg-slate-200" />
                                           <p className="text-[10px] uppercase font-sans tracking-widest text-slate-400 font-black opacity-80">
-                                              {new Date(t.created_at).toLocaleDateString()}
+                                              {formatLocalTime(t.created_at, 'yyyy/MM/dd')}
                                           </p>
                                       </div>
                                     </div>
