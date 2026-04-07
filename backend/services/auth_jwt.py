@@ -10,7 +10,7 @@ from models import User
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-secret-for-dev-only")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1          # Access Token 縮短為 15 分鐘
+ACCESS_TOKEN_EXPIRE_MINUTES = 15          # Access Token 縮短為 15 分鐘
 REFRESH_TOKEN_EXPIRE_DAYS = 7             # Refresh Token 為 7 天
 
 # 移除 HTTPBearer，改用 Cookie
