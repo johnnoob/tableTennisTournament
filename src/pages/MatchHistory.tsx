@@ -146,7 +146,7 @@ export function MatchHistory() {
                         key={f}
                         onClick={() => setFilter(f)}
                         className={cn(
-                          "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all shrink-0",
+                          "rounded-full px-5 py-0 h-9 text-xs uppercase font-sans tracking-widest font-bold transition-all shrink-0 cursor-pointer",
                           filter === f
                             ? f === 'all'
                               ? "bg-primary-navy text-white shadow-lg shadow-primary-navy/20"

@@ -16,17 +16,19 @@ import { UserProfileSettings } from '@/components/UserProfileSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 
-interface AnnouncementProp {
-  id: string;
-  title: string;
-  content: string;
-  type: 'system' | 'club' | 'tournament';
-  link_text?: string;
-  link_url?: string;
-  created_at: string;
-}
+import { isTopTierRank } from '@/lib/ranking';
+import type {
+  Announcement,
+  MatchFeedItem,
+  RivalsResponse,
+  PartnersResponse,
+  LeaderboardResponse,
+  PlayerStats,
+  DashboardPlayer,
+  RivalryItem
+} from '@/types/api.types';
 
-function AnnouncementBanner({ items }: { items: AnnouncementProp[] }) {
+function AnnouncementBanner({ items }: { items: Announcement[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
@@ -215,7 +217,7 @@ export function Dashboard() {
   const { data: announcements = [] } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const res = await apiClient.get<any[]>("/announcements");
+      const res = await apiClient.get<Announcement[]>("/announcements");
       return res.data;
     },
     enabled: isLoggedIn,
@@ -224,7 +226,7 @@ export function Dashboard() {
   const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
     queryKey: ['matches', 'recent'],
     queryFn: async () => {
-      const res = await apiClient.get<any[]>("/matches/recent");
+      const res = await apiClient.get<MatchFeedItem[]>("/matches/recent");
       return res.data;
     },
     enabled: isLoggedIn,
@@ -234,7 +236,7 @@ export function Dashboard() {
   const { data: rivals = { nemesis: [], minions: [] } } = useQuery({
     queryKey: ['users', 'me', 'rivals'],
     queryFn: async () => {
-      const res = await apiClient.get<any>("/users/me/rivals");
+      const res = await apiClient.get<RivalsResponse>("/users/me/rivals");
       return res.data;
     },
     enabled: isLoggedIn,
@@ -244,7 +246,7 @@ export function Dashboard() {
   const { data: partners = { golden_partners: [], worst_partners: [] } } = useQuery({
     queryKey: ['users', 'me', 'partners'],
     queryFn: async () => {
-      const res = await apiClient.get<any>("/users/me/partners");
+      const res = await apiClient.get<PartnersResponse>("/users/me/partners");
       return res.data;
     },
     enabled: isLoggedIn,
@@ -254,9 +256,9 @@ export function Dashboard() {
   const { data: topPlayers = [], isPending: isLeaderboardLoading } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
-      const leaderRes = await apiClient.get<any>("/leaderboard");
+      const leaderRes = await apiClient.get<LeaderboardResponse>("/leaderboard");
       if (!leaderRes.data || !leaderRes.data.leaderboard) return [];
-      return leaderRes.data.leaderboard.slice(0, 3).map((p: any) => ({
+      return leaderRes.data.leaderboard.slice(0, 3).map((p): DashboardPlayer => ({
         id: p.player_id,
         name: p.player_name,
         username: p.player_name,
@@ -264,7 +266,7 @@ export function Dashboard() {
         rating: Math.round(p.season_lp),
         mmr: p.global_mmr ? Math.round(p.global_mmr) : Math.round(p.season_lp),
         avatar: p.avatar_url || '/api/placeholder/150/150',
-        isVerified: p.rank != "-" && parseInt(p.rank) <= 2,
+        isVerified: isTopTierRank(p.rank),
         department: p.department,
         stats: {
           wins: p.wins,
@@ -281,7 +283,7 @@ export function Dashboard() {
   const { data: myStats, isPending: isStatsLoading } = useQuery({
     queryKey: ['users', 'me', 'stats', chartInterval],
     queryFn: async () => {
-      const statsRes = await apiClient.get<any>(`/users/me/stats?interval=${chartInterval}`);
+      const statsRes = await apiClient.get<PlayerStats>(`/users/me/stats?interval=${chartInterval}`);
       return statsRes.data;
     },
     enabled: isLoggedIn,
@@ -372,9 +374,9 @@ export function Dashboard() {
                     avatar: user?.avatar || '',
                     isVerified: user?.isVerified || false,
                     department: user?.department || '',
-                    rating: myStats?.season_lp || user?.mmr || 1200,
-                    mmr: myStats?.global_mmr || user?.mmr || 1200,
-                    rank: myStats?.rank || '-',
+                    rating: (myStats?.season_lp || user?.mmr || 1200) as number,
+                    mmr: (myStats?.global_mmr || user?.mmr || 1200) as number,
+                    rank: (myStats?.rank || '-') as any,
                     stats: {
                       winRate: myStats?.win_rate || "0%",
                       wins: myStats?.wins || 0,
@@ -426,7 +428,7 @@ export function Dashboard() {
 
                   <div className="space-y-4">
                     {recentFeed.length > 0 ? (
-                      recentFeed.map((match: any) => (
+                      recentFeed.map((match) => (
                         <div key={match.id} className="transform transition-all active:scale-[0.98]">
                           <MatchItem match={match} />
                         </div>
@@ -449,8 +451,8 @@ export function Dashboard() {
                       <h3 className="text-xl font-display font-black text-primary-navy">Nemesis</h3>
                     </div>
                     <div className="space-y-3">
-                      {rivals.nemesis.length > 0 ? rivals.nemesis.map((item: any) => (<RivalRow key={item.id} {...item} type="nemesis" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無天敵資料</p>)}
-                    </div>
+                      {rivals.nemesis.length > 0 ? rivals.nemesis.map((item) => (<RivalRow key={item.id} {...item} type="nemesis" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無天敵資料</p>)}
+                        </div>
                   </div>
                   <div className="rounded-[2.5rem] bg-green-50/40 p-8 border border-green-100/50 space-y-6">
                     <div className="flex items-center gap-4">
@@ -460,8 +462,8 @@ export function Dashboard() {
                       <h3 className="text-xl font-display font-black text-primary-navy">Minions</h3>
                     </div>
                     <div className="space-y-3">
-                      {rivals.minions.length > 0 ? rivals.minions.map((item: any) => (<RivalRow key={item.id} {...item} type="minions" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無提款機資料</p>)}
-                    </div>
+                      {rivals.minions.length > 0 ? rivals.minions.map((item) => (<RivalRow key={item.id} {...item} type="minions" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無提款機資料</p>)}
+                        </div>
                   </div>
                 </motion.section>
 
@@ -474,8 +476,8 @@ export function Dashboard() {
                       <h3 className="text-xl font-display font-black text-primary-navy">黃金搭檔</h3>
                     </div>
                     <div className="space-y-3">
-                      {partners.golden_partners.length > 0 ? partners.golden_partners.map((item: any) => (<RivalRow key={item.id} {...item} type="minions" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無黃金搭檔資料</p>)}
-                    </div>
+                      {partners.golden_partners.length > 0 ? partners.golden_partners.map((item) => (<RivalRow key={item.id} {...item} type="minions" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無黃金搭檔資料</p>)}
+                        </div>
                   </div>
                   <div className="rounded-[2.5rem] bg-slate-50 p-8 border border-slate-200/50 space-y-6">
                     <div className="flex items-center gap-4">
@@ -485,8 +487,8 @@ export function Dashboard() {
                       <h3 className="text-xl font-display font-black text-primary-navy">豬隊友</h3>
                     </div>
                     <div className="space-y-3">
-                      {partners.worst_partners.length > 0 ? partners.worst_partners.map((item: any) => (<RivalRow key={item.id} {...item} type="nemesis" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無豬隊友資料</p>)}
-                    </div>
+                      {partners.worst_partners.length > 0 ? partners.worst_partners.map((item) => (<RivalRow key={item.id} {...item} type="nemesis" />)) : (<p className="text-sm text-slate-400 font-bold text-center py-4">尚無豬隊友資料</p>)}
+                        </div>
                   </div>
                 </motion.section>
               </motion.div>
@@ -509,7 +511,7 @@ export function Dashboard() {
                   </Button>
                 </div>
                 <div className="space-y-4">
-                  {topPlayers.length > 0 ? topPlayers.map((player: any) => (
+                  {topPlayers.length > 0 ? topPlayers.map((player) => (
                     <div key={player.id}>
                       <RankingCard player={player} />
                     </div>
@@ -532,7 +534,7 @@ export function Dashboard() {
   );
 }
 
-function RivalRow({ name, avatar, winRate, matches, pointsExchanged, type }: any) {
+function RivalRow({ name, avatar, winRate, matches, pointsExchanged, type }: RivalryItem & { type: 'nemesis' | 'minions' }) {
   return (
     <div className="flex items-center gap-4 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100/50 group hover:shadow-md transition-all">
       <img src={avatar || '/api/placeholder/150/150'} referrerPolicy="no-referrer" alt={name} className="size-10 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all border border-slate-100" />

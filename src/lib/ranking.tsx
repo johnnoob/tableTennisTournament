@@ -72,3 +72,13 @@ export const calculateRankings = (players: any[]) => {
   // 5. 合併回傳 (Active 優先展示)
   return [...active, ...inactive];
 };
+
+/**
+ * 判斷是否為頂尖名次 (前兩名)
+ * 用於顯示驗證徽章或特殊標記
+ */
+export const isTopTierRank = (rank: string | number | undefined): boolean => {
+  if (!rank || rank === "-") return false;
+  const rankNum = parseInt(String(rank), 10);
+  return !isNaN(rankNum) && rankNum <= 2;
+};

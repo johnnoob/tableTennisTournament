@@ -2,7 +2,7 @@ export interface Player {
   id: string;
   name: string;
   username: string;
-  rank: number;
+  rank: number | string;
   rating: number;
   mmr?: number;
   avatar: string;
@@ -11,7 +11,7 @@ export interface Player {
   stats: {
     wins: number;
     losses: number;
-    winRate: number;
+    winRate: number | string;
     avgScore: number;
     seasonWinRate?: number;
     maxStreak?: number;

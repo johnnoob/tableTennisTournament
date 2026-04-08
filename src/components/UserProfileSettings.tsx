@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useAuth } from '@/hooks/useAuth'
-import { useAuthStore } from '@/store/authStore'
 import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/utils/apiClient'
 
@@ -55,8 +54,7 @@ interface UserProfileSettingsProps {
 export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 1024px)")
-  const { data: user } = useAuth()
-  const { logout } = useAuthStore()
+  const { data: user, logout } = useAuth()
   const queryClient = useQueryClient()
 
   // 表單狀態

@@ -1,4 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/utils/apiClient';
 
 /**
@@ -8,7 +10,10 @@ import apiClient from '@/utils/apiClient';
  * 這是系統唯一的伺服器狀態來源，取代了原本 Zustand 的 fetchUser 邏輯。
  */
 export function useAuth() {
-  return useQuery({
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ['authUser'],
     queryFn: async () => {
       try {
@@ -29,4 +34,26 @@ export function useAuth() {
     // 未登入或 API 失敗時，不自動重試多次，避免造成過多連線
     retry: false,
   });
+
+  /**
+   * 登出方法
+   * 呼叫後端 API 清除 Session Cookie，並導向登入頁面
+   */
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // 無論 API 成功與否，前端都進行跳轉
+      queryClient.clear();
+      navigate('/login');
+    }
+  }, [navigate, queryClient]);
+
+  return {
+    ...query,
+    logout,
+  };
 }
+

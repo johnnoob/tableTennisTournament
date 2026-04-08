@@ -1,4 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dashboard } from '@/pages/Dashboard';
 import { MatchHistory } from '@/pages/MatchHistory';
 import { Navigation } from '@/components/Navigation';
@@ -20,7 +22,22 @@ import { Plus } from 'lucide-react';
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isLoginPage = location.pathname === '/login';
+
+  // 監聽全局 401 事件 (auth:unauthorized)
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      queryClient.clear();
+      navigate('/login');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [navigate, queryClient]);
 
   // 🌟 改用 React Query Hook 獲取使用者資料
   const { data: user, isLoading: loading } = useAuth();
