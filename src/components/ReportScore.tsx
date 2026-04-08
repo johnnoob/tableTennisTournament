@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useThrottledCallback } from '@tanstack/react-pacer'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/utils/apiClient'
 import { Plus, Minus, Trophy, User, CheckCircle2, Swords, Search } from "lucide-react"
@@ -196,7 +197,7 @@ export function ReportScore({
 
   const validation = getScoreValidation(scoreA, scoreB, isReady);
 
-  const handleSubmit = async () => {
+  const throttledSubmit = useThrottledCallback(async () => {
     if (seasonPaused || !isReady || !validation.valid || !currentUser) return
     
     // 1. 已改用 HttpOnly Cookie，由瀏覽器自動處理，無需手動取得 Token
@@ -215,7 +216,7 @@ export function ReportScore({
     }
 
     mutation.mutate(payload)
-  }
+  }, { wait: 2000 })
 
   const content = (
     <div className="px-6 py-4 md:py-2 space-y-8 md:space-y-4">
@@ -524,7 +525,7 @@ export function ReportScore({
           {!isSuccess && !isDesktop && (
             <div className="p-6 pt-0 border-t border-slate-50 flex gap-3">
               <Button
-                onClick={handleSubmit}
+                onClick={throttledSubmit}
                 disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
                 className="flex-1 h-12 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
@@ -541,7 +542,7 @@ export function ReportScore({
                 取消
               </Button>
               <Button
-                onClick={handleSubmit}
+                onClick={throttledSubmit}
                 disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
                 className="h-12 px-10 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black tracking-wider transition-all disabled:opacity-30 shadow-xl shadow-primary-navy/20"
               >
@@ -601,7 +602,7 @@ export function ReportScore({
         <DrawerFooter className="px-6 pt-2 pb-10 border-t border-slate-50 bg-white/80 backdrop-blur-md">
           {!isSuccess && (
             <Button
-              onClick={handleSubmit}
+              onClick={throttledSubmit}
               disabled={seasonPaused || !isReady || isSubmitting || !validation.valid}
               className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-lg tracking-wider transition-all disabled:opacity-30 shadow-2xl shadow-primary-navy/20 mb-4"
             >

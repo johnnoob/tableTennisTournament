@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
+import { useThrottledCallback } from '@tanstack/react-pacer';
 import apiClient from '@/utils/apiClient';
 
 // Premium Empty State Component
@@ -107,6 +108,10 @@ export function Tournament() {
     ? filteredSeasons.length > visibleCount 
     : displayStandardTournaments.length > visibleCount;
 
+  const handleLoadMore = useThrottledCallback(() => {
+    setVisibleCount(prev => prev + 6);
+  }, { wait: 500 });
+
   // Stable Sentinel Ref using useCallback
   const sentinelRef = useCallback((node: HTMLDivElement | null) => {
     if (observerRef.current) {
@@ -117,13 +122,13 @@ export function Tournament() {
     if (node && hasMore) {
       observerRef.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && !isLoading) {
-          setVisibleCount(prev => prev + 6);
+          handleLoadMore();
         }
       }, { threshold: 0, rootMargin: '50px' }); 
       
       observerRef.current.observe(node);
     }
-  }, [isLoading, hasMore, visibleCount]);
+  }, [isLoading, hasMore, visibleCount, handleLoadMore]);
 
   // Color Mapping for Status Filter Buttons (Tailwind JIT safety)
   const filterColors = {

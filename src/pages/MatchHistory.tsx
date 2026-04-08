@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useThrottledCallback } from '@tanstack/react-pacer';
 import apiClient from '@/utils/apiClient';
 import { MatchItem } from '@/components/MatchItem';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,10 @@ export function MatchHistory() {
   // However, mimicking the original behavior:
   const recentMatches = filter === 'all' && data?.pages[0] ? data.pages[0].matches.slice(0, 5) : [];
   const loading = isPending;
+  
+  const handleLoadMore = useThrottledCallback(() => {
+    fetchNextPage();
+  }, { wait: 500 });
 
   // Sentinel Ref for automatic triggering
   const sentinelRef = useCallback((node: HTMLDivElement | null) => {
@@ -50,12 +55,12 @@ export function MatchHistory() {
     if (node && hasNextPage && !loading && !searchQuery) {
       observerRef.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && !isFetchingNextPage) {
-          fetchNextPage();
+          handleLoadMore();
         }
       }, { threshold: 0, rootMargin: '100px' });
       observerRef.current.observe(node);
     }
-  }, [hasNextPage, loading, isFetchingNextPage, searchQuery, fetchNextPage]);
+  }, [hasNextPage, loading, isFetchingNextPage, searchQuery, handleLoadMore]);
 
   const displayed = searchQuery
     ? matches.filter((m: any) =>
