@@ -1,11 +1,12 @@
-import os
-from dotenv import load_dotenv
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-
-# 載入環境變數
-load_dotenv()
-
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
+from config import settings
+from database import get_session
 from routers.matches import router as matches_router
 from routers.users import router as users_router
 from routers.leaderboard import router as leaderboard_router
@@ -13,21 +14,16 @@ from routers.auth import router as auth_router
 from routers.seasons import router as seasons_router
 from routers.admin import router as admin_router
 from routers.content import router as content_router
-
-from starlette.middleware.sessions import SessionMiddleware
-
-from contextlib import asynccontextmanager
-from database import get_session
 from services.scheduler import scheduler, setup_scheduler
 from services.season_service import ensure_current_quarter_season
-import logging
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 啟動排程器
     setup_scheduler()
     scheduler.start()
-    
+
     # 開機預檢：確保現在的季度有賽季可打
     generator = get_session()
     session = next(generator)
@@ -40,36 +36,32 @@ async def lifespan(app: FastAPI):
     yield
     # 關閉時執行
     scheduler.shutdown()
-    # 關閉時執行 (如有需要)
 
-# 1. 建立 FastAPI 應用程式實例，並加上晨星奧運風的專屬標題
+
+# 1. 建立 FastAPI 應用程式實例
 app = FastAPI(
     title="Precision Arena API",
     description="機關專屬桌球戰情室系統核心伺服器",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    # 正式環境關閉 Swagger UI 避免暴露 API 文件
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
 )
 
-# 🌟 新增 Session 中介軟體 (secret_key 從環境變數讀取)
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "fallback-secret-string"))
+# 2. Session 中介軟體（讀取 secret_key from settings）
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
-# 2. 設定 CORS (跨來源資源共用)
-# 從環境變數讀取 ALLOWED_ORIGINS，若未設定則使用本地開發預設值
-allowed_origins_str = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
-)
-origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
-
-
+# 3. CORS 設定（讀取 allowed_origins from settings）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],  # 允許所有 HTTP 請求方法 (GET, POST, PUT, DELETE)
-    allow_headers=["*"],  # 允許所有 Header 傳遞
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# 將 router 掛載到 app 上
+
+# 4. 掛載所有 routers
 app.include_router(matches_router)
 app.include_router(users_router)
 app.include_router(leaderboard_router)
@@ -78,15 +70,16 @@ app.include_router(seasons_router)
 app.include_router(admin_router)
 app.include_router(content_router)
 
-# 3. 定義測試用的起手式 Endpoints (路由)
 
 @app.get("/")
 def read_root():
     """根目錄測試路由"""
     return {
         "message": "Welcome to Precision Arena API! 🏆",
-        "status": "Server is up and running smoothly."
+        "status": "Server is up and running smoothly.",
+        "environment": settings.app_env,
     }
+
 
 @app.get("/api/health")
 def health_check():
@@ -97,8 +90,6 @@ def health_check():
     return {
         "status": "ok",
         "system": "Table Tennis Tournament Engine",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "environment": settings.app_env,
     }
-
-if __name__ == '__main__':
-    print(os.getenv("ALLOWED_ORIGINS").split(","))

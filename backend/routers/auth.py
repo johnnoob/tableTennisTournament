@@ -1,10 +1,10 @@
-import os
 from fastapi import APIRouter, Request, Depends, Response, HTTPException
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from sqlmodel import Session, select
 from uuid import UUID
 
+from config import settings
 from database import get_session
 from models import User
 from services.auth_jwt import (
@@ -18,14 +18,14 @@ from services.auth_jwt import (
 import jwt
 
 router = APIRouter(tags=["Auth"])
-is_production = os.getenv("ENV_STATUS", "development") == "production"
+
 
 # 🌟 初始化 OAuth
 oauth = OAuth()
 oauth.register(
     name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    client_id=settings.google_client_id,
+    client_secret=settings.google_client_secret,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
 )
@@ -33,8 +33,7 @@ oauth.register(
 @router.get("/api/auth/google/login")
 async def google_login(request: Request):
     """前端點擊登入後，會先呼叫這支 API，我們再把它導向 Google"""
-    # 告訴 Google 成功後要導回哪支 API
-    redirect_uri = "http://localhost:8000/api/auth/google/callback"
+    redirect_uri = f"{settings.backend_url}/api/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/api/auth/google/callback")
@@ -85,8 +84,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
     refresh_token = create_refresh_token(user.id)
 
     # 🚀 4. 使用 HttpOnly Cookie 儲存雙 Token
-    frontend_base = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    response = RedirectResponse(url=f"{frontend_base}/")
+    response = RedirectResponse(url=f"{settings.frontend_url}/")
     
     # 🔐 設定 Access Token Cookie (短效)
     response.set_cookie(
@@ -95,7 +93,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         httponly=True,
         samesite="lax",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=is_production 
+        secure=settings.is_production
     )
 
     # 🔐 設定 Refresh Token Cookie (長效)
@@ -105,7 +103,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         httponly=True,
         samesite="lax",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        secure=is_production 
+        secure=settings.is_production
     )
     return response
 
@@ -163,7 +161,7 @@ async def refresh_token(
             httponly=True,
             samesite="lax",
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            secure=is_production 
+            secure=settings.is_production
         )
         return {"status": "success", "message": "Access token refreshed"}
         

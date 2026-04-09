@@ -1,17 +1,17 @@
-import os
 import jwt
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlmodel import Session
 from uuid import UUID
 
+from config import settings
 from database import get_session
 from models import User
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-secret-for-dev-only")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15          # Access Token 縮短為 15 分鐘
-REFRESH_TOKEN_EXPIRE_DAYS = 7             # Refresh Token 為 7 天
+SECRET_KEY = settings.jwt_secret_key
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
 # 移除 HTTPBearer，改用 Cookie
 # security = HTTPBearer()
