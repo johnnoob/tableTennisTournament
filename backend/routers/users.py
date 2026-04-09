@@ -91,6 +91,7 @@ def get_my_stats(
     
     rank, win_rate, trend = "-", "0%", "new"
     lp, matches_played = current_user.global_mmr, 0
+    my_record = None  # 🔧 Fix: ensure my_record is always defined
 
     if active_season:
         # (這裡計算 rank, win_rate, trend 的邏輯跟原本一樣，保持不變)

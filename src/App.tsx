@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dashboard } from '@/pages/Dashboard';
 import { MatchHistory } from '@/pages/MatchHistory';
@@ -19,6 +19,7 @@ import { Toaster } from 'sonner';
 import { ReportScore } from '@/components/ReportScore';
 import { Button } from './components/ui/button';
 import { Plus } from 'lucide-react';
+import PingPongLoader from '@/components/PingPongLoader';
 
 function AppContent() {
   const location = useLocation();
@@ -42,19 +43,9 @@ function AppContent() {
   // 🌟 改用 React Query Hook 獲取使用者資料
   const { data: user, isLoading: loading } = useAuth();
 
-  // 🌟 如果正在跟後端確認身分，顯示全域的載入畫面（防止畫面閃爍）
-  if (loading && !isLoginPage) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="size-12 border-4 border-sapphire-blue/20 border-t-sapphire-blue rounded-full animate-spin" />
-          <p className="font-black text-primary-navy tracking-widest uppercase text-sm">驗證身分中...</p>
-        </div>
-      </div>
-    );
-  }
-
-
+  // ──────────────────────────────────────────────
+  // Login 頁面 — 滿版設計，不渲染 Navigation
+  // ──────────────────────────────────────────────
   if (isLoginPage) {
     return (
       <Routes>
@@ -63,6 +54,9 @@ function AppContent() {
     );
   }
 
+  // ──────────────────────────────────────────────
+  // App Shell — Navigation 永遠可見，Loading 僅影響主內容
+  // ──────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-sapphire-blue/10 flex relative">
 
@@ -74,16 +68,26 @@ function AppContent() {
       {/* Main Content Area */}
       <main className="flex-1 w-full min-w-0 lg:ml-72 xl:ml-80 transition-all duration-300">
         <div className="min-h-screen bg-white lg:my-4 lg:mr-4 lg:rounded-[2.5rem] shadow-xl shadow-slate-200/50 relative border border-slate-100/50">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/history" element={<MatchHistory />} />
-            <Route path="/tournament" element={<Tournament />} />
-            <Route path="/tournament/:id" element={<TournamentDetail />} />
-            <Route path="/season/:id" element={<SeasonDetail />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            {/* Fallback to login if needed or just 404, here we just keep existing routes */}
-          </Routes>
+
+          {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
+          {loading ? (
+            <div className="flex items-center justify-center min-h-screen">
+              <PingPongLoader />
+            </div>
+          ) : (
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/history" element={<MatchHistory />} />
+              <Route path="/tournament" element={<Tournament />} />
+              <Route path="/tournament/:id" element={<TournamentDetail />} />
+              <Route path="/season/:id" element={<SeasonDetail />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              {/* Catch-all: 任何未知路由（例如 /hof）都導向首頁，防止空白畫面 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          )}
+
         </div>
       </main>
       {/* 🌟全域懸浮報分按鈕 (Global Floating Action Button) */}
@@ -113,4 +117,3 @@ function App() {
 }
 
 export default App;
-

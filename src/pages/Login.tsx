@@ -110,7 +110,7 @@ export function Login() {
           {/* 訪客/純瀏覽入口 */}
           <div className="pt-8 border-t border-slate-100 flex flex-col items-center">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">或者</p>
-            <Link to="/hof">
+            <Link to="/leaderboard">
               <Button variant="ghost" className="text-sapphire-blue font-black tracking-widest hover:bg-blue-50 rounded-xl px-6 gap-2">
                 以訪客身分進入榮譽榜 <ArrowRight size={16} />
               </Button>

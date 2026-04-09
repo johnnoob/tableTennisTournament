@@ -47,8 +47,9 @@ export function ReportScore({
   initialScoreB = 0
 }: ReportScoreProps) {
   const { data: currentUser } = useAuth();
-  const [open, setOpen] = React.useState(false)
+  // ⚠️ Rules of Hooks: 所有 Hook 必須在條件式 return 之前呼叫
   const isDesktop = useMediaQuery("(min-width: 1024px)")
+  const [open, setOpen] = React.useState(false)
   const [scoreA, setScoreA] = React.useState(initialScoreA)
   const [scoreB, setScoreB] = React.useState(initialScoreB)
   const [matchType, setMatchType] = React.useState<'singles' | 'doubles'>('singles')
@@ -66,7 +67,7 @@ export function ReportScore({
       const res = await apiClient.get("/config/public");
       return res.data;
     },
-    enabled: open
+    enabled: !!currentUser && open
   });
   const seasonPaused = configData?.season_paused === 'true';
 
@@ -76,8 +77,12 @@ export function ReportScore({
       const res = await apiClient.get<any[]>("/users");
       return res.data;
     },
-    enabled: open && !!currentUser
+    enabled: !!currentUser && open
   });
+
+  const selectedOpponent = realPlayers.find(p => p.id === selectedOpponentId)
+  const selectedPartner = realPlayers.find(p => p.id === selectedPartnerId)
+  const selectedOpponents = realPlayers.filter(p => selectedOpponentIds.includes(p.id))
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -155,10 +160,6 @@ export function ReportScore({
     }
   }, [open, initialScoreA, initialScoreB, initialOpponentId, isSuccess])
 
-  const selectedOpponent = realPlayers.find(p => p.id === selectedOpponentId)
-  const selectedPartner = realPlayers.find(p => p.id === selectedPartnerId)
-  const selectedOpponents = realPlayers.filter(p => selectedOpponentIds.includes(p.id))
-
   const isReady = matchType === 'singles'
     ? !!selectedOpponentId
     : (!!selectedPartnerId && selectedOpponentIds.length === 2)
@@ -217,6 +218,9 @@ export function ReportScore({
 
     mutation.mutate(payload)
   }, { wait: 2000 })
+
+  // 🛡️ 防禦性編碼：currentUser 未載入時提前返回，此行必須在所有 Hook 呼叫之後
+  if (!currentUser) return null;
 
   const content = (
     <div className="px-6 py-4 md:py-2 space-y-8 md:space-y-4">
@@ -386,7 +390,7 @@ export function ReportScore({
               {/* 🌟 修改：動態過濾名單邏輯 */}
               {(() => {
                 const filteredPlayers = realPlayers.filter(p =>
-                  p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.id !== currentUser.id // 這裡的 currentUser 之後也要換成從上層傳下來的真實 user
+                  p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.id !== currentUser?.id
                 )
 
                 // 如果沒有搜尋條件，預設顯示 10 名；有搜尋則顯示所有符合條件的同仁

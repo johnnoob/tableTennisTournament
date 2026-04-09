@@ -280,7 +280,7 @@ export function Dashboard() {
     refetchInterval: 10000,
   });
 
-  const { data: myStats, isPending: isStatsLoading } = useQuery({
+  const { data: myStats, isPending: isStatsLoading, isError: isStatsError } = useQuery({
     queryKey: ['users', 'me', 'stats', chartInterval],
     queryFn: async () => {
       const statsRes = await apiClient.get<PlayerStats>(`/users/me/stats?interval=${chartInterval}`);
@@ -288,13 +288,14 @@ export function Dashboard() {
     },
     enabled: isLoggedIn,
     refetchInterval: 10000,
+    retry: 1, // 只重試一次，避免 500 錯誤時無限等待
   });
 
   // 🌟 修改 Loading 邏輯：只有在第一次加載且沒有資料時才顯示 Skeleton
-  // 如果已經有資料（例如 Invalidation 後的背景刷新），則保持顯示現有內容，提供更流暢的體驗
+  // 關鍵：若 stats query 已 error，不再 block 渲染 (避免永久 skeleton)
   const isFirstLoading = (isFeedLoading && recentFeed.length === 0) ||
     (isLeaderboardLoading && topPlayers.length === 0) ||
-    (isStatsLoading && !myStats);
+    (isStatsLoading && !myStats && !isStatsError);
 
   const feedLoading = isFirstLoading;
 
