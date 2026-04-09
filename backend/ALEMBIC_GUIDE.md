@@ -9,7 +9,7 @@
 ### 1. 自動生成遷移腳本
 Alembic 會比對你的 `models.py` 與目前資料庫的差異。
 ```bash
-python3 -m alembic revision --autogenerate -m "描述你的變更 (例如: add_user_age)"
+python -m alembic revision --autogenerate -m "描述你的變更 (例如: add_user_age)"
 ```
 
 ### 2. 檢查腳本
@@ -17,7 +17,7 @@ python3 -m alembic revision --autogenerate -m "描述你的變更 (例如: add_u
 
 ### 3. 套用至資料庫
 ```bash
-python3 -m alembic upgrade head
+python -m alembic upgrade head
 ```
 
 ---
@@ -27,17 +27,17 @@ python3 -m alembic upgrade head
 ### 撤銷 (Rollback)
 如果套用後發現有問題，可以回滾到前一個版本：
 ```bash
-python3 -m alembic downgrade -1
+python -m alembic downgrade -1
 ```
 
 ### 查看狀態
 確認目前資料庫版本與歷史：
 ```bash
 # 查看目前的版本號
-python3 -m alembic current
+python -m alembic current
 
 # 查看完整的遷移歷史
-python3 -m alembic history --verbose
+python -m alembic history --verbose
 ```
 
 ---
@@ -52,4 +52,4 @@ python3 -m alembic history --verbose
 
 ## 🔧 環境設定備註
 *   **執行路徑**：請確保在 `backend/` 目錄下執行指令。
-*   **指令前綴**：若 `alembic` 指令無效，請統一使用 `python3 -m alembic` 來確保使用虛擬環境內的套件。
+*   **指令前綴**：若 `alembic` 指令無效，請統一使用 `python -m alembic` 來確保使用虛擬環境內的套件。

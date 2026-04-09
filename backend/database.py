@@ -1,16 +1,21 @@
 # backend/database.py
+import os
 from sqlmodel import create_engine, Session
+from dotenv import load_dotenv
 
-# 指定 SQLite 資料庫檔案名稱，它會自動生成在 backend 資料夾下
-sqlite_file_name = "arena.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+load_dotenv()
 
-# check_same_thread=False 是 SQLite 在 FastAPI 中非同步環境下的必要設定
-connect_args = {"check_same_thread": False}
+# 從環境變數讀取 DATABASE_URL，沒設定則 fallback 至 SQLite (僅供本地開發緊急備用)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///arena.db")
 
-# 建立資料庫引擎 (echo=True 會在終端機印出底層執行的 SQL 語法，方便開發除錯)
-# Schema 管理已交由 Alembic 負責，此處不再呼叫 create_all
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+# PostgreSQL 不需要 check_same_thread，連線池由 SQLAlchemy 管理
+# pool_pre_ping=True：每次借出連線前先 ping，避免 stale connection 問題
+# pool_size / max_overflow 可依部署規模調整
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,           # 正式環境建議改 False，開發除錯可設 True
+    pool_pre_ping=True,   # 防止斷線後的殭屍連線
+)
 
 def get_session():
     """依賴注入 (Dependency Injection) 用，負責提供資料庫 Session 給每個 API"""

@@ -4,10 +4,14 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+from dotenv import load_dotenv
 
 # ── 讓 Python 找得到 backend/ 下的模組 ──────────────────────────────────────
 # env.py 在 backend/alembic/env.py，所以 backend/ = 上一層
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# ── 載入 .env（確保在 import 其他模組前已載入環境變數）──────────────────────
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 # ── 引入 SQLModel metadata ───────────────────────────────────────────────────
 from sqlmodel import SQLModel
@@ -23,10 +27,13 @@ if config.config_file_name is not None:
 # ── 指定 metadata，讓 Alembic 做 autogenerate ────────────────────────────────
 target_metadata = SQLModel.metadata
 
-# ── 動態設定 DB URL（覆蓋 alembic.ini 的值）────────────────────────────────
-# arena.db 就放在 backend/ 底下，env.py 往上一層即可找到
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "arena.db")
-config.set_main_option("sqlalchemy.url", f"sqlite:///{DB_PATH}")
+# ── 動態設定 DB URL（從環境變數讀取，覆蓋 alembic.ini 的值）────────────────
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "❌ DATABASE_URL 環境變數未設定！請在 backend/.env 中加入 PostgreSQL 連線字串。"
+    )
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
@@ -37,7 +44,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,  # ← SQLite ALTER TABLE 必要
+        # PostgreSQL 不需要 render_as_batch，移除此設定
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -54,7 +61,9 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,  # ← SQLite ALTER TABLE 必要
+            # PostgreSQL 原生支援 ALTER TABLE，不需要 render_as_batch
+            compare_type=True,      # 讓 autogenerate 能偵測欄位型別變更
+            compare_server_default=True,  # 偵測 server_default 變更
         )
         with context.begin_transaction():
             context.run_migrations()

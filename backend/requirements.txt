@@ -11,3 +11,5 @@ httpx
 itsdangerous
 apscheduler
 cloudinary
+psycopg2-binary
+alembic
