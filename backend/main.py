@@ -17,16 +17,13 @@ from routers.content import router as content_router
 from starlette.middleware.sessions import SessionMiddleware
 
 from contextlib import asynccontextmanager
-from database import create_db_and_tables, get_session
+from database import get_session
 from services.scheduler import scheduler, setup_scheduler
 from services.season_service import ensure_current_quarter_season
 import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動時執行：建立資料庫與資料表
-    create_db_and_tables()
-    
     # 啟動排程器
     setup_scheduler()
     scheduler.start()
