@@ -1,17 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, or_
-from sqlalchemy import update
 from uuid import UUID
 import datetime
 
 from database import get_session
-from models import Match, Season, Notification, User, PlayerStatHistory, MatchParticipation, SeasonRecord
+from models import Match, Notification, User, SeasonRecord
 from schemas import MatchCreateReq
 
-# 🌟 匯入我們的 Elo 引擎
 from services.elo_engine import get_team_mmr, calculate_elo_delta
-from services.auth_jwt import get_current_user # 🌟 匯入警衛
+from services.auth_jwt import get_current_user
 from services.season_service import get_current_season, ensure_utc
+from services.match_service import (
+    settle_match_transaction,
+    MatchNotFoundError,
+    MatchAlreadySettledError,
+    ConfirmPermissionError,
+)
 
 router = APIRouter(tags=["Matches"])
 
@@ -116,158 +120,24 @@ def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(g
 
 @router.post("/api/matches/{match_id}/confirm", summary="確認比分並結算積分 (觸發 Elo 引擎)")
 def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
-    # ── 1. 先讀取 match（不鎖），做基本驗證 ──────────────────────────────
-    match = session.get(Match, match_id)
-    if not match:
-        raise HTTPException(status_code=404, detail="找不到此比賽")
-    if match.status != "pending":
-        raise HTTPException(status_code=400, detail="此比賽不處於待確認狀態")
-    if current_user.id not in [match.team_b_p1_id, match.team_b_p2_id]:
-        raise HTTPException(status_code=403, detail="只有對手可以確認此比分！")
-
-    # ── 2. 收集所有涉及的 user_id，排序後依序取得悲觀鎖 ─────────────────
-    #    ⚠️  排序是防 Deadlock 的關鍵：所有 concurrent request 都以相同順序鎖列
-    involved_ids = sorted(filter(None, [
-        match.team_a_p1_id,
-        match.team_a_p2_id,
-        match.team_b_p1_id,
-        match.team_b_p2_id,
-    ]))
-
     try:
-        # SELECT ... FOR UPDATE：鎖定這些 User 列，其他 transaction 若也想鎖同一列會 block
-        locked_users: dict[UUID, User] = {}
-        for uid in involved_ids:
-            user = session.exec(
-                select(User).where(User.id == uid).with_for_update()
-            ).one()
-            locked_users[uid] = user
-
-        team_a_p1 = locked_users[match.team_a_p1_id]
-        team_b_p1 = locked_users[match.team_b_p1_id]
-        team_a_p2 = locked_users.get(match.team_a_p2_id) if match.team_a_p2_id else None
-        team_b_p2 = locked_users.get(match.team_b_p2_id) if match.team_b_p2_id else None
-
-        # ── 3. 計算 Elo delta（使用鎖後的最新 MMR） ─────────────────────────
-        a_won = match.score_a > match.score_b
-
-        delta = calculate_elo_delta(
-            winner_team_mmr=team_a_p1.global_mmr if a_won else team_b_p1.global_mmr,
-            loser_team_mmr=team_b_p1.global_mmr if a_won else team_a_p1.global_mmr,
-            winner_matches_played=10,
-            score_winner=max(match.score_a, match.score_b),
-            score_loser=min(match.score_a, match.score_b),
-            format=match.format,
+        result = settle_match_transaction(
+            session=session,
+            match_id=match_id,
+            current_user_id=current_user.id,
         )
-
-        match.mmr_exchanged = delta
-        match.lp_exchanged = delta
-        session.add(match)
-
-        # ── 4. 更新每位玩家的積分（User + SeasonRecord） ─────────────────────
-        def update_player_stats(player: User, is_winner: bool, team_name: str):
-            actual_delta = delta if is_winner else -delta
-
-            # 4a. 原子更新 global_mmr（直接讓 DB 做加法，不在 Python 做 read-modify-write）
-            session.exec(
-                update(User)
-                .where(User.id == player.id)
-                .values(global_mmr=User.global_mmr + actual_delta)
-            )
-            # 讓 ORM 物件也反映新值（供回傳用）
-            player.global_mmr += actual_delta
-
-            # 4b. 取得並鎖定 SeasonRecord
-            season_record = session.exec(
-                select(SeasonRecord)
-                .where(
-                    SeasonRecord.user_id == player.id,
-                    SeasonRecord.season_id == match.season_id,
-                )
-                .with_for_update()
-            ).first()
-
-            if season_record:
-                # 原子更新 season_lp
-                session.exec(
-                    update(SeasonRecord)
-                    .where(
-                        SeasonRecord.user_id == player.id,
-                        SeasonRecord.season_id == match.season_id,
-                    )
-                    .values(
-                        season_lp=SeasonRecord.season_lp + actual_delta,
-                        matches_played=SeasonRecord.matches_played + 1,
-                        wins=SeasonRecord.wins + (1 if is_winner else 0),
-                    )
-                )
-                # 讓 ORM 物件反映新值（供 history 用）
-                season_record.season_lp += actual_delta
-                current_lp = season_record.season_lp
-            else:
-                # 第一次打這個賽季，INSERT 新紀錄（無需鎖，因為 INSERT 不存在競爭）
-                season_record = SeasonRecord(
-                    user_id=player.id,
-                    season_id=match.season_id,
-                    season_lp=1200 + actual_delta,
-                    matches_played=1,
-                    wins=1 if is_winner else 0,
-                )
-                session.add(season_record)
-                current_lp = season_record.season_lp
-
-            # 4c. 寫入 history snapshot
-            history = PlayerStatHistory(
-                user_id=player.id,
-                mmr=player.global_mmr,
-                season_lp=current_lp,
-            )
-            session.add(history)
-
-            # 4d. 寫入 participation
-            participation = MatchParticipation(
-                match_id=match.id,
-                user_id=player.id,
-                team=team_name,
-                is_winner=is_winner,
-                mmr_delta=actual_delta,
-                lp_delta=actual_delta,
-            )
-            session.add(participation)
-
-        update_player_stats(team_a_p1, is_winner=a_won, team_name="A")
-        if team_a_p2:
-            update_player_stats(team_a_p2, is_winner=a_won, team_name="A")
-        update_player_stats(team_b_p1, is_winner=not a_won, team_name="B")
-        if team_b_p2:
-            update_player_stats(team_b_p2, is_winner=not a_won, team_name="B")
-
-        # ── 5. 更新 match 狀態 & 通知 ──────────────────────────────────────
-        match.status = "confirmed"
-        session.add(match)
-
-        pending_notifs = session.exec(
-            select(Notification).where(
-                Notification.match_id == match.id,
-                Notification.type == "pending_confirm",
-            )
-        ).all()
-        for notif in pending_notifs:
-            notif.is_read = True
-            session.add(notif)
-
-        session.commit()
-
-    except Exception:
-        session.rollback()
-        raise
+    except MatchNotFoundError:
+        raise HTTPException(status_code=404, detail="找不到此比賽")
+    except MatchAlreadySettledError:
+        raise HTTPException(status_code=400, detail="此比賽不處於待確認狀態")
+    except ConfirmPermissionError:
+        raise HTTPException(status_code=403, detail="只有對手可以確認此比分！")
 
     return {
         "message": "比分已確認，積分結算完畢！",
-        "delta": delta,
-        "team_a_new_mmr": team_a_p1.global_mmr,
-        "team_b_new_mmr": team_b_p1.global_mmr,
+        **result,
     }
+
 
 @router.get("/api/matches/pending", summary="取得我相關的待確認比賽")
 def get_pending_matches(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
