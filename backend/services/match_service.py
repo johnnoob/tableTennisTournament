@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 from sqlalchemy import update
 
 from models import Match, User, SeasonRecord, PlayerStatHistory, MatchParticipation, Notification
-from services.elo_engine import calculate_elo_delta
+from services.elo_engine import calculate_match_deltas, ELO_CONFIG
 
 
 # ── Custom Exceptions（供 Router 捕捉後轉成 HTTPException） ────────────────────
@@ -32,17 +32,17 @@ def settle_match_transaction(
     current_user_id: UUID,
 ) -> dict:
     """
-    執行比賽確認的完整 DB 交易：
+    執行比賽確認的完整 DB 交易（單軌 Elo 系統）：
       1. 驗證比賽狀態與確認權限
       2. 依排序取得所有玩家的悲觀鎖（防 Deadlock）
-      3. 計算 Elo delta
-      4. 原子更新 User.global_mmr 與 SeasonRecord
+      3. 呼叫 calculate_match_deltas 取得每人的精確積分變動
+      4. 原子更新 User.global_mmr 與 SeasonRecord（LP 欄位固定為 0）
       5. 寫入 PlayerStatHistory、MatchParticipation
       6. 更新 Match 狀態與通知
       7. commit / rollback on error
 
     Returns:
-        dict with keys: delta, team_a_new_mmr, team_b_new_mmr
+        dict with keys: deltas, winner_team, loser_team, winner_new_mmrs, loser_new_mmrs
 
     Raises:
         MatchNotFoundError: 找不到比賽
@@ -81,25 +81,64 @@ def settle_match_transaction(
         team_a_p2 = locked_users.get(match.team_a_p2_id) if match.team_a_p2_id else None
         team_b_p2 = locked_users.get(match.team_b_p2_id) if match.team_b_p2_id else None
 
-        # ── 3. 計算 Elo delta（使用鎖後的最新 MMR） ──────────────────────────
+        # ── 3. 計算每位玩家的精確 Elo delta（使用鎖後的最新 MMR） ───────────
         a_won = match.score_a > match.score_b
 
-        delta = calculate_elo_delta(
-            winner_team_mmr=team_a_p1.global_mmr if a_won else team_b_p1.global_mmr,
-            loser_team_mmr=team_b_p1.global_mmr if a_won else team_a_p1.global_mmr,
-            winner_matches_played=10,
-            score_winner=max(match.score_a, match.score_b),
-            score_loser=min(match.score_a, match.score_b),
+        # 勝/敗方分配（calculate_match_deltas 的 winner/loser 視角）
+        if a_won:
+            winner_p1, winner_p2 = team_a_p1, team_a_p2
+            loser_p1,  loser_p2  = team_b_p1, team_b_p2
+            score_winner, score_loser = match.score_a, match.score_b
+        else:
+            winner_p1, winner_p2 = team_b_p1, team_b_p2
+            loser_p1,  loser_p2  = team_a_p1, team_a_p2
+            score_winner, score_loser = match.score_b, match.score_a
+
+        # 取得勝方 p1 歷史出賽總數（用於決定 K 值）
+        winner_p1_total_matches = session.exec(
+            select(MatchParticipation).where(MatchParticipation.user_id == winner_p1.id)
+        ).all()
+        winner_p1_matches_played = len(winner_p1_total_matches)
+
+        deltas = calculate_match_deltas(
+            team_winner_p1_mmr=winner_p1.global_mmr,
+            team_winner_p2_mmr=winner_p2.global_mmr if winner_p2 else None,
+            team_loser_p1_mmr=loser_p1.global_mmr,
+            team_loser_p2_mmr=loser_p2.global_mmr if loser_p2 else None,
+            winner_p1_matches_played=winner_p1_matches_played,
+            score_winner=score_winner,
+            score_loser=score_loser,
             format=match.format,
         )
 
-        match.mmr_exchanged = delta
-        match.lp_exchanged = delta
+        # 分配個人 delta（依勝負方對應回隊伍A/B）
+        if a_won:
+            delta_map: dict[UUID, float] = {
+                team_a_p1.id: deltas["winner_p1_delta"],
+                team_b_p1.id: deltas["loser_p1_delta"],
+            }
+            if team_a_p2:
+                delta_map[team_a_p2.id] = deltas["winner_p2_delta"]
+            if team_b_p2:
+                delta_map[team_b_p2.id] = deltas["loser_p2_delta"]
+        else:
+            delta_map = {
+                team_b_p1.id: deltas["winner_p1_delta"],
+                team_a_p1.id: deltas["loser_p1_delta"],
+            }
+            if team_b_p2:
+                delta_map[team_b_p2.id] = deltas["winner_p2_delta"]
+            if team_a_p2:
+                delta_map[team_a_p2.id] = deltas["loser_p2_delta"]
+
+        # 記錄到 match（mmr_exchanged 用勝方 p1 的 delta 作為代表；lp 欄位廢棄固定 0）
+        match.mmr_exchanged = deltas["winner_p1_delta"]
+        match.lp_exchanged = 0.0
         session.add(match)
 
         # ── 4. 更新每位玩家的積分（User + SeasonRecord） ──────────────────────
         def _update_player_stats(player: User, is_winner: bool, team_name: str) -> None:
-            actual_delta = delta if is_winner else -delta
+            actual_delta = delta_map[player.id]
 
             # 4a. 原子更新 global_mmr（直接讓 DB 做加法，不在 Python 做 read-modify-write）
             session.exec(
@@ -121,7 +160,7 @@ def settle_match_transaction(
             ).first()
 
             if season_record:
-                # 4b-i. 原子更新 season_lp
+                # 4b-i. 原子更新 season_lp（廢棄，固定 0，只更新出賽統計）
                 session.exec(
                     update(SeasonRecord)
                     .where(
@@ -129,41 +168,38 @@ def settle_match_transaction(
                         SeasonRecord.season_id == match.season_id,
                     )
                     .values(
-                        season_lp=SeasonRecord.season_lp + actual_delta,
+                        season_lp=0.0,  # (Deprecated) No longer used in single-track system
                         matches_played=SeasonRecord.matches_played + 1,
                         wins=SeasonRecord.wins + (1 if is_winner else 0),
                     )
                 )
-                # 讓 ORM 物件反映新值（供 history 用）
-                season_record.season_lp += actual_delta
-                current_lp = season_record.season_lp
+                season_record.season_lp = 0.0
             else:
-                # 4b-ii. 第一次打這個賽季，INSERT 新紀錄（INSERT 不存在競爭）
+                # 4b-ii. 第一次打這個賽季，INSERT 新紀錄
                 season_record = SeasonRecord(
                     user_id=player.id,
                     season_id=match.season_id,
-                    season_lp=1200 + actual_delta,
+                    season_lp=0.0,  # (Deprecated) No longer used in single-track system
                     matches_played=1,
                     wins=1 if is_winner else 0,
                 )
                 session.add(season_record)
-                current_lp = season_record.season_lp
 
             # 4c. 寫入 history snapshot
             session.add(PlayerStatHistory(
                 user_id=player.id,
                 mmr=player.global_mmr,
-                season_lp=current_lp,
+                season_lp=0.0,  # (Deprecated) No longer used in single-track system
             ))
 
-            # 4d. 寫入 participation
+            # 4d. 寫入 participation（lp_delta 廢棄固定 0）
             session.add(MatchParticipation(
                 match_id=match.id,
                 user_id=player.id,
                 team=team_name,
                 is_winner=is_winner,
                 mmr_delta=actual_delta,
-                lp_delta=actual_delta,
+                lp_delta=0.0,  # (Deprecated) No longer used in single-track system
             ))
 
         _update_player_stats(team_a_p1, is_winner=a_won, team_name="A")
@@ -194,7 +230,8 @@ def settle_match_transaction(
         raise
 
     return {
-        "delta": delta,
+        "deltas": deltas,
+        "delta": deltas["winner_p1_delta"],  # backward-compat key
         "team_a_new_mmr": team_a_p1.global_mmr,
         "team_b_new_mmr": team_b_p1.global_mmr,
     }

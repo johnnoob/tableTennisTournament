@@ -1,6 +1,8 @@
 from sqlmodel import Session, select
+from sqlalchemy import update
 from datetime import datetime, timedelta, timezone
-from models import Season, SystemConfig, utc_now
+from models import Season, SystemConfig, User, utc_now
+from services.elo_engine import ELO_CONFIG
 import logging
 import os
 
@@ -167,3 +169,31 @@ def auto_generate_quarterly_season(session_factory):
         ensure_current_quarter_season(session)
     finally:
         session.close()
+
+
+def soft_reset_all_users_mmr(session: Session) -> int:
+    """
+    賽季結束時執行「軟重置」：將所有活躍玩家的 global_mmr 向基準分 (1000) 回歸。
+    公式：new_mmr = (current_mmr + DEFAULT_BASE_MMR) / 2
+
+    這能防止積分長期通脹，同時保留玩家的相對排名優勢。
+
+    Returns:
+        更新的玩家人數
+    """
+    baseline = ELO_CONFIG["DEFAULT_BASE_MMR"]
+
+    result = session.exec(
+        update(User)
+        .where(User.is_active == True)
+        .values(global_mmr=(User.global_mmr + baseline) / 2)
+        .execution_options(synchronize_session="fetch")
+    )
+    session.commit()
+
+    updated_count = result.rowcount if hasattr(result, "rowcount") else -1
+    logger.info(
+        f"[SoftReset] Regressed all active users' MMR toward {baseline}. "
+        f"Rows affected: {updated_count}"
+    )
+    return updated_count

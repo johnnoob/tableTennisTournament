@@ -59,13 +59,13 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
     active_data = [d for d in combined_data if d["matches_played"] > 0]
     inactive_data = [d for d in combined_data if d["matches_played"] == 0]
 
-    # 依照 season_lp 降序排列 (Active)
-    active_data.sort(key=lambda x: x["season_lp"], reverse=True)
+    # 單軌 Elo 系統：依照 global_mmr 降序排列 (Active)
+    active_data.sort(key=lambda x: x["user"].global_mmr, reverse=True)
 
-    # 計算並列名次 (Standard Competition Ranking)
+    # 計算並列名次 (Standard Competition Ranking) — 以 global_mmr 為基準
     current_rank = 1
     for i, data in enumerate(active_data):
-        if i > 0 and data["season_lp"] < active_data[i-1]["season_lp"]:
+        if i > 0 and data["user"].global_mmr < active_data[i-1]["user"].global_mmr:
             current_rank = i + 1
         data["computed_rank"] = current_rank
         
