@@ -1,18 +1,19 @@
-"""initial_schema_postgres
+"""init single track elo system
 
-Revision ID: 0c53e70b434a
+Revision ID: ca79d8a55e64
 Revises: 
-Create Date: 2026-04-10 06:26:35.248015
+Create Date: 2026-04-11 07:12:53.113743
 
 """
 from typing import Sequence, Union
+
 from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0c53e70b434a'
+revision: str = 'ca79d8a55e64'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -90,7 +91,6 @@ def upgrade() -> None:
     sa.Column('score_a', sa.Integer(), nullable=False),
     sa.Column('score_b', sa.Integer(), nullable=False),
     sa.Column('mmr_exchanged', sa.Float(), nullable=False),
-    sa.Column('lp_exchanged', sa.Float(), nullable=False),
     sa.Column('status', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('reported_by', sa.Uuid(), nullable=False),
     sa.Column('season_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -109,7 +109,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('mmr', sa.Float(), nullable=False),
-    sa.Column('season_lp', sa.Float(), nullable=False),
     sa.Column('recorded_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -132,7 +131,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('season_id', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('season_lp', sa.Float(), nullable=False),
     sa.Column('matches_played', sa.Integer(), nullable=False),
     sa.Column('wins', sa.Integer(), nullable=False),
     sa.Column('previous_rank', sa.Integer(), nullable=True),
@@ -160,7 +158,6 @@ def upgrade() -> None:
     sa.Column('team', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('is_winner', sa.Boolean(), nullable=False),
     sa.Column('mmr_delta', sa.Float(), nullable=False),
-    sa.Column('lp_delta', sa.Float(), nullable=False),
     sa.ForeignKeyConstraint(['match_id'], ['match.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
