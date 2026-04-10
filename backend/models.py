@@ -88,6 +88,7 @@ class SeasonRecord(SQLModel, table=True):
     
     # 4. 🔼 動能指示器專用 (您加碼的神級功能)
     previous_rank: Optional[int] = Field(default=None, description="上期排名 (用於計算綠色▲/紅色▼)")
+    final_mmr: Optional[float] = Field(default=None, description="季末結算時的 MMR 快照")
 
     # 🔗 雙向關聯宣告 (讓 FastAPI 知道怎麼把資料拉出來)
     user: "User" = Relationship(back_populates="season_records") 

@@ -49,20 +49,21 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "user": user,
             "matches_played": matches_played,
             "wins": wins,
-            "previous_rank": previous_rank
+            "previous_rank": previous_rank,
+            "display_mmr": record.final_mmr if (season.status == "completed" and record and record.final_mmr is not None) else user.global_mmr
         })
         
     # 🌟 2-B. 區分有/無比賽紀錄玩家
     active_data = [d for d in combined_data if d["matches_played"] > 0]
     inactive_data = [d for d in combined_data if d["matches_played"] == 0]
 
-    # 單軌 Elo 系統：依照 global_mmr 降序排列 (Active)
-    active_data.sort(key=lambda x: x["user"].global_mmr, reverse=True)
+    # 單軌 Elo 系統：依照 display_mmr 降序排列 (Active)
+    active_data.sort(key=lambda x: x["display_mmr"], reverse=True)
 
-    # 計算並列名次 (Standard Competition Ranking) — 以 global_mmr 為基準
+    # 計算並列名次 (Standard Competition Ranking) — 以 display_mmr 為基準
     current_rank = 1
     for i, data in enumerate(active_data):
-        if i > 0 and data["user"].global_mmr < active_data[i-1]["user"].global_mmr:
+        if i > 0 and data["display_mmr"] < active_data[i-1]["display_mmr"]:
             current_rank = i + 1
         data["computed_rank"] = current_rank
         
@@ -125,7 +126,7 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "department": user.department,
             "avatar_url": user.avatar_url,
             "matches_played": matches_played,
-            "global_mmr": round(user.global_mmr),
+            "global_mmr": round(data["display_mmr"]),
             "wins": wins,
             "losses": matches_played - wins,
             "win_rate": win_rate_str,

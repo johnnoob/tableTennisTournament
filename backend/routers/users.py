@@ -170,7 +170,7 @@ def get_my_stats(
         if len(history) >= 2:
             pts_change = round(history[-1].mmr - history[-2].mmr)
         else:
-            pts_change = round(history[-1].mmr - 1200) # 若只有一場，跟初始分 1200 比
+            pts_change = round(history[-1].mmr - 1000) # 若只有一場，跟初始分 1000 比
 
     return {
         "rank": rank, "win_rate": win_rate, "trend": trend, 

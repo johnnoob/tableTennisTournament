@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from sqlalchemy import update
 from datetime import datetime, timedelta, timezone
-from models import Season, SystemConfig, User, utc_now
+from models import Season, SeasonRecord, SystemConfig, User, utc_now
 from services.elo_engine import ELO_CONFIG
 import logging
 import os
@@ -142,7 +142,22 @@ def ensure_current_quarter_season(session: Session) -> Season:
         if not old_season.end_date or ensure_utc(old_season.end_date) > now:
              old_season.end_date = now
         session.add(old_season)
-        
+
+    # 📸 季末快照：為每位玩家記錄當前 MMR 至 SeasonRecord.final_mmr
+    for old_season in active_seasons:
+        season_records = session.exec(
+            select(SeasonRecord).where(SeasonRecord.season_id == old_season.id)
+        ).all()
+        for record in season_records:
+            user = session.get(User, record.user_id)
+            if user:
+                record.final_mmr = user.global_mmr
+                session.add(record)
+    session.commit()
+
+    # 🔄 執行軟重置，將所有活躍玩家的 MMR 向基準分回歸
+    soft_reset_all_users_mmr(session)
+
     # 產生新賽季
     new_season = Season(
         id=current_id,
