@@ -29,7 +29,7 @@ class User(SQLModel, table=True):
     rubber_backhand: Optional[str] = Field(default=None, description="反手膠皮 (例：短顆粒)")
     
     # 4. 核心實力數據
-    global_mmr: float = Field(default=1200.0, description="隱藏實力分")
+    global_mmr: float = Field(default=1000.0, description="隱藏實力分")
     
     # 5. 系統狀態與權限
     role: str = Field(default="user", description="權限：admin, user, guest")
