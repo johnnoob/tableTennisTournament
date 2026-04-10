@@ -36,20 +36,17 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
     for user in users:
         record = record_map.get(user.id)
         if record:
-            season_lp = record.season_lp
             matches_played = record.matches_played
             wins = record.wins
             previous_rank = record.previous_rank
         else:
-            # 如果還沒打過本季，全部從固定起始積分 1200 分開始
-            season_lp = 1200
+            # 如果還沒打過本季，全部從固定起始積分開始
             matches_played = 0
             wins = 0
             previous_rank = None
             
         combined_data.append({
             "user": user,
-            "season_lp": season_lp,
             "matches_played": matches_played,
             "wins": wins,
             "previous_rank": previous_rank
@@ -82,7 +79,6 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
         matches_played = data["matches_played"]
         wins = data["wins"]
         previous_rank = data["previous_rank"]
-        season_lp = data["season_lp"]
         computed_rank = data["computed_rank"]
         
         # A. 計算勝率 (防呆：避免除以零的錯誤)
@@ -128,7 +124,6 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "player_name": user.name,
             "department": user.department,
             "avatar_url": user.avatar_url,
-            "season_lp": round(season_lp),
             "matches_played": matches_played,
             "global_mmr": round(user.global_mmr),
             "wins": wins,

@@ -100,13 +100,12 @@ def get_my_stats(
         )).first()
 
         if my_record:
-            lp = my_record.season_lp
             matches_played = my_record.matches_played
             if matches_played > 0:
                 win_rate = f"{(my_record.wins / matches_played) * 100:.1f}%"
 
-            higher_scores_count = session.exec(select(func.count(SeasonRecord.id)).where(
-                SeasonRecord.season_id == active_season.id, SeasonRecord.season_lp > my_record.season_lp
+            higher_scores_count = session.exec(select(func.count(User.id)).where(
+                User.role != "guest", User.global_mmr > current_user.global_mmr
             )).one()
             rank = higher_scores_count + 1 
 
@@ -175,7 +174,6 @@ def get_my_stats(
 
     return {
         "rank": rank, "win_rate": win_rate, "trend": trend, 
-        "season_lp": round(lp), 
         "global_mmr": round(current_user.global_mmr),
         "matches_played": matches_played, 
         "wins": my_record.wins if my_record else 0,
@@ -210,20 +208,20 @@ def get_my_rivals(current_user: User = Depends(get_current_user), session: Sessi
         
         for opp in opponents:
             if opp.user_id not in rivals_stats:
-                rivals_stats[opp.user_id] = {"matches": 0, "wins_against": 0, "lp_exchanged": 0, "user_id": opp.user_id}
+                rivals_stats[opp.user_id] = {"matches": 0, "wins_against": 0, "rating_exchanged": 0, "user_id": opp.user_id}
             
             # 統計對陣次數與勝場
             rivals_stats[opp.user_id]["matches"] += 1
             if p.is_winner:
                 rivals_stats[opp.user_id]["wins_against"] += 1
                 
-            # 📈 累計從這個對手身上拿走 (或輸掉) 的積分總和
-            rivals_stats[opp.user_id]["lp_exchanged"] += p.lp_delta
+            # 📈 累計從這個對手身上拿走 (或輸掉) 的積分總和 (使用 MMR)
+            rivals_stats[opp.user_id]["rating_exchanged"] += p.mmr_delta
             
     # 2. 📊 整理與排序資料
     rivals_list = list(rivals_stats.values())
     # 依照積分淨勝值排序：負最多 (掉最多分) 在前面代表天敵，正最多在後面代表提款機
-    sorted_rivals = sorted(rivals_list, key=lambda x: x["lp_exchanged"])
+    sorted_rivals = sorted(rivals_list, key=lambda x: x["rating_exchanged"])
     
     # 格式化輸出用的閉包函式
     def format_rival(stats):
@@ -236,7 +234,7 @@ def get_my_rivals(current_user: User = Depends(get_current_user), session: Sessi
             "avatar": opp_user.avatar_url,
             "winRate": win_rate,
             "matches": stats["matches"],
-            "pointsExchanged": round(stats["lp_exchanged"])
+            "pointsExchanged": round(stats["rating_exchanged"])
         }
 
     nemesis_list = []
@@ -286,18 +284,18 @@ def get_my_partners(current_user: User = Depends(get_current_user), session: Ses
         
         for tm in teammates:
             if tm.user_id not in partners_stats:
-                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": tm.user_id}
+                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "rating_exchanged": 0, "user_id": tm.user_id}
             
             partners_stats[tm.user_id]["matches"] += 1
             if p.is_winner:
                 partners_stats[tm.user_id]["wins"] += 1
                 
-            # 搭檔時，自己獲得或失去的積分總和 (使用 user 本人的 lp_delta)
-            partners_stats[tm.user_id]["lp_exchanged"] += p.lp_delta
+            # 搭檔時，自己獲得或失去的積分總和 (使用 user 本人的 mmr_delta)
+            partners_stats[tm.user_id]["rating_exchanged"] += p.mmr_delta
             
     # 2. 📊 整理與排序資料
     partners_list = list(partners_stats.values())
-    sorted_partners = sorted(partners_list, key=lambda x: x["lp_exchanged"], reverse=True)
+    sorted_partners = sorted(partners_list, key=lambda x: x["rating_exchanged"], reverse=True)
     
     def format_partner(stats):
         if not stats: return None
@@ -309,27 +307,27 @@ def get_my_partners(current_user: User = Depends(get_current_user), session: Ses
             "avatar": tm_user.avatar_url,
             "winRate": win_rate,
             "matches": stats["matches"],
-            "pointsExchanged": round(stats["lp_exchanged"])
+            "pointsExchanged": round(stats["rating_exchanged"])
         }
 
     golden_list = []
     worst_list = []
     
     if sorted_partners:
-        # 🌟 黃金搭檔：讓我賺最多分的前兩名 (lp >= 0)
+        # 🌟 黃金搭檔：讓我賺最多分的前兩名 (rating_exchanged >= 0)
         for g in sorted_partners:
             if len(golden_list) >= 2:
                 break
-            if g["lp_exchanged"] >= 0:
+            if g["rating_exchanged"] >= 0:
                 golden_list.append(format_partner(g))
             
-        # 🐷 豬隊友：讓我掉最多分的前兩名 (lp < 0)
+        # 🐷 豬隊友：讓我掉最多分的前兩名 (rating_exchanged < 0)
         # 只排除真正進入 golden_list 的人，不排除所有 sorted_partners[:2]
         golden_ids = {g["id"] for g in golden_list}
         for w in reversed(sorted_partners):
             if len(worst_list) >= 2:
                 break
-            if w["lp_exchanged"] < 0 and str(w["user_id"]) not in golden_ids:
+            if w["rating_exchanged"] < 0 and str(w["user_id"]) not in golden_ids:
                 worst_list.append(format_partner(w))
 
     return {
@@ -378,21 +376,6 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
             
     # 4. 👿 宿命天敵 (重複利用上面已經撈出來的 participations)
     rivals_stats = {}
-    for p in participations:
-        opponents = session.exec(select(MatchParticipation).where(
-            MatchParticipation.match_id == p.match_id, 
-            MatchParticipation.team != p.team
-        )).all()
-        for opp in opponents:
-            if opp.user_id not in rivals_stats:
-                rivals_stats[opp.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": opp.user_id}
-            rivals_stats[opp.user_id]["matches"] += 1
-            if p.is_winner:
-                rivals_stats[opp.user_id]["wins"] += 1
-            rivals_stats[opp.user_id]["lp_exchanged"] += p.lp_delta
-            
-    # 4. 👿 宿命天敵與最佳搭檔
-    rivals_stats = {}
     partners_stats = {}
 
     for p in participations:
@@ -403,11 +386,11 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
         )).all()
         for opp in opponents:
             if opp.user_id not in rivals_stats:
-                rivals_stats[opp.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": opp.user_id}
+                rivals_stats[opp.user_id] = {"matches": 0, "wins": 0, "rating_exchanged": 0, "user_id": opp.user_id}
             rivals_stats[opp.user_id]["matches"] += 1
             if p.is_winner:
                 rivals_stats[opp.user_id]["wins"] += 1
-            rivals_stats[opp.user_id]["lp_exchanged"] += p.lp_delta
+            rivals_stats[opp.user_id]["rating_exchanged"] += p.mmr_delta
 
         # 計算搭檔
         teammates = session.exec(select(MatchParticipation).where(
@@ -417,13 +400,13 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
         )).all()
         for tm in teammates:
             if tm.user_id not in partners_stats:
-                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "lp_exchanged": 0, "user_id": tm.user_id}
+                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "rating_exchanged": 0, "user_id": tm.user_id}
             partners_stats[tm.user_id]["matches"] += 1
             if p.is_winner:
                 partners_stats[tm.user_id]["wins"] += 1
-            partners_stats[tm.user_id]["lp_exchanged"] += p.lp_delta
+            partners_stats[tm.user_id]["rating_exchanged"] += p.mmr_delta
             
-    sorted_rivals = sorted(rivals_stats.values(), key=lambda x: x["lp_exchanged"])
+    sorted_rivals = sorted(rivals_stats.values(), key=lambda x: x["rating_exchanged"])
     nemesis_list = []
     for m in sorted_rivals[:3]: # 取前三名扣最多分的
         opp_user = session.get(User, m["user_id"])
@@ -434,10 +417,10 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
             "winRate": int((m["wins"]/m["matches"])*100) if m["matches"] > 0 else 0
         })
 
-    sorted_partners = sorted(partners_stats.values(), key=lambda x: x["lp_exchanged"], reverse=True)
+    sorted_partners = sorted(partners_stats.values(), key=lambda x: x["rating_exchanged"], reverse=True)
     golden_list = []
     for g in sorted_partners[:3]: # 取前三名加最多分的
-        if g["lp_exchanged"] >= 0:
+        if g["rating_exchanged"] >= 0:
             tm_user = session.get(User, g["user_id"])
             golden_list.append({
                 "id": str(tm_user.id),

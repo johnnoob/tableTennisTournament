@@ -36,7 +36,7 @@ def settle_match_transaction(
       1. 驗證比賽狀態與確認權限
       2. 依排序取得所有玩家的悲觀鎖（防 Deadlock）
       3. 呼叫 calculate_match_deltas 取得每人的精確積分變動
-      4. 原子更新 User.global_mmr 與 SeasonRecord（LP 欄位固定為 0）
+      4. 原子更新 User.global_mmr 與 SeasonRecord 出賽統計
       5. 寫入 PlayerStatHistory、MatchParticipation
       6. 更新 Match 狀態與通知
       7. commit / rollback on error
@@ -131,9 +131,8 @@ def settle_match_transaction(
             if team_a_p2:
                 delta_map[team_a_p2.id] = deltas["loser_p2_delta"]
 
-        # 記錄到 match（mmr_exchanged 用勝方 p1 的 delta 作為代表；lp 欄位廢棄固定 0）
+        # 記錄到 match（mmr_exchanged 用勝方 p1 的 delta 作為代表）
         match.mmr_exchanged = deltas["winner_p1_delta"]
-        match.lp_exchanged = 0.0
         session.add(match)
 
         # ── 4. 更新每位玩家的積分（User + SeasonRecord） ──────────────────────
@@ -160,7 +159,7 @@ def settle_match_transaction(
             ).first()
 
             if season_record:
-                # 4b-i. 原子更新 season_lp（廢棄，固定 0，只更新出賽統計）
+                # 4b-i. 原子更新 SeasonRecord 出賽統計
                 session.exec(
                     update(SeasonRecord)
                     .where(
@@ -168,18 +167,16 @@ def settle_match_transaction(
                         SeasonRecord.season_id == match.season_id,
                     )
                     .values(
-                        season_lp=0.0,  # (Deprecated) No longer used in single-track system
                         matches_played=SeasonRecord.matches_played + 1,
                         wins=SeasonRecord.wins + (1 if is_winner else 0),
                     )
                 )
-                season_record.season_lp = 0.0
+
             else:
                 # 4b-ii. 第一次打這個賽季，INSERT 新紀錄
                 season_record = SeasonRecord(
                     user_id=player.id,
                     season_id=match.season_id,
-                    season_lp=0.0,  # (Deprecated) No longer used in single-track system
                     matches_played=1,
                     wins=1 if is_winner else 0,
                 )
@@ -189,17 +186,15 @@ def settle_match_transaction(
             session.add(PlayerStatHistory(
                 user_id=player.id,
                 mmr=player.global_mmr,
-                season_lp=0.0,  # (Deprecated) No longer used in single-track system
             ))
 
-            # 4d. 寫入 participation（lp_delta 廢棄固定 0）
+            # 4d. 寫入 participation
             session.add(MatchParticipation(
                 match_id=match.id,
                 user_id=player.id,
                 team=team_name,
                 is_winner=is_winner,
                 mmr_delta=actual_delta,
-                lp_delta=0.0,  # (Deprecated) No longer used in single-track system
             ))
 
         _update_player_stats(team_a_p1, is_winner=a_won, team_name="A")

@@ -7,7 +7,7 @@ from database import get_session
 from models import Match, Notification, User, SeasonRecord
 from schemas import MatchCreateReq
 
-from services.elo_engine import get_team_mmr, calculate_elo_delta
+from services.elo_engine import get_team_mmr, calculate_match_deltas
 from services.auth_jwt import get_current_user
 from services.season_service import get_current_season, ensure_utc
 from services.match_service import (
@@ -160,14 +160,17 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
         team_a_p2 = session.get(User, m.team_a_p2_id) if m.team_a_p2_id else None
         team_b_p2 = session.get(User, m.team_b_p2_id) if m.team_b_p2_id else None
 
-        potential_delta = calculate_elo_delta(
-            winner_team_mmr=team_a_p1.global_mmr if m.score_a > m.score_b else team_b_p1.global_mmr,
-            loser_team_mmr=team_b_p1.global_mmr if m.score_a > m.score_b else team_a_p1.global_mmr,
-            winner_matches_played=10,
+        deltas = calculate_match_deltas(
+            team_winner_p1_mmr=team_a_p1.global_mmr if m.score_a > m.score_b else team_b_p1.global_mmr,
+            team_winner_p2_mmr=team_a_p2.global_mmr if m.score_a > m.score_b else team_b_p2.global_mmr if m.match_type == "doubles" else None,
+            team_loser_p1_mmr=team_b_p1.global_mmr if m.score_a > m.score_b else team_a_p1.global_mmr,
+            team_loser_p2_mmr=team_b_p2.global_mmr if m.score_a > m.score_b else team_a_p2.global_mmr if m.match_type == "doubles" else None,
+            winner_p1_matches_played=10, # 預覽用固定定級期
             score_winner=max(m.score_a, m.score_b),
             score_loser=min(m.score_a, m.score_b),
             format=m.format
         )
+        potential_delta = deltas["winner_p1_delta"]
         
         player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
         opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
@@ -244,7 +247,7 @@ def get_my_matches(
                 team_b_p2 = session.get(User, m.team_b_p2_id)
                 if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
 
-        delta = m.lp_exchanged if m.lp_exchanged else 0
+        delta = m.mmr_exchanged if m.mmr_exchanged else 0
         a_change = round(delta) if a_won else -round(delta)
         b_change = -round(delta) if a_won else round(delta)
 
@@ -297,14 +300,17 @@ def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
         else:
             mmr_a = get_team_mmr(team_a_p1.global_mmr, (team_a_p2.global_mmr if team_a_p2 else None))
             mmr_b = get_team_mmr(team_b_p1.global_mmr, (team_b_p2.global_mmr if team_b_p2 else None))
-            delta = calculate_elo_delta(
-                winner_team_mmr=mmr_a if is_a_win else mmr_b,
-                loser_team_mmr=mmr_b if is_a_win else mmr_a,
-                winner_matches_played=10,
+            deltas = calculate_match_deltas(
+                team_winner_p1_mmr=team_a_p1.global_mmr if is_a_win else team_b_p1.global_mmr,
+                team_winner_p2_mmr=team_a_p2.global_mmr if is_a_win else team_b_p2.global_mmr if m.match_type == "doubles" else None,
+                team_loser_p1_mmr=team_b_p1.global_mmr if is_a_win else team_a_p1.global_mmr,
+                team_loser_p2_mmr=team_b_p2.global_mmr if is_a_win else team_a_p2.global_mmr if m.match_type == "doubles" else None,
+                winner_p1_matches_played=10,
                 score_winner=max(m.score_a, m.score_b),
                 score_loser=min(m.score_a, m.score_b),
                 format=m.format
             )
+            delta = deltas["winner_p1_delta"]
 
         mmr_change = [delta, -delta] if is_a_win else [-delta, delta]
 

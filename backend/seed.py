@@ -11,7 +11,7 @@ sys.path.insert(0, _dir)
 from sqlmodel import Session, SQLModel
 from database import engine, create_db_and_tables
 from models import User, Season, SeasonRecord, PlayerStatHistory, Match, MatchParticipation, Notification, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
-from services.elo_engine import calculate_elo_delta
+from services.elo_engine import calculate_match_deltas
 
 random.seed(42)  # 固定隨機種子，確保每次執行結果一致
 
@@ -99,17 +99,17 @@ def random_score(winner_first: bool, fmt: str = "BO3") -> tuple[int, int]:
             return (3, 2) if winner_first else (2, 3)
 
 def seed_data():
-    print("🧹 正在清除舊有資料並重建資料表...")
+    print("--- 正在清除舊有資料並重建資料表... ---")
     SQLModel.metadata.drop_all(engine)
     create_db_and_tables()
 
     with Session(engine) as session:
-        print("🌱 開始種植完整假資料...\n")
+        print("--- 開始種植完整假資料... ---\n")
 
         # ==========================================
         # 1. System Configs, Announcements, Tournaments
         # ==========================================
-        print("🔧 設定系統參數與公告...")
+        print("--- 設定系統參數與公告... ---")
         sys_pause = SystemConfig(key="season_paused", value="false", description="是否暫停積分賽")
         sys_interval = SystemConfig(key="season_interval_months", value="3", description="積分賽自動生成的間隔月份(1-12)")
         sys_start = SystemConfig(key="season_start_date", value="2026-01-01T00:00:00", description="首個賽季的基準起始時間")
@@ -146,7 +146,7 @@ def seed_data():
             start_date=datetime(2026, 1, 6)
         )
         session.add(season)
-        print("✅ 賽季建立完成: 2026 春季例行賽")
+        print("OK - 賽季建立完成: 2026 春季例行賽")
 
         prize1 = SeasonPrize(season_id=season.id, rank=1, item_name="BTY-Viscaria (限量版)", quantity=1)
         prize2 = SeasonPrize(season_id=season.id, rank=2, item_name="Nittaku 3星比賽球 (整盒)", quantity=1)
@@ -179,9 +179,9 @@ def seed_data():
         for u in users:
             session.refresh(u)
 
-        print(f"✅ 已建立 {len(users)} 位球員:")
+        print(f"OK - 已建立 {len(users)} 位球員:")
         for u in users:
-            print(f"   • {u.name} ({u.department}) - MMR: {u.global_mmr}")
+            print(f"   * {u.name} ({u.department}) - MMR: {u.global_mmr}")
 
         # ==========================================
         # 3. 為每位球員建立賽季紀錄 (空白，稍後由模擬比賽填入)
@@ -192,7 +192,6 @@ def seed_data():
             sr = SeasonRecord(
                 user_id=u.id,
                 season_id=season.id,
-                season_lp=0.0,
                 matches_played=0,
                 wins=0,
                 previous_rank=i + 1
@@ -203,7 +202,7 @@ def seed_data():
         session.commit()
         for sr in season_records.values():
             session.refresh(sr)
-        print("✅ 賽季初始戰績建立完成")
+        print("OK - 賽季初始戰績建立完成")
 
         # ==========================================
         # 4. 🎮 模擬大量比賽 (核心！)
@@ -223,13 +222,12 @@ def seed_data():
             h = PlayerStatHistory(
                 user_id=u.id,
                 mmr=u.global_mmr,
-                season_lp=0.0,
                 recorded_at=start_date - timedelta(hours=1)
             )
             initial_histories.append(h)
         session.add_all(initial_histories)
 
-        print("\n⚔️  開始模擬比賽...")
+        print("\n--- 開始模擬比賽... ---")
 
         while current_time < end_date:
             # 每天 1~3 場比賽
@@ -265,17 +263,18 @@ def seed_data():
                 score_a, score_b = random_score(a_wins, fmt)
 
                 # 用 Elo 引擎算分
-                winner_mmr = mmr_a if a_wins else mmr_b
-                loser_mmr = mmr_b if a_wins else mmr_a
                 matches_played_winner = season_records[team_a[0].id if a_wins else team_b[0].id].matches_played
-                delta = calculate_elo_delta(
-                    winner_team_mmr=winner_mmr,
-                    loser_team_mmr=loser_mmr,
-                    winner_matches_played=matches_played_winner,
+                deltas = calculate_match_deltas(
+                    team_winner_p1_mmr=mmr_a if a_wins else mmr_b,
+                    team_winner_p2_mmr=team_a[1].global_mmr if (a_wins and is_doubles) else team_b[1].global_mmr if (not a_wins and is_doubles) else None,
+                    team_loser_p1_mmr=mmr_b if a_wins else mmr_a,
+                    team_loser_p2_mmr=team_b[1].global_mmr if (a_wins and is_doubles) else team_a[1].global_mmr if (not a_wins and is_doubles) else None,
+                    winner_p1_matches_played=matches_played_winner,
                     score_winner=max(score_a, score_b),
                     score_loser=min(score_a, score_b),
                     format=fmt
                 )
+                delta = deltas["winner_p1_delta"]
 
                 # 隨機偏移比賽時間 (1~6 小時)
                 match_time = current_time + timedelta(
@@ -294,7 +293,6 @@ def seed_data():
                     score_a=score_a,
                     score_b=score_b,
                     mmr_exchanged=delta,
-                    lp_exchanged=delta,
                     status="confirmed",
                     reported_by=team_a[0].id,
                     season_id=season.id,
@@ -315,7 +313,6 @@ def seed_data():
 
                     # 更新賽季紀錄
                     sr = season_records[player.id]
-                    sr.season_lp += actual_delta
                     sr.matches_played += 1
                     if is_winner:
                         sr.wins += 1
@@ -325,7 +322,6 @@ def seed_data():
                     history = PlayerStatHistory(
                         user_id=player.id,
                         mmr=player.global_mmr,
-                        season_lp=sr.season_lp,
                         recorded_at=match_time + timedelta(seconds=30),
                     )
                     session.add(history)
@@ -337,7 +333,6 @@ def seed_data():
                         team=team_name,
                         is_winner=is_winner,
                         mmr_delta=actual_delta,
-                        lp_delta=actual_delta,
                     )
                     session.add(participation)
 
@@ -354,7 +349,7 @@ def seed_data():
         # 5. 更新 previous_rank (模擬「上期排名」)
         # ==========================================
         # 用賽季中期的排名作為 previous_rank
-        all_records = sorted(season_records.values(), key=lambda r: r.season_lp, reverse=True)
+        all_records = sorted(season_records.values(), key=lambda r: next(u for u in users if u.id == r.user_id).global_mmr, reverse=True)
         for i, sr in enumerate(all_records):
             # 稍微偏移以產生有趣的趨勢箭頭
             offsets = [0, 1, -1, 0, 2, -1, 0, 1]
@@ -432,12 +427,12 @@ def seed_data():
         session.commit()
 
         # ==========================================
-        # 📊 統計報告
+        # 統計報告
         # ==========================================
         print(f"\n{'='*50}")
-        print(f"🎉 假資料建立成功！")
+        print(f"假資料建立成功！")
         print(f"{'='*50}")
-        print(f"📊 比賽統計：")
+        print(f"比賽統計：")
         print(f"   總比賽數　: {match_count} 場 (已確認)")
         print(f"   單打比賽　: {singles_count} 場")
         print(f"   雙打比賽　: {doubles_count} 場")
@@ -451,12 +446,12 @@ def seed_data():
         for sr in season_records.values():
             session.refresh(sr)
 
-        sorted_records = sorted(season_records.values(), key=lambda r: r.season_lp, reverse=True)
+        sorted_records = sorted(season_records.values(), key=lambda r: next(u for u in users if u.id == r.user_id).global_mmr, reverse=True)
         for rank, sr in enumerate(sorted_records, 1):
             user = next(u for u in users if u.id == sr.user_id)
             total = sr.matches_played
             wr = f"{(sr.wins / total * 100):.1f}%" if total > 0 else "0%"
-            print(f"   #{rank}  {user.name:<6}  MMR: {user.global_mmr:>7.1f}  LP: {sr.season_lp:>7.1f}  W/L: {sr.wins}/{total - sr.wins}  WR: {wr}")
+            print(f"   #{rank}  {user.name:<6}  MMR: {user.global_mmr:>7.1f}  W/L: {sr.wins}/{total - sr.wins}  WR: {wr}")
 
         print(f"\n🔐 玩家 ID 一覽：")
         print(f"{'─'*50}")

@@ -83,7 +83,6 @@ class SeasonRecord(SQLModel, table=True):
     season_id: str = Field(foreign_key="season.id", index=True, description="關聯的賽季 ID")
     
     # 3. 📈 賽季專屬數據 (每季重置的數字都存這)
-    season_lp: float = Field(default=0.0, description="(Deprecated) No longer used in single-track system")
     matches_played: int = Field(default=0, description="本季出賽總數")
     wins: int = Field(default=0, description="本季勝場數")
     
@@ -116,7 +115,6 @@ class Match(SQLModel, table=True):
     
     # 4. ⚔️ 積分結算 (這場比賽的總變動，作為參考)
     mmr_exchanged: float = Field(default=0.0)
-    lp_exchanged: float = Field(default=0.0, description="(Deprecated) No longer used in single-track system")
     
     # 5. 狀態控管
     status: str = Field(default="pending", index=True)
@@ -164,7 +162,6 @@ class PlayerStatHistory(SQLModel, table=True):
     
     # 3. 📸 紀錄當下的數值
     mmr: float = Field(description="紀錄當下的隱藏實力分")
-    season_lp: float = Field(description="紀錄當下的賽季積分")
     
     # 4. 📅 紀錄時間 (建立索引，方便依時間區間撈取資料)
     recorded_at: datetime = Field(default_factory=utc_now, index=True)
@@ -188,7 +185,6 @@ class MatchParticipation(SQLModel, table=True):
     
     # 3. 📈 個體分數變動 (這場比賽對「該玩家」的影響)
     mmr_delta: float = Field(default=0.0)
-    lp_delta: float = Field(default=0.0, description="(Deprecated) No longer used in single-track system")
 
     # 🔗 雙向關聯宣告
     match: "Match" = Relationship(back_populates="participants")
