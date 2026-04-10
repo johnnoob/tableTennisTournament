@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { toast } from 'sonner';
 
 // 🌟 全域錯誤提示冷卻時間
 let lastErrorToastTime = 0;
@@ -108,7 +107,7 @@ apiClient.interceptors.response.use(
       // 🌟 簡單的防重複 Toast 邏輯：2秒內不重複顯示相同的錯誤訊息
       const now = Date.now();
       if (errorMessage !== lastErrorMessage || (now - lastErrorToastTime > 2000)) {
-        toast.error(errorMessage);
+        window.dispatchEvent(new CustomEvent('api:error', { detail: errorMessage }));
         lastErrorMessage = errorMessage;
         lastErrorToastTime = now;
       }

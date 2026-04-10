@@ -14,7 +14,7 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
 
 import { useAuth } from '@/hooks/useAuth';
-import { Toaster } from 'sonner';
+import { toast, Toaster } from 'sonner';
 
 import { ReportScore } from '@/components/ReportScore';
 import { Button } from './components/ui/button';
@@ -39,6 +39,18 @@ function AppContent() {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, [navigate, queryClient]);
+
+  // 監聽全局 API 錯誤事件 (api:error)，由 UI 層負責渲染 toast
+  useEffect(() => {
+    const handleApiError = (e: Event) => {
+      toast.error((e as CustomEvent<string>).detail);
+    };
+
+    window.addEventListener('api:error', handleApiError);
+    return () => {
+      window.removeEventListener('api:error', handleApiError);
+    };
+  }, []);
 
   // 🌟 改用 React Query Hook 獲取使用者資料
   const { data: user, isLoading: loading } = useAuth();
