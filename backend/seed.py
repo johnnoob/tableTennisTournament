@@ -196,7 +196,8 @@ def seed_data():
                 season_id=season.id,
                 matches_played=0,
                 wins=0,
-                previous_rank=i + 1
+                previous_rank=i + 1,
+                final_mmr=u.global_mmr if season.status == "completed" else None
             )
             session.add(sr)
             season_records[u.id] = sr
@@ -329,6 +330,8 @@ def seed_data():
                         user_id=player.id,
                         mmr=player.global_mmr,
                         recorded_at=match_time + timedelta(seconds=30),
+                        match_id=match.id,
+                        event_type="match"
                     )
                     session.add(history)
 

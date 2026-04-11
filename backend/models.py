@@ -168,6 +168,9 @@ class PlayerStatHistory(SQLModel, table=True):
     # 4. 📅 紀錄時間 (建立索引，方便依時間區間撈取資料)
     recorded_at: datetime = Field(default_factory=utc_now, index=True)
 
+    match_id: Optional[UUID] = Field(default=None, foreign_key="match.id")
+    event_type: str = Field(default="match", description="紀錄類型: match 或 soft_reset")
+
     # 🔗 建立與 User 的關係
     user: "User" = Relationship(back_populates="stat_history")
 

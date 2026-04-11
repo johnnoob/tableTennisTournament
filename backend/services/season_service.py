@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from sqlalchemy import update
 from datetime import datetime, timedelta, timezone
-from models import Season, SeasonRecord, SystemConfig, User, utc_now
+from models import Season, SeasonRecord, SystemConfig, User, PlayerStatHistory, utc_now
 from services.elo_engine import ELO_CONFIG
 import logging
 import os
@@ -198,15 +198,27 @@ def soft_reset_all_users_mmr(session: Session) -> int:
     """
     baseline = ELO_CONFIG["DEFAULT_BASE_MMR"]
 
-    result = session.exec(
-        update(User)
-        .where(User.is_active == True)
-        .values(global_mmr=(User.global_mmr + baseline) / 2)
-        .execution_options(synchronize_session="fetch")
-    )
+    # 取得所有活躍玩家
+    statement = select(User).where(User.is_active == True)
+    active_users = session.exec(statement).all()
+    
+    updated_count = 0
+    for user in active_users:
+        # 1. 執行 MMR 軟重置
+        user.global_mmr = (user.global_mmr + baseline) / 2
+        session.add(user)
+        
+        # 2. 建立歷史錨點 (Chart Anchor)
+        reset_history = PlayerStatHistory(
+            user_id=user.id,
+            match_id=None,
+            mmr=user.global_mmr,
+            event_type="soft_reset"
+        )
+        session.add(reset_history)
+        updated_count += 1
     session.commit()
 
-    updated_count = result.rowcount if hasattr(result, "rowcount") else -1
     logger.info(
         f"[SoftReset] Regressed all active users' MMR toward {baseline}. "
         f"Rows affected: {updated_count}"
