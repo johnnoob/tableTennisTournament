@@ -113,7 +113,9 @@ def seed_data():
         sys_pause = SystemConfig(key="season_paused", value="false", description="是否暫停積分賽")
         sys_interval = SystemConfig(key="season_interval_months", value="3", description="積分賽自動生成的間隔月份(1-12)")
         sys_start = SystemConfig(key="season_start_date", value="2026-01-01T00:00:00", description="首個賽季的基準起始時間")
-        session.add_all([sys_pause, sys_interval, sys_start])
+        sys_decay_days = SystemConfig(key="decay_days_threshold", value="21", description="惰性衰退天數閾值")
+        sys_decay_amount = SystemConfig(key="decay_amount", value="5.0", description="每次衰退扣除的評分金額")
+        session.add_all([sys_pause, sys_interval, sys_start, sys_decay_days, sys_decay_amount])
 
         ann1 = Announcement(
             title="S4 企業盃桌球賽報名開跑！",
@@ -263,13 +265,17 @@ def seed_data():
                 score_a, score_b = random_score(a_wins, fmt)
 
                 # 用 Elo 引擎算分
-                matches_played_winner = season_records[team_a[0].id if a_wins else team_b[0].id].matches_played
+                winner_team = team_a if a_wins else team_b
+                loser_team = team_b if a_wins else team_a
                 deltas = calculate_match_deltas(
                     team_winner_p1_mmr=mmr_a if a_wins else mmr_b,
-                    team_winner_p2_mmr=team_a[1].global_mmr if (a_wins and is_doubles) else team_b[1].global_mmr if (not a_wins and is_doubles) else None,
+                    team_winner_p2_mmr=winner_team[1].global_mmr if is_doubles else None,
                     team_loser_p1_mmr=mmr_b if a_wins else mmr_a,
-                    team_loser_p2_mmr=team_b[1].global_mmr if (a_wins and is_doubles) else team_a[1].global_mmr if (not a_wins and is_doubles) else None,
-                    winner_p1_matches_played=matches_played_winner,
+                    team_loser_p2_mmr=loser_team[1].global_mmr if is_doubles else None,
+                    winner_p1_matches=season_records[winner_team[0].id].matches_played,
+                    winner_p2_matches=season_records[winner_team[1].id].matches_played if is_doubles else None,
+                    loser_p1_matches=season_records[loser_team[0].id].matches_played,
+                    loser_p2_matches=season_records[loser_team[1].id].matches_played if is_doubles else None,
                     score_winner=max(score_a, score_b),
                     score_loser=min(score_a, score_b),
                     format=fmt

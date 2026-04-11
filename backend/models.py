@@ -34,6 +34,7 @@ class User(SQLModel, table=True):
     # 5. 系統狀態與權限
     role: str = Field(default="user", description="權限：admin, user, guest")
     is_active: bool = Field(default=True, description="帳號是否活躍")
+    last_decay_date: Optional[datetime] = Field(default=None, description="上一次執行惰性衰退的時間")
 
     # ==========================================
     # 🌟 關聯屬性 (Relationships) - 系統的神經網路

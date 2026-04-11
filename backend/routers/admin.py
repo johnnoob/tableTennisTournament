@@ -63,6 +63,23 @@ def update_config(key: str, config_update: ConfigUpdate, session: Session = Depe
     return config
 
 # ================================
+# System Tools
+# ================================
+@router.post("/system/trigger-decay", dependencies=[Depends(require_admin)])
+def trigger_decay(session: Session = Depends(get_session)):
+    """
+    手動觸發一次全域惰性衰退檢查 (Inactivity Decay Check)。
+    這會調用 scheduler 中的 _apply_decay 邏輯。
+    """
+    from services.scheduler import _apply_decay
+    from database import get_session
+    
+    # 注意：這裡直接傳入 get_session 函數，因為 _apply_decay 內部會處理 generator
+    _apply_decay(get_session)
+    
+    return {"message": "惰性衰退檢查已手動觸發執行完畢。"}
+
+# ================================
 # Announcements
 # ================================
 @router.get("/announcements", dependencies=[Depends(require_admin)])

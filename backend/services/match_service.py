@@ -6,7 +6,7 @@ Router 層不應包含任何 DB 交易細節，只負責呼叫此 Service 並轉
 """
 from uuid import UUID
 from sqlmodel import Session, select
-from sqlalchemy import update
+from sqlalchemy import update, func
 
 from models import Match, User, SeasonRecord, PlayerStatHistory, MatchParticipation, Notification
 from services.elo_engine import calculate_match_deltas, ELO_CONFIG
@@ -94,18 +94,22 @@ def settle_match_transaction(
             loser_p1,  loser_p2  = team_a_p1, team_a_p2
             score_winner, score_loser = match.score_b, match.score_a
 
-        # 取得勝方 p1 歷史出賽總數（用於決定 K 值）
-        winner_p1_total_matches = session.exec(
-            select(MatchParticipation).where(MatchParticipation.user_id == winner_p1.id)
-        ).all()
-        winner_p1_matches_played = len(winner_p1_total_matches)
+        # 取得所有參與者的生涯出賽總數（用於決定 K 值）
+        def _career_matches(player: User) -> int:
+            return session.exec(
+                select(func.count(MatchParticipation.id))
+                .where(MatchParticipation.user_id == player.id)
+            ).one()
 
         deltas = calculate_match_deltas(
             team_winner_p1_mmr=winner_p1.global_mmr,
             team_winner_p2_mmr=winner_p2.global_mmr if winner_p2 else None,
             team_loser_p1_mmr=loser_p1.global_mmr,
             team_loser_p2_mmr=loser_p2.global_mmr if loser_p2 else None,
-            winner_p1_matches_played=winner_p1_matches_played,
+            winner_p1_matches=_career_matches(winner_p1),
+            winner_p2_matches=_career_matches(winner_p2) if winner_p2 else None,
+            loser_p1_matches=_career_matches(loser_p1),
+            loser_p2_matches=_career_matches(loser_p2) if loser_p2 else None,
             score_winner=score_winner,
             score_loser=score_loser,
             format=match.format,
