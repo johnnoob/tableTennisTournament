@@ -42,7 +42,8 @@ export function Leaderboard() {
       const res = await apiClient.get(url);
       return res.data;
     },
-    enabled: !!selectedSeason
+    enabled: !!selectedSeason,
+    refetchInterval: 10000, // 🌟 新增這行，讓排行榜每 10 秒自動更新
   });
 
   const realLeaderboard = leaderboardData?.leaderboard || [];

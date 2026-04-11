@@ -41,11 +41,11 @@ def get_current_season(session: Session) -> Season | None:
     if expired_seasons:
         session.commit()
 
-    # 2. 尋找目前涵蓋的活躍賽季
+    # 2. 尋找目前涵蓋的活躍賽季 (依開始時間倒序，確保抓到最新的一個)
     statement = select(Season).where(
         Season.status == "active",
         Season.start_date <= now
-    )
+    ).order_by(Season.start_date.desc())
     active_seasons = session.exec(statement).all()
     
     valid_season = None

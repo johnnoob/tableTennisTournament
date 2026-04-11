@@ -104,10 +104,20 @@ def get_my_stats(
             if matches_played > 0:
                 win_rate = f"{(my_record.wins / matches_played) * 100:.1f}%"
 
-            higher_scores_count = session.exec(select(func.count(User.id)).where(
-                User.role != "guest", User.global_mmr > current_user.global_mmr
-            )).one()
-            rank = higher_scores_count + 1 
+            # 🌟 修正：排名只計算「本季有出賽 (matches_played > 0)」的活躍玩家
+            if matches_played > 0:
+                statement = select(func.count(User.id)).join(
+                    SeasonRecord, User.id == SeasonRecord.user_id
+                ).where(
+                    User.role != "guest",
+                    SeasonRecord.season_id == active_season.id,
+                    SeasonRecord.matches_played > 0,
+                    User.global_mmr > current_user.global_mmr
+                )
+                higher_scores_count = session.exec(statement).one()
+                rank = higher_scores_count + 1
+            else:
+                rank = "-"  # 尚未出賽時，不顯示排名
 
             if my_record.previous_rank:
                 if rank < my_record.previous_rank: trend = "up"

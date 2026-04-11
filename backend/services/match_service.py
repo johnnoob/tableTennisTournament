@@ -49,8 +49,11 @@ def settle_match_transaction(
         MatchAlreadySettledError: 比賽不處於 pending 狀態
         ConfirmPermissionError: 非對手方不得確認
     """
-    # ── 1. 讀取 match（不鎖），做基本驗證 ────────────────────────────────────
-    match = session.get(Match, match_id)
+    # ── 1. 讀取 match 並取得悲觀鎖，防止並行重複確認 ──────────────────────────
+    match = session.exec(
+        select(Match).where(Match.id == match_id).with_for_update()
+    ).one_or_none()
+
     if not match:
         raise MatchNotFoundError(f"match_id={match_id}")
     if match.status != "pending":
@@ -143,13 +146,8 @@ def settle_match_transaction(
         def _update_player_stats(player: User, is_winner: bool, team_name: str) -> None:
             actual_delta = delta_map[player.id]
 
-            # 4a. 原子更新 global_mmr（直接讓 DB 做加法，不在 Python 做 read-modify-write）
-            session.exec(
-                update(User)
-                .where(User.id == player.id)
-                .values(global_mmr=User.global_mmr + actual_delta)
-            )
-            # 讓 ORM 物件也反映新值（供回傳用）
+            # 4a. 透過 ORM 更新 global_mmr
+            # 💡 因為 player 已在上面透過 with_for_update() 鎖定，直接修改屬性是安全的
             player.global_mmr += actual_delta
 
             # 4b. 取得並鎖定 SeasonRecord
@@ -163,19 +161,10 @@ def settle_match_transaction(
             ).first()
 
             if season_record:
-                # 4b-i. 原子更新 SeasonRecord 出賽統計
-                session.exec(
-                    update(SeasonRecord)
-                    .where(
-                        SeasonRecord.user_id == player.id,
-                        SeasonRecord.season_id == match.season_id,
-                    )
-                    .values(
-                        matches_played=SeasonRecord.matches_played + 1,
-                        wins=SeasonRecord.wins + (1 if is_winner else 0),
-                    )
-                )
-
+                # 4b-i. 透過 ORM 更新 SeasonRecord 出賽統計
+                season_record.matches_played += 1
+                season_record.wins += (1 if is_winner else 0)
+                session.add(season_record)
             else:
                 # 4b-ii. 第一次打這個賽季，INSERT 新紀錄
                 season_record = SeasonRecord(
@@ -186,7 +175,7 @@ def settle_match_transaction(
                 )
                 session.add(season_record)
 
-            # 4c. 寫入 history snapshot
+            # 4c. 寫入 history snapshot (使用已更新的 player.global_mmr)
             session.add(PlayerStatHistory(
                 user_id=player.id,
                 mmr=player.global_mmr,
