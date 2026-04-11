@@ -52,13 +52,13 @@ export const calculateRankings = (players: any[]) => {
   const inactive = data.filter((p: any) => (p.matches_played || 0) === 0);
 
   // 2. 排序 Active Players (積分由高到低)
-  active.sort((a: any, b: any) => (b.season_lp || 0) - (a.season_lp || 0));
+  active.sort((a: any, b: any) => (b.global_mmr || 0) - (a.global_mmr || 0));
 
   // 3. 計算名次
   let currentRank = 1;
   for (let i = 0; i < active.length; i++) {
     // 如果不是第一個，且分數比前一個低，則跳到正確的流水號名次
-    if (i > 0 && active[i].season_lp < active[i - 1].season_lp) {
+    if (i > 0 && active[i].global_mmr < active[i - 1].global_mmr) {
       currentRank = i + 1;
     }
     active[i].rank = currentRank;

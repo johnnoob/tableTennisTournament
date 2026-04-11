@@ -263,8 +263,8 @@ export function Dashboard() {
         name: p.player_name,
         username: p.player_name,
         rank: p.rank,
-        rating: Math.round(p.season_lp),
-        mmr: p.global_mmr ? Math.round(p.global_mmr) : Math.round(p.season_lp),
+        rating: Math.round(p.global_mmr),
+        mmr: Math.round(p.global_mmr),
         avatar: p.avatar_url || '/api/placeholder/150/150',
         isVerified: isTopTierRank(p.rank),
         department: p.department,
@@ -375,8 +375,8 @@ export function Dashboard() {
                     avatar: user?.avatar || '',
                     isVerified: user?.isVerified || false,
                     department: user?.department || '',
-                    rating: (myStats?.season_lp || user?.mmr || 1200) as number,
-                    mmr: (myStats?.global_mmr || user?.mmr || 1200) as number,
+                    rating: (myStats?.global_mmr || user?.mmr || 1000) as number,
+                    mmr: (myStats?.global_mmr || user?.mmr || 1000) as number,
                     rank: (myStats?.rank || '-') as any,
                     stats: {
                       winRate: myStats?.win_rate || "0%",
@@ -391,7 +391,7 @@ export function Dashboard() {
                   <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
                     <div>
                       <h4 className="font-display text-xl text-primary-navy font-black tracking-tight">Performance Analytics</h4>
-                      <p className="text-[10px] text-slate-400 mt-1 uppercase font-sans font-black tracking-widest opacity-60">MMR Progression · Season Stats</p>
+                      <p className="text-[10px] text-slate-400 mt-1 uppercase font-sans font-black tracking-widest opacity-60">Rating Progression · Season Summary</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <Tabs value={chartInterval} onValueChange={setChartInterval} className="w-full sm:w-auto">
@@ -542,7 +542,7 @@ function RivalRow({ name, avatar, winRate, matches, pointsExchanged, type }: Riv
       <div className="flex-1 flex flex-col">
         <span className="font-sans font-black text-primary-navy text-sm">{name}</span>
         <span className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">
-          {matches} 次 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} LP
+          {matches} 次 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} 分
         </span>
       </div>
       <span className={cn("font-display font-black text-lg", type === 'nemesis' ? 'text-red-500' : 'text-green-500')}>

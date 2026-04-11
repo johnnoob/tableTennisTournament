@@ -5,6 +5,7 @@ export interface Player {
   rank: number | string;
   rating: number;
   mmr?: number;
+  global_mmr?: number;
   avatar: string;
   isVerified: boolean;
   department?: string;

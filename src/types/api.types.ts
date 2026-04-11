@@ -49,6 +49,7 @@ export interface User {
 export interface ChartDataPoint {
   name: string; // 用於 X 軸顯示 (原本是 date)
   rating: number; // 用於 Y 軸 (原本是 mmr)
+  event_type?: 'match' | 'soft_reset';
 }
 
 export interface PlayerStats {

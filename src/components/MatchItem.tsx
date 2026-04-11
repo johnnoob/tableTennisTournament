@@ -102,7 +102,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                  </span>
                  <div className="flex items-center gap-1.5 mt-1">
                     <span className={cn("text-[10px] md:text-sm font-black font-display", p1Change >= 0 ? "text-emerald-600" : "text-rose-500")}>
-                       {p1Change > 0 ? `+${p1Change}` : p1Change} LP
+                       {p1Change > 0 ? `+${p1Change}` : p1Change} 分
                     </span>
                     <TrendingUp size={12} strokeWidth={3} className={cn(p1Change >= 0 ? "text-emerald-500" : "text-rose-400 rotate-180")} />
                  </div>
@@ -139,7 +139,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                  </span>
                  <div className="flex items-center justify-end gap-1.5 mt-1">
                     <span className={cn("text-[10px] md:text-sm font-black font-display", p2Change >= 0 ? "text-emerald-600" : "text-rose-500")}>
-                       {p2Change > 0 ? `+${p2Change}` : p2Change} LP
+                       {p2Change > 0 ? `+${p2Change}` : p2Change} 分
                     </span>
                     <TrendingDown size={12} strokeWidth={3} className={cn(p2Change <= 0 ? "text-rose-400" : "text-emerald-500 rotate-180")} />
                  </div>

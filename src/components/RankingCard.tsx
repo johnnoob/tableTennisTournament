@@ -1,6 +1,6 @@
 import type { Player } from '@/data/mockData';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldCheck, TrendingUp, Building2, Star } from 'lucide-react';
+import { ShieldCheck, TrendingUp, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { getTierBadge } from '@/lib/ranking';
@@ -14,11 +14,11 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
   const isFeatured = variant === 'featured';
 
   // 直接使用傳入的屬性，不再區分單雙打邏輯
-  const displayRating = player.rating;
+  // Base everything on global_mmr (Single-Track Elo)
+  const displayRating = player.global_mmr || player.rating;
   const displayRank = player.rank;
   const displayStats = player.stats;
-  const careerMMR = player.mmr || player.rating || 1200; // 生涯實力
-  const tier = getTierBadge(careerMMR);
+  const tier = getTierBadge(displayRating);
 
   return (
     <Link to={`?inspect=${player.id}`} className="block group">
@@ -84,20 +84,11 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
                 {Math.round(displayRating)}
               </div>
               <p className="text-[9px] md:text-[10px] uppercase underline underline-offset-4 decoration-olympic-gold/50 tracking-[0.2em] md:tracking-[0.3em] font-sans font-black opacity-60 mt-1 md:mt-2 flex items-center gap-1 md:gap-2 justify-end">
-                {isFeatured ? "本季積分" : "本季積分"}
+                {isFeatured ? "Rating" : "Rating"}
                 <TrendingUp size={10} className={isFeatured ? "text-olympic-gold md:size-[12px]" : "text-sapphire-blue md:size-[12px]"} />
               </p>
 
-              {/* 🌟 統一顯示生涯積分 (不論是否為 Featured) */}
-              <div className={cn("mt-2 flex flex-col items-end transition-all opacity-0 group-hover:opacity-100", isFeatured && "opacity-100")}>
-                <div className={cn(
-                  "flex items-center gap-1.5 font-black tracking-widest text-[9px]",
-                  isFeatured ? "text-white/40 md:text-xs" : "text-slate-400"
-                )}>
-                  <span>生涯積分: {Math.round(careerMMR)}</span>
-                  <Star size={10} className="text-olympic-gold" />
-                </div>
-              </div>
+
             </div>
           </div>
 

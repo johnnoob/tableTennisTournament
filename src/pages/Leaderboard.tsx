@@ -251,7 +251,7 @@ export function Leaderboard() {
                     <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden md:table-cell bg-slate-50/90 backdrop-blur-md z-30">Record</th>
                     <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden lg:table-cell bg-slate-50/90 backdrop-blur-md z-30">Recent Form</th>
                     <th className="sticky top-0 py-5 px-6 text-xs font-black uppercase tracking-widest text-right text-primary-navy bg-slate-50/90 backdrop-blur-md z-30">
-                      {isAllTime ? "Total MMR" : "Season LP"}
+                      Rating
                     </th>
                   </tr>
                 </thead>
@@ -362,9 +362,9 @@ export function Leaderboard() {
                                 "font-display font-black text-xl md:text-3xl tracking-tighter tabular-nums leading-none",
                                 isTop1 ? "text-amber-600" : "text-primary-navy"
                             )}>
-                              {Math.round(player.season_lp)}
+                              {Math.round(player.global_mmr)}
                             </span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">LP</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">Rating</span>
                           </div>
                         </td>
                       </tr>
