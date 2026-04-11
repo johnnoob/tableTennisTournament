@@ -14,6 +14,7 @@ from routers.auth import router as auth_router
 from routers.seasons import router as seasons_router
 from routers.admin import router as admin_router
 from routers.content import router as content_router
+from routers.cron import router as cron_router
 from services.scheduler import scheduler, setup_scheduler
 from services.season_service import ensure_current_quarter_season
 
@@ -69,6 +70,7 @@ app.include_router(auth_router)
 app.include_router(seasons_router)
 app.include_router(admin_router)
 app.include_router(content_router)
+app.include_router(cron_router)
 
 
 @app.get("/")
