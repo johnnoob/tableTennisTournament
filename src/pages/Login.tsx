@@ -2,10 +2,15 @@ import { Trophy, Shield, Target, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
+const handleGoogleLogin = () => {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  window.location.href = `${apiBaseUrl}/auth/google/login`;
+};
+
 export function Login() {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white">
-      
+
       {/* 🌟 左側：品牌形象視覺區 (晨星奧運風) */}
       <div className="relative hidden lg:flex flex-col justify-between w-1/2 bg-primary-navy p-12 overflow-hidden">
         {/* 背景裝飾浮水印 */}
@@ -50,7 +55,7 @@ export function Login() {
 
       {/* 🔐 右側：登入表單區 */}
       <div className="flex-1 flex flex-col justify-center items-center p-8 lg:p-12 relative">
-        
+
         {/* 手機版顯示的頂部 Logo */}
         <div className="lg:hidden flex items-center gap-3 mb-12">
           <div className="size-12 rounded-2xl bg-primary-navy flex items-center justify-center shadow-xl">
@@ -63,7 +68,7 @@ export function Login() {
         </div>
 
         <div className="w-full max-w-sm space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          
+
           {/* 登入標題 */}
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-display font-black text-primary-navy tracking-tight">登入戰情室</h2>
@@ -74,9 +79,9 @@ export function Login() {
 
           {/* 登入按鈕區 (SSO) */}
           <div className="space-y-4 pt-4">
-            
+
             {/* LINE 登入按鈕 (品牌綠色 #06C755) */}
-            <Button 
+            <Button
               className="w-full h-14 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] text-white font-bold tracking-widest shadow-lg shadow-[#06C755]/20 transition-all active:scale-95 flex items-center justify-center gap-3"
             >
               {/* 簡單用圓圈模擬 LINE Logo，實務上可替換為真實 SVG */}
@@ -87,13 +92,10 @@ export function Login() {
             </Button>
 
             {/* Google 登入按鈕 */}
-            <Button 
+            <Button
               variant="outline"
               className="w-full h-14 rounded-2xl bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-bold tracking-widest shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
-              onClick={() => {
-    // 導向 FastAPI 的登入路由
-    window.location.href = "http://localhost:8000/api/auth/google/login";
-  }}
+              onClick={handleGoogleLogin}
             >
               {/* Google G Logo (簡化版 SVG) */}
               <svg className="size-5" viewBox="0 0 24 24">
