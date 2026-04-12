@@ -2,24 +2,24 @@ import { useState, useEffect, useRef } from 'react';
 import { format, parseISO, isValid } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Settings, 
-  Megaphone, 
-  Trophy, 
-  Users, 
-  Pause, 
-  Play, 
-  Plus, 
-  Trash2, 
-  Save, 
-  Edit,
-  Calendar, 
-  ExternalLink,
-  ChevronRight,
-  Loader2,
-  Image as ImageIcon,
-  UploadCloud,
-  X
+import {
+    Settings,
+    Megaphone,
+    Trophy,
+    Users,
+    Pause,
+    Play,
+    Plus,
+    Trash2,
+    Save,
+    Edit,
+    Calendar,
+    ExternalLink,
+    ChevronRight,
+    Loader2,
+    Image as ImageIcon,
+    UploadCloud,
+    X
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,168 +33,168 @@ import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
+    Drawer,
+    DrawerContent,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerDescription,
+    DrawerFooter,
 } from "@/components/ui/drawer";
 
 const tabs = [
-  { id: 'general', label: '系統設定', icon: Settings },
-  { id: 'announcements', label: '公告管理', icon: Megaphone },
-  { id: 'prizes', label: '賽季獎品', icon: Trophy },
-  { id: 'tournaments', label: '錦標賽', icon: Users },
+    { id: 'general', label: '系統設定', icon: Settings },
+    { id: 'announcements', label: '公告管理', icon: Megaphone },
+    { id: 'prizes', label: '賽季獎品', icon: Trophy },
+    { id: 'tournaments', label: '錦標賽', icon: Users },
 ];
 
 export function AdminDashboard() {
-  const { data: user } = useAuth();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('general');
+    const { data: user } = useAuth();
+    const queryClient = useQueryClient();
+    const [activeTab, setActiveTab] = useState('general');
 
-  // Fetch configs
-  const { data: configs = [], isLoading: isConfigsLoading } = useQuery({
-    queryKey: ['admin', 'configs'],
-    queryFn: () => adminApi.getConfigs()
-  });
+    // Fetch configs
+    const { data: configs = [], isLoading: isConfigsLoading } = useQuery({
+        queryKey: ['admin', 'configs'],
+        queryFn: () => adminApi.getConfigs()
+    });
 
-  // Fetch announcements
-  const { data: announcements = [], isLoading: isAnnouncementsLoading } = useQuery({
-    queryKey: ['admin', 'announcements'],
-    queryFn: () => adminApi.getAnnouncements()
-  });
+    // Fetch announcements
+    const { data: announcements = [], isLoading: isAnnouncementsLoading } = useQuery({
+        queryKey: ['admin', 'announcements'],
+        queryFn: () => adminApi.getAnnouncements()
+    });
 
-  // Fetch tournaments
-  const { data: tournaments = [], isLoading: isTournamentsLoading } = useQuery({
-    queryKey: ['admin', 'tournaments'],
-    queryFn: () => adminApi.getTournaments()
-  });
+    // Fetch tournaments
+    const { data: tournaments = [], isLoading: isTournamentsLoading } = useQuery({
+        queryKey: ['admin', 'tournaments'],
+        queryFn: () => adminApi.getTournaments()
+    });
 
-  // Fetch seasons
-  const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery({
-    queryKey: ['seasons', 'list'],
-    queryFn: async () => {
-      const res = await apiClient.get('/seasons');
-      return res.data;
+    // Fetch seasons
+    const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery({
+        queryKey: ['seasons', 'list'],
+        queryFn: async () => {
+            const res = await apiClient.get('/seasons');
+            return res.data;
+        }
+    });
+
+    const loading = isConfigsLoading || isAnnouncementsLoading || isTournamentsLoading || isSeasonsLoading;
+
+    // Security: Redirect if not admin
+    if (user && user.role !== 'admin') {
+        return <Navigate to="/" replace />;
     }
-  });
 
-  const loading = isConfigsLoading || isAnnouncementsLoading || isTournamentsLoading || isSeasonsLoading;
-  
-  // Security: Redirect if not admin
-  if (user && user.role !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
+    const handleUpdate = () => {
+        queryClient.invalidateQueries({ queryKey: ['admin'] });
+        queryClient.invalidateQueries({ queryKey: ['seasons'] });
+    };
 
-  const handleUpdate = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin'] });
-    queryClient.invalidateQueries({ queryKey: ['seasons'] });
-  };
-
-  return (
-    <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-12 bg-white relative">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <div className="w-2 h-16 bg-gradient-to-b from-sapphire-blue to-primary-navy rounded-full shadow-[0_0_15px_rgba(15,23,42,0.2)]" />
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="px-3 py-1 bg-sapphire-blue/10 text-sapphire-blue text-[10px] font-black uppercase tracking-widest rounded-full border border-sapphire-blue/20">
-                Admin Control
-              </span>
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-black text-primary-navy tracking-tight uppercase leading-none">
-              管理主控台
-            </h1>
-          </div>
-        </div>
-
-        {/* Global System Stats / Quick Actions */}
-        <div className="flex gap-4">
-            <Card className={cn(
-                "px-6 py-4 flex items-center gap-4 border-none shadow-lg transition-all duration-500",
-                configs.find((c: any) => c.key === 'season_paused')?.value === 'true' 
-                    ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" 
-                    : "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
-            )}>
-                <div className={cn(
-                    "size-10 rounded-xl flex items-center justify-center",
-                    configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? "bg-rose-100" : "bg-emerald-100"
-                )}>
-                    {configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? <Pause size={20} /> : <Play size={20} />}
+    return (
+        <div className="pb-24 pt-8 md:pt-12 px-6 md:px-12 space-y-12 bg-white relative">
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="flex items-center gap-6">
+                    <div className="w-2 h-16 bg-gradient-to-b from-sapphire-blue to-primary-navy rounded-full shadow-[0_0_15px_rgba(15,23,42,0.2)]" />
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="px-3 py-1 bg-sapphire-blue/10 text-sapphire-blue text-[10px] font-black uppercase tracking-widest rounded-full border border-sapphire-blue/20">
+                                Admin Control
+                            </span>
+                        </div>
+                        <h1 className="text-4xl lg:text-5xl font-black text-primary-navy tracking-tight uppercase leading-none">
+                            管理主控台
+                        </h1>
+                    </div>
                 </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">賽季狀態</p>
-                    <p className="font-bold">{configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? '已暫停報分' : '正常運作中'}</p>
+
+                {/* Global System Stats / Quick Actions */}
+                <div className="flex gap-4">
+                    <Card className={cn(
+                        "px-6 py-4 flex items-center gap-4 border-none shadow-lg transition-all duration-500",
+                        configs.find((c: any) => c.key === 'season_paused')?.value === 'true'
+                            ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200"
+                            : "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
+                    )}>
+                        <div className={cn(
+                            "size-10 rounded-xl flex items-center justify-center",
+                            configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? "bg-rose-100" : "bg-emerald-100"
+                        )}>
+                            {configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? <Pause size={20} /> : <Play size={20} />}
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70">賽季狀態</p>
+                            <p className="font-bold">{configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? '已暫停報分' : '正常運作中'}</p>
+                        </div>
+                    </Card>
                 </div>
-            </Card>
-        </div>
-      </header>
+            </header>
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 p-1 bg-slate-100/50 backdrop-blur-sm rounded-2xl border border-slate-200/50 w-fit">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden",
-              activeTab === tab.id 
-                ? "bg-white text-primary-navy shadow-md" 
-                : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
-            )}
-          >
-            <tab.icon size={18} />
-            {tab.label}
-            {activeTab === tab.id && (
-              <motion.div 
-                layoutId="tab-active"
-                className="absolute inset-0 bg-white -z-10"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="relative min-h-[500px]">
-        {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <Loader2 className="animate-spin text-sapphire-blue" size={40} />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">載入數據中...</p>
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-2 p-1 bg-slate-100/50 backdrop-blur-sm rounded-2xl border border-slate-200/50 w-fit">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden",
+                            activeTab === tab.id
+                                ? "bg-white text-primary-navy shadow-md"
+                                : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+                        )}
+                    >
+                        <tab.icon size={18} />
+                        {tab.label}
+                        {activeTab === tab.id && (
+                            <motion.div
+                                layoutId="tab-active"
+                                className="absolute inset-0 bg-white -z-10"
+                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                            />
+                        )}
+                    </button>
+                ))}
             </div>
-          </div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
-              {activeTab === 'general' && <GeneralConfig configs={configs} onUpdate={handleUpdate} />}
-              {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={handleUpdate} />}
-              {activeTab === 'prizes' && <PrizeManager seasons={seasons} onUpdate={handleUpdate} />}
-              {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={handleUpdate} />}
-            </motion.div>
-          </AnimatePresence>
-        )}
-      </div>
-    </div>
-  );
+
+            {/* Main Content Area */}
+            <div className="relative min-h-[500px]">
+                {loading ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="animate-spin text-sapphire-blue" size={40} />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">載入數據中...</p>
+                        </div>
+                    </div>
+                ) : (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {activeTab === 'general' && <GeneralConfig configs={configs} onUpdate={handleUpdate} />}
+                            {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={handleUpdate} />}
+                            {activeTab === 'prizes' && <PrizeManager seasons={seasons} onUpdate={handleUpdate} />}
+                            {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={handleUpdate} />}
+                        </motion.div>
+                    </AnimatePresence>
+                )}
+            </div>
+        </div>
+    );
 }
 
 // ==========================================
@@ -211,7 +211,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     const [localDays, setLocalDays] = useState(intervalDays);
     const [localHours, setLocalHours] = useState(intervalHours);
     const [localMinutes, setLocalMinutes] = useState(intervalMinutes);
-    
+
     // 初始化時將 UTC 轉為本地格式給 datetime-local 使用
     const [localStartDate, setLocalStartDate] = useState(() => {
         if (!startDate) return '';
@@ -270,14 +270,14 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                     <Pause className="text-sapphire-blue" size={24} />
                     賽季自動管控
                 </h3>
-                
+
                 <div className="space-y-8">
                     <div className="flex items-center justify-between p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
                         <div>
                             <p className="font-bold text-slate-800">暫停積分申報</p>
                             <p className="text-xs text-slate-400 mt-1">開啟後所有人將無法發起新的大會積分報分</p>
                         </div>
-                        <button 
+                        <button
                             onClick={handleTogglePause}
                             disabled={saving}
                             className={cn(
@@ -285,9 +285,9 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                                 isPaused ? "bg-rose-500" : "bg-slate-200"
                             )}
                         >
-                            <motion.div 
+                            <motion.div
                                 animate={{ x: isPaused ? 32 : 4 }}
-                                className="size-6 bg-white rounded-full absolute top-1 shadow-md" 
+                                className="size-6 bg-white rounded-full absolute top-1 shadow-md"
                             />
                         </button>
                     </div>
@@ -297,8 +297,8 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter">Days 天</p>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={localDays}
                                     onChange={e => setLocalDays(e.target.value)}
                                     className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 shadow-sm focus:ring-2 focus:ring-sapphire-blue outline-none font-bold text-center"
@@ -306,8 +306,8 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                             </div>
                             <div className="space-y-2">
                                 <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter">Hours 時</p>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={localHours}
                                     onChange={e => setLocalHours(e.target.value)}
                                     className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 shadow-sm focus:ring-2 focus:ring-sapphire-blue outline-none font-bold text-center"
@@ -315,8 +315,8 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                             </div>
                             <div className="space-y-2">
                                 <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter">Mins 分</p>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={localMinutes}
                                     onChange={e => setLocalMinutes(e.target.value)}
                                     className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 shadow-sm focus:ring-2 focus:ring-sapphire-blue outline-none font-bold text-center"
@@ -327,8 +327,8 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
 
                     <div className="space-y-4">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">首季起始基準時間 (含秒)</label>
-                        <input 
-                            type="datetime-local" 
+                        <input
+                            type="datetime-local"
                             step="1"
                             value={localStartDate}
                             onChange={e => setLocalStartDate(e.target.value)}
@@ -336,7 +336,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                         />
                     </div>
 
-                    <Button 
+                    <Button
                         onClick={handleSave}
                         disabled={saving}
                         className="w-full h-14 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white border-none shadow-lg shadow-primary-navy/20 font-black tracking-widest uppercase transition-all"
@@ -373,10 +373,10 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
 function AnnouncementManager({ announcements, onUpdate }: { announcements: Announcement[], onUpdate: () => void }) {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [formData, setFormData] = useState({ 
-        title: '', 
-        content: '', 
-        link_text: '', 
+    const [formData, setFormData] = useState({
+        title: '',
+        content: '',
+        link_text: '',
         link_url: '',
         type: 'system' as 'club' | 'system' | 'tournament',
         is_active: true
@@ -439,7 +439,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
     };
 
     const getTypeBadge = (type: string) => {
-        switch(type) {
+        switch (type) {
             case 'tournament': return { label: '賽事公告', bg: 'bg-amber-100', text: 'text-amber-600' };
             case 'club': return { label: '社團公告', bg: 'bg-emerald-100', text: 'text-emerald-600' };
             default: return { label: '系統公告', bg: 'bg-indigo-100', text: 'text-indigo-600' };
@@ -454,7 +454,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                     <h3 className="text-2xl font-black text-primary-navy">公告管理</h3>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">系統、社團與賽事即時資訊發布</p>
                 </div>
-                <Button 
+                <Button
                     onClick={() => {
                         setEditingId(null);
                         setFormData({ title: '', content: '', link_text: '', link_url: '', type: 'system', is_active: true });
@@ -493,14 +493,14 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                                 )}
                             </div>
                             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50 transition-all">
-                                <button 
+                                <button
                                     onClick={() => handleEdit(ann)}
                                     className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 rounded-lg transition-all"
                                 >
                                     <Edit size={14} />
                                     <span>編輯</span>
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleDelete(ann.id)}
                                     className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
                                 >
@@ -520,7 +520,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
             </div>
 
             {/* Modal / Drawer Section */}
-            <ResponsiveAnnouncementModal 
+            <ResponsiveAnnouncementModal
                 isOpen={isAdding}
                 onClose={() => setIsAdding(false)}
                 title={editingId ? '編輯公告' : '發布新公告'}
@@ -549,11 +549,11 @@ function AnnouncementFormContent({ data, onChange, getTypeBadge }: any) {
                             return (
                                 <button
                                     key={t}
-                                    onClick={() => onChange({...data, type: t})}
+                                    onClick={() => onChange({ ...data, type: t })}
                                     className={cn(
                                         "px-2 py-3 rounded-xl border-2 transition-all text-[11px] font-bold flex items-center justify-center",
-                                        isSelected 
-                                            ? cn(badge.bg, "border-current shadow-sm", badge.text) 
+                                        isSelected
+                                            ? cn(badge.bg, "border-current shadow-sm", badge.text)
                                             : "bg-white border-slate-100 text-slate-300 hover:bg-slate-50"
                                     )}
                                 >
@@ -566,50 +566,50 @@ function AnnouncementFormContent({ data, onChange, getTypeBadge }: any) {
 
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">標題</label>
-                    <input 
+                    <input
                         placeholder="請輸入標題"
                         value={data.title}
-                        onChange={e => onChange({...data, title: e.target.value})}
+                        onChange={e => onChange({ ...data, title: e.target.value })}
                         className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm"
                     />
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">內文詳情</label>
-                    <textarea 
+                    <textarea
                         placeholder="公告內容..."
                         rows={4}
                         value={data.content}
-                        onChange={e => onChange({...data, content: e.target.value})}
+                        onChange={e => onChange({ ...data, content: e.target.value })}
                         className="w-full px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-sm resize-none"
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">按鈕文字</label>
-                        <input 
+                        <input
                             placeholder="例：前往報名"
                             value={data.link_text}
-                            onChange={e => onChange({...data, link_text: e.target.value})}
+                            onChange={e => onChange({ ...data, link_text: e.target.value })}
                             className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
                         />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">連結 URL</label>
-                        <input 
+                        <input
                             placeholder="https://..."
                             value={data.link_url}
-                            onChange={e => onChange({...data, link_url: e.target.value})}
+                            onChange={e => onChange({ ...data, link_url: e.target.value })}
                             className="w-full h-12 px-5 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-sapphire-blue transition-all outline-none font-bold text-xs"
                         />
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                    <input 
-                        type="checkbox" 
-                        id="is_active" 
+                    <input
+                        type="checkbox"
+                        id="is_active"
                         checked={data.is_active}
-                        onChange={e => onChange({...data, is_active: e.target.checked})}
+                        onChange={e => onChange({ ...data, is_active: e.target.checked })}
                         className="size-5 rounded border-slate-300 text-sapphire-blue focus:ring-sapphire-blue"
                     />
                     <label htmlFor="is_active" className="text-xs font-bold text-slate-600">上架狀態 (開啟則對外顯示)</label>
@@ -635,13 +635,13 @@ function ResponsiveAnnouncementModal({ isOpen, onClose, title, data, onSave, get
                         <DialogTitle>{title}</DialogTitle>
                         <DialogDescription>發布新的公告資訊到對戰主卡片中</DialogDescription>
                     </DialogHeader>
-                    <AnnouncementFormContent 
-                        data={localData} 
-                        onChange={setLocalData} 
+                    <AnnouncementFormContent
+                        data={localData}
+                        onChange={setLocalData}
                         getTypeBadge={getTypeBadge}
                     />
                     <DialogFooter>
-                        <Button 
+                        <Button
                             onClick={() => onSave(localData)}
                             className="w-full h-14 bg-sapphire-blue hover:bg-primary-navy text-white rounded-2xl border-none font-black uppercase tracking-widest shadow-lg"
                         >
@@ -656,18 +656,18 @@ function ResponsiveAnnouncementModal({ isOpen, onClose, title, data, onSave, get
     return (
         <Drawer open={isOpen} onOpenChange={onClose}>
             <DrawerContent>
-                 <DrawerHeader className="text-left border-b border-slate-50">
+                <DrawerHeader className="text-left border-b border-slate-50">
                     <DrawerTitle className="text-xl font-black text-primary-navy tracking-tight">{title}</DrawerTitle>
                     <DrawerDescription>填寫公告詳情後點擊發布</DrawerDescription>
                 </DrawerHeader>
                 <div className="px-6 py-4 pb-12 overflow-y-auto max-h-[70vh]">
-                    <AnnouncementFormContent 
-                        data={localData} 
-                        onChange={setLocalData} 
+                    <AnnouncementFormContent
+                        data={localData}
+                        onChange={setLocalData}
                         getTypeBadge={getTypeBadge}
                     />
                     <DrawerFooter className="px-0 pt-6">
-                        <Button 
+                        <Button
                             onClick={() => onSave(localData)}
                             className="w-full h-14 bg-sapphire-blue hover:bg-primary-navy text-white rounded-2xl border-none font-black uppercase tracking-widest shadow-md"
                         >
@@ -738,14 +738,14 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                     <p className="text-sm text-slate-400 mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <select 
+                    <select
                         value={selectedSeason}
                         onChange={e => setSelectedSeason(e.target.value)}
                         className="h-12 px-6 rounded-xl bg-white border border-slate-200 shadow-sm font-bold min-w-[200px] outline-none focus:ring-2 focus:ring-sapphire-blue transition-all"
                     >
                         {seasons.map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
                     </select>
-                    <Button 
+                    <Button
                         onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}
                         className="h-12 px-6 bg-sapphire-blue hover:bg-primary-navy text-white rounded-xl border-none shadow-md"
                     >
@@ -760,10 +760,10 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                     // 優先找到該名次的獎項，不論有無標籤
                     const prize = (prizes as SeasonPrize[]).find((p: SeasonPrize) => p.rank === rank);
                     return (
-                        <PrizeFormCard 
-                            key={`rank-${rank}`} 
-                            rank={rank} 
-                            prize={prize} 
+                        <PrizeFormCard
+                            key={`rank-${rank}`}
+                            rank={rank}
+                            prize={prize}
                             onSave={handleSavePrize}
                             onDelete={handleDeletePrize}
                         />
@@ -772,9 +772,9 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
 
                 {/* Existing Extra / Labelled Prizes (排除已經在 1, 2, 3 顯示的) */}
                 {(prizes as SeasonPrize[]).filter((p: SeasonPrize) => (p.rank || 0) <= 0 || (p.rank || 0) > 3).map((prize: SeasonPrize) => (
-                    <PrizeFormCard 
-                        key={prize.id} 
-                        prize={prize} 
+                    <PrizeFormCard
+                        key={prize.id}
+                        prize={prize}
                         onSave={handleSavePrize}
                         onDelete={handleDeletePrize}
                     />
@@ -782,7 +782,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
 
                 {/* Temporary New Extra Prizes */}
                 {extraPrizes.map((p: any, idx: number) => (
-                    <PrizeFormCard 
+                    <PrizeFormCard
                         key={`extra-${idx}`}
                         prize={p as SeasonPrize}
                         isNew
@@ -795,10 +795,10 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
     );
 }
 
-function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: { 
-    rank?: number, 
-    prize?: SeasonPrize, 
-    onSave: (p: any) => void, 
+function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
+    rank?: number,
+    prize?: SeasonPrize,
+    onSave: (p: any) => void,
     onDelete: (id?: string) => void,
     isNew?: boolean
 }) {
@@ -849,7 +849,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
             isNew && "ring-2 ring-sapphire-blue ring-offset-4"
         )}>
             {prize?.id && (
-                <button 
+                <button
                     onClick={() => onDelete(prize.id)}
                     className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                 >
@@ -861,8 +861,8 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 <div className={cn(
                     "size-12 rounded-2xl flex items-center justify-center font-black text-xl",
                     isStandard && !label ? (
-                        rank === 1 ? "bg-olympic-gold/20 text-olympic-gold" : 
-                        rank === 2 ? "bg-slate-200 text-slate-500" : "bg-orange-100 text-orange-600"
+                        rank === 1 ? "bg-olympic-gold/20 text-olympic-gold" :
+                            rank === 2 ? "bg-slate-200 text-slate-500" : "bg-orange-100 text-orange-600"
                     ) : "bg-sapphire-blue/10 text-sapphire-blue"
                 )}>
                     {rank || '★'}
@@ -876,7 +876,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">名次 (Rank)</label>
-                        <input 
+                        <input
                             type="number"
                             value={rank} onChange={e => setRank(parseInt(e.target.value) || 0)}
                             className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
@@ -884,7 +884,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">標籤 (Label)</label>
-                        <input 
+                        <input
                             placeholder={defaultLabel || "例：MVP"}
                             value={label} onChange={e => setLabel(e.target.value)}
                             className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
@@ -894,7 +894,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
                 <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">物品名稱</label>
-                    <input 
+                    <input
                         value={name} onChange={e => setName(e.target.value)}
                         className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
                     />
@@ -902,14 +902,14 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-1 space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">數量</label>
-                        <input 
+                        <input
                             type="number" value={qty} onChange={e => setQty(parseInt(e.target.value) || 0)}
                             className="w-full h-11 px-4 rounded-xl bg-slate-50 border-none outline-none font-bold text-sm"
                         />
                     </div>
                     <div className="col-span-2 space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">圖片</label>
-                        <input 
+                        <input
                             type="file"
                             accept="image/jpeg, image/png, image/gif"
                             className="hidden"
@@ -931,7 +931,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 {url && (
                     <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative flex items-center justify-center p-2 min-h-[120px]">
                         <img src={url} alt="獎品預覽" className="max-h-32 object-contain" />
-                        <button 
+                        <button
                             onClick={(e) => { e.preventDefault(); setUrl(''); }}
                             className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-colors shadow-sm"
                         >
@@ -941,14 +941,14 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 )}
             </div>
 
-            <Button 
-                onClick={() => onSave({ 
-                    ...prize, 
-                    rank, 
-                    label: label || defaultLabel, 
-                    item_name: name, 
-                    quantity: qty, 
-                    image_url: url 
+            <Button
+                onClick={() => onSave({
+                    ...prize,
+                    rank,
+                    label: label || defaultLabel,
+                    item_name: name,
+                    quantity: qty,
+                    image_url: url
                 })}
                 className="w-full h-12 bg-primary-navy hover:bg-slate-800 text-white rounded-xl border-none transition-all font-bold"
             >
@@ -961,11 +961,11 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentEvent[], onUpdate: () => void }) {
     const [isAdding, setIsAdding] = useState(false);
     const [selectedTourn, setSelectedTourn] = useState<string | null>(null);
-    
+
     // Create Form
-    const [formData, setFormData] = useState({ 
-        title: '', 
-        rules: '', 
+    const [formData, setFormData] = useState({
+        title: '',
+        rules: '',
         image_url: '',
         start_date: '',
         end_date: ''
@@ -1016,16 +1016,16 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* List */}
             <div className="lg:col-span-1 space-y-4">
-                <Button 
+                <Button
                     onClick={() => setIsAdding(true)}
                     className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl border-none transition-all shadow-lg shadow-indigo-200 font-bold mb-4"
                 >
                     <Plus className="mr-2" /> 新賽事
                 </Button>
-                
+
                 {tournaments.map(t => (
-                    <Card 
-                        key={t.id} 
+                    <Card
+                        key={t.id}
                         onClick={() => { setSelectedTourn(t.id); setIsAdding(false); }}
                         className={cn(
                             "p-4 cursor-pointer border-none transition-all rounded-2xl group",
@@ -1047,54 +1047,54 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             <div className="lg:col-span-3">
                 {isAdding ? (
                     <Card className="p-10 border-none shadow-2xl bg-white rounded-[2.5rem] max-w-2xl">
-                         <h3 className="text-2xl font-black text-primary-navy mb-8">發起獨立錦標賽</h3>
-                         <div className="space-y-6">
+                        <h3 className="text-2xl font-black text-primary-navy mb-8">發起獨立錦標賽</h3>
+                        <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">賽事名稱</label>
-                                <input 
+                                <input
                                     placeholder="例如：2026 尾牙友誼賽"
                                     value={formData.title}
-                                    onChange={e => setFormData({...formData, title: e.target.value})}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
                                     className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Challonge 賽程連結 或 規則</label>
-                                <input 
+                                <input
                                     placeholder="https://challonge.com/..."
                                     value={formData.rules}
-                                    onChange={e => setFormData({...formData, rules: e.target.value})}
+                                    onChange={e => setFormData({ ...formData, rules: e.target.value })}
                                     className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">賽事開始時間 (含秒)</label>
-                                    <input 
+                                    <input
                                         type="datetime-local"
                                         step="1"
                                         value={formData.start_date}
-                                        onChange={e => setFormData({...formData, start_date: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, start_date: e.target.value })}
                                         className="w-full h-14 px-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">賽事結束時間 (含秒)</label>
-                                    <input 
+                                    <input
                                         type="datetime-local"
                                         step="1"
                                         value={formData.end_date}
-                                        onChange={e => setFormData({...formData, end_date: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, end_date: e.target.value })}
                                         className="w-full h-14 px-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">預覽圖 URL</label>
-                                <input 
+                                <input
                                     placeholder="https://..."
                                     value={formData.image_url}
-                                    onChange={e => setFormData({...formData, image_url: e.target.value})}
+                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
                                     className="w-full h-14 px-6 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold"
                                 />
                             </div>
@@ -1102,7 +1102,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 <Button onClick={() => setIsAdding(false)} variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase">取消</Button>
                                 <Button onClick={handleCreate} className="flex-2 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl border-none shadow-lg shadow-indigo-100 font-black uppercase tracking-widest">建立賽事</Button>
                             </div>
-                         </div>
+                        </div>
                     </Card>
                 ) : selectedTourn ? (
                     <div className="space-y-8">
@@ -1123,7 +1123,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 <Button size="sm" className="rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none"><Plus size={16} className="mr-1" /> 手動加入玩家</Button>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {participants.map(p => (
+                                {participants.map((p: any) => (
                                     <div key={p.participant.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between group">
                                         <div className="flex items-center gap-3">
                                             <div className="size-10 rounded-xl overflow-hidden bg-white border border-slate-200">
@@ -1134,7 +1134,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                                 <p className="text-[10px] text-slate-400 font-medium">{p.user.department}</p>
                                             </div>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={() => handleRemovePlayer(p.user.id)}
                                             className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                         >
