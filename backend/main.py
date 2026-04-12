@@ -21,9 +21,11 @@ from services.season_service import ensure_current_quarter_season
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動排程器
-    setup_scheduler()
-    scheduler.start()
+    # 啟動排程器 (僅當設定開啟時)
+    if settings.enable_local_scheduler:
+        setup_scheduler()
+        scheduler.start()
+        logging.info("[Main] Local APScheduler started.")
 
     # 開機預檢：確保現在的季度有賽季可打
     generator = get_session()
@@ -36,7 +38,9 @@ async def lifespan(app: FastAPI):
 
     yield
     # 關閉時執行
-    scheduler.shutdown()
+    if settings.enable_local_scheduler:
+        scheduler.shutdown()
+        logging.info("[Main] Local APScheduler shut down.")
 
 
 # 1. 建立 FastAPI 應用程式實例

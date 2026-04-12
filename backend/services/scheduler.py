@@ -1,28 +1,24 @@
-import os
-from datetime import datetime, timezone
+import logging
+from datetime import datetime, timezone, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from database import get_session
+from config import settings
 from services.season_service import auto_generate_quarterly_season
-import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
 
-
-
-
 def _apply_decay(session_factory):
     """
-    每日惰性衰退：對超過 threshold 天未出賽的玩家扣分。
-    採用「時間差錨點」邏輯：
-    1. 閒置天數 >= threshold (預設 21 天)
-    2. 距離上次扣分 (last_decay_date) 已超過 7 天 (或從未扣過)
-    這樣即使伺服器當機，恢復後也會補扣。
+    實施「惰性衰退」扣分邏輯。
+    
+    規則：
+    1. 若 CRON_TEST_MODE = true：強制使用環境變數，單位為「分鐘」。
+    2. 若 CRON_TEST_MODE = false：優先使用資料庫 SystemConfig，單位為「天」。
     """
-    from sqlmodel import Session, select
+    from sqlmodel import select
     from models import User, MatchParticipation, PlayerStatHistory, Notification, SystemConfig, Match
     from services.elo_engine import ELO_CONFIG
 
@@ -31,20 +27,31 @@ def _apply_decay(session_factory):
     try:
         now = datetime.now(timezone.utc)
         
-        # 1. 讀取配置
-        def get_cfg(key, default):
-            cfg = session.get(SystemConfig, key)
-            return cfg.value if cfg else default
+        # 🟢 1. 參數解析邏輯 (依據環境模式切換)
+        if settings.cron_test_mode:
+            # 測試模式：強制讀取環境變數，單位 [分鐘]
+            threshold_val = settings.decay_threshold_value
+            cycle_val = settings.decay_cycle_value
+            decay_amount = settings.decay_amount
+            time_unit = "minutes"
+            logger.info(f"[Decay] Running in TEST MODE (Unit: {time_unit})")
+        else:
+            # 生產模式：優先讀取資料庫，若無則按環境變數預設值，單位 [天]
+            def get_cfg(key, default):
+                cfg = session.get(SystemConfig, key)
+                return cfg.value if cfg else str(default)
 
-        threshold_days = int(get_cfg("decay_days_threshold", "21"))
-        decay_amount = float(get_cfg("decay_amount", "5.0"))
+            threshold_val = int(get_cfg("decay_days_threshold", settings.decay_threshold_value))
+            cycle_val = int(get_cfg("decay_cycle_days", settings.decay_cycle_value))
+            decay_amount = float(get_cfg("decay_amount", settings.decay_amount))
+            time_unit = "days"
+        
         mmr_floor = ELO_CONFIG.get("MIN_MMR_FLOOR", 600.0)
-
         active_users = session.exec(select(User).where(User.is_active == True)).all()
 
         decayed_count = 0
         for user in active_users:
-            # 取得該玩家最近一次出賽時間
+            # A. 取得該玩家最近一次出賽時間
             last_match_id = session.exec(
                 select(MatchParticipation.match_id)
                 .where(MatchParticipation.user_id == user.id)
@@ -63,11 +70,15 @@ def _apply_decay(session_factory):
             if last_played.tzinfo is None:
                 last_played = last_played.replace(tzinfo=timezone.utc)
 
-            days_inactive = (now - last_played).days
+            # B. 計算閒置時間
+            time_diff = now - last_played
+            if time_unit == "minutes":
+                current_inactive = time_diff.total_seconds() / 60
+            else:
+                current_inactive = time_diff.total_seconds() / 86400  # 使用秒數轉天數更精準
 
-            # 2. 檢查是否符合衰退條件
-            if days_inactive >= threshold_days:
-                # 檢查時間差錨點：距離上次衰退是否已滿 7 天
+            # C. 檢查是否符合衰退條件
+            if current_inactive >= threshold_val:
                 should_decay = False
                 if user.last_decay_date is None:
                     should_decay = True
@@ -75,8 +86,15 @@ def _apply_decay(session_factory):
                     last_decay = user.last_decay_date
                     if last_decay.tzinfo is None:
                         last_decay = last_decay.replace(tzinfo=timezone.utc)
-                    if (now - last_decay).days >= 7:
-                        should_decay = True
+                    
+                    # 檢查週期
+                    decay_diff = now - last_decay
+                    if time_unit == "minutes":
+                        if decay_diff.total_seconds() / 60 >= cycle_val:
+                            should_decay = True
+                    else:
+                        if decay_diff.total_seconds() / 86400 >= cycle_val:
+                            should_decay = True
 
                 if should_decay:
                     old_mmr = user.global_mmr
@@ -84,64 +102,60 @@ def _apply_decay(session_factory):
                     actual_diff = new_mmr - old_mmr
                     
                     if actual_diff < 0:
-                        # 執行扣分與更新錨點
                         user.global_mmr = new_mmr
                         user.last_decay_date = now
                         session.add(user)
 
-                        # 紀錄歷史
                         session.add(PlayerStatHistory(
                             user_id=user.id,
                             mmr=new_mmr,
-                            recorded_at=now
+                            recorded_at=now,
+                            event_type="decay" # 加上事件類型
                         ))
 
-                        # 送出通知
                         session.add(Notification(
                             user_id=user.id,
-                            type="match_rejected",  # 借用類別或新增一個，此處暫用 match_rejected 的顏色表現
-                            content=f"由於您已連續 {days_inactive} 天未出賽，系統已自動扣除 {abs(actual_diff):.1f} MMR 以維持積分公平性。",
+                            type="match_rejected",
+                            content=f"由於您已連續 {int(current_inactive)} {time_unit} 未出賽，系統已自動扣除 {abs(actual_diff):.1f} MMR。",
                             created_at=now
                         ))
 
                         decayed_count += 1
-                        logger.info(f"[Decay] {user.name}: {old_mmr:.1f} -> {new_mmr:.1f} (last match {days_inactive}d ago)")
+                        logger.info(f"[Decay] {user.name}: {old_mmr:.1f} -> {new_mmr:.1f} (inactive: {current_inactive:.1f} {time_unit})")
 
         session.commit()
         if decayed_count:
-            logger.info(f"[Decay] Applied decay to {decayed_count} user(s).")
+            logger.info(f"[Decay] Success: Applied decay to {decayed_count} user(s).")
     except Exception as e:
         session.rollback()
-        logger.error(f"[Decay] Error during decay process: {str(e)}")
+        logger.error(f"[Decay] CRITICAL ERROR: {str(e)}")
     finally:
         session.close()
 
-
 def setup_scheduler():
     """
-    設定並準備啟動 APScheduler。
-    全面採用每 1 分鐘一次的高頻動態檢查，確保與管理員設定同步。
+    設定排程器任務。
+    本地開發模式下，只有 settings.enable_local_scheduler = True 才會被啟動。
     """
-    test_mode = os.getenv("TEST_MODE_SCHEDULER", "false").lower() == "true"
-
-    # 無論是否測試模式，皆使用 1 分鐘間隔檢查，以支持分進秒出的動態更新
-    logger.info("[APScheduler] Scheduling season auto-generation (1-min interval) and daily decay check.")
-    trigger = IntervalTrigger(minutes=1)
-
-    # 加入排程任務 — 賽季自動生成
+    # 賽季自動生成 (維持每分鐘掃描一次，確保精準)
     scheduler.add_job(
         auto_generate_quarterly_season,
-        trigger=trigger,
+        trigger=IntervalTrigger(minutes=1),
         args=[get_session],
         id="granular_season_job",
         replace_existing=True
     )
 
-    # 加入排程任務 — 每日惰性衰退 (每天執行一次)
+    # 積分衰退檢查
+    # 在生產環境通常透過 cron.py Webhook 觸發，故這裡預設頻率較低，僅作為本地開發的後備。
+    decay_trigger = IntervalTrigger(minutes=5) if settings.cron_test_mode else IntervalTrigger(hours=12)
+    
     scheduler.add_job(
         _apply_decay,
-        trigger=IntervalTrigger(days=1),
+        trigger=decay_trigger,
         args=[get_session],
-        id="daily_decay_job",
+        id="auto_decay_job",
         replace_existing=True
     )
+    
+    logger.info(f"[APScheduler] Initialization complete. Local Scheduler: {settings.enable_local_scheduler}")

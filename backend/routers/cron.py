@@ -1,11 +1,11 @@
-import os
 import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlmodel import Session, select
 
 from database import get_session
-from models import Match
+from models import Match, SystemConfig # Added SystemConfig
+from config import settings               # Added settings
 from services.match_service import settle_match_transaction
 from services.scheduler import _apply_decay
 from services.season_service import auto_generate_quarterly_season
@@ -18,18 +18,16 @@ def run_scheduled_tasks(
     x_cron_secret: str = Header(...), 
     session: Session = Depends(get_session)
 ):
-    # 1. 安全驗證：比對 Header 中的密鑰與環境變數是否一致
-    expected_secret = os.getenv("CRON_SECRET_KEY")
-    if not expected_secret or x_cron_secret != expected_secret:
-        raise HTTPException(status_code=401, detail="Unauthorized execution")
+    # 🟢 1. 安全驗證：比對 Header 中的密鑰與環境變數
+    if x_cron_secret != settings.cron_secret_key:
+        raise HTTPException(status_code=401, detail="Unauthorized execution: Invalid secret key")
 
     results = []
 
     # ---------------------------------------------------------
-    # 任務 A：賽季自動生成檢查 (沿用你原有的邏輯)
+    # 任務 A：賽季自動生成檢查
     # ---------------------------------------------------------
     try:
-        # 傳入 get_session generator，維持原有設計
         auto_generate_quarterly_season(get_session) 
         results.append("Season check passed")
     except Exception as e:
@@ -37,14 +35,28 @@ def run_scheduled_tasks(
         results.append(f"Season check failed: {e}")
 
     # ---------------------------------------------------------
-    # 任務 B：48小時自動確認 Pending 比賽 (補齊的新功能)
+    # 任務 B：自動確認 Pending 比賽 (具備環境感知)
     # ---------------------------------------------------------
     try:
         now = datetime.now(timezone.utc)
-        # 計算 48 小時前的時間點
-        cutoff_time = now - timedelta(hours=48)
         
-        # 找出所有超過 48 小時且仍為 pending 的比賽
+        # 🔑 決定判定持續時間與單位
+        if settings.cron_test_mode:
+            # 測試模式：強制由環境變數決定 [分鐘]
+            duration_val = settings.match_auto_confirm_duration
+            cutoff_time = now - timedelta(minutes=duration_val)
+            unit_label = "minutes"
+        else:
+            # 生產模式：優先讀取資料庫 SystemConfig [小時]
+            def get_cfg(key, default):
+                cfg = session.get(SystemConfig, key)
+                return cfg.value if cfg else str(default)
+            
+            duration_val = int(get_cfg("match_auto_confirm_hours", settings.match_auto_confirm_duration))
+            cutoff_time = now - timedelta(hours=duration_val)
+            unit_label = "hours"
+
+        # 找出所有超時且仍為 pending 的比賽
         pending_matches = session.exec(
             select(Match)
             .where(Match.status == "pending")
@@ -53,21 +65,20 @@ def run_scheduled_tasks(
 
         confirmed_count = 0
         for match in pending_matches:
-            # 💡 巧妙解法：結算函數會檢查「確認者」是否為對手。
-            # 這裡我們由系統代為傳入對手 (team_b_p1_id) 的 ID，模擬對手按下確認，完美通過權限檢查
+            # 由系統模擬對手 (team_b_p1_id) 的確認操作
             try:
                 settle_match_transaction(session, match.id, match.team_b_p1_id)
                 confirmed_count += 1
             except Exception as inner_e:
                 logger.error(f"Failed to auto-confirm match {match.id}: {inner_e}")
 
-        results.append(f"Auto-confirmed {confirmed_count} pending matches")
+        results.append(f"Auto-confirmed {confirmed_count} pending matches (Threshold: {duration_val} {unit_label})")
     except Exception as e:
         logger.error(f"Auto-confirm routine failed: {e}")
         results.append(f"Auto-confirm routine failed: {e}")
 
     # ---------------------------------------------------------
-    # 任務 C：每日惰性衰退扣分 (沿用你原有的邏輯)
+    # 任務 C：積分衰退檢查
     # ---------------------------------------------------------
     try:
         _apply_decay(get_session)
@@ -80,4 +91,4 @@ def run_scheduled_tasks(
         "status": "success",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "tasks_run": results
-    }
+    }

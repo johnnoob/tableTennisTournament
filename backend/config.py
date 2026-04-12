@@ -61,7 +61,18 @@ class Settings(BaseSettings):
     cloudinary_api_secret: str = ""
 
     # ── 其他 ──────────────────────────────────────────────────────
-    test_mode_scheduler: bool = False
+    # ── 背景任務 (Cron / Scheduler) ─────────────────────────────────
+    enable_local_scheduler: bool = False  # 是否在本地啟動 APScheduler
+    cron_test_mode: bool = False         # 測試模式：時間單位會從 Days/Hours 變更為 Minutes
+    cron_secret_key: str = "precision-arena-cron-secret-2026"
+    
+    # 扣分 (Decay) 參數
+    decay_threshold_value: int = 21      # 閒置多少單位開始扣分
+    decay_cycle_value: int = 7           # 每次扣分間隔單位
+    decay_amount: float = 5.0            # 每次扣分量
+    
+    # 自動確認 (Auto-confirm) 參數
+    match_auto_confirm_duration: int = 48 # 超過多少單位自動確認比賽
 
     @property
     def is_production(self) -> bool:
