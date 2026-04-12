@@ -11,7 +11,7 @@ ELO_CONFIG = {
     "K_VETERAN": 16,            # matches >= 30
     "TEAM_WEIGHT_HIGH": 0.6,
     "TEAM_WEIGHT_LOW": 0.4,
-    "DOUBLES_DELTA_DISCOUNT": 0.75,  # multiplier for doubles matches
+    "DOUBLES_DELTA_DISCOUNT": 1.2,  # multiplier for doubles matches
 }
 
 
