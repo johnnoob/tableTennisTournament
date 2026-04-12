@@ -91,7 +91,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         key="auth_token",
         value=access_token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         secure=settings.is_production
     )
@@ -101,7 +101,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         secure=settings.is_production
     )
@@ -159,7 +159,7 @@ async def refresh_token(
             key="auth_token",
             value=new_access_token,
             httponly=True,
-            samesite="lax",
+            samesite="none",
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             secure=settings.is_production
         )
