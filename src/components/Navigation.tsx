@@ -22,6 +22,60 @@ const navItems = [
   { icon: LayoutGrid, label: '積分榜', path: '/leaderboard' },
 ];
 
+interface NavItemConfig {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+}
+
+function MobileBottomNavLink({
+  item,
+  pendingActionCount,
+}: {
+  item: NavItemConfig;
+  pendingActionCount: number;
+}) {
+  return (
+    <NavLink
+      to={item.path}
+      end={item.path === '/'}
+      className={({ isActive }) =>
+        cn(
+          'min-h-12 flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 relative transition-colors',
+          isActive
+            ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/20 dark:text-blue-400 font-black'
+            : 'text-muted-foreground hover:text-foreground font-bold'
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span
+              aria-hidden="true"
+              className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-7 rounded-full bg-sapphire-blue"
+            />
+          )}
+          <div className="relative">
+            <item.icon size={19} aria-hidden="true" className="shrink-0" />
+            {item.path === '/' && pendingActionCount > 0 && (
+              <span
+                aria-label={`${pendingActionCount} 筆待確認賽果`}
+                className="absolute -top-2 -right-3 min-w-4.5 px-1 py-0.5 rounded-full bg-rose-500 text-white text-xs leading-none font-black flex items-center justify-center shadow-xs tabular-nums"
+              >
+                {pendingActionCount > 9 ? '9+' : pendingActionCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] font-sans leading-tight truncate max-w-full">
+            {item.label}
+          </span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export function Navigation() {
   const { data: user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -64,6 +118,24 @@ export function Navigation() {
           </NavLink>
 
           <div className="flex items-center gap-2 shrink-0">
+            {isAdmin && (
+              <NavLink
+                to="/admin"
+                aria-label="管理後台"
+                title="管理後台"
+                className={({ isActive }) =>
+                  cn(
+                    'size-10 rounded-xl border flex items-center justify-center transition-all shrink-0',
+                    isActive
+                      ? 'bg-sapphire-blue/15 text-sapphire-blue border-sapphire-blue/40 dark:bg-sapphire-blue/25 dark:text-blue-300'
+                      : 'border-border bg-secondary/80 hover:bg-secondary text-foreground'
+                  )
+                }
+              >
+                <Shield size={17} aria-hidden="true" />
+              </NavLink>
+            )}
+
             <ThemeToggle variant="icon" />
 
             {user ? (
@@ -99,57 +171,57 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation (5-Slot Center Report CTA) */}
       <nav
         aria-label="主導覽"
         className="fixed bottom-0 inset-x-0 bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-xl border-t border-border z-50 lg:hidden px-2 pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] pt-1.5"
       >
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-1">
-          {displayedNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex-1 min-h-12 flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 relative transition-colors',
-                  isActive
-                    ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/20 dark:text-blue-400 font-black'
-                    : 'text-muted-foreground hover:text-foreground font-bold'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-7 rounded-full bg-sapphire-blue"
-                    />
-                  )}
-                  <div className="relative">
-                    <item.icon size={19} aria-hidden="true" className="shrink-0" />
-                    {item.path === '/' && pendingActionCount > 0 && (
-                      <span
-                        aria-label={`${pendingActionCount} 筆待確認賽果`}
-                        className="absolute -top-2 -right-3 min-w-4.5 px-1 py-0.5 rounded-full bg-rose-500 text-white text-xs leading-none font-black flex items-center justify-center shadow-xs tabular-nums"
-                      >
-                        {pendingActionCount > 9 ? '9+' : pendingActionCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-sans leading-tight truncate max-w-full">
-                    {item.label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
+        <div className="max-w-lg mx-auto grid grid-cols-5 items-end gap-1">
+          <MobileBottomNavLink item={navItems[0]} pendingActionCount={pendingActionCount} />
+          <MobileBottomNavLink item={navItems[1]} pendingActionCount={pendingActionCount} />
+
+          {/* Center Slot: Primary Report Score CTA */}
+          <div className="flex items-center justify-center">
+            {user ? (
+              <ReportScore
+                trigger={
+                  <button
+                    type="button"
+                    aria-label="申報比分"
+                    className="flex flex-col items-center justify-center gap-0.5 w-full pb-1 group"
+                  >
+                    <span className="-mt-4 size-12 rounded-2xl bg-gradient-to-br from-smash-orange to-orange-600 text-white shadow-lg shadow-smash-orange/30 border-2 border-card flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-transform">
+                      <Plus size={22} strokeWidth={2.75} aria-hidden="true" />
+                    </span>
+                    <span className="text-[11px] font-sans font-black text-smash-orange leading-tight">
+                      報分
+                    </span>
+                  </button>
+                }
+              />
+            ) : (
+              <NavLink
+                to="/login"
+                aria-label="登入以申報比分"
+                className="flex flex-col items-center justify-center gap-0.5 w-full pb-1 group"
+              >
+                <span className="-mt-4 size-12 rounded-2xl bg-gradient-to-br from-sapphire-blue to-blue-700 text-white shadow-lg shadow-sapphire-blue/25 border-2 border-card flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-transform">
+                  <Plus size={22} strokeWidth={2.75} aria-hidden="true" />
+                </span>
+                <span className="text-[11px] font-sans font-black text-sapphire-blue leading-tight">
+                  報分
+                </span>
+              </NavLink>
+            )}
+          </div>
+
+          <MobileBottomNavLink item={navItems[2]} pendingActionCount={pendingActionCount} />
+          <MobileBottomNavLink item={navItems[3]} pendingActionCount={pendingActionCount} />
         </div>
       </nav>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 xl:w-80 h-dvh p-6 fixed top-0 left-0 bg-background/95 border-r border-border z-40">
+      {/* Desktop Sidebar (Slim w-64) */}
+      <aside className="hidden lg:flex flex-col w-64 h-dvh p-5 fixed top-0 left-0 bg-background/95 border-r border-border z-40">
         {/* Brand Logo */}
         <NavLink to="/" className="flex items-center gap-3 mb-8 px-2 group">
           <div className="size-11 rounded-2xl bg-primary-navy shadow-md shadow-primary-navy/20 border border-white/10 flex items-center justify-center transform group-hover:rotate-6 transition-transform shrink-0">

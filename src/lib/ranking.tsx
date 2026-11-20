@@ -35,6 +35,57 @@ export const getTierBadge = (mmr: number, iconSize: number = 14) => {
   };
 };
 
+export interface TierProgress {
+  currentTierName: string;
+  nextTierName: string | null;
+  targetMmr: number;
+  remainingMmr: number;
+  progressPercent: number;
+}
+
+export const getTierProgress = (mmr: number): TierProgress => {
+  const roundedMmr = Math.round(mmr);
+
+  if (mmr >= 2000) {
+    return {
+      currentTierName: '菁英 (Elite)',
+      nextTierName: null,
+      targetMmr: 2000,
+      remainingMmr: 0,
+      progressPercent: 100,
+    };
+  }
+
+  let floor = 1000;
+  let targetMmr = 1210;
+  let currentTierName = '銅牌 (Bronze)';
+  let nextTierName = '銀牌 (Silver)';
+
+  if (mmr >= 1260) {
+    floor = 1260;
+    targetMmr = 2000;
+    currentTierName = '金牌 (Gold)';
+    nextTierName = '菁英 (Elite)';
+  } else if (mmr >= 1210) {
+    floor = 1210;
+    targetMmr = 1260;
+    currentTierName = '銀牌 (Silver)';
+    nextTierName = '金牌 (Gold)';
+  }
+
+  const rawPercent = ((mmr - floor) / (targetMmr - floor)) * 100;
+  const progressPercent = Math.min(100, Math.max(8, Math.round(rawPercent)));
+  const remainingMmr = Math.max(0, targetMmr - roundedMmr);
+
+  return {
+    currentTierName,
+    nextTierName,
+    targetMmr,
+    remainingMmr,
+    progressPercent,
+  };
+};
+
 /**
  * 專業排行榜名次計算法 (Standard Competition Ranking)
  * 1. 同積分並列同一名次，下個不同積分跳號 (1, 1, 3, 4)

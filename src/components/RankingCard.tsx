@@ -1,33 +1,39 @@
+import type * as React from 'react';
 import type { DashboardPlayer } from '@/types/api.types';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldCheck, TrendingUp, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { getTierBadge } from '@/lib/ranking';
+import { getTierBadge, getTierProgress } from '@/lib/ranking';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 
 interface RankingCardProps {
   player: DashboardPlayer;
   variant?: 'featured' | 'standard';
+  actionSlot?: React.ReactNode;
 }
 
-export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCardProps>) {
+export function RankingCard({ player, variant = 'standard', actionSlot }: Readonly<RankingCardProps>) {
   const isFeatured = variant === 'featured';
 
   const displayRating = player.global_mmr || player.rating;
   const displayRank = player.rank;
   const displayStats = player.stats;
   const tier = getTierBadge(displayRating);
+  const tierProgress = isFeatured ? getTierProgress(displayRating) : null;
 
   return (
-    <Link to={`?inspect=${player.id}`} className="block group">
-      <Card
-        className={cn(
-          'relative transition-all duration-300 overflow-visible',
-          isFeatured
-            ? 'rounded-2xl md:rounded-3xl arena-hero-surface text-white p-5 sm:p-6 mt-3 border border-slate-700/80 shadow-lg shadow-primary-navy/20'
-            : 'rounded-2xl bg-card group-hover:bg-secondary/60 p-4 mt-3 border border-border shadow-xs'
-        )}
+    <Card
+      className={cn(
+        'group relative transition-all duration-300 overflow-visible',
+        isFeatured
+          ? 'rounded-2xl md:rounded-3xl arena-hero-surface text-white p-5 sm:p-6 mt-3 border border-slate-700/80 shadow-lg shadow-primary-navy/20'
+          : 'rounded-2xl bg-card hover:bg-secondary/60 p-4 mt-3 border border-border shadow-xs'
+      )}
+    >
+      <Link
+        to={`?inspect=${player.id}`}
+        className="block rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue"
       >
         {/* Rank Badge floating top left */}
         <div
@@ -166,7 +172,38 @@ export function RankingCard({ player, variant = 'standard' }: Readonly<RankingCa
             </div>
           </div>
         </CardContent>
-      </Card>
-    </Link>
+      </Link>
+
+      {isFeatured && tierProgress && (
+        <div className="mt-4 pt-4 border-t border-white/10 pl-5 sm:pl-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-bold text-slate-200 truncate">
+                {tierProgress.nextTierName
+                  ? `距離 ${tierProgress.nextTierName} (${tierProgress.targetMmr}) 還差 ${tierProgress.remainingMmr} ELO`
+                  : '已登頂最高段位 · 菁英殿堂'}
+              </span>
+              <span className="font-display font-black text-olympic-gold tabular-nums shrink-0">
+                {tierProgress.progressPercent}%
+              </span>
+            </div>
+            <div
+              className="h-2 w-full rounded-full bg-white/10 overflow-hidden"
+              role="progressbar"
+              aria-label="段位晉級進度"
+              aria-valuenow={tierProgress.progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-sapphire-blue via-blue-400 to-olympic-gold transition-all duration-500"
+                style={{ width: `${tierProgress.progressPercent}%` }}
+              />
+            </div>
+          </div>
+          {actionSlot && <div className="shrink-0">{actionSlot}</div>}
+        </div>
+      )}
+    </Card>
   );
 }

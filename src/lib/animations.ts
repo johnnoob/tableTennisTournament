@@ -9,8 +9,8 @@ export const containerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1, // 子元素間隔 0.1s
-      delayChildren: 0.1,    // 容器延遲 0.1s 開始
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
     },
   },
 };
@@ -20,14 +20,14 @@ export const containerVariants: Variants = {
  * 用於列表中的每一項，實現「由下往上淡入」的高級感
  */
 export const itemVariants: Variants = {
-  hidden: { y: 20, opacity: 0 },
+  hidden: { y: 12, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
     transition: {
       type: 'spring',
-      stiffness: 100,
-      damping: 15,
+      stiffness: 180,
+      damping: 20,
     },
   },
 };
@@ -36,12 +36,12 @@ export const itemVariants: Variants = {
  * 🌟 頁面標題/區塊淡入動畫
  */
 export const fadeInUp: Variants = {
-  hidden: { y: 15, opacity: 0 },
+  hidden: { y: 10, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
     transition: {
-      duration: 0.6,
+      duration: 0.28,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -51,21 +51,20 @@ export const fadeInUp: Variants = {
  * 🌟 頁面切換主動畫 (Page Transition)
  */
 export const pageVariants: Variants = {
-  initial: { opacity: 0, x: 10 },
-  animate: { 
-    opacity: 1, 
-    x: 0,
+  initial: { opacity: 0, y: 6 },
+  animate: {
+    opacity: 1,
+    y: 0,
     transition: {
-      duration: 0.5,
+      duration: 0.18,
       ease: [0.22, 1, 0.36, 1],
-      when: "beforeChildren",
-    }
+    },
   },
-  exit: { 
-    opacity: 0, 
-    x: -10,
+  exit: {
+    opacity: 0,
+    y: -4,
     transition: {
-      duration: 0.3,
-    }
+      duration: 0.12,
+    },
   },
 };

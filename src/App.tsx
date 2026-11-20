@@ -17,9 +17,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/theme-context';
 import { toast, Toaster } from 'sonner';
 
-import { ReportScore } from '@/components/ReportScore';
-import { Button } from './components/ui/button';
-import { Plus } from 'lucide-react';
 import PingPongLoader from '@/components/PingPongLoader';
 
 function AppContent() {
@@ -54,7 +51,7 @@ function AppContent() {
   }, []);
 
   // 🌟 改用 React Query Hook 獲取使用者資料
-  const { data: user, isLoading: loading } = useAuth();
+  const { isLoading: loading } = useAuth();
   const { resolvedTheme } = useTheme();
 
   // ──────────────────────────────────────────────
@@ -83,7 +80,7 @@ function AppContent() {
       <Toaster richColors position="top-center" theme={resolvedTheme} />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full min-w-0 pt-16 lg:pt-0 lg:ml-72 xl:ml-80 transition-all duration-300">
+      <main className="flex-1 w-full min-w-0 pt-16 lg:pt-0 lg:ml-64 transition-all duration-300">
         <div className="min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)] bg-surface-shell lg:my-4 lg:mr-4 lg:rounded-[2rem] lg:shadow-sm dark:lg:shadow-black/40 relative lg:border lg:border-border overflow-x-clip">
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
@@ -107,23 +104,6 @@ function AppContent() {
 
         </div>
       </main>
-      {/* 🌟全域懸浮報分按鈕 (Global Floating Action Button) */}
-      {/* 判斷：必須是登入狀態，且不能在登入頁面，才會顯示 */}
-      {user && !isLoginPage && (
-        <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-50 lg:hidden">
-          <ReportScore
-            trigger={
-              <Button
-                aria-label="申報比分"
-                className="size-14 rounded-full bg-gradient-to-br from-sapphire-blue to-blue-700 hover:opacity-95 shadow-xl shadow-sapphire-blue/35 border-none group transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <Plus aria-hidden="true" className="size-6.5 text-white transform group-hover:rotate-90 transition-transform duration-300" />
-              </Button>
-            }
-          />
-        </div>
-      )}
-
     </div>
   );
 }

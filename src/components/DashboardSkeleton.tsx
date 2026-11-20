@@ -15,17 +15,13 @@ export function DashboardSkeleton() {
         <Skeleton className="hidden lg:block h-12 w-28 rounded-2xl" />
       </header>
 
-      {/* Banner Skeleton */}
-      <div className="arena-surface p-5 md:p-7 h-[140px] flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4 w-full">
-          <Skeleton className="size-12 md:size-14 rounded-2xl shrink-0" />
-          <div className="space-y-2 flex-1">
-            <Skeleton className="h-4 w-20 rounded-md" />
-            <Skeleton className="h-5 w-3/4 rounded-lg" />
-            <Skeleton className="h-4 w-1/2 rounded-md" />
-          </div>
+      {/* Slim Banner Skeleton */}
+      <div className="arena-surface px-4 py-2.5 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <Skeleton className="h-6 w-20 rounded-md shrink-0" />
+          <Skeleton className="h-5 w-48 sm:w-80 rounded-lg" />
         </div>
-        <Skeleton className="h-10 w-full md:w-32 rounded-xl shrink-0" />
+        <Skeleton className="h-8 w-20 rounded-xl shrink-0" />
       </div>
 
       {/* Main Grid Skeleton */}

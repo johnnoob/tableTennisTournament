@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '@/utils/apiClient';
@@ -9,9 +9,29 @@ import { MatchItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
+import { ReportScore } from '@/components/ReportScore';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Skull, Crown, ChevronLeft, ChevronRight, Trophy, Timer, History, ArrowRight, Zap, Megaphone, Users, LogIn } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Search,
+  Skull,
+  Crown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Trophy,
+  Timer,
+  History,
+  ArrowRight,
+  Zap,
+  Megaphone,
+  Users,
+  LogIn,
+  Swords,
+  Handshake,
+  Plus,
+} from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { PendingActions } from '@/components/PendingActions';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,46 +52,43 @@ import type {
 function AnnouncementBanner({ items }: { items: Announcement[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [direction, setDirection] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
-  const current = items[currentIndex];
+  const safeIndex = items.length > 0 ? currentIndex % items.length : 0;
+  const current = items[safeIndex];
 
   useEffect(() => {
-    if (isPaused || items.length <= 1) return;
+    if (isPaused || expanded || items.length <= 1) return;
     const interval = setInterval(() => {
-      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % items.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isPaused, items.length]);
+  }, [isPaused, expanded, items.length]);
 
-  if (!items || items.length === 0) return null;
+  if (!items || items.length === 0 || !current) return null;
 
   const getStyle = (type: string) => {
     switch (type) {
       case 'tournament':
         return {
           icon: Trophy,
-          bg: 'bg-olympic-gold',
           badgeBg: 'bg-amber-500/20',
           badgeText: 'text-amber-300',
-          label: '賽事公告'
+          label: '賽事公告',
         };
       case 'club':
         return {
           icon: Users,
-          bg: 'bg-emerald-500',
           badgeBg: 'bg-emerald-500/20',
           badgeText: 'text-emerald-300',
-          label: '社團公告'
+          label: '社團公告',
         };
       default:
         return {
           icon: Megaphone,
-          bg: 'bg-sapphire-blue',
-          badgeBg: 'bg-sapphire-blue/20',
+          badgeBg: 'bg-sapphire-blue/25',
           badgeText: 'text-blue-300',
-          label: '系統公告'
+          label: '系統公告',
         };
     }
   };
@@ -80,139 +97,130 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
   const Icon = style.icon;
 
   const nextMsg = () => {
-    setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % items.length);
   };
   const prevMsg = () => {
-    setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
   };
 
-  const variants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? 40 : -40,
-      opacity: 0
-    }),
-    center: {
-      x: 0,
-      opacity: 1
-    },
-    exit: (dir: number) => ({
-      x: dir < 0 ? 40 : -40,
-      opacity: 0
-    })
-  };
-
   return (
-    <section aria-label="公告橫幅">
+    <section aria-label="公告快訊">
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="arena-hero-surface rounded-2xl md:rounded-3xl p-5 md:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-lg shadow-primary-navy/15 border border-slate-700/80 relative overflow-hidden group min-h-[140px]"
+        className="arena-hero-surface rounded-2xl px-3.5 sm:px-4 py-2.5 border border-slate-700/80 shadow-md shadow-primary-navy/10 overflow-hidden"
       >
-        <div className="absolute -right-8 -top-8 opacity-[0.04] pointer-events-none group-hover:scale-110 transition-transform duration-700 text-white">
-          <Icon size={220} aria-hidden="true" />
-        </div>
-
-        <div className="absolute top-3.5 right-3.5 z-20 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10 flex items-center gap-1.5">
-          <span className="text-xs font-black tracking-widest text-white/60 tabular-nums">
-            {(currentIndex + 1).toString().padStart(2, '0')}
-          </span>
-          <span className="text-white/30 text-xs">/</span>
-          <span className="text-xs font-black tracking-widest text-white/90 tabular-nums">
-            {items.length.toString().padStart(2, '0')}
-          </span>
-        </div>
-
-        <div className="flex items-start md:items-center gap-4 relative z-10 flex-1 w-full min-w-0 pr-12 md:pr-0">
-          <AnimatePresence initial={false} custom={direction} mode="wait">
-            <motion.div
-              key={current.id + '-icon'}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4 min-h-8">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-expanded={expanded}
+            className="flex items-center gap-2.5 min-w-0 flex-1 text-left group"
+          >
+            <span
               className={cn(
-                'size-12 md:size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md text-white',
-                style.bg
+                'inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0',
+                style.badgeBg,
+                style.badgeText
               )}
             >
-              <Icon size={24} aria-hidden="true" />
-            </motion.div>
-          </AnimatePresence>
+              <Icon size={13} aria-hidden="true" />
+              {style.label}
+            </span>
 
-          <div className="space-y-1 flex-1 min-w-0">
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
+            <AnimatePresence mode="wait">
+              <motion.span
                 key={current.id}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="space-y-1"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.18 }}
+                className="text-xs sm:text-sm font-display font-black text-white truncate group-hover:text-blue-200 transition-colors"
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      'text-xs font-black px-2 py-0.5 rounded-md uppercase tracking-wider',
-                      style.badgeBg,
-                      style.badgeText
-                    )}
-                  >
-                    {style.label}
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-400 text-xs font-bold tabular-nums">
-                    <Timer size={12} aria-hidden="true" /> {formatLocalTime(current.created_at, 'yyyy-MM-dd')}
-                  </span>
-                </div>
-                <h3 className="text-base md:text-lg font-display font-black text-white leading-snug truncate">
-                  {current.title}
-                </h3>
-                <p className="text-xs md:text-sm text-slate-300 font-medium line-clamp-2">
-                  {current.content}
-                </p>
-              </motion.div>
+                {current.title}
+              </motion.span>
             </AnimatePresence>
-          </div>
-        </div>
 
-        <div className="flex items-center justify-between w-full md:w-auto gap-3 relative z-10 shrink-0 border-t border-white/10 md:border-none pt-3.5 md:pt-0">
-          <div className="flex items-center gap-2 w-full md:w-auto">
+            <span className="hidden md:inline-flex items-center gap-1 text-slate-400 text-xs font-bold tabular-nums shrink-0">
+              <Timer size={12} aria-hidden="true" />
+              {formatLocalTime(current.created_at, 'yyyy-MM-dd')}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-1.5 shrink-0">
             {items.length > 1 && (
-              <div className="flex items-center gap-1.5">
+              <>
+                <span className="hidden sm:inline text-xs font-black text-white/60 tabular-nums px-1">
+                  {(safeIndex + 1).toString().padStart(2, '0')}/{items.length.toString().padStart(2, '0')}
+                </span>
                 <button
                   type="button"
                   aria-label="上一則公告"
                   onClick={prevMsg}
-                  className="size-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all border border-white/10"
+                  className="size-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
                 >
-                  <ChevronLeft size={16} strokeWidth={3} aria-hidden="true" />
+                  <ChevronLeft size={14} strokeWidth={2.5} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   aria-label="下一則公告"
                   onClick={nextMsg}
-                  className="size-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all border border-white/10"
+                  className="size-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
                 >
-                  <ChevronRight size={16} strokeWidth={3} aria-hidden="true" />
+                  <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
                 </button>
-              </div>
+              </>
             )}
-            {current.link_url && (
-              <Button
-                onClick={() => window.open(current.link_url, '_blank')}
-                className="flex-1 md:flex-none h-10 md:h-11 px-5 rounded-xl font-black text-xs sm:text-sm tracking-wider transition-all active:scale-95 gap-1.5 border-none bg-white hover:bg-slate-100 text-primary-navy"
-              >
-                {current.link_text || '了解詳情'}
-                <ChevronRight size={16} strokeWidth={3} aria-hidden="true" />
-              </Button>
-            )}
+
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-label={expanded ? '收合公告詳情' : '展開公告詳情'}
+              onClick={() => setExpanded((prev) => !prev)}
+              className="h-8 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center gap-1 text-xs font-bold text-slate-200 transition-colors"
+            >
+              <span className="hidden sm:inline">{expanded ? '收合' : '詳情'}</span>
+              {expanded ? (
+                <ChevronUp size={14} aria-hidden="true" />
+              ) : (
+                <ChevronDown size={14} aria-hidden="true" />
+              )}
+            </button>
           </div>
         </div>
+
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 mt-2.5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed whitespace-pre-line">
+                    {current.content}
+                  </p>
+                  <p className="text-xs text-slate-400 font-bold md:hidden tabular-nums">
+                    發布日期：{formatLocalTime(current.created_at, 'yyyy-MM-dd')}
+                  </p>
+                </div>
+                {current.link_url && (
+                  <Button
+                    type="button"
+                    onClick={() => window.open(current.link_url, '_blank')}
+                    className="h-9 px-4 rounded-xl font-black text-xs tracking-wider bg-white hover:bg-slate-100 text-primary-navy shrink-0 gap-1"
+                  >
+                    {current.link_text || '了解詳情'}
+                    <ChevronRight size={14} strokeWidth={3} aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
@@ -313,6 +321,32 @@ export function Dashboard() {
 
   const ptsChange = myStats?.pts_change;
 
+  const frequentColleagues = useMemo(() => {
+    if (!user) return [];
+    const seen = new Set<string>([String(user.id)]);
+    const list: Array<{ id: string; name: string; avatar?: string | null }> = [];
+
+    const tryAdd = (id?: string, name?: string, avatar?: string | null) => {
+      if (!id || !name) return;
+      const key = String(id);
+      if (seen.has(key) || list.length >= 6) return;
+      seen.add(key);
+      list.push({ id: key, name, avatar });
+    };
+
+    rivals.nemesis.forEach((p) => tryAdd(p.id, p.name, p.avatar));
+    rivals.minions.forEach((p) => tryAdd(p.id, p.name, p.avatar));
+    partners.golden_partners.forEach((p) => tryAdd(p.id, p.name, p.avatar));
+    partners.worst_partners.forEach((p) => tryAdd(p.id, p.name, p.avatar));
+    recentFeed.forEach((match) => {
+      [...(match.player1 || []), ...(match.opponent || [])].forEach((p) =>
+        tryAdd(p.id, p.name, p.avatar)
+      );
+    });
+
+    return list;
+  }, [user, rivals, partners, recentFeed]);
+
   return (
     <AnimatePresence mode="wait">
       {isFirstLoading ? (
@@ -353,6 +387,14 @@ export function Dashboard() {
             />
           </motion.div>
 
+          {/* 1st Priority: Pending Actions */}
+          {isLoggedIn && (
+            <motion.div variants={fadeInUp}>
+              <PendingActions />
+            </motion.div>
+          )}
+
+          {/* 2nd: Slim Announcement Ticker Bar */}
           <motion.div variants={fadeInUp}>
             <AnnouncementBanner items={announcements} />
           </motion.div>
@@ -389,10 +431,7 @@ export function Dashboard() {
 
                 {isLoggedIn && (
                   <>
-                    <motion.div variants={itemVariants}>
-                      <PendingActions />
-                    </motion.div>
-
+                    {/* Hero Personal Card with Tier Progress & Report CTA */}
                     <motion.section variants={itemVariants}>
                       <RankingCard
                         player={{
@@ -413,9 +452,76 @@ export function Dashboard() {
                           },
                         }}
                         variant="featured"
+                        actionSlot={
+                          <ReportScore
+                            trigger={
+                              <Button
+                                type="button"
+                                className="w-full sm:w-auto h-10 px-4 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-xs tracking-wider shadow-md shadow-smash-orange/25 border-none gap-1.5"
+                              >
+                                <Zap size={14} aria-hidden="true" />
+                                立即報分
+                              </Button>
+                            }
+                          />
+                        }
                       />
                     </motion.section>
 
+                    {/* Frequent Opponents Quick-Match Bar */}
+                    <motion.section variants={itemVariants} className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <h2 className="text-sm sm:text-base font-display font-black text-foreground flex items-center gap-2">
+                          <Swords size={16} className="text-smash-orange" aria-hidden="true" />
+                          常打對手 · 一鍵約戰報分
+                        </h2>
+                        <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
+                          點選頭像直接預填對手
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                        {frequentColleagues.map((colleague) => (
+                          <ReportScore
+                            key={colleague.id}
+                            initialOpponentId={colleague.id}
+                            trigger={
+                              <button
+                                type="button"
+                                className="shrink-0 flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-2xl bg-card hover:bg-secondary border border-border hover:border-sapphire-blue/40 shadow-xs transition-all group"
+                              >
+                                <PlayerAvatar
+                                  src={colleague.avatar}
+                                  name={colleague.name}
+                                  className="size-9 rounded-xl border border-border text-xs group-hover:scale-105 transition-transform"
+                                />
+                                <div className="text-left">
+                                  <p className="text-xs font-black text-foreground group-hover:text-sapphire-blue transition-colors max-w-[84px] truncate">
+                                    {colleague.name}
+                                  </p>
+                                  <p className="text-[11px] font-bold text-smash-orange leading-tight">
+                                    ⚡ 報分
+                                  </p>
+                                </div>
+                              </button>
+                            }
+                          />
+                        ))}
+
+                        <ReportScore
+                          trigger={
+                            <button
+                              type="button"
+                              className="shrink-0 h-12 px-3.5 rounded-2xl bg-surface-subtle hover:bg-secondary border border-dashed border-border text-muted-foreground hover:text-foreground text-xs font-black flex items-center gap-1.5 transition-colors"
+                            >
+                              <Plus size={14} aria-hidden="true" />
+                              自選對手
+                            </button>
+                          }
+                        />
+                      </div>
+                    </motion.section>
+
+                    {/* Rating Progression Chart */}
                     <motion.section
                       variants={itemVariants}
                       className="arena-surface p-5 sm:p-6 md:p-8 overflow-hidden min-h-[340px]"
@@ -459,6 +565,120 @@ export function Dashboard() {
                         data={myStats?.chart_data || []}
                       />
                     </motion.section>
+
+                    {/* Tabbed Bento Rivalry & Synergy Section */}
+                    <motion.section variants={itemVariants} className="space-y-4">
+                      <Tabs defaultValue="rivals" className="w-full space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+                          <div>
+                            <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
+                              對戰情報室
+                            </h2>
+                            <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
+                              Rivalry &amp; Partner Synergy
+                            </p>
+                          </div>
+                          <TabsList className="grid w-full sm:w-auto grid-cols-2 h-10 bg-secondary border border-border rounded-xl p-1">
+                            <TabsTrigger value="rivals" className="text-xs font-black rounded-lg px-3.5 gap-1.5">
+                              <Swords size={13} aria-hidden="true" />
+                              宿敵與提款機
+                            </TabsTrigger>
+                            <TabsTrigger value="partners" className="text-xs font-black rounded-lg px-3.5 gap-1.5">
+                              <Handshake size={13} aria-hidden="true" />
+                              雙打搭檔情報
+                            </TabsTrigger>
+                          </TabsList>
+                        </div>
+
+                        <TabsContent value="rivals" className="mt-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                          <div className="rounded-2xl md:rounded-3xl bg-rose-50/50 dark:bg-rose-950/25 p-5 sm:p-6 border border-rose-200/70 dark:border-rose-500/30 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-10 rounded-xl bg-rose-600 flex items-center justify-center shadow-md shadow-rose-600/20">
+                                <Skull size={20} className="text-white" aria-hidden="true" />
+                              </div>
+                              <div>
+                                <h3 className="text-base sm:text-lg font-display font-black text-foreground">宿命天敵</h3>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nemesis</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2.5">
+                              {rivals.nemesis.length > 0 ? (
+                                rivals.nemesis.map((item) => (
+                                  <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無天敵資料</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl md:rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/25 p-5 sm:p-6 border border-emerald-200/70 dark:border-emerald-500/30 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-600/20">
+                                <Crown size={20} className="text-white" aria-hidden="true" />
+                              </div>
+                              <div>
+                                <h3 className="text-base sm:text-lg font-display font-black text-foreground">積分提款機</h3>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minions</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2.5">
+                              {rivals.minions.length > 0 ? (
+                                rivals.minions.map((item) => (
+                                  <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無提款機資料</p>
+                              )}
+                            </div>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="partners" className="mt-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                          <div className="rounded-2xl md:rounded-3xl bg-amber-50/50 dark:bg-amber-950/25 p-5 sm:p-6 border border-amber-200/70 dark:border-amber-500/30 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-10 rounded-xl bg-olympic-gold flex items-center justify-center shadow-md shadow-amber-500/20">
+                                <Trophy size={20} className="text-white" aria-hidden="true" />
+                              </div>
+                              <div>
+                                <h3 className="text-base sm:text-lg font-display font-black text-foreground">黃金搭檔</h3>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Best Partners</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2.5">
+                              {partners.golden_partners.length > 0 ? (
+                                partners.golden_partners.map((item) => (
+                                  <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無黃金搭檔資料</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl md:rounded-3xl bg-surface-subtle/80 p-5 sm:p-6 border border-border space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-10 rounded-xl bg-slate-600 flex items-center justify-center shadow-md shadow-slate-600/20">
+                                <Zap size={20} className="text-white" aria-hidden="true" />
+                              </div>
+                              <div>
+                                <h3 className="text-base sm:text-lg font-display font-black text-foreground">磨合搭檔</h3>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Toughest Pairings</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2.5">
+                              {partners.worst_partners.length > 0 ? (
+                                partners.worst_partners.map((item) => (
+                                  <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無相關資料</p>
+                              )}
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </motion.section>
                   </>
                 )}
 
@@ -497,98 +717,6 @@ export function Dashboard() {
                     )}
                   </div>
                 </motion.section>
-
-                {isLoggedIn && (
-                  <>
-                    <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      <div className="rounded-2xl md:rounded-3xl bg-rose-50/50 dark:bg-rose-950/25 p-5 sm:p-6 border border-rose-200/70 dark:border-rose-500/30 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-rose-600 flex items-center justify-center shadow-md shadow-rose-600/20">
-                            <Skull size={20} className="text-white" aria-hidden="true" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">宿命天敵</h3>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nemesis</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2.5">
-                          {rivals.nemesis.length > 0 ? (
-                            rivals.nemesis.map((item) => (
-                              <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無天敵資料</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl md:rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/25 p-5 sm:p-6 border border-emerald-200/70 dark:border-emerald-500/30 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-600/20">
-                            <Crown size={20} className="text-white" aria-hidden="true" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">積分提款機</h3>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minions</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2.5">
-                          {rivals.minions.length > 0 ? (
-                            rivals.minions.map((item) => (
-                              <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無提款機資料</p>
-                          )}
-                        </div>
-                      </div>
-                    </motion.section>
-
-                    <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      <div className="rounded-2xl md:rounded-3xl bg-amber-50/50 dark:bg-amber-950/25 p-5 sm:p-6 border border-amber-200/70 dark:border-amber-500/30 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-olympic-gold flex items-center justify-center shadow-md shadow-amber-500/20">
-                            <Trophy size={20} className="text-white" aria-hidden="true" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">黃金搭檔</h3>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Best Partners</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2.5">
-                          {partners.golden_partners.length > 0 ? (
-                            partners.golden_partners.map((item) => (
-                              <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無黃金搭檔資料</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl md:rounded-3xl bg-surface-subtle/80 p-5 sm:p-6 border border-border space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-slate-600 flex items-center justify-center shadow-md shadow-slate-600/20">
-                            <Zap size={20} className="text-white" aria-hidden="true" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">磨合搭檔</h3>
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Toughest Pairings</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2.5">
-                          {partners.worst_partners.length > 0 ? (
-                            partners.worst_partners.map((item) => (
-                              <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無相關資料</p>
-                          )}
-                        </div>
-                      </div>
-                    </motion.section>
-                  </>
-                )}
               </motion.div>
             </div>
 
