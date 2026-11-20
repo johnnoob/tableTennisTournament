@@ -98,7 +98,7 @@ const PingPongLoader = () => {
 
         {/* Shadow on the "table" */}
         <motion.div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1.5 rounded-full bg-slate-400/30"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-1.5 rounded-full bg-slate-400/30 dark:bg-black/50"
           animate={{
             scale: [1, 0.5, 1, 0.5, 1],
             opacity: [0.25, 0.10, 0.25, 0.10, 0.25],
@@ -112,12 +112,12 @@ const PingPongLoader = () => {
         />
 
         {/* Table net — dashed center line */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-px h-3 border-l border-dashed border-slate-300" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-px h-3 border-l border-dashed border-border" />
       </div>
 
       {/* ── Label ── */}
       <motion.p 
-        className="font-display font-bold text-primary-navy/70 tracking-[0.25em] uppercase text-xs"
+        className="font-display font-bold text-muted-foreground tracking-[0.25em] uppercase text-xs"
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
       >

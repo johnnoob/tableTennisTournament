@@ -49,13 +49,13 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
     switch (status) {
       case 'completed':
       case 'confirmed':
-        return { label: '已確認', color: 'bg-slate-100 text-slate-600 border-slate-200/80' };
+        return { label: '已確認', color: 'bg-secondary text-muted-foreground border-border' };
       case 'pending':
-        return { label: '待確認', color: 'bg-amber-50 text-amber-700 border-amber-200/80' };
+        return { label: '待確認', color: 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' };
       case 'disputed':
-        return { label: '申訴中', color: 'bg-rose-50 text-rose-600 border-rose-200/80' };
+        return { label: '申訴中', color: 'bg-rose-50 text-rose-600 border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/25' };
       default:
-        return { label: '未知', color: 'bg-slate-100 text-slate-500 border-slate-200/80' };
+        return { label: '未知', color: 'bg-secondary text-muted-foreground border-border' };
     }
   };
 
@@ -90,11 +90,11 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
     <Card className="arena-card p-4 sm:p-5 md:p-6 hover:shadow-md transition-all">
       <CardContent className="p-0 space-y-4">
         {/* Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-border">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
             <span className="text-sapphire-blue">{match?.tournament || '例行積分賽'}</span>
-            <span className="text-slate-300" aria-hidden="true">•</span>
-            <span className="inline-flex items-center gap-1.5 text-slate-400 font-bold tabular-nums">
+            <span className="text-muted-foreground/40" aria-hidden="true">•</span>
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground font-bold tabular-nums">
               <CalendarDays size={12} aria-hidden="true" />
               {displayDate}
             </span>
@@ -110,7 +110,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                 trigger={
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 text-xs font-black transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white text-xs font-black transition-colors"
                   >
                     <RotateCcw size={11} aria-hidden="true" />
                     再戰
@@ -143,17 +143,17 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                   key={p.id || i}
                   src={p.avatar}
                   name={p.name}
-                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-white shadow-xs ring-1 ring-slate-200/70 text-xs sm:text-sm group-hover/p1:ring-sapphire-blue transition-all"
+                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-card shadow-xs ring-1 ring-border text-xs sm:text-sm group-hover/p1:ring-sapphire-blue transition-all"
                 />
               ))}
-              {player1.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-slate-100 animate-pulse" />}
+              {player1.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-secondary animate-pulse" />}
             </button>
             <div className="flex flex-col min-w-0">
               {player1.length === 1 && player1[0]?.id ? (
                 <button
                   type="button"
                   onClick={() => openInspect(player1[0].id)}
-                  className="text-left font-display font-black text-primary-navy hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors"
+                  className="text-left font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors"
                 >
                   {player1[0].name}
                 </button>
@@ -162,31 +162,31 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                   {player1.length > 0 ? (
                     player1.map((p, idx) => (
                       <span key={p.id || idx} className="inline-flex items-center">
-                        {idx > 0 && <span className="text-slate-300 mx-1">/</span>}
+                        {idx > 0 && <span className="text-muted-foreground/50 mx-1">/</span>}
                         <button
                           type="button"
                           onClick={() => openInspect(p.id)}
                           disabled={!p.id}
-                          className="font-display font-black text-primary-navy hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
+                          className="font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
                         >
                           {p.name?.split(' ')[0] || '?'}
                         </button>
                       </span>
                     ))
                   ) : (
-                    <span className="font-display font-black text-slate-400 text-xs">載入中...</span>
+                    <span className="font-display font-black text-muted-foreground text-xs">載入中...</span>
                   )}
                 </div>
               )}
               <div className="flex items-center gap-1 mt-0.5">
-                <span className={cn('text-xs font-black font-display tabular-nums', p1Change >= 0 ? 'text-emerald-600' : 'text-rose-500')}>
+                <span className={cn('text-xs font-black font-display tabular-nums', p1Change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400')}>
                   {p1Change > 0 ? `+${p1Change}` : p1Change} 分
                 </span>
                 <TrendingUp
                   size={11}
                   strokeWidth={3}
                   aria-hidden="true"
-                  className={cn(p1Change >= 0 ? 'text-emerald-500' : 'text-rose-400 rotate-180')}
+                  className={cn(p1Change >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-400 rotate-180')}
                 />
               </div>
             </div>
@@ -195,15 +195,15 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
           {/* Central Score */}
           <div className="flex flex-col items-center justify-center px-1.5 sm:px-3 shrink-0">
             <div className="flex items-center gap-1 sm:gap-2 tabular-nums">
-              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-primary-navy tracking-tight leading-none">
+              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-foreground tracking-tight leading-none">
                 {score[0]}
               </span>
-              <span className="text-slate-300 text-sm sm:text-xl font-black">:</span>
-              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-primary-navy tracking-tight leading-none">
+              <span className="text-muted-foreground/45 text-sm sm:text-xl font-black">:</span>
+              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-foreground tracking-tight leading-none">
                 {score[1]}
               </span>
             </div>
-            <span className="mt-1 px-2 py-0.5 bg-slate-100 rounded-md text-xs font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
+            <span className="mt-1 px-2 py-0.5 bg-secondary rounded-md text-xs font-black text-muted-foreground uppercase tracking-wider whitespace-nowrap">
               {match?.type === 'doubles' ? '2V2' : score[0] + score[1] >= 5 ? 'BO5' : 'BO3'}
             </span>
           </div>
@@ -215,7 +215,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                 <button
                   type="button"
                   onClick={() => openInspect(opponent[0].id)}
-                  className="text-right font-display font-black text-primary-navy hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors max-w-full"
+                  className="text-right font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors max-w-full"
                 >
                   {opponent[0].name}
                 </button>
@@ -224,31 +224,31 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                   {opponent.length > 0 ? (
                     opponent.map((p, idx) => (
                       <span key={p.id || idx} className="inline-flex items-center">
-                        {idx > 0 && <span className="text-slate-300 mx-1">/</span>}
+                        {idx > 0 && <span className="text-muted-foreground/50 mx-1">/</span>}
                         <button
                           type="button"
                           onClick={() => openInspect(p.id)}
                           disabled={!p.id}
-                          className="font-display font-black text-primary-navy hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
+                          className="font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
                         >
                           {p.name?.split(' ')[0] || '?'}
                         </button>
                       </span>
                     ))
                   ) : (
-                    <span className="font-display font-black text-slate-400 text-xs">載入中...</span>
+                    <span className="font-display font-black text-muted-foreground text-xs">載入中...</span>
                   )}
                 </div>
               )}
               <div className="flex items-center justify-end gap-1 mt-0.5">
-                <span className={cn('text-xs font-black font-display tabular-nums', p2Change >= 0 ? 'text-emerald-600' : 'text-rose-500')}>
+                <span className={cn('text-xs font-black font-display tabular-nums', p2Change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400')}>
                   {p2Change > 0 ? `+${p2Change}` : p2Change} 分
                 </span>
                 <TrendingDown
                   size={11}
                   strokeWidth={3}
                   aria-hidden="true"
-                  className={cn(p2Change <= 0 ? 'text-rose-400' : 'text-emerald-500 rotate-180')}
+                  className={cn(p2Change <= 0 ? 'text-rose-400' : 'text-emerald-500 dark:text-emerald-400 rotate-180')}
                 />
               </div>
             </div>
@@ -264,10 +264,10 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
                   key={p.id || i}
                   src={p.avatar}
                   name={p.name}
-                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-white shadow-xs ring-1 ring-slate-200/70 text-xs sm:text-sm group-hover/p2:ring-sapphire-blue transition-all"
+                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-card shadow-xs ring-1 ring-border text-xs sm:text-sm group-hover/p2:ring-sapphire-blue transition-all"
                 />
               ))}
-              {opponent.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-slate-100 animate-pulse" />}
+              {opponent.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-secondary animate-pulse" />}
             </button>
           </div>
         </div>
@@ -279,7 +279,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
               type="button"
               variant="outline"
               onClick={() => toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理')}
-              className="w-full max-w-sm bg-rose-50/40 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 rounded-xl h-11 font-sans font-black text-xs uppercase tracking-wider gap-2 shadow-none"
+              className="w-full max-w-sm bg-rose-50/40 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-200 rounded-xl h-11 font-sans font-black text-xs uppercase tracking-wider gap-2 shadow-none"
             >
               <Scale size={15} aria-hidden="true" />
               檢視申訴細節

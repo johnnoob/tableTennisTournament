@@ -91,8 +91,8 @@ export function GlobalPlayerDrawer() {
     if (isLoading || !player) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-10 space-y-4">
-          <div className="size-10 border-4 border-slate-200 border-t-sapphire-blue rounded-full animate-spin" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">讀取玩家檔案中...</p>
+          <div className="size-10 border-4 border-border border-t-sapphire-blue rounded-full animate-spin" />
+          <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">讀取玩家檔案中...</p>
         </div>
       );
     }
@@ -102,7 +102,7 @@ export function GlobalPlayerDrawer() {
 
     return (
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="bg-primary-navy p-5 md:p-6 text-white relative shrink-0">
+        <div className="arena-hero-surface p-5 md:p-6 text-white relative shrink-0">
           {isDesktop && (
             <button
               type="button"
@@ -144,29 +144,29 @@ export function GlobalPlayerDrawer() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y p-5 md:p-6 space-y-6 bg-slate-50/70">
+        <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y p-5 md:p-6 space-y-6 bg-surface-shell">
           {/* 基本數據 */}
           <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <div className="p-3 rounded-2xl bg-white border border-slate-200/80 flex flex-col items-center text-center shadow-xs">
-              <TrendingUp size={16} className="text-emerald-500 mb-1" aria-hidden="true" />
-              <span className="text-lg md:text-xl font-display font-black text-primary-navy tabular-nums">
+            <div className="p-3 rounded-2xl bg-card border border-border flex flex-col items-center text-center shadow-xs">
+              <TrendingUp size={16} className="text-emerald-500 dark:text-emerald-400 mb-1" aria-hidden="true" />
+              <span className="text-lg md:text-xl font-display font-black text-foreground tabular-nums">
                 {player.stats.winRate}%
               </span>
-              <span className="text-xs font-black text-slate-400 uppercase tracking-wider mt-0.5">生涯勝率</span>
+              <span className="text-xs font-black text-muted-foreground uppercase tracking-wider mt-0.5">生涯勝率</span>
             </div>
-            <div className="p-3 rounded-2xl bg-white border border-slate-200/80 flex flex-col items-center text-center shadow-xs">
+            <div className="p-3 rounded-2xl bg-card border border-border flex flex-col items-center text-center shadow-xs">
               <Swords size={16} className="text-sapphire-blue mb-1" aria-hidden="true" />
-              <span className="text-lg md:text-xl font-display font-black text-primary-navy tabular-nums">
+              <span className="text-lg md:text-xl font-display font-black text-foreground tabular-nums">
                 {player.stats.wins + player.stats.losses}
               </span>
-              <span className="text-xs font-black text-slate-400 uppercase tracking-wider mt-0.5">總出賽數</span>
+              <span className="text-xs font-black text-muted-foreground uppercase tracking-wider mt-0.5">總出賽數</span>
             </div>
-            <div className="p-3 rounded-2xl bg-white border border-slate-200/80 flex flex-col items-center text-center shadow-xs">
+            <div className="p-3 rounded-2xl bg-card border border-border flex flex-col items-center text-center shadow-xs">
               <Zap size={16} className="text-olympic-gold mb-1" aria-hidden="true" />
-              <span className="text-lg md:text-xl font-display font-black text-primary-navy tabular-nums">
+              <span className="text-lg md:text-xl font-display font-black text-foreground tabular-nums">
                 {Math.round(player.rating)}
               </span>
-              <span className="text-xs font-black text-slate-400 uppercase tracking-wider mt-0.5">目前積分</span>
+              <span className="text-xs font-black text-muted-foreground uppercase tracking-wider mt-0.5">目前積分</span>
             </div>
           </div>
 
@@ -182,17 +182,17 @@ export function GlobalPlayerDrawer() {
 
           {/* 戰術裝備配置 */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider ml-1">戰術裝備配置</h4>
+            <h4 className="text-xs font-black text-muted-foreground uppercase tracking-wider ml-1">戰術裝備配置</h4>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">正手 (Forehand)</p>
-                <p className="text-xs md:text-sm font-black text-primary-navy truncate">
+              <div className="bg-card border border-border rounded-2xl p-3.5 shadow-xs">
+                <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">正手 (Forehand)</p>
+                <p className="text-xs md:text-sm font-black text-foreground truncate">
                   {player.racketConfig.forehand}
                 </p>
               </div>
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">反手 (Backhand)</p>
-                <p className="text-xs md:text-sm font-black text-primary-navy truncate">
+              <div className="bg-card border border-border rounded-2xl p-3.5 shadow-xs">
+                <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">反手 (Backhand)</p>
+                <p className="text-xs md:text-sm font-black text-foreground truncate">
                   {player.racketConfig.backhand}
                 </p>
               </div>
@@ -203,23 +203,23 @@ export function GlobalPlayerDrawer() {
           <div className="space-y-4">
             {player.goldenPartner && player.goldenPartner.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-black text-amber-600 uppercase tracking-wider ml-1">最佳雙打搭檔</p>
+                <p className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider ml-1">最佳雙打搭檔</p>
                 <div className="grid gap-2">
                   {player.goldenPartner.map((p) => (
                     <div
                       key={p.id}
-                      className="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-3 flex items-center justify-between"
+                      className="bg-amber-50/70 dark:bg-amber-500/12 border border-amber-200/70 dark:border-amber-500/30 rounded-2xl p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <PlayerAvatar
                           src={p.avatar}
                           name={p.name}
-                          className="size-9 rounded-xl border border-amber-200 text-xs"
+                          className="size-9 rounded-xl border border-amber-200 dark:border-amber-500/30 text-xs"
                         />
-                        <span className="text-sm font-black text-primary-navy truncate">{p.name}</span>
+                        <span className="text-sm font-black text-foreground truncate">{p.name}</span>
                       </div>
-                      <span className="text-base font-display font-black text-amber-600 tabular-nums shrink-0">
-                        {p.winRate}% <span className="text-xs font-sans text-amber-500">勝率</span>
+                      <span className="text-base font-display font-black text-amber-600 dark:text-amber-400 tabular-nums shrink-0">
+                        {p.winRate}% <span className="text-xs font-sans text-amber-500 dark:text-amber-300">勝率</span>
                       </span>
                     </div>
                   ))}
@@ -229,23 +229,23 @@ export function GlobalPlayerDrawer() {
 
             {player.nemesis && player.nemesis.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-black text-rose-600 uppercase tracking-wider ml-1">宿命天敵</p>
+                <p className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider ml-1">宿命天敵</p>
                 <div className="grid gap-2">
                   {player.nemesis.map((p) => (
                     <div
                       key={p.id}
-                      className="bg-rose-50/70 border border-rose-200/70 rounded-2xl p-3 flex items-center justify-between"
+                      className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/70 dark:border-rose-500/30 rounded-2xl p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <PlayerAvatar
                           src={p.avatar}
                           name={p.name}
-                          className="size-9 rounded-xl border border-rose-200 text-xs"
+                          className="size-9 rounded-xl border border-rose-200 dark:border-rose-500/30 text-xs"
                         />
-                        <span className="text-sm font-black text-primary-navy truncate">{p.name}</span>
+                        <span className="text-sm font-black text-foreground truncate">{p.name}</span>
                       </div>
-                      <span className="text-base font-display font-black text-rose-600 tabular-nums shrink-0">
-                        {p.winRate}% <span className="text-xs font-sans text-rose-400">勝率</span>
+                      <span className="text-base font-display font-black text-rose-600 dark:text-rose-400 tabular-nums shrink-0">
+                        {p.winRate}% <span className="text-xs font-sans text-rose-400 dark:text-rose-300">勝率</span>
                       </span>
                     </div>
                   ))}
@@ -256,15 +256,15 @@ export function GlobalPlayerDrawer() {
 
           {/* 實力波動趨勢 */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider ml-1">近期實力波動趨勢</h4>
-            <div className="w-full bg-white rounded-2xl p-3 md:p-4 border border-slate-200/80 shadow-xs">
+            <h4 className="text-xs font-black text-muted-foreground uppercase tracking-wider ml-1">近期實力波動趨勢</h4>
+            <div className="w-full bg-card rounded-2xl p-3 md:p-4 border border-border shadow-xs">
               <StatsChart data={player.chart_data} showCard={false} showHeader={false} height={isDesktop ? 180 : 150} />
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 md:p-5 pb-[max(1rem,env(safe-area-inset-bottom,0px))] border-t border-slate-200/70 bg-white shrink-0 flex items-center gap-2.5">
+        <div className="p-4 md:p-5 pb-[max(1rem,env(safe-area-inset-bottom,0px))] border-t border-border bg-popover shrink-0 flex items-center gap-2.5">
           {canQuickReport && (
             <Button
               type="button"
@@ -282,8 +282,8 @@ export function GlobalPlayerDrawer() {
             className={cn(
               'h-11 rounded-xl font-black text-sm',
               canQuickReport
-                ? 'px-5 border-slate-200 text-slate-600 hover:bg-slate-50'
-                : 'w-full bg-primary-navy hover:bg-slate-800 text-white'
+                ? 'px-5 border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
+                : 'w-full bg-primary hover:opacity-90 text-primary-foreground'
             )}
           >
             關閉檔案
@@ -298,13 +298,13 @@ export function GlobalPlayerDrawer() {
       {inspectingId && (
         isDesktop ? (
           <Sheet open={!!inspectingId} onOpenChange={(open) => !open && closeDrawer()}>
-            <SheetContent className="w-[92vw] sm:max-w-md p-0 border-none bg-white lg:rounded-l-[2rem] overflow-hidden shadow-2xl flex flex-col">
+            <SheetContent className="w-[92vw] sm:max-w-md p-0 border-none bg-popover lg:rounded-l-[2rem] overflow-hidden shadow-2xl flex flex-col">
               {renderDrawerBody()}
             </SheetContent>
           </Sheet>
         ) : (
           <Drawer open={!!inspectingId} onOpenChange={(open) => !open && closeDrawer()}>
-            <DrawerContent className="p-0 border-none bg-white rounded-t-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]">
+            <DrawerContent className="p-0 border-none bg-popover rounded-t-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]">
               {renderDrawerBody()}
             </DrawerContent>
           </Drawer>
@@ -338,10 +338,10 @@ function H2HComparisonCard({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-3 animate-pulse">
-        <div className="h-4 w-36 bg-slate-100 rounded" />
-        <div className="h-10 bg-slate-100 rounded-xl" />
-        <div className="h-16 bg-slate-100 rounded-xl" />
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-3 animate-pulse">
+        <div className="h-4 w-36 bg-secondary rounded" />
+        <div className="h-10 bg-secondary rounded-xl" />
+        <div className="h-16 bg-secondary rounded-xl" />
       </div>
     );
   }
@@ -369,18 +369,18 @@ function H2HComparisonCard({
   const isPartnerTab = activeTab === 'doubles_with';
 
   return (
-    <section aria-label="交手紀錄對比" className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-3.5 shadow-xs">
+    <section aria-label="交手紀錄對比" className="bg-card border border-border rounded-2xl p-4 space-y-3.5 shadow-xs">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-xs font-black text-primary-navy tracking-wide">
+        <h4 className="text-xs font-black text-foreground tracking-wide">
           你與 {targetName} 的對戰紀錄
         </h4>
-        <span className="text-xs font-bold text-slate-400 tabular-nums">
+        <span className="text-xs font-bold text-muted-foreground tabular-nums">
           共 {data.total_matches} 場
         </span>
       </div>
 
       {/* 單打對決 / 雙打對陣 / 同隊搭檔 三分頁 */}
-      <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/70">
+      <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-secondary border border-border">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -393,15 +393,15 @@ function H2HComparisonCard({
               className={cn(
                 'py-1.5 px-1 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 whitespace-nowrap',
                 isActive
-                  ? 'bg-white text-primary-navy shadow-xs'
-                  : 'text-slate-500 hover:text-primary-navy'
+                  ? 'bg-card text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <span>{tab.label}</span>
               <span
                 className={cn(
                   'tabular-nums text-xs',
-                  isActive ? 'text-sapphire-blue' : 'text-slate-400'
+                  isActive ? 'text-sapphire-blue' : 'text-muted-foreground/70'
                 )}
               >
                 {tab.count}
@@ -412,8 +412,8 @@ function H2HComparisonCard({
       </div>
 
       {bucket.matches === 0 ? (
-        <div className="py-5 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200">
-          <p className="text-xs font-bold text-slate-400">
+        <div className="py-5 text-center rounded-xl bg-surface-subtle border border-dashed border-border">
+          <p className="text-xs font-bold text-muted-foreground">
             {data.total_matches === 0
               ? '尚未同場交手過，點下方立即約戰！'
               : isPartnerTab
@@ -424,29 +424,29 @@ function H2HComparisonCard({
       ) : (
         <div className="space-y-3">
           {/* 勝敗與淨積分條 */}
-          <div className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-3 space-y-2">
+          <div className="bg-surface-subtle/80 border border-border rounded-xl p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-baseline gap-2">
-                <span className="text-lg font-display font-black text-primary-navy tabular-nums">
-                  <span className="text-emerald-600">{bucket.wins}W</span>
-                  <span className="text-slate-300 mx-1">-</span>
-                  <span className="text-rose-500">{bucket.losses}L</span>
+                <span className="text-lg font-display font-black text-foreground tabular-nums">
+                  <span className="text-emerald-600 dark:text-emerald-400">{bucket.wins}W</span>
+                  <span className="text-muted-foreground/45 mx-1">-</span>
+                  <span className="text-rose-500 dark:text-rose-400">{bucket.losses}L</span>
                 </span>
-                <span className="text-xs font-black text-slate-500 tabular-nums">
+                <span className="text-xs font-black text-muted-foreground tabular-nums">
                   {isPartnerTab ? '搭檔勝率' : '對戰勝率'} {bucket.win_rate}%
                 </span>
               </div>
               <span
                 className={cn(
                   'text-sm font-display font-black tabular-nums',
-                  bucket.net_mmr >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                  bucket.net_mmr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                 )}
               >
                 {bucket.net_mmr > 0 ? `+${bucket.net_mmr}` : bucket.net_mmr} ELO
               </span>
             </div>
 
-            <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden flex">
+            <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex">
               <div
                 className="h-full bg-emerald-500 transition-all duration-500"
                 style={{ width: `${bucket.win_rate}%` }}
@@ -464,28 +464,30 @@ function H2HComparisonCard({
               {bucket.recent.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50/60 border border-slate-100 text-xs"
+                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-surface-subtle/60 border border-border text-xs"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className={cn(
                         'px-1.5 py-0.5 rounded-md font-black shrink-0',
-                        m.is_winner ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        m.is_winner
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
+                          : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
                       )}
                     >
                       {m.is_winner ? '勝' : '敗'}
                     </span>
-                    <span className="font-bold text-slate-400 tabular-nums">
+                    <span className="font-bold text-muted-foreground tabular-nums">
                       {formatLocalTime(m.date, 'MM/dd')}
                     </span>
                   </div>
-                  <span className="font-display font-black text-sm text-primary-navy tabular-nums">
+                  <span className="font-display font-black text-sm text-foreground tabular-nums">
                     {m.my_score} : {m.opp_score}
                   </span>
                   <span
                     className={cn(
                       'font-display font-black tabular-nums w-14 text-right',
-                      m.mmr_delta >= 0 ? 'text-emerald-600' : 'text-rose-500'
+                      m.mmr_delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
                     )}
                   >
                     {m.mmr_delta > 0 ? `+${m.mmr_delta}` : m.mmr_delta}

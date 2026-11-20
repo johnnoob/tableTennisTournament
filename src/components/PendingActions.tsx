@@ -88,18 +88,18 @@ function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
   const hasMore = matches.length > 3;
 
   return (
-    <div className="bg-rose-50/50 border border-rose-200/80 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
-      <div className="bg-rose-100/60 px-5 py-3.5 flex items-center justify-between">
+    <div className="bg-rose-50/50 dark:bg-rose-950/25 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
+      <div className="bg-rose-100/60 dark:bg-rose-900/30 px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <ShieldAlert className="text-rose-600 relative z-10" size={22} aria-hidden="true" />
+            <ShieldAlert className="text-rose-600 dark:text-rose-400 relative z-10" size={22} aria-hidden="true" />
             <div className="absolute inset-0 bg-rose-400 blur-md opacity-25 animate-pulse rounded-full" />
           </div>
           <div>
-            <h3 className="font-display font-black text-rose-600 text-base md:text-lg leading-tight tracking-wide">
+            <h3 className="font-display font-black text-rose-600 dark:text-rose-400 text-base md:text-lg leading-tight tracking-wide">
               待您確認賽果 ({matches.length})
             </h3>
-            <span className="text-xs font-bold text-rose-500/80 tracking-wider uppercase block">
+            <span className="text-xs font-bold text-rose-500/80 dark:text-rose-300/80 tracking-wider uppercase block">
               Action Required
             </span>
           </div>
@@ -116,7 +116,7 @@ function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
             type="button"
             variant="ghost"
             onClick={() => setExpanded(!expanded)}
-            className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50/60 text-xs font-black uppercase tracking-widest mt-2"
+            className="w-full text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-500/15 text-xs font-black uppercase tracking-widest mt-2"
           >
             {expanded ? '折疊顯示' : `查看其餘 ${matches.length - 3} 筆`}
           </Button>
@@ -202,7 +202,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
   };
 
   const matchupSummaryCard = (
-    <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4 relative overflow-hidden">
+    <div className="bg-surface-subtle/80 border border-border rounded-2xl p-4 sm:p-5 space-y-4 relative overflow-hidden">
       <div className="absolute top-2 right-2 opacity-[0.04] pointer-events-none" aria-hidden="true">
         <Trophy size={72} />
       </div>
@@ -218,19 +218,19 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 name={p.name}
                 className={cn(
                   'size-12 rounded-xl border-2 text-sm',
-                  isLoss ? 'border-emerald-500' : 'border-white'
+                  isLoss ? 'border-emerald-500' : 'border-card'
                 )}
               />
             ))}
           </div>
-          <span className="text-xs font-black text-primary-navy truncate max-w-full text-center">
+          <span className="text-xs font-black text-foreground truncate max-w-full text-center">
             {formatTeamNames(match.player1)}
           </span>
         </div>
 
         {/* Center Score */}
         <div className="flex flex-col items-center shrink-0 px-2">
-          <div className="text-3xl sm:text-4xl font-display font-black text-primary-navy tabular-nums">
+          <div className="text-3xl sm:text-4xl font-display font-black text-foreground tabular-nums">
             {match.score[0]} : {match.score[1]}
           </div>
           <span
@@ -253,25 +253,25 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 name={p.name}
                 className={cn(
                   'size-12 rounded-xl border-2 text-sm',
-                  !isLoss ? 'border-emerald-500' : 'border-white'
+                  !isLoss ? 'border-emerald-500' : 'border-card'
                 )}
               />
             ))}
           </div>
-          <span className="text-xs font-black text-primary-navy truncate max-w-full text-center">
+          <span className="text-xs font-black text-foreground truncate max-w-full text-center">
             {formatTeamNames(opponentPlayers)}
           </span>
         </div>
       </div>
 
-      <div className="pt-3 border-t border-dashed border-slate-200 flex items-center justify-between text-xs">
-        <span className="font-bold text-slate-500">
+      <div className="pt-3 border-t border-dashed border-border flex items-center justify-between text-xs">
+        <span className="font-bold text-muted-foreground">
           {isSuccess ? '確認時間 · ' + formatLocalTime(new Date().toISOString(), 'yyyy-MM-dd HH:mm') : '預估積分變動'}
         </span>
         <span
           className={cn(
             'text-sm font-display font-black tabular-nums',
-            lpChange < 0 ? 'text-rose-600' : 'text-emerald-600'
+            lpChange < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
           )}
         >
           {lpChange > 0 ? `+${lpChange}` : lpChange} ELO
@@ -281,7 +281,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
   );
 
   return (
-    <div className="bg-white rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 border border-rose-100 shadow-xs relative overflow-hidden group">
+    <div className="bg-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 border border-rose-200/70 dark:border-rose-500/30 shadow-xs relative overflow-hidden group">
       <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-400 group-hover:bg-rose-500 transition-colors" />
 
       {/* Opponent & Score Info */}
@@ -292,35 +292,37 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
               key={p.id || i}
               src={p.avatar}
               name={p.name}
-              className="size-12 md:size-14 rounded-2xl border-2 border-white shadow-xs text-sm"
+              className="size-12 md:size-14 rounded-2xl border-2 border-card shadow-xs text-sm"
             />
           ))}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-sans font-black text-primary-navy truncate text-sm md:text-base tracking-tight">
+            <span className="font-sans font-black text-foreground truncate text-sm md:text-base tracking-tight">
               {formatTeamNames(opponentPlayers)}
             </span>
             <span
               className={cn(
                 'text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0',
-                isLoss ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                isLoss
+                  ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-300'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300'
               )}
             >
               {isLoss ? 'LOSS' : 'WIN'}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-display font-black text-2xl md:text-3xl tracking-tight text-slate-700 leading-none tabular-nums">
-              {match.score[0]} <span className="text-slate-300 font-sans mx-0.5">:</span> {match.score[1]}
+            <span className="font-display font-black text-2xl md:text-3xl tracking-tight text-foreground leading-none tabular-nums">
+              {match.score[0]} <span className="text-muted-foreground/45 font-sans mx-0.5">:</span> {match.score[1]}
             </span>
-            <div className="h-6 w-px bg-slate-100" />
+            <div className="h-6 w-px bg-border" />
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-400 leading-none mb-1">預估變動</span>
+              <span className="text-xs font-bold text-muted-foreground leading-none mb-1">預估變動</span>
               <span
                 className={cn(
                   'text-xs md:text-sm font-display font-black leading-none tabular-nums',
-                  lpChange < 0 ? 'text-rose-600' : 'text-emerald-600'
+                  lpChange < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                 )}
               >
                 {lpChange > 0 ? `+${lpChange}` : lpChange} 分
@@ -331,10 +333,10 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
       </div>
 
       {/* Countdown & Actions */}
-      <div className="flex items-center gap-2 justify-between md:justify-end pt-3 md:pt-0 border-t border-slate-100 md:border-none">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 rounded-lg shrink-0">
-          <Clock size={14} className="text-rose-500" aria-hidden="true" />
-          <span className="text-xs font-black font-display text-rose-600 tabular-nums leading-none tracking-wide">
+      <div className="flex items-center gap-2 justify-between md:justify-end pt-3 md:pt-0 border-t border-border md:border-none">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 rounded-lg shrink-0">
+          <Clock size={14} className="text-rose-500 dark:text-rose-400" aria-hidden="true" />
+          <span className="text-xs font-black font-display text-rose-600 dark:text-rose-300 tabular-nums leading-none tracking-wide">
             倒數 {getRemainingTimeStr(match.expiresAt)}
           </span>
         </div>
@@ -357,7 +359,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 size="icon"
                 aria-label="提出異議"
                 title="提出異議"
-                className="size-10 rounded-xl border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 bg-white"
+                className="size-10 rounded-xl border-border text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-500/40 bg-card"
               >
                 <X size={18} strokeWidth={2.5} aria-hidden="true" className="size-4.5" />
               </Button>
@@ -368,7 +370,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                   type="button"
                   variant="outline"
                   onClick={() => setDisputeOpen(false)}
-                  className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                  className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                 >
                   取消
                 </Button>
@@ -383,11 +385,11 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
             }
           >
             <div className="space-y-4">
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-primary-navy truncate">
+              <div className="bg-surface-subtle border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <span className="text-sm font-bold text-foreground truncate">
                   {formatTeamNames(opponentPlayers)}
                 </span>
-                <span className="font-display font-black text-lg text-primary-navy tabular-nums shrink-0">
+                <span className="font-display font-black text-lg text-foreground tabular-nums shrink-0">
                   {match.score[0]} : {match.score[1]}
                 </span>
               </div>
@@ -436,7 +438,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 <Button
                   type="button"
                   onClick={() => handleConfirmOpenChange(false)}
-                  className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                  className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
                 >
                   完成
                 </Button>
@@ -447,7 +449,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                     variant="outline"
                     disabled={isConfirming}
                     onClick={() => handleConfirmOpenChange(false)}
-                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                   >
                     取消
                   </Button>
@@ -465,17 +467,17 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
             <div className="space-y-4">
               {isSuccess && (
                 <div className="flex flex-col items-center justify-center py-2 space-y-2 animate-in fade-in zoom-in-95 duration-300">
-                  <div className="size-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <div className="size-14 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 size={32} strokeWidth={2.5} aria-hidden="true" />
                   </div>
-                  <p className="text-base font-display font-black text-primary-navy">賽果確認完成！</p>
+                  <p className="text-base font-display font-black text-foreground">賽果確認完成！</p>
                 </div>
               )}
 
               {matchupSummaryCard}
 
               {!isSuccess && (
-                <p className="text-xs text-slate-500 font-medium text-center">
+                <p className="text-xs text-muted-foreground font-medium text-center">
                   確認即代表同意此戰績，系統將立即計算並套用 MMR 積分。
                 </p>
               )}
@@ -516,24 +518,24 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
   if (matches.length === 0) return null;
 
   return (
-    <div className="bg-slate-50 border border-slate-200/70 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300">
+    <div className="bg-surface-subtle/80 border border-border rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300">
       <button
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-100/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25"
+        className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25"
       >
         <div className="flex items-center gap-3">
-          <Zap className="text-slate-400" size={18} aria-hidden="true" />
-          <span className="text-sm font-black text-slate-600 tracking-wide">
+          <Zap className="text-muted-foreground" size={18} aria-hidden="true" />
+          <span className="text-sm font-black text-foreground tracking-wide">
             {matches.length} 筆賽果等待對方確認中{' '}
-            <span className="hidden md:inline text-xs font-bold text-slate-400 ml-2">(時限後將自動生效)</span>
+            <span className="hidden md:inline text-xs font-bold text-muted-foreground ml-2">(時限後將自動生效)</span>
           </span>
         </div>
         <ChevronDown
           size={20}
           aria-hidden="true"
-          className={cn('text-slate-400 transition-transform duration-300', isOpen && 'rotate-180')}
+          className={cn('text-muted-foreground transition-transform duration-300', isOpen && 'rotate-180')}
         />
       </button>
 
@@ -554,7 +556,7 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
                 <div
                   key={match.id}
                   className={cn(
-                    'bg-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border border-slate-100 gap-3 transition-all',
+                    'bg-card rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border border-border gap-3 transition-all',
                     isDeleting && 'opacity-40 pointer-events-none'
                   )}
                 >
@@ -565,30 +567,32 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
                           key={p.id || i}
                           src={p.avatar}
                           name={p.name}
-                          className="size-8 rounded-lg border border-slate-200 text-xs grayscale opacity-75"
+                          className="size-8 rounded-lg border border-border text-xs grayscale opacity-75"
                         />
                       ))}
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs md:text-sm font-bold text-slate-700 truncate">
+                      <span className="text-xs md:text-sm font-bold text-foreground truncate">
                         {formatTeamNames(match.opponent)}
                       </span>
                       <span
                         className={cn(
                           'text-xs font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
-                          isLoss ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                          isLoss
+                            ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
+                            : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
                         )}
                       >
                         {isLoss ? 'LOSS' : 'WIN'}
                       </span>
                     </div>
-                    <span className="text-sm font-display font-black text-primary-navy tabular-nums ml-1 shrink-0">
+                    <span className="text-sm font-display font-black text-foreground tabular-nums ml-1 shrink-0">
                       {match.score[0]} : {match.score[1]}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-                    <div className="text-xs font-bold text-slate-400 tabular-nums flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg shrink-0">
+                    <div className="text-xs font-bold text-muted-foreground tabular-nums flex items-center gap-1 bg-secondary px-2.5 py-1 rounded-lg shrink-0">
                       <Clock size={12} aria-hidden="true" />
                       生效剩餘 {getRemainingTimeStr(match.expiresAt)}
                     </div>
@@ -602,7 +606,7 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
                         />
                       </div>
                     ) : (
-                      <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-xs font-bold shrink-0">
+                      <span className="px-2 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-bold shrink-0">
                         隊友已申報
                       </span>
                     )}
@@ -669,7 +673,7 @@ function DeleteConfirmButton({
           disabled={isDeleting}
           aria-label="撤回申報"
           title="撤回申報"
-          className="size-9 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+          className="size-9 rounded-xl text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors"
         >
           <Trash2 size={15} aria-hidden="true" />
         </Button>
@@ -680,7 +684,7 @@ function DeleteConfirmButton({
             type="button"
             variant="outline"
             onClick={() => setOpen(false)}
-            className="w-full sm:w-auto h-11 px-4 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-4 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
           >
             取消，繼續等待
           </Button>
@@ -695,41 +699,43 @@ function DeleteConfirmButton({
       }
     >
       <div className="space-y-4">
-        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-3.5">
+        <div className="bg-surface-subtle border border-border rounded-2xl p-4 flex items-center gap-3.5">
           <div className={cn('flex shrink-0', match.opponent.length > 1 && '-space-x-2.5')}>
             {match.opponent.map((p, i) => (
               <PlayerAvatar
                 key={p.id || i}
                 src={p.avatar}
                 name={p.name}
-                className="size-10 rounded-xl border-2 border-white shadow-xs text-xs"
+                className="size-10 rounded-xl border-2 border-card shadow-xs text-xs"
               />
             ))}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-primary-navy truncate">
+              <span className="text-sm font-black text-foreground truncate">
                 {formatTeamNames(match.opponent)}
               </span>
               <span
                 className={cn(
                   'text-xs font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
-                  isLoss ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                  isLoss
+                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
+                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
                 )}
               >
                 {isLoss ? 'LOSS' : 'WIN'}
               </span>
             </div>
-            <span className="text-xs font-bold text-slate-400">待確認賽果</span>
+            <span className="text-xs font-bold text-muted-foreground">待確認賽果</span>
           </div>
-          <span className="text-xl font-display font-black text-primary-navy tabular-nums shrink-0">
+          <span className="text-xl font-display font-black text-foreground tabular-nums shrink-0">
             {match.score[0]} : {match.score[1]}
           </span>
         </div>
 
-        <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-3">
-          <ShieldAlert size={16} className="text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
-          <p className="text-xs font-bold text-rose-700 leading-relaxed">
+        <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/12 border border-rose-200 dark:border-rose-500/30 rounded-xl px-3.5 py-3">
+          <ShieldAlert size={16} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-relaxed">
             撤回後將取消這筆對戰紀錄並停止倒數通知，此動作無法復原。
           </p>
         </div>
@@ -805,7 +811,7 @@ function EditScoreButton({
           size="icon"
           aria-label="修改比分"
           title="修改賽果"
-          className="size-9 rounded-xl text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors"
+          className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         >
           <Pencil size={15} aria-hidden="true" />
         </Button>
@@ -817,14 +823,14 @@ function EditScoreButton({
             variant="outline"
             disabled={saving}
             onClick={() => setOpen(false)}
-            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
           >
             取消
           </Button>
           <Button
             type="submit"
             disabled={saving || !validation.valid}
-            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm shadow-sm disabled:opacity-35"
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm shadow-sm disabled:opacity-35"
           >
             {saving ? '儲存中...' : '儲存修改'}
           </Button>
@@ -833,7 +839,7 @@ function EditScoreButton({
     >
       <div className="space-y-4">
         {/* 對手摘要卡 */}
-        <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+        <div className="bg-surface-subtle/80 border border-border rounded-2xl p-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn('flex shrink-0', match.opponent.length > 1 && '-space-x-2.5')}>
               {match.opponent.map((p, i) => (
@@ -841,21 +847,21 @@ function EditScoreButton({
                   key={p.id || i}
                   src={p.avatar}
                   name={p.name}
-                  className="size-9 rounded-xl border border-slate-200 text-xs"
+                  className="size-9 rounded-xl border border-border text-xs"
                 />
               ))}
             </div>
             <div className="min-w-0">
-              <span className="text-xs font-bold text-slate-400 block">對手</span>
-              <span className="text-sm font-black text-primary-navy truncate block">
+              <span className="text-xs font-bold text-muted-foreground block">對手</span>
+              <span className="text-sm font-black text-foreground truncate block">
                 {formatTeamNames(match.opponent)}
               </span>
             </div>
           </div>
 
           <div className="text-right shrink-0">
-            <span className="text-xs font-bold text-slate-400 block">目前比分</span>
-            <span className="text-xl font-display font-black text-primary-navy tabular-nums">
+            <span className="text-xs font-bold text-muted-foreground block">目前比分</span>
+            <span className="text-xl font-display font-black text-foreground tabular-nums">
               {scoreA} : {scoreB}
             </span>
           </div>
@@ -878,10 +884,10 @@ function EditScoreButton({
           className={cn(
             'rounded-xl border px-3.5 py-2.5 text-xs font-bold',
             validation.tone === 'valid'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
               : validation.tone === 'error'
-                ? 'bg-rose-50 border-rose-200 text-rose-700'
-                : 'bg-slate-50 border-slate-200 text-slate-600'
+                ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300'
+                : 'bg-surface-subtle border-border text-muted-foreground'
           )}
         >
           {validation.message}

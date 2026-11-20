@@ -6,6 +6,7 @@ import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
 import { UserProfileSettings } from './UserProfileSettings';
 import { PlayerAvatar } from './PlayerAvatar';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/utils/apiClient';
 
@@ -46,58 +47,62 @@ export function Navigation() {
   return (
     <>
       {/* Mobile Top App Bar */}
-      <header className="fixed top-0 inset-x-0 z-50 lg:hidden bg-white/90 backdrop-blur-xl border-b border-slate-200/70 pt-[env(safe-area-inset-top,0px)]">
+      <header className="fixed top-0 inset-x-0 z-50 lg:hidden bg-card/85 dark:bg-[#0b1120]/85 backdrop-blur-xl border-b border-border pt-[env(safe-area-inset-top,0px)]">
         <div className="h-16 px-4 flex items-center justify-between gap-3">
           <NavLink to="/" className="flex items-center gap-2.5 min-w-0">
-            <div className="size-9 rounded-xl bg-primary-navy text-olympic-gold flex items-center justify-center shadow-sm shrink-0">
+            <div className="size-9 rounded-xl bg-primary-navy text-olympic-gold flex items-center justify-center shadow-sm border border-white/10 shrink-0">
               <Crown size={18} aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className="text-primary-navy font-display font-black text-base leading-none tracking-tight truncate">
+              <p className="text-foreground font-display font-black text-base leading-none tracking-tight truncate">
                 Precision
               </p>
-              <p className="text-xs text-slate-400 uppercase tracking-[0.22em] font-sans font-bold mt-0.5 truncate">
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.22em] font-sans font-bold mt-0.5 truncate">
                 Arena Club
               </p>
             </div>
           </NavLink>
 
-          {user ? (
-            <UserProfileSettings
-              trigger={
-                <button
-                  type="button"
-                  aria-label="個人設定"
-                  className="flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1 bg-slate-50 border border-slate-200/80 hover:border-sapphire-blue/40 transition-colors min-h-11"
-                >
-                  <PlayerAvatar
-                    src={user.avatar_url || user.avatar}
-                    name={user.name}
-                    className="size-8 rounded-full border border-white shadow-xs text-xs"
-                  />
-                  <span className="text-xs font-bold text-primary-navy max-w-[84px] truncate">
-                    {user.name}
-                  </span>
-                  <Settings size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
-                </button>
-              }
-            />
-          ) : (
-            <NavLink
-              to="/login"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-navy text-white text-xs font-bold tracking-wider hover:bg-slate-800 transition-colors min-h-11"
-            >
-              <LogIn size={14} aria-hidden="true" />
-              <span>登入</span>
-            </NavLink>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <ThemeToggle variant="icon" />
+
+            {user ? (
+              <UserProfileSettings
+                trigger={
+                  <button
+                    type="button"
+                    aria-label="個人設定"
+                    className="flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1 bg-secondary border border-border hover:border-sapphire-blue/40 transition-colors min-h-11"
+                  >
+                    <PlayerAvatar
+                      src={user.avatar_url || user.avatar}
+                      name={user.name}
+                      className="size-8 rounded-full border border-card shadow-xs text-xs"
+                    />
+                    <span className="text-xs font-bold text-foreground max-w-[84px] truncate">
+                      {user.name}
+                    </span>
+                    <Settings size={14} className="text-muted-foreground shrink-0" aria-hidden="true" />
+                  </button>
+                }
+              />
+            ) : (
+              <NavLink
+                to="/login"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold tracking-wider hover:opacity-90 transition-opacity min-h-11"
+              >
+                <LogIn size={14} aria-hidden="true" />
+                <span>登入</span>
+              </NavLink>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Mobile Bottom Navigation */}
       <nav
         aria-label="主導覽"
-        className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-xl border-t border-slate-200/70 z-50 lg:hidden px-2 pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] pt-1.5"
+        className="fixed bottom-0 inset-x-0 bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-xl border-t border-border z-50 lg:hidden px-2 pb-[max(0.4rem,env(safe-area-inset-bottom,0px))] pt-1.5"
       >
         <div className="max-w-lg mx-auto flex items-center justify-between gap-1">
           {displayedNavItems.map((item) => (
@@ -109,8 +114,8 @@ export function Navigation() {
                 cn(
                   'flex-1 min-h-12 flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 relative transition-colors',
                   isActive
-                    ? 'bg-sapphire-blue/10 text-sapphire-blue font-black'
-                    : 'text-slate-500 hover:text-primary-navy font-bold'
+                    ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/20 dark:text-blue-400 font-black'
+                    : 'text-muted-foreground hover:text-foreground font-bold'
                 )
               }
             >
@@ -144,15 +149,15 @@ export function Navigation() {
       </nav>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 xl:w-80 h-dvh p-6 fixed top-0 left-0 bg-slate-50/90 border-r border-slate-200/70 z-40">
+      <aside className="hidden lg:flex flex-col w-72 xl:w-80 h-dvh p-6 fixed top-0 left-0 bg-background/95 border-r border-border z-40">
         {/* Brand Logo */}
         <NavLink to="/" className="flex items-center gap-3 mb-8 px-2 group">
-          <div className="size-11 rounded-2xl bg-primary-navy shadow-md shadow-primary-navy/15 flex items-center justify-center transform group-hover:rotate-6 transition-transform shrink-0">
+          <div className="size-11 rounded-2xl bg-primary-navy shadow-md shadow-primary-navy/20 border border-white/10 flex items-center justify-center transform group-hover:rotate-6 transition-transform shrink-0">
             <Crown size={22} className="text-olympic-gold" aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-primary-navy font-display font-black text-xl leading-tight">Precision</h2>
-            <p className="text-xs text-slate-400 uppercase tracking-[0.26em] font-sans font-bold">Arena Club</p>
+            <h2 className="text-foreground font-display font-black text-xl leading-tight">Precision</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.26em] font-sans font-bold">Arena Club</p>
           </div>
         </NavLink>
 
@@ -161,7 +166,7 @@ export function Navigation() {
           {user ? (
             <ReportScore
               trigger={
-                <Button className="w-full h-12 rounded-2xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-sapphire-blue/20 transition-all border-none">
+                <Button className="w-full h-12 rounded-2xl bg-gradient-to-r from-sapphire-blue to-blue-700 hover:opacity-95 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-sapphire-blue/25 transition-all border-none">
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                   申報比分
                 </Button>
@@ -169,7 +174,7 @@ export function Navigation() {
             />
           ) : (
             <NavLink to="/login" className="block">
-              <Button className="w-full h-12 rounded-2xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm tracking-wider shadow-md border-none">
+              <Button className="w-full h-12 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm tracking-wider shadow-md border-none">
                 <LogIn className="mr-2 h-4 w-4" aria-hidden="true" />
                 登入戰情室
               </Button>
@@ -178,7 +183,7 @@ export function Navigation() {
         </div>
 
         {/* Desktop Nav Links */}
-        <p className="text-xs text-slate-400 uppercase tracking-[0.2em] font-sans font-black px-3 mb-2">
+        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] font-sans font-black px-3 mb-2">
           Main Navigation
         </p>
         <nav aria-label="主導覽" className="flex-1 space-y-1.5 overflow-y-auto no-scrollbar">
@@ -191,8 +196,8 @@ export function Navigation() {
                 cn(
                   'flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group',
                   isActive
-                    ? 'bg-white text-primary-navy shadow-xs border border-slate-200/80 font-black'
-                    : 'text-slate-500 hover:bg-white/70 hover:text-primary-navy font-bold border border-transparent'
+                    ? 'bg-card text-foreground shadow-xs border border-border font-black'
+                    : 'text-muted-foreground hover:bg-card/70 hover:text-foreground font-bold border border-transparent'
                 )
               }
             >
@@ -209,7 +214,7 @@ export function Navigation() {
                     aria-hidden="true"
                     className={cn(
                       'shrink-0 transition-transform duration-200 group-hover:scale-105',
-                      isActive ? 'text-sapphire-blue' : 'text-slate-400 group-hover:text-primary-navy'
+                      isActive ? 'text-sapphire-blue' : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
                   <span className="font-sans text-sm tracking-wide truncate flex-1">
@@ -229,32 +234,34 @@ export function Navigation() {
           ))}
         </nav>
 
-        {/* User Profile Trigger (Desktop) */}
-        <div className="mt-auto pt-5 border-t border-slate-200/70">
+        {/* Theme Switcher & User Profile Trigger (Desktop) */}
+        <div className="mt-auto pt-4 border-t border-border space-y-3">
+          <ThemeToggle variant="segmented" />
+
           {user ? (
             <UserProfileSettings
               trigger={
                 <button
                   type="button"
-                  className="w-full bg-white hover:bg-slate-50 p-3 rounded-2xl border border-slate-200/80 transition-all flex items-center gap-3 text-left group shadow-xs"
+                  className="w-full bg-card hover:bg-secondary/80 p-3 rounded-2xl border border-border transition-all flex items-center gap-3 text-left group shadow-xs"
                 >
                   <PlayerAvatar
                     src={user.avatar_url || user.avatar}
                     name={user.name}
-                    className="size-10 rounded-xl border border-slate-200 shrink-0 group-hover:border-sapphire-blue transition-colors"
+                    className="size-10 rounded-xl border border-border shrink-0 group-hover:border-sapphire-blue transition-colors"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-primary-navy truncate group-hover:text-sapphire-blue transition-colors">
+                    <p className="text-sm font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                       {user.name}
                     </p>
-                    <p className="text-xs font-bold text-slate-400 truncate">
+                    <p className="text-xs font-bold text-muted-foreground truncate">
                       {user.department || '一般同仁'}
                     </p>
                   </div>
                   <Settings
                     size={17}
                     aria-hidden="true"
-                    className="text-slate-400 group-hover:text-sapphire-blue transition-transform group-hover:rotate-90 duration-500 shrink-0"
+                    className="text-muted-foreground group-hover:text-sapphire-blue transition-transform group-hover:rotate-90 duration-500 shrink-0"
                   />
                 </button>
               }
@@ -262,11 +269,11 @@ export function Navigation() {
           ) : (
             <NavLink
               to="/login"
-              className="w-full bg-white hover:bg-slate-50 p-3 rounded-2xl border border-slate-200/80 transition-all flex items-center gap-3 text-left group shadow-xs"
+              className="w-full bg-card hover:bg-secondary/80 p-3 rounded-2xl border border-border transition-all flex items-center gap-3 text-left group shadow-xs"
             >
-              <PlayerAvatar name="Guest" className="size-10 rounded-xl border border-slate-200 shrink-0" />
+              <PlayerAvatar name="Guest" className="size-10 rounded-xl border border-border shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-primary-navy">訪客模式</p>
+                <p className="text-sm font-black text-foreground">訪客模式</p>
                 <p className="text-xs font-bold text-sapphire-blue">點擊登入戰情室 →</p>
               </div>
             </NavLink>

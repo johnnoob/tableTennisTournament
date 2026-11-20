@@ -14,7 +14,7 @@ export function TournamentSkeleton() {
         <Skeleton className="h-12 w-full md:w-64 rounded-2xl" />
       </header>
 
-      <div className="flex gap-2.5 py-3 border-y border-slate-200/70">
+      <div className="flex gap-2.5 py-3 border-y border-border">
         <Skeleton className="h-10 w-24 rounded-xl" />
         <Skeleton className="h-10 w-24 rounded-xl" />
         <Skeleton className="h-10 w-24 rounded-xl" />

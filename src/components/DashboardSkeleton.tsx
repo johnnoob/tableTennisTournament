@@ -31,7 +31,7 @@ export function DashboardSkeleton() {
       {/* Main Grid Skeleton */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-10">
         <div className="xl:col-span-8 space-y-8">
-          <div className="relative rounded-2xl md:rounded-3xl bg-slate-100/80 p-6 h-[220px]">
+          <div className="relative rounded-2xl md:rounded-3xl bg-surface-subtle/80 p-6 h-[220px] border border-border">
             <div className="flex items-center gap-4">
               <Skeleton className="size-16 rounded-full" />
               <div className="space-y-2">
@@ -43,7 +43,7 @@ export function DashboardSkeleton() {
                 <Skeleton className="h-3 w-12 rounded-md ml-auto" />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-8 pt-4 border-t border-slate-200/70">
+            <div className="grid grid-cols-3 gap-4 mt-8 pt-4 border-t border-border">
               <Skeleton className="h-10 w-full rounded-xl" />
               <Skeleton className="h-10 w-full rounded-xl" />
               <Skeleton className="h-10 w-full rounded-xl" />

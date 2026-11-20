@@ -507,39 +507,39 @@ export function ReportScore({
     <div className="space-y-5">
       {isSuccess ? (
         <div className="flex flex-col items-center justify-center py-4 space-y-5 animate-in fade-in zoom-in-95 duration-300">
-          <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+          <div className="size-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
             <CheckCircle2 size={36} strokeWidth={2.5} aria-hidden="true" />
           </div>
 
           <div className="text-center space-y-1">
-            <h3 className="text-xl sm:text-2xl font-display font-black text-primary-navy">申報成功！</h3>
-            <p className="text-sm font-medium text-slate-500">賽果已送出，等待對手確認後立即結算積分。</p>
+            <h3 className="text-xl sm:text-2xl font-display font-black text-foreground">申報成功！</h3>
+            <p className="text-sm font-medium text-muted-foreground">賽果已送出，等待對手確認後立即結算積分。</p>
           </div>
 
-          <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
+          <div className="w-full bg-surface-subtle/80 border border-border rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
                 <div className={cn('flex items-center justify-center', matchType === 'doubles' && selectedPartner ? '-space-x-3' : '')}>
                   <PlayerAvatar
                     src={currentUser.avatar_url || currentUser.avatar}
                     name={currentUser.name}
-                    className={cn('size-12 rounded-xl border-2 text-sm', scoreA > scoreB ? 'border-emerald-500' : 'border-white')}
+                    className={cn('size-12 rounded-xl border-2 text-sm', scoreA > scoreB ? 'border-emerald-500' : 'border-card')}
                   />
                   {matchType === 'doubles' && selectedPartner && (
                     <PlayerAvatar
                       src={selectedPartner.avatar}
                       name={selectedPartner.name}
-                      className={cn('size-12 rounded-xl border-2 text-sm', scoreA > scoreB ? 'border-emerald-500' : 'border-white')}
+                      className={cn('size-12 rounded-xl border-2 text-sm', scoreA > scoreB ? 'border-emerald-500' : 'border-card')}
                     />
                   )}
                 </div>
-                <span className="text-xs font-black text-primary-navy truncate max-w-full">
+                <span className="text-xs font-black text-foreground truncate max-w-full">
                   {matchType === 'doubles' && selectedPartner ? `${currentUser.name} / ${selectedPartner.name}` : currentUser.name}
                 </span>
               </div>
 
               <div className="flex flex-col items-center shrink-0 px-2">
-                <span className="text-3xl sm:text-4xl font-display font-black text-primary-navy tabular-nums">
+                <span className="text-3xl sm:text-4xl font-display font-black text-foreground tabular-nums">
                   {scoreA} : {scoreB}
                 </span>
                 <span
@@ -558,18 +558,18 @@ export function ReportScore({
                     <PlayerAvatar
                       src={opponent1.avatar}
                       name={opponent1.name}
-                      className={cn('size-12 rounded-xl border-2 text-sm', scoreB > scoreA ? 'border-emerald-500' : 'border-white')}
+                      className={cn('size-12 rounded-xl border-2 text-sm', scoreB > scoreA ? 'border-emerald-500' : 'border-card')}
                     />
                   )}
                   {matchType === 'doubles' && opponent2 && (
                     <PlayerAvatar
                       src={opponent2.avatar}
                       name={opponent2.name}
-                      className={cn('size-12 rounded-xl border-2 text-sm', scoreB > scoreA ? 'border-emerald-500' : 'border-white')}
+                      className={cn('size-12 rounded-xl border-2 text-sm', scoreB > scoreA ? 'border-emerald-500' : 'border-card')}
                     />
                   )}
                 </div>
-                <span className="text-xs font-black text-primary-navy truncate max-w-full">
+                <span className="text-xs font-black text-foreground truncate max-w-full">
                   {matchType === 'doubles' && opponent1 && opponent2
                     ? `${opponent1.name} / ${opponent2.name}`
                     : opponent1?.name || '對手'}
@@ -577,12 +577,12 @@ export function ReportScore({
               </div>
             </div>
 
-            <div className="pt-3 border-t border-dashed border-slate-200 flex justify-between items-center text-xs">
-              <span className="flex items-center gap-1.5 font-bold text-slate-600">
+            <div className="pt-3 border-t border-dashed border-border flex justify-between items-center text-xs">
+              <span className="flex items-center gap-1.5 font-bold text-muted-foreground">
                 <span className="size-2 bg-amber-400 rounded-full animate-pulse" />
                 等待對手確認中
               </span>
-              <span className="font-bold text-slate-500">48 小時後自動生效</span>
+              <span className="font-bold text-muted-foreground">48 小時後自動生效</span>
             </div>
           </div>
         </div>
@@ -602,16 +602,16 @@ export function ReportScore({
               }}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2 rounded-2xl p-1 h-11 bg-slate-100 border border-slate-200/70">
+              <TabsList className="grid w-full grid-cols-2 rounded-2xl p-1 h-11 bg-secondary border border-border">
                 <TabsTrigger
                   value="singles"
-                  className="rounded-xl text-sm font-black data-active:bg-white data-active:text-primary-navy data-active:shadow-xs"
+                  className="rounded-xl text-sm font-black data-active:bg-card data-active:text-foreground data-active:shadow-xs"
                 >
                   單打 1v1
                 </TabsTrigger>
                 <TabsTrigger
                   value="doubles"
-                  className="rounded-xl text-sm font-black data-active:bg-white data-active:text-primary-navy data-active:shadow-xs"
+                  className="rounded-xl text-sm font-black data-active:bg-card data-active:text-foreground data-active:shadow-xs"
                 >
                   雙打 2v2
                 </TabsTrigger>
@@ -620,25 +620,25 @@ export function ReportScore({
           )}
 
           {/* 2. 對戰陣容槽位 (Slot-First Matchup Stage) */}
-          <section aria-label="對戰陣容" className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 space-y-2">
+          <section aria-label="對戰陣容" className="bg-surface-subtle/80 border border-border rounded-2xl p-3.5 sm:p-4 space-y-2">
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
-              <p className="text-xs font-black text-slate-500">我方</p>
-              <span className="text-xs font-bold text-slate-400 text-center whitespace-nowrap px-1 sm:px-2">
+              <p className="text-xs font-black text-muted-foreground">我方</p>
+              <span className="text-xs font-bold text-muted-foreground text-center whitespace-nowrap px-1 sm:px-2">
                 {matchFormat}
               </span>
-              <p className="text-xs font-black text-slate-500 text-right">對手</p>
+              <p className="text-xs font-black text-muted-foreground text-right">對手</p>
             </div>
 
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
               {/* 我方陣營 */}
               <div className="flex flex-col gap-1.5 min-w-0">
-                <div className="flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-white border border-slate-200/80 min-w-0">
+                <div className="flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-card border border-border min-w-0">
                   <PlayerAvatar
                     src={currentUser.avatar_url || currentUser.avatar}
                     name={currentUser.name}
                     className="size-8 rounded-lg text-xs"
                   />
-                  <span className="text-xs sm:text-sm font-black text-primary-navy truncate">
+                  <span className="text-xs sm:text-sm font-black text-foreground truncate">
                     {currentUser.name}
                   </span>
                 </div>
@@ -647,7 +647,7 @@ export function ReportScore({
                   <LineupSlotButton
                     label="選搭檔"
                     roleBadge="搭檔"
-                    badgeColor="bg-amber-100 text-amber-700"
+                    badgeColor="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                     player={selectedPartner}
                     isActive={activeSlot === 'partner'}
                     disabled={editMode}
@@ -662,10 +662,10 @@ export function ReportScore({
 
               {/* 中央即時比分 */}
               <div className="flex items-center justify-center px-1 sm:px-2 shrink-0">
-                <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-primary-navy tabular-nums">
-                  <span className={cn(scoreA > scoreB && 'text-emerald-600')}>{scoreA}</span>
-                  <span className="text-slate-300">:</span>
-                  <span className={cn(scoreB > scoreA && 'text-emerald-600')}>{scoreB}</span>
+                <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-foreground tabular-nums">
+                  <span className={cn(scoreA > scoreB && 'text-emerald-600 dark:text-emerald-400')}>{scoreA}</span>
+                  <span className="text-muted-foreground/45">:</span>
+                  <span className={cn(scoreB > scoreA && 'text-emerald-600 dark:text-emerald-400')}>{scoreB}</span>
                 </div>
               </div>
 
@@ -674,7 +674,7 @@ export function ReportScore({
                 <LineupSlotButton
                   label={matchType === 'singles' ? '選對手' : '對手 1'}
                   roleBadge="對手"
-                  badgeColor="bg-blue-100 text-sapphire-blue"
+                  badgeColor="bg-blue-100 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300"
                   player={opponent1}
                   isActive={activeSlot === 'opp1'}
                   disabled={editMode}
@@ -689,7 +689,7 @@ export function ReportScore({
                   <LineupSlotButton
                     label="對手 2"
                     roleBadge="對手"
-                    badgeColor="bg-blue-100 text-sapphire-blue"
+                    badgeColor="bg-blue-100 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300"
                     player={opponent2}
                     isActive={activeSlot === 'opp2'}
                     disabled={editMode}
@@ -708,7 +708,7 @@ export function ReportScore({
           {!editMode && (
             <section className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-black text-slate-600">
+                <p className="text-xs font-black text-muted-foreground">
                   {activeSlot === 'partner'
                     ? '點選一位同事擔任您的搭檔'
                     : activeSlot === 'opp1' || activeSlot === 'opp2'
@@ -737,7 +737,7 @@ export function ReportScore({
                   搜尋同仁姓名或處室
                 </label>
                 <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                   size={16}
                   aria-hidden="true"
                 />
@@ -759,7 +759,7 @@ export function ReportScore({
                     type="button"
                     aria-label="清除搜尋"
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
                   >
                     <X size={15} aria-hidden="true" />
                   </button>
@@ -768,11 +768,11 @@ export function ReportScore({
 
               <div className="max-h-44 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {isPlayersLoading ? (
-                  <div className="col-span-full py-6 text-center text-sm font-bold text-slate-400">
+                  <div className="col-span-full py-6 text-center text-sm font-bold text-muted-foreground">
                     讀取同仁名單中...
                   </div>
                 ) : sortedAvailablePlayers.length === 0 ? (
-                  <div className="col-span-full py-6 text-center text-sm font-bold text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                  <div className="col-span-full py-6 text-center text-sm font-bold text-muted-foreground border border-dashed border-border rounded-xl">
                     找不到符合「{searchTerm}」的同仁
                   </div>
                 ) : (
@@ -791,24 +791,24 @@ export function ReportScore({
                         className={cn(
                           'flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all min-h-12 relative',
                           isPartner
-                            ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-300'
+                            ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-300 dark:bg-amber-500/15 dark:border-amber-400/70 dark:ring-amber-400/40'
                             : isOpponent
-                              ? 'bg-blue-50 border-sapphire-blue ring-1 ring-sapphire-blue/30'
-                              : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50'
+                              ? 'bg-blue-50 border-sapphire-blue ring-1 ring-sapphire-blue/30 dark:bg-blue-500/15 dark:border-blue-400/70 dark:ring-blue-400/40'
+                              : 'bg-card border-border hover:border-slate-400/60 hover:bg-secondary/60'
                         )}
                       >
                         <PlayerAvatar
                           src={player.avatar}
                           name={player.name}
-                          className="size-9 rounded-lg border border-slate-200/70 text-xs"
+                          className="size-9 rounded-lg border border-border text-xs"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
-                            <span className="text-sm font-bold text-primary-navy truncate">
+                            <span className="text-sm font-bold text-foreground truncate">
                               {player.name}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 font-medium truncate">
+                          <p className="text-xs text-muted-foreground font-medium truncate">
                             {player.department || '一般同仁'}
                           </p>
                         </div>
@@ -823,7 +823,7 @@ export function ReportScore({
                           </span>
                         ) : (
                           isFrequent && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-xs font-bold shrink-0">
+                            <span className="px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground text-xs font-bold shrink-0">
                               常打
                             </span>
                           )
@@ -837,7 +837,7 @@ export function ReportScore({
           )}
 
           {/* 4. 賽制 & 一鍵比分 + 精簡微調 */}
-          <section className="pt-3 border-t border-slate-100">
+          <section className="pt-3 border-t border-border">
             <ScoreInputSection
               format={matchFormat}
               onFormatChange={setMatchFormat}
@@ -855,12 +855,12 @@ export function ReportScore({
             className={cn(
               'rounded-xl border px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-bold',
               scoreValidation.tone === 'valid'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
                 : scoreValidation.tone === 'error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                  ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300'
                   : scoreValidation.tone === 'warning'
-                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                    ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                    : 'bg-surface-subtle border-border text-muted-foreground'
             )}
           >
             <span>{scoreValidation.message}</span>
@@ -897,7 +897,7 @@ export function ReportScore({
                 type="button"
                 variant="outline"
                 onClick={handleQuickRematch}
-                className="w-full sm:w-auto h-11 px-5 rounded-xl border-sapphire-blue/30 text-sapphire-blue hover:bg-blue-50 font-black text-sm gap-1.5"
+                className="w-full sm:w-auto h-11 px-5 rounded-xl border-sapphire-blue/30 text-sapphire-blue hover:bg-blue-50 dark:hover:bg-blue-500/15 font-black text-sm gap-1.5"
               >
                 <RotateCcw size={15} aria-hidden="true" />
                 原陣容再報一場
@@ -906,7 +906,7 @@ export function ReportScore({
             <Button
               type="button"
               onClick={() => handleOpenChange(false)}
-              className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
             >
               完成
             </Button>
@@ -917,14 +917,14 @@ export function ReportScore({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+              className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={seasonPaused || !isLineupReady || isSubmitting || !scoreValidation.valid}
-              className="w-full sm:w-auto h-11 px-7 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm tracking-wide transition-all disabled:opacity-35 shadow-sm"
+              className="w-full sm:w-auto h-11 px-7 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm tracking-wide transition-all disabled:opacity-35 shadow-sm"
             >
               {submitLabel}
             </Button>
@@ -960,8 +960,8 @@ function LineupSlotButton({
     return (
       <div
         className={cn(
-          'flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-white border transition-all min-w-0',
-          isActive ? 'border-sapphire-blue ring-2 ring-sapphire-blue/25' : 'border-slate-200/80'
+          'flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-card border transition-all min-w-0',
+          isActive ? 'border-sapphire-blue ring-2 ring-sapphire-blue/25' : 'border-border'
         )}
       >
         <button
@@ -972,7 +972,7 @@ function LineupSlotButton({
         >
           <PlayerAvatar src={player.avatar} name={player.name} className="size-8 rounded-lg text-xs" />
           <div className="min-w-0 flex-1">
-            <span className="text-xs sm:text-sm font-black text-primary-navy truncate block">
+            <span className="text-xs sm:text-sm font-black text-foreground truncate block">
               {player.name}
             </span>
           </div>
@@ -985,7 +985,7 @@ function LineupSlotButton({
             type="button"
             aria-label={`移除${player.name}`}
             onClick={onClear}
-            className="size-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 shrink-0"
+            className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 shrink-0"
           >
             <X size={14} aria-hidden="true" />
           </button>
@@ -1002,8 +1002,8 @@ function LineupSlotButton({
       className={cn(
         'flex items-center justify-center gap-1.5 min-h-12 px-2.5 rounded-xl border border-dashed text-xs sm:text-sm font-bold transition-all w-full',
         isActive
-          ? 'border-sapphire-blue bg-blue-50/70 text-sapphire-blue ring-2 ring-sapphire-blue/20'
-          : 'border-slate-300 bg-white/70 text-slate-500 hover:border-sapphire-blue/50 hover:text-primary-navy'
+          ? 'border-sapphire-blue bg-blue-50/70 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 ring-2 ring-sapphire-blue/20'
+          : 'border-input bg-card/70 text-muted-foreground hover:border-sapphire-blue/50 hover:text-foreground'
       )}
     >
       <User size={14} aria-hidden="true" />

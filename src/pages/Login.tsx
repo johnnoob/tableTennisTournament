@@ -1,6 +1,7 @@
 import { Trophy, Shield, Target, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   mismatching_state: '登入驗證狀態已失效，請重新點擊 Google 登入。',
@@ -23,10 +24,10 @@ export function Login() {
     : null;
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
 
-      {/* 🌟 左側：品牌形象視覺區 (晨星奧運風) */}
-      <div className="relative hidden lg:flex flex-col justify-between w-1/2 bg-primary-navy p-12 overflow-hidden">
+      {/* 🌟 左側：品牌形象視覺區 (晨星奧運風 + 球館聚光燈) */}
+      <div className="relative hidden lg:flex flex-col justify-between w-1/2 arena-hero-surface p-12 overflow-hidden">
         {/* 背景裝飾浮水印 */}
         <div className="absolute -bottom-24 -left-24 opacity-5 pointer-events-none">
           <Trophy size={600} />
@@ -69,15 +70,18 @@ export function Login() {
 
       {/* 🔐 右側：登入表單區 */}
       <div className="flex-1 flex flex-col justify-center items-center p-8 lg:p-12 relative">
+        <div className="absolute top-5 right-5 sm:top-6 sm:right-6">
+          <ThemeToggle variant="icon" />
+        </div>
 
         {/* 手機版顯示的頂部 Logo */}
         <div className="lg:hidden flex items-center gap-3 mb-12">
-          <div className="size-12 rounded-2xl bg-primary-navy flex items-center justify-center shadow-xl">
+          <div className="size-12 rounded-2xl bg-primary-navy border border-white/10 flex items-center justify-center shadow-xl">
             <Trophy size={24} className="text-amber-500" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-primary-navy font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
-            <p className="text-xs text-slate-500 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
+            <h1 className="text-foreground font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
           </div>
         </div>
 
@@ -85,8 +89,8 @@ export function Login() {
 
           {/* 登入標題 */}
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-display font-black text-primary-navy tracking-tight">登入戰情室</h2>
-            <p className="text-sm font-bold text-slate-500 tracking-wide">
+            <h2 className="text-3xl font-display font-black text-foreground tracking-tight">登入戰情室</h2>
+            <p className="text-sm font-bold text-muted-foreground tracking-wide">
               使用 Google 帳號一鍵驗證進入戰情室
             </p>
           </div>
@@ -96,9 +100,9 @@ export function Login() {
             {authErrorMessage && (
               <div
                 role="alert"
-                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-700 flex items-start gap-2.5"
+                className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/12 px-4 py-3 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-start gap-2.5"
               >
-                <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" aria-hidden="true" />
+                <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500 dark:text-rose-400" aria-hidden="true" />
                 <span>{authErrorMessage}</span>
               </div>
             )}
@@ -107,7 +111,7 @@ export function Login() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-14 rounded-2xl bg-white hover:bg-slate-50 border-slate-300 text-primary-navy font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+              className="w-full h-14 rounded-2xl bg-card hover:bg-secondary/80 border-input text-foreground font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
               onClick={handleGoogleLogin}
             >
               <svg className="size-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -123,17 +127,17 @@ export function Login() {
             <Button
               type="button"
               disabled
-              className="w-full h-12 rounded-2xl bg-slate-100 text-slate-400 border border-slate-200 font-bold tracking-wide flex items-center justify-center gap-2.5 opacity-80"
+              className="w-full h-12 rounded-2xl bg-secondary text-muted-foreground border border-border font-bold tracking-wide flex items-center justify-center gap-2.5 opacity-80"
             >
               LINE 帳號登入（即將開放）
             </Button>
           </div>
 
           {/* 訪客/純瀏覽入口 */}
-          <div className="pt-8 border-t border-slate-100 flex flex-col items-center">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">或者</p>
+          <div className="pt-8 border-t border-border flex flex-col items-center">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">或者</p>
             <Link to="/leaderboard">
-              <Button variant="ghost" className="text-sapphire-blue font-black tracking-widest hover:bg-blue-50 rounded-xl px-6 gap-2">
+              <Button variant="ghost" className="text-sapphire-blue font-black tracking-widest hover:bg-sapphire-blue/10 rounded-xl px-6 gap-2">
                 以訪客身分進入榮譽榜 <ArrowRight size={16} />
               </Button>
             </Link>

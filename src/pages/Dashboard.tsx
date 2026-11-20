@@ -108,7 +108,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="bg-primary-navy rounded-2xl md:rounded-3xl p-5 md:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-lg shadow-primary-navy/15 border border-slate-800 relative overflow-hidden group min-h-[140px]"
+        className="arena-hero-surface rounded-2xl md:rounded-3xl p-5 md:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-lg shadow-primary-navy/15 border border-slate-700/80 relative overflow-hidden group min-h-[140px]"
       >
         <div className="absolute -right-8 -top-8 opacity-[0.04] pointer-events-none group-hover:scale-110 transition-transform duration-700 text-white">
           <Icon size={220} aria-hidden="true" />
@@ -363,7 +363,7 @@ export function Dashboard() {
                 {!isLoggedIn && (
                   <motion.section
                     variants={itemVariants}
-                    className="bg-primary-navy text-white rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+                    className="arena-hero-surface text-white rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-lg border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
                   >
                     <div className="space-y-2">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sapphire-blue/25 text-blue-200 text-xs font-black uppercase tracking-wider">
@@ -423,7 +423,7 @@ export function Dashboard() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                         <div>
                           <div className="flex items-center gap-2.5 flex-wrap">
-                            <h2 className="font-display text-lg sm:text-xl text-primary-navy font-black tracking-tight">
+                            <h2 className="font-display text-lg sm:text-xl text-foreground font-black tracking-tight">
                               戰力走勢分析
                             </h2>
                             {typeof ptsChange === 'number' && (
@@ -431,20 +431,20 @@ export function Dashboard() {
                                 className={cn(
                                   'px-2.5 py-0.5 rounded-full text-xs font-display font-black tabular-nums border',
                                   ptsChange >= 0
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-rose-50 text-rose-600 border-rose-200'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+                                    : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
                                 )}
                               >
                                 最新 {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5 uppercase font-sans font-bold tracking-wider">
+                          <p className="text-xs text-muted-foreground mt-0.5 uppercase font-sans font-bold tracking-wider">
                             Rating Progression · Single-Track Elo
                           </p>
                         </div>
                         <Tabs value={chartInterval} onValueChange={setChartInterval} className="w-full sm:w-auto">
-                          <TabsList className="grid w-full grid-cols-5 h-9 bg-white border border-slate-200/80 rounded-xl p-1">
+                          <TabsList className="grid w-full grid-cols-5 h-9 bg-card border border-border rounded-xl p-1">
                             <TabsTrigger value="recent" className="text-xs font-bold rounded-lg">10場</TabsTrigger>
                             <TabsTrigger value="hour" className="text-xs font-bold rounded-lg">小時</TabsTrigger>
                             <TabsTrigger value="day" className="text-xs font-bold rounded-lg">日</TabsTrigger>
@@ -465,10 +465,10 @@ export function Dashboard() {
                 <motion.section variants={itemVariants} className="space-y-4">
                   <div className="flex items-center justify-between px-1">
                     <div>
-                      <h2 className="text-lg sm:text-xl text-primary-navy font-display font-black tracking-tight">
+                      <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
                         近期戰報動態
                       </h2>
-                      <p className="text-xs text-slate-400 uppercase font-sans font-bold tracking-wider">
+                      <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
                         Recent Feed · Live Updates
                       </p>
                     </div>
@@ -491,8 +491,8 @@ export function Dashboard() {
                       ))
                     ) : (
                       <div className="text-center py-14 arena-surface border-dashed">
-                        <History size={28} className="mx-auto text-slate-300 mb-3" aria-hidden="true" />
-                        <p className="text-slate-400 font-bold text-xs">目前還沒有對戰紀錄</p>
+                        <History size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
+                        <p className="text-muted-foreground font-bold text-xs">目前還沒有對戰紀錄</p>
                       </div>
                     )}
                   </div>
@@ -501,14 +501,14 @@ export function Dashboard() {
                 {isLoggedIn && (
                   <>
                     <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      <div className="rounded-2xl md:rounded-3xl bg-rose-50/50 p-5 sm:p-6 border border-rose-200/70 space-y-4">
+                      <div className="rounded-2xl md:rounded-3xl bg-rose-50/50 dark:bg-rose-950/25 p-5 sm:p-6 border border-rose-200/70 dark:border-rose-500/30 space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-xl bg-rose-600 flex items-center justify-center shadow-md shadow-rose-600/20">
                             <Skull size={20} className="text-white" aria-hidden="true" />
                           </div>
                           <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-primary-navy">宿命天敵</h3>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nemesis</p>
+                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">宿命天敵</h3>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nemesis</p>
                           </div>
                         </div>
                         <div className="space-y-2.5">
@@ -517,19 +517,19 @@ export function Dashboard() {
                               <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
                             ))
                           ) : (
-                            <p className="text-xs text-slate-400 font-bold text-center py-4">尚無天敵資料</p>
+                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無天敵資料</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="rounded-2xl md:rounded-3xl bg-emerald-50/50 p-5 sm:p-6 border border-emerald-200/70 space-y-4">
+                      <div className="rounded-2xl md:rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/25 p-5 sm:p-6 border border-emerald-200/70 dark:border-emerald-500/30 space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-600/20">
                             <Crown size={20} className="text-white" aria-hidden="true" />
                           </div>
                           <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-primary-navy">積分提款機</h3>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Minions</p>
+                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">積分提款機</h3>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minions</p>
                           </div>
                         </div>
                         <div className="space-y-2.5">
@@ -538,21 +538,21 @@ export function Dashboard() {
                               <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
                             ))
                           ) : (
-                            <p className="text-xs text-slate-400 font-bold text-center py-4">尚無提款機資料</p>
+                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無提款機資料</p>
                           )}
                         </div>
                       </div>
                     </motion.section>
 
                     <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      <div className="rounded-2xl md:rounded-3xl bg-amber-50/50 p-5 sm:p-6 border border-amber-200/70 space-y-4">
+                      <div className="rounded-2xl md:rounded-3xl bg-amber-50/50 dark:bg-amber-950/25 p-5 sm:p-6 border border-amber-200/70 dark:border-amber-500/30 space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-xl bg-olympic-gold flex items-center justify-center shadow-md shadow-amber-500/20">
                             <Trophy size={20} className="text-white" aria-hidden="true" />
                           </div>
                           <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-primary-navy">黃金搭檔</h3>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Best Partners</p>
+                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">黃金搭檔</h3>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Best Partners</p>
                           </div>
                         </div>
                         <div className="space-y-2.5">
@@ -561,19 +561,19 @@ export function Dashboard() {
                               <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
                             ))
                           ) : (
-                            <p className="text-xs text-slate-400 font-bold text-center py-4">尚無黃金搭檔資料</p>
+                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無黃金搭檔資料</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="rounded-2xl md:rounded-3xl bg-slate-50/80 p-5 sm:p-6 border border-slate-200/80 space-y-4">
+                      <div className="rounded-2xl md:rounded-3xl bg-surface-subtle/80 p-5 sm:p-6 border border-border space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-xl bg-slate-600 flex items-center justify-center shadow-md shadow-slate-600/20">
                             <Zap size={20} className="text-white" aria-hidden="true" />
                           </div>
                           <div>
-                            <h3 className="text-base sm:text-lg font-display font-black text-primary-navy">磨合搭檔</h3>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Toughest Pairings</p>
+                            <h3 className="text-base sm:text-lg font-display font-black text-foreground">磨合搭檔</h3>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Toughest Pairings</p>
                           </div>
                         </div>
                         <div className="space-y-2.5">
@@ -582,7 +582,7 @@ export function Dashboard() {
                               <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
                             ))
                           ) : (
-                            <p className="text-xs text-slate-400 font-bold text-center py-4">尚無相關資料</p>
+                            <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無相關資料</p>
                           )}
                         </div>
                       </div>
@@ -601,10 +601,10 @@ export function Dashboard() {
               <motion.section variants={itemVariants} className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <div>
-                    <h2 className="text-lg sm:text-xl text-primary-navy font-display font-black tracking-tight">
+                    <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
                       群雄榜單
                     </h2>
-                    <p className="text-xs text-slate-400 uppercase font-sans font-bold tracking-wider">
+                    <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
                       Top Rivals · Global Elo
                     </p>
                   </div>
@@ -612,7 +612,7 @@ export function Dashboard() {
                     variant="ghost"
                     size="icon"
                     aria-label="前往完整積分榜"
-                    className="rounded-full bg-slate-50 border border-slate-200/70 text-primary-navy"
+                    className="rounded-full bg-secondary border border-border text-foreground"
                     onClick={() => navigate('/leaderboard')}
                   >
                     <ArrowRight size={17} aria-hidden="true" />
@@ -625,14 +625,14 @@ export function Dashboard() {
                     ))
                   ) : (
                     <div className="text-center py-10 arena-surface border-dashed">
-                      <Search size={28} className="mx-auto text-slate-300 mb-3" aria-hidden="true" />
-                      <p className="text-slate-400 font-bold text-xs">尚無排行榜資料</p>
+                      <Search size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
+                      <p className="text-muted-foreground font-bold text-xs">尚無排行榜資料</p>
                     </div>
                   )}
                   <Button
                     onClick={() => navigate('/leaderboard')}
                     variant="outline"
-                    className="w-full h-12 bg-white hover:bg-slate-50 text-primary-navy border-slate-200 rounded-2xl font-sans font-black text-xs uppercase tracking-widest mt-2"
+                    className="w-full h-12 bg-card hover:bg-secondary text-foreground border-border rounded-2xl font-sans font-black text-xs uppercase tracking-widest mt-2"
                   >
                     查看完整積分榜
                   </Button>
@@ -660,25 +660,25 @@ function RivalRow({
     <button
       type="button"
       onClick={() => onInspect(id)}
-      className="w-full text-left flex items-center gap-3.5 bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/70 group hover:border-sapphire-blue/40 hover:shadow-sm transition-all"
+      className="w-full text-left flex items-center gap-3.5 bg-card p-3.5 rounded-2xl shadow-xs border border-border group hover:border-sapphire-blue/40 hover:shadow-sm transition-all"
     >
       <PlayerAvatar
         src={avatar}
         name={name}
-        className="size-10 rounded-full border border-slate-200 text-xs"
+        className="size-10 rounded-full border border-border text-xs"
       />
       <div className="flex-1 min-w-0">
-        <p className="font-sans font-black text-primary-navy text-sm truncate group-hover:text-sapphire-blue transition-colors">
+        <p className="font-sans font-black text-foreground text-sm truncate group-hover:text-sapphire-blue transition-colors">
           {name}
         </p>
-        <p className="text-xs text-slate-400 font-bold mt-0.5 tabular-nums">
+        <p className="text-xs text-muted-foreground font-bold mt-0.5 tabular-nums">
           {matches} 場 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} 分
         </p>
       </div>
       <span
         className={cn(
           'font-display font-black text-base tabular-nums shrink-0',
-          type === 'nemesis' ? 'text-rose-500' : 'text-emerald-600'
+          type === 'nemesis' ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
         )}
       >
         {winRate}%

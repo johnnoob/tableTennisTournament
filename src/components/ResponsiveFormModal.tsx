@@ -43,17 +43,17 @@ const SIZE_CLASSES: Record<ModalSize, string> = {
 };
 
 const TONE_BADGE_CLASSES: Record<ModalTone, string> = {
-  default: 'bg-sapphire-blue/10 text-sapphire-blue',
-  gold: 'bg-amber-100 text-amber-600',
-  success: 'bg-emerald-100 text-emerald-600',
-  danger: 'bg-rose-100 text-rose-600',
+  default: 'bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-400',
+  gold: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+  success: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
+  danger: 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400',
 };
 
 const TONE_TITLE_CLASSES: Record<ModalTone, string> = {
-  default: 'text-primary-navy',
-  gold: 'text-primary-navy',
-  success: 'text-emerald-700',
-  danger: 'text-rose-700',
+  default: 'text-foreground',
+  gold: 'text-foreground',
+  success: 'text-emerald-700 dark:text-emerald-400',
+  danger: 'text-rose-700 dark:text-rose-400',
 };
 
 export function ResponsiveFormModal({
@@ -90,7 +90,7 @@ export function ResponsiveFormModal({
           {title}
         </TitleComponent>
         {description ? (
-          <DescComponent className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+          <DescComponent className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
             {description}
           </DescComponent>
         ) : (
@@ -104,7 +104,7 @@ export function ResponsiveFormModal({
     const contentNodes = (
       <>
         <div className={cn('flex-1 overflow-y-auto overscroll-contain', bodyPaddingClass)}>{children}</div>
-        {footer && <div className={cn('shrink-0 border-t border-slate-100', footerClass)}>{footer}</div>}
+        {footer && <div className={cn('shrink-0 border-t border-border', footerClass)}>{footer}</div>}
       </>
     );
 
@@ -129,17 +129,17 @@ export function ResponsiveFormModal({
         {trigger && <DialogTrigger render={trigger} />}
         <DialogContent
           className={cn(
-            'p-0 gap-0 overflow-hidden border border-slate-200/80 bg-white rounded-3xl flex flex-col max-h-[90dvh]',
+            'p-0 gap-0 overflow-hidden border border-border bg-popover rounded-3xl flex flex-col max-h-[90dvh]',
             SIZE_CLASSES[size]
           )}
         >
-          <DialogHeader className="px-6 py-4 pr-14 border-b border-slate-100 text-left shrink-0">
+          <DialogHeader className="px-6 py-4 pr-14 border-b border-border text-left shrink-0">
             {headerInner(DialogTitle, DialogDescription)}
           </DialogHeader>
           {renderShell(
             'px-6 py-4',
             cn(
-              'px-6 py-4 bg-slate-50/70 flex items-center gap-2.5',
+              'px-6 py-4 bg-surface-subtle/70 dark:bg-slate-950/40 flex items-center gap-2.5',
               size === 'sm' ? 'justify-center [&>*]:flex-1' : 'justify-end'
             )
           )}
@@ -152,13 +152,13 @@ export function ResponsiveFormModal({
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent className="p-0 flex flex-col max-h-[94dvh] overflow-hidden">
-        <DrawerHeader className="px-5 pt-2.5 pb-3 border-b border-slate-100 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left shrink-0">
+        <DrawerHeader className="px-5 pt-2.5 pb-3 border-b border-border text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left shrink-0">
           {headerInner(DrawerTitle, DrawerDescription)}
         </DrawerHeader>
         {renderShell(
           'px-5 py-4',
           cn(
-            'px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] bg-white flex flex-col-reverse sm:flex-row sm:items-center gap-2',
+            'px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] bg-popover flex flex-col-reverse sm:flex-row sm:items-center gap-2',
             size === 'sm' ? 'sm:justify-center sm:[&>*]:flex-1' : 'sm:justify-end'
           )
         )}

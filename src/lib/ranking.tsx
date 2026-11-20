@@ -11,27 +11,27 @@ export const getTierBadge = (mmr: number, iconSize: number = 14) => {
     return {
       name: '菁英 (Elite)',
       icon: React.createElement(Shield, { size: iconSize }),
-      color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20'
+      color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/50'
     };
   }
   if (mmr >= 1260) {
     return {
       name: '金牌 (Gold)',
       icon: React.createElement(Trophy, { size: iconSize }),
-      color: 'bg-amber-100 text-amber-700 border-amber-300'
+      color: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/35'
     };
   }
   if (mmr >= 1210) {
     return {
       name: '銀牌 (Silver)',
       icon: React.createElement(Medal, { size: iconSize }),
-      color: 'bg-slate-100 text-slate-600 border-slate-300'
+      color: 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-500/20 dark:text-slate-200 dark:border-slate-500/35'
     };
   }
   return {
     name: '銅牌 (Bronze)',
     icon: React.createElement(Award, { size: iconSize }),
-    color: 'bg-orange-50 text-orange-700 border-orange-200'
+    color: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30'
   };
 };
 

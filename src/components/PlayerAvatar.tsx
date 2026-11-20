@@ -26,7 +26,7 @@ export function PlayerAvatar({ src, name, className, fallbackClassName }: Player
       <div
         aria-hidden={!name}
         className={cn(
-          'bg-gradient-to-br from-sapphire-blue/15 to-primary-navy/10 text-primary-navy font-display font-black flex items-center justify-center shrink-0 select-none',
+          'bg-gradient-to-br from-sapphire-blue/15 to-primary-navy/10 dark:from-blue-500/25 dark:to-indigo-500/15 text-foreground font-display font-black flex items-center justify-center shrink-0 select-none',
           className,
           fallbackClassName
         )}
@@ -43,7 +43,7 @@ export function PlayerAvatar({ src, name, className, fallbackClassName }: Player
       referrerPolicy="no-referrer"
       loading="lazy"
       onError={() => setFailedSrc(src)}
-      className={cn('object-cover shrink-0 bg-slate-100', className)}
+      className={cn('object-cover shrink-0 bg-secondary', className)}
     />
   );
 }

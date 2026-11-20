@@ -14,6 +14,7 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/theme-context';
 import { toast, Toaster } from 'sonner';
 
 import { ReportScore } from '@/components/ReportScore';
@@ -54,15 +55,19 @@ function AppContent() {
 
   // 🌟 改用 React Query Hook 獲取使用者資料
   const { data: user, isLoading: loading } = useAuth();
+  const { resolvedTheme } = useTheme();
 
   // ──────────────────────────────────────────────
   // Login 頁面 — 滿版設計，不渲染 Navigation
   // ──────────────────────────────────────────────
   if (isLoginPage) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-      </Routes>
+      <>
+        <Toaster richColors position="top-center" theme={resolvedTheme} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </>
     );
   }
 
@@ -70,16 +75,16 @@ function AppContent() {
   // App Shell — Navigation 永遠可見，Loading 僅影響主內容
   // ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-sapphire-blue/10 flex relative">
+    <div className="min-h-screen bg-background font-sans selection:bg-sapphire-blue/15 flex relative">
 
       {/* Navigation Layer (Contains Fixed Mobile & Desktop Navs) */}
       <Navigation />
       <GlobalPlayerDrawer />
-      <Toaster richColors position="top-center" />
+      <Toaster richColors position="top-center" theme={resolvedTheme} />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full min-w-0 pt-16 lg:pt-0 lg:ml-72 xl:ml-80 transition-all duration-300">
-        <div className="min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)] bg-white lg:my-4 lg:mr-4 lg:rounded-[2rem] lg:shadow-sm relative lg:border lg:border-slate-200/70 overflow-x-clip">
+        <div className="min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)] bg-surface-shell lg:my-4 lg:mr-4 lg:rounded-[2rem] lg:shadow-sm dark:lg:shadow-black/40 relative lg:border lg:border-border overflow-x-clip">
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
           {loading ? (
@@ -110,7 +115,7 @@ function AppContent() {
             trigger={
               <Button
                 aria-label="申報比分"
-                className="size-14 rounded-full bg-sapphire-blue hover:bg-blue-700 shadow-xl shadow-sapphire-blue/35 border-none group transition-all duration-300 hover:scale-105 active:scale-95"
+                className="size-14 rounded-full bg-gradient-to-br from-sapphire-blue to-blue-700 hover:opacity-95 shadow-xl shadow-sapphire-blue/35 border-none group transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 <Plus aria-hidden="true" className="size-6.5 text-white transform group-hover:rotate-90 transition-transform duration-300" />
               </Button>

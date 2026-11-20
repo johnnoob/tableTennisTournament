@@ -2,11 +2,12 @@ import * as React from "react"
 import { toast } from "sonner"
 import {
   User, Building2, LogOut, Shield, Trophy, Settings,
-  CheckCircle2, Target, Hand, Venus, Mars, HelpCircle, Loader2
+  CheckCircle2, Target, Hand, Venus, Mars, HelpCircle, Loader2, Palette
 } from "lucide-react"
 import { ResponsiveFormModal } from "@/components/ResponsiveFormModal"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { getTierBadge } from "@/lib/ranking"
 import { PlayerAvatar } from "@/components/PlayerAvatar"
@@ -49,7 +50,7 @@ function FieldLabel({
   required?: boolean
 }) {
   return (
-    <label htmlFor={htmlFor} className="arena-label flex items-center gap-1.5 text-slate-500">
+    <label htmlFor={htmlFor} className="arena-label flex items-center gap-1.5 text-muted-foreground">
       <Icon size={13} aria-hidden="true" />
       <span>{label}</span>
       {required && <span aria-hidden="true" className="text-rose-500">*</span>}
@@ -182,7 +183,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
             variant="outline"
             disabled={isSaving}
             onClick={() => setOpen(false)}
-            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
           >
             取消
           </Button>
@@ -193,7 +194,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
               "w-full sm:w-auto h-11 px-6 rounded-xl font-display font-black text-sm tracking-wide transition-all gap-2 shadow-sm",
               isSuccess
                 ? "bg-emerald-600 text-white"
-                : "bg-primary-navy hover:bg-slate-800 text-white disabled:opacity-40"
+                : "bg-primary hover:opacity-90 text-primary-foreground disabled:opacity-40"
             )}
           >
             {isSaving ? (
@@ -216,7 +217,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       <div className="space-y-5">
         {/* ── 大頭貼 + 帳號狀態 ── */}
         <div className="flex flex-col items-center gap-3 py-1">
-          <div className="size-20 rounded-2xl p-0.5 bg-gradient-to-br from-sapphire-blue/20 to-slate-200 shadow-sm">
+          <div className="size-20 rounded-2xl p-0.5 bg-gradient-to-br from-sapphire-blue/25 to-slate-200 dark:to-slate-700 shadow-sm">
             <PlayerAvatar
               src={user.avatar_url || user.avatar}
               name={user.name}
@@ -224,10 +225,10 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
             />
           </div>
           <div className="text-center space-y-1.5">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
               Account · {String(user.id).substring(0, 8).toUpperCase()}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-black">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/25 dark:text-amber-300 text-xs font-black">
               <Shield size={12} aria-hidden="true" />
               已驗證同仁
             </div>
@@ -236,19 +237,19 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
 
         {/* ── 單軌 Elo 數據卡片 ── */}
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="bg-blue-50/70 border border-blue-200/70 rounded-2xl p-3.5 flex flex-col items-center gap-0.5">
+          <div className="bg-blue-50/70 border border-blue-200/70 dark:bg-blue-500/12 dark:border-blue-500/25 rounded-2xl p-3.5 flex flex-col items-center gap-0.5">
             <Trophy size={14} className="text-sapphire-blue mb-0.5" aria-hidden="true" />
-            <span className="text-xl font-display font-black text-primary-navy tabular-nums leading-tight">
+            <span className="text-xl font-display font-black text-foreground tabular-nums leading-tight">
               {currentMmr}
             </span>
-            <span className="text-xs font-black text-sapphire-blue/80">目前積分 (ELO)</span>
+            <span className="text-xs font-black text-sapphire-blue/85 dark:text-blue-300">目前積分 (ELO)</span>
           </div>
-          <div className="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1">
-            <span className="text-amber-600">{currentTier.icon}</span>
-            <span className="text-sm font-display font-black text-primary-navy leading-tight text-center">
+          <div className="bg-amber-50/70 border border-amber-200/70 dark:bg-amber-500/12 dark:border-amber-500/25 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1">
+            <span className="text-amber-600 dark:text-amber-400">{currentTier.icon}</span>
+            <span className="text-sm font-display font-black text-foreground leading-tight text-center">
               {currentTier.name}
             </span>
-            <span className="text-xs font-black text-amber-700/80">目前段位</span>
+            <span className="text-xs font-black text-amber-700/80 dark:text-amber-300">目前段位</span>
           </div>
         </div>
 
@@ -295,7 +296,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
         {/* 性別 & 慣用手 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <fieldset>
-            <legend className="arena-label flex items-center gap-1.5 text-slate-500">
+            <legend className="arena-label flex items-center gap-1.5 text-muted-foreground">
               <Venus size={13} aria-hidden="true" />
               <span>性別</span>
             </legend>
@@ -312,7 +313,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
                       "flex-1 min-h-11 rounded-xl border text-xs font-black transition-all",
                       selected
                         ? "bg-sapphire-blue text-white border-sapphire-blue shadow-xs"
-                        : "bg-white text-slate-600 border-slate-300/90 hover:border-slate-400 hover:bg-slate-50"
+                        : "bg-card text-muted-foreground border-input hover:border-slate-400 hover:bg-secondary/60 hover:text-foreground"
                     )}
                   >
                     {label}
@@ -323,7 +324,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           </fieldset>
 
           <fieldset>
-            <legend className="arena-label flex items-center gap-1.5 text-slate-500">
+            <legend className="arena-label flex items-center gap-1.5 text-muted-foreground">
               <Hand size={13} aria-hidden="true" />
               <span>慣用手</span>
             </legend>
@@ -339,8 +340,8 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
                     className={cn(
                       "flex-1 min-h-11 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1.5",
                       selected
-                        ? "bg-primary-navy text-white border-primary-navy shadow-xs"
-                        : "bg-white text-slate-600 border-slate-300/90 hover:border-slate-400 hover:bg-slate-50"
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-card text-muted-foreground border-input hover:border-slate-400 hover:bg-secondary/60 hover:text-foreground"
                     )}
                   >
                     <span className="text-sm leading-none" aria-hidden="true">{icon}</span>
@@ -354,20 +355,20 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
 
         {/* 球拍膠皮 */}
         <fieldset>
-          <legend className="arena-label flex items-center gap-1.5 text-slate-500 mb-2">
+          <legend className="arena-label flex items-center gap-1.5 text-muted-foreground mb-2">
             <Target size={13} aria-hidden="true" />
             <span>球拍 · 膠皮配置</span>
           </legend>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor={forehandId} className="arena-label flex items-center gap-1.5 text-rose-600">
+              <label htmlFor={forehandId} className="arena-label flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
                 <span className="size-2.5 rounded-full bg-rose-500 inline-block" aria-hidden="true" />
                 <span>正手</span>
               </label>
               <Select value={forehand} onValueChange={(v) => setForehand(v === "__none__" ? "" : (v ?? ""))}>
                 <SelectTrigger
                   id={forehandId}
-                  className="min-h-11 h-11 w-full bg-white border-slate-300/90 focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-primary-navy rounded-xl text-base sm:text-sm"
+                  className="min-h-11 h-11 w-full bg-card border-input focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-foreground rounded-xl text-base sm:text-sm"
                 >
                   <SelectValue placeholder="選擇膠皮" />
                 </SelectTrigger>
@@ -380,14 +381,14 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
               </Select>
             </div>
             <div>
-              <label htmlFor={backhandId} className="arena-label flex items-center gap-1.5 text-slate-600">
-                <span className="size-2.5 rounded-full bg-primary-navy inline-block" aria-hidden="true" />
+              <label htmlFor={backhandId} className="arena-label flex items-center gap-1.5 text-muted-foreground">
+                <span className="size-2.5 rounded-full bg-primary-navy dark:bg-slate-300 inline-block" aria-hidden="true" />
                 <span>反手</span>
               </label>
               <Select value={backhand} onValueChange={(v) => setBackhand(v === "__none__" ? "" : (v ?? ""))}>
                 <SelectTrigger
                   id={backhandId}
-                  className="min-h-11 h-11 w-full bg-white border-slate-300/90 focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-primary-navy rounded-xl text-base sm:text-sm"
+                  className="min-h-11 h-11 w-full bg-card border-input focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-foreground rounded-xl text-base sm:text-sm"
                 >
                   <SelectValue placeholder="選擇膠皮" />
                 </SelectTrigger>
@@ -402,19 +403,28 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           </div>
         </fieldset>
 
+        {/* 外觀主題 */}
+        <fieldset>
+          <legend className="arena-label flex items-center gap-1.5 text-muted-foreground mb-2">
+            <Palette size={13} aria-hidden="true" />
+            <span>外觀主題</span>
+          </legend>
+          <ThemeToggle variant="cards" />
+        </fieldset>
+
         {/* 帳號資訊（唯讀） */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-slate-200/70">
-            <span className="text-xs font-black text-slate-500">帳號資訊（唯讀）</span>
+        <div className="bg-surface-subtle/80 border border-border rounded-2xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-border">
+            <span className="text-xs font-black text-muted-foreground">帳號資訊（唯讀）</span>
           </div>
           {[
             { label: "Email", value: user.email || "未綁定" },
             { label: "登入方式", value: user.auth_provider === "google" ? "Google 帳號" : user.auth_provider || "—" },
             { label: "權限等級", value: user.role === "admin" ? "管理員" : "一般同仁" },
           ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 last:border-b-0">
-              <span className="text-xs font-bold text-slate-500">{label}</span>
-              <span className="text-xs font-black text-primary-navy">{value}</span>
+            <div key={label} className="flex items-center justify-between px-4 py-2.5 border-b border-border last:border-b-0">
+              <span className="text-xs font-bold text-muted-foreground">{label}</span>
+              <span className="text-xs font-black text-foreground">{value}</span>
             </div>
           ))}
         </div>
@@ -423,7 +433,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-black gap-2 text-sm"
+          className="w-full h-11 rounded-xl border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 font-black gap-2 text-sm"
           onClick={() => logout()}
         >
           <LogOut size={15} aria-hidden="true" />

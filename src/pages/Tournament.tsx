@@ -21,20 +21,20 @@ function EmptyState({ icon: Icon, title, description, className }: { icon: Lucid
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'flex flex-col items-center justify-center py-16 px-6 rounded-2xl md:rounded-3xl bg-white border border-slate-200/80 shadow-xs relative overflow-hidden group',
+        'flex flex-col items-center justify-center py-16 px-6 rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs relative overflow-hidden group',
         className
       )}
     >
-      <div className="size-20 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-center text-slate-300 mb-6 relative z-10 group-hover:bg-sapphire-blue group-hover:text-white transition-all duration-500">
+      <div className="size-20 rounded-2xl bg-surface-subtle border border-border flex items-center justify-center text-muted-foreground/50 mb-6 relative z-10 group-hover:bg-sapphire-blue group-hover:text-white group-hover:border-sapphire-blue transition-all duration-500">
         <Icon size={36} strokeWidth={1.5} aria-hidden="true" />
         <Sparkles size={18} className="absolute -top-2 -right-2 text-olympic-gold" fill="currentColor" aria-hidden="true" />
       </div>
 
       <div className="space-y-2 text-center relative z-10">
-        <h3 className="font-display font-black text-xl text-primary-navy tracking-tight">
+        <h3 className="font-display font-black text-xl text-foreground tracking-tight">
           {title}
         </h3>
-        <p className="text-sm text-slate-400 font-medium max-w-[320px] leading-relaxed">
+        <p className="text-sm text-muted-foreground font-medium max-w-[320px] leading-relaxed">
           {description}
         </p>
       </div>
@@ -128,17 +128,17 @@ export function Tournament() {
         }
       }}
     >
-      <TabsList className="bg-slate-100/80 p-1 rounded-2xl h-12 w-full md:w-fit grid grid-cols-2 border border-slate-200/70">
+      <TabsList className="bg-secondary p-1 rounded-2xl h-12 w-full md:w-fit grid grid-cols-2 border border-border">
         <TabsTrigger
           value="seasons"
-          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-white data-active:text-sapphire-blue data-active:shadow-xs"
+          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-card data-active:text-sapphire-blue data-active:shadow-xs"
         >
           <Trophy size={15} aria-hidden="true" />
           積分賽季
         </TabsTrigger>
         <TabsTrigger
           value="exclusive"
-          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-white data-active:text-amber-600 data-active:shadow-xs"
+          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-card data-active:text-amber-600 dark:data-active:text-amber-400 data-active:shadow-xs"
         >
           <Target size={15} aria-hidden="true" />
           獨立錦標賽
@@ -179,7 +179,7 @@ export function Tournament() {
           {/* 狀態篩選列 */}
           <motion.div
             variants={fadeInUp}
-            className="flex items-center gap-2.5 py-3 border-y border-slate-200/70 overflow-x-auto no-scrollbar"
+            className="flex items-center gap-2.5 py-3 border-y border-border overflow-x-auto no-scrollbar"
           >
             {[
               { id: 'all', cn: '全部', en: 'All', icon: Filter, colorKey: 'all' },
@@ -199,7 +199,7 @@ export function Tournament() {
                     'flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-black text-xs tracking-wider transition-all border shrink-0 whitespace-nowrap',
                     isActive
                       ? `${styles.bg} text-white ${styles.border} shadow-sm`
-                      : 'bg-white text-slate-500 border-slate-200/80 hover:border-slate-300 hover:text-primary-navy'
+                      : 'bg-card text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground'
                   )}
                 >
                   <filter.icon size={14} aria-hidden="true" className={cn(isActive ? 'text-white' : styles.text)} />
@@ -219,15 +219,15 @@ export function Tournament() {
               <TabsContent value="seasons" className="mt-0 focus-visible:outline-none space-y-6">
                 <div className="flex items-center justify-between px-1">
                   <div className="space-y-0.5">
-                    <h2 className="font-display font-black text-xl sm:text-2xl text-primary-navy tracking-tight">
+                    <h2 className="font-display font-black text-xl sm:text-2xl text-foreground tracking-tight">
                       積分賽季清單
                     </h2>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
                       <Zap size={13} className="text-olympic-gold" aria-hidden="true" />
                       季賽排行榜與段位積分結算
                     </div>
                   </div>
-                  <Badge className="bg-slate-100 text-slate-600 font-sans font-black border border-slate-200/80 px-3 py-1">
+                  <Badge className="bg-secondary text-muted-foreground font-sans font-black border border-border px-3 py-1">
                     {filteredSeasons.length} 個賽季
                   </Badge>
                 </div>
@@ -242,7 +242,7 @@ export function Tournament() {
                     <motion.div key={s.id || idx} variants={itemVariants}>
                       <Card
                         onClick={() => navigate(`/season/${s.id}`)}
-                        className="arena-card p-6 hover:bg-slate-50/70 transition-all cursor-pointer group hover:border-sapphire-blue/30 hover:shadow-md relative overflow-hidden"
+                        className="arena-card p-6 hover:bg-surface-subtle/80 transition-all cursor-pointer group hover:border-sapphire-blue/30 hover:shadow-md relative overflow-hidden"
                       >
                         <div className="absolute -top-8 -right-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity text-sapphire-blue pointer-events-none">
                           <Trophy size={150} aria-hidden="true" />
@@ -250,14 +250,14 @@ export function Tournament() {
 
                         <div className="flex flex-col space-y-5 relative z-10">
                           <div className="flex items-start justify-between">
-                            <div className="size-13 rounded-2xl bg-slate-50 border border-slate-200/70 text-slate-500 flex items-center justify-center group-hover:bg-sapphire-blue group-hover:text-white group-hover:border-sapphire-blue transition-all">
+                            <div className="size-13 rounded-2xl bg-surface-subtle border border-border text-muted-foreground flex items-center justify-center group-hover:bg-sapphire-blue group-hover:text-white group-hover:border-sapphire-blue transition-all">
                               <Trophy size={26} strokeWidth={1.6} aria-hidden="true" />
                             </div>
-                            <ArrowRight size={20} aria-hidden="true" className="text-slate-300 group-hover:text-sapphire-blue transition-all group-hover:translate-x-1" />
+                            <ArrowRight size={20} aria-hidden="true" className="text-muted-foreground/50 group-hover:text-sapphire-blue transition-all group-hover:translate-x-1" />
                           </div>
 
                           <div className="space-y-3">
-                            <h3 className="font-display font-black text-xl text-primary-navy tracking-tight group-hover:text-sapphire-blue transition-colors">
+                            <h3 className="font-display font-black text-xl text-foreground tracking-tight group-hover:text-sapphire-blue transition-colors">
                               {s.name}
                             </h3>
 
@@ -265,15 +265,15 @@ export function Tournament() {
                               <Badge
                                 className={cn(
                                   'text-xs uppercase font-sans tracking-wider px-2.5 py-0.5 border-none font-black',
-                                  s.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'
+                                  s.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-slate-400 dark:bg-slate-600 text-white'
                                 )}
                               >
                                 {s.status === 'active' ? '● 進行中' : '已結束'}
                               </Badge>
-                              <span className="text-xs font-bold text-slate-400">Official Season</span>
+                              <span className="text-xs font-bold text-muted-foreground">Official Season</span>
                             </div>
 
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500 tabular-nums">
+                            <div className="pt-3 border-t border-border flex items-center justify-between text-xs font-bold text-muted-foreground tabular-nums">
                               <span>
                                 {formatLocalTime(s.start_date, 'yyyy/MM/dd')} - {formatLocalTime(s.end_date, 'yyyy/MM/dd')}
                               </span>
@@ -307,10 +307,10 @@ export function Tournament() {
                 {displayHeroTournaments.length > 0 && (
                   <div className="space-y-5">
                     <div className="px-1">
-                      <h2 className="font-display font-black text-xl sm:text-2xl text-primary-navy tracking-tight">
+                      <h2 className="font-display font-black text-xl sm:text-2xl text-foreground tracking-tight">
                         火熱進行中
                       </h2>
-                      <p className="text-xs text-slate-400 font-bold">Live Now · 開放報名或進行中錦標賽</p>
+                      <p className="text-xs text-muted-foreground font-bold">Live Now · 開放報名或進行中錦標賽</p>
                     </div>
                     <div className="space-y-5">
                       {displayHeroTournaments.map((t, idx: number) => (
@@ -320,7 +320,7 @@ export function Tournament() {
                           onClick={() => navigate(`/tournament/${t.id}`)}
                           className="cursor-pointer group"
                         >
-                          <div className="bg-primary-navy rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 text-white relative overflow-hidden shadow-lg border border-slate-800 hover:border-sapphire-blue/50 transition-all">
+                          <div className="arena-hero-surface rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 text-white relative overflow-hidden shadow-lg border border-slate-700/80 hover:border-sapphire-blue/60 transition-all">
                             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 group-hover:scale-105 transition-all pointer-events-none">
                               <Trophy size={150} strokeWidth={1} aria-hidden="true" />
                             </div>
@@ -363,10 +363,10 @@ export function Tournament() {
                 {displayStandardTournaments.length > 0 && (
                   <div className="space-y-5">
                     <div className="px-1">
-                      <h2 className="font-display font-black text-xl sm:text-2xl text-primary-navy tracking-tight">
+                      <h2 className="font-display font-black text-xl sm:text-2xl text-foreground tracking-tight">
                         {tournamentStatusFilter === 'all' ? '歷史錦標賽記錄' : '篩選結果'}
                       </h2>
-                      <p className="text-xs text-slate-400 font-bold">
+                      <p className="text-xs text-muted-foreground font-bold">
                         {tournamentStatusFilter === 'all' ? '歷屆獨立錦標賽總覽' : '符合目前篩選條件的錦標賽'}
                       </p>
                     </div>
@@ -380,15 +380,15 @@ export function Tournament() {
                         <motion.div key={t.id || idx} variants={itemVariants}>
                           <Card
                             onClick={() => navigate(`/tournament/${t.id}`)}
-                            className="arena-card p-5 hover:bg-slate-50/70 transition-all cursor-pointer group hover:border-sapphire-blue/30"
+                            className="arena-card p-5 hover:bg-surface-subtle/80 transition-all cursor-pointer group hover:border-sapphire-blue/30"
                           >
                             <CardContent className="p-0 flex items-center justify-between gap-4">
                               <div className="flex items-center gap-4 min-w-0">
-                                <div className="size-14 rounded-2xl bg-slate-50 border border-slate-200/70 text-slate-400 flex items-center justify-center group-hover:bg-sapphire-blue group-hover:text-white transition-all shrink-0">
+                                <div className="size-14 rounded-2xl bg-surface-subtle border border-border text-muted-foreground flex items-center justify-center group-hover:bg-sapphire-blue group-hover:text-white group-hover:border-sapphire-blue transition-all shrink-0">
                                   <Calendar size={24} strokeWidth={1.5} aria-hidden="true" />
                                 </div>
                                 <div className="space-y-1.5 min-w-0">
-                                  <h4 className="font-display font-black text-lg text-primary-navy tracking-tight group-hover:text-sapphire-blue transition-colors truncate">
+                                  <h4 className="font-display font-black text-lg text-foreground tracking-tight group-hover:text-sapphire-blue transition-colors truncate">
                                     {t.title}
                                   </h4>
                                   <div className="flex items-center gap-2.5">
@@ -396,21 +396,21 @@ export function Tournament() {
                                       className={cn(
                                         'font-sans font-black text-xs uppercase tracking-wider px-2.5 py-0.5 border-none',
                                         t.status === 'registering'
-                                          ? 'bg-amber-100 text-amber-700'
+                                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
                                           : t.status === 'ongoing'
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'bg-emerald-100 text-emerald-700'
+                                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+                                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                                       )}
                                     >
                                       {t.status}
                                     </Badge>
-                                    <span className="text-xs font-bold text-slate-400 tabular-nums">
+                                    <span className="text-xs font-bold text-muted-foreground tabular-nums">
                                       {formatLocalTime(t.created_at, 'yyyy/MM/dd')}
                                     </span>
                                   </div>
                                 </div>
                               </div>
-                              <ArrowRight size={20} aria-hidden="true" className="text-slate-300 group-hover:text-sapphire-blue group-hover:translate-x-1 transition-all shrink-0" />
+                              <ArrowRight size={20} aria-hidden="true" className="text-muted-foreground/50 group-hover:text-sapphire-blue group-hover:translate-x-1 transition-all shrink-0" />
                             </CardContent>
                           </Card>
                         </motion.div>
@@ -458,7 +458,7 @@ export function Tournament() {
                       />
                     ))}
                   </div>
-                  <span className="text-xs font-display font-black uppercase tracking-widest text-slate-400">
+                  <span className="text-xs font-display font-black uppercase tracking-widest text-muted-foreground">
                     載入更多賽事...
                   </span>
                 </motion.div>

@@ -89,10 +89,10 @@ export function Leaderboard() {
       className={cn(
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider',
         isAllTime
-          ? 'bg-purple-100 text-purple-700'
+          ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
           : isSeasonEnded
-            ? 'bg-amber-100 text-amber-700'
-            : 'bg-emerald-100 text-emerald-700'
+            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
       )}
     >
       {isAllTime ? <Crown size={13} aria-hidden="true" /> : <Timer size={13} aria-hidden="true" />}
@@ -101,10 +101,10 @@ export function Leaderboard() {
   );
 
   const countAction = (
-    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-bold text-slate-600">
+    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground">
       <Users size={14} className="text-sapphire-blue" aria-hidden="true" />
       <span>
-        已上榜 <strong className="font-display font-black text-primary-navy tabular-nums">{rankedCount}</strong> / {realLeaderboard.length} 人
+        已上榜 <strong className="font-display font-black text-foreground tabular-nums">{rankedCount}</strong> / {realLeaderboard.length} 人
       </span>
     </div>
   );
@@ -159,9 +159,9 @@ export function Leaderboard() {
                 }
               }}
             >
-              <SelectTrigger className="w-full sm:w-64 h-11 bg-white border-slate-200 rounded-xl font-bold text-primary-navy shadow-xs">
+              <SelectTrigger className="w-full sm:w-64 h-11 bg-card border-input rounded-xl font-bold text-foreground shadow-xs">
                 <div className="flex items-center gap-2 truncate">
-                  <History size={16} className="text-slate-400 shrink-0" aria-hidden="true" />
+                  <History size={16} className="text-muted-foreground shrink-0" aria-hidden="true" />
                   <SelectValue placeholder="選擇賽季" />
                 </div>
               </SelectTrigger>
@@ -179,7 +179,7 @@ export function Leaderboard() {
 
             <div className="relative flex-1">
               <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 size={17}
                 aria-hidden="true"
               />
@@ -189,14 +189,14 @@ export function Leaderboard() {
                 placeholder="搜尋同仁姓名或單位..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-11 pl-10 pr-10 rounded-xl border border-slate-200 bg-white text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/20 focus:border-sapphire-blue transition-all font-bold text-primary-navy placeholder:text-slate-400 shadow-xs"
+                className="w-full h-11 pl-10 pr-10 rounded-xl border border-input bg-card text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue transition-all font-bold text-foreground placeholder:text-muted-foreground/70 shadow-xs"
               />
               {searchTerm && (
                 <button
                   type="button"
                   aria-label="清除搜尋"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
                   <X size={15} aria-hidden="true" />
                 </button>
@@ -212,10 +212,10 @@ export function Leaderboard() {
               className="arena-surface px-3 sm:px-6 pt-5 pb-0 overflow-hidden"
             >
               <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
                   {isAllTime ? '歷史積分殿堂 Top 3' : isSeasonEnded ? '賽季最終頒獎台' : '目前領先前三名'}
                 </p>
-                <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+                <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
                   點擊選手查看完整戰績
                 </span>
               </div>
@@ -258,46 +258,46 @@ export function Leaderboard() {
                   {seasonName} 積分排行榜
                 </caption>
                 <thead>
-                  <tr className="border-b border-slate-200/80">
+                  <tr className="border-b border-border">
                     <th
                       scope="col"
-                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center bg-slate-50/95 backdrop-blur-md z-10"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider w-20 text-center bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       名次
                     </th>
                     <th
                       scope="col"
-                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50/95 backdrop-blur-md z-10"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       選手
                     </th>
                     <th
                       scope="col"
-                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50/95 backdrop-blur-md z-10"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       段位與勝率
                     </th>
                     <th
                       scope="col"
-                      className="lb-col-record sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center bg-slate-50/95 backdrop-blur-md z-10"
+                      className="lb-col-record sticky top-0 py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider text-center bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       戰績
                     </th>
                     <th
                       scope="col"
-                      className="lb-col-form sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center bg-slate-50/95 backdrop-blur-md z-10"
+                      className="lb-col-form sticky top-0 py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider text-center bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       近 5 場
                     </th>
                     <th
                       scope="col"
-                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-primary-navy uppercase tracking-wider text-right bg-slate-50/95 backdrop-blur-md z-10"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-foreground uppercase tracking-wider text-right bg-surface-subtle/95 backdrop-blur-md z-10"
                     >
                       積分 (ELO)
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {sortedPlayers.map((player) => {
                     const rank = player.rank;
                     const tier = getTierBadge(player.global_mmr);
@@ -311,9 +311,9 @@ export function Leaderboard() {
                         key={player.player_id}
                         onClick={() => openInspect(player.player_id)}
                         className={cn(
-                          'group hover:bg-slate-50/80 transition-colors cursor-pointer',
-                          isTop1 && 'lb-row-top1 bg-amber-50/35',
-                          isMe && 'lb-row-me bg-sapphire-blue/[0.04]'
+                          'group hover:bg-secondary/60 transition-colors cursor-pointer',
+                          isTop1 && 'lb-row-top1 bg-amber-50/35 dark:bg-amber-500/10',
+                          isMe && 'lb-row-me bg-sapphire-blue/[0.04] dark:bg-blue-500/12'
                         )}
                       >
                         <td className="lb-cell-rank py-3.5 px-4 w-20 text-center">
@@ -323,16 +323,16 @@ export function Leaderboard() {
                                 className={cn(
                                   'size-8 rounded-full flex items-center justify-center font-display font-black text-sm tabular-nums border',
                                   rank === 1
-                                    ? 'bg-amber-100 text-amber-700 border-amber-300'
+                                    ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-400/50'
                                     : rank === 2
-                                      ? 'bg-slate-200/80 text-slate-700 border-slate-300'
-                                      : 'bg-orange-100 text-orange-700 border-orange-300'
+                                      ? 'bg-slate-200/80 text-slate-700 border-slate-300 dark:bg-slate-500/25 dark:text-slate-200 dark:border-slate-500/50'
+                                      : 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-400/50'
                                 )}
                               >
                                 {rank}
                               </span>
                             ) : (
-                              <span className="font-display font-black text-lg text-slate-400 tabular-nums leading-none">
+                              <span className="font-display font-black text-lg text-muted-foreground tabular-nums leading-none">
                                 {rank}
                               </span>
                             )}
@@ -340,7 +340,7 @@ export function Leaderboard() {
                               <span
                                 className={cn(
                                   'text-xs font-black tabular-nums',
-                                  isPositiveTrend ? 'text-emerald-600' : 'text-rose-500'
+                                  isPositiveTrend ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
                                 )}
                               >
                                 {isPositiveTrend ? '▲' : '▼'} {trendStr.replace(/[+-]/, '')}
@@ -361,11 +361,11 @@ export function Leaderboard() {
                             <PlayerAvatar
                               src={player.avatar_url}
                               name={player.player_name}
-                              className="size-10 md:size-11 rounded-xl md:rounded-2xl border border-slate-200/80 shadow-xs text-sm group-hover:scale-105 transition-transform"
+                              className="size-10 md:size-11 rounded-xl md:rounded-2xl border border-border shadow-xs text-sm group-hover:scale-105 transition-transform"
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-sans font-black text-primary-navy text-sm md:text-base truncate group-hover:text-sapphire-blue transition-colors">
+                                <span className="font-sans font-black text-foreground text-sm md:text-base truncate group-hover:text-sapphire-blue transition-colors">
                                   {player.player_name}
                                 </span>
                                 {isMe && (
@@ -374,7 +374,7 @@ export function Leaderboard() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-400 font-bold truncate">
+                              <p className="text-xs text-muted-foreground font-bold truncate">
                                 {player.department || '一般同仁'}
                               </p>
                             </div>
@@ -392,7 +392,7 @@ export function Leaderboard() {
                               {tier.icon}
                               <span className="text-xs font-black whitespace-nowrap">{tier.name}</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-400 tabular-nums whitespace-nowrap">
+                            <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                               勝率 {player.win_rate}
                             </span>
                           </div>
@@ -401,11 +401,11 @@ export function Leaderboard() {
                         <td className="lb-cell-record lb-col-record py-3.5 px-4 text-center" data-label="戰績">
                           <div className="flex items-center sm:flex-col justify-center gap-1.5 sm:gap-0.5">
                             <div className="flex items-center gap-1 text-xs sm:text-sm font-black tabular-nums whitespace-nowrap">
-                              <span className="text-emerald-600">{player.wins}W</span>
-                              <span className="text-slate-300">-</span>
-                              <span className="text-rose-500">{player.losses}L</span>
+                              <span className="text-emerald-600 dark:text-emerald-400">{player.wins}W</span>
+                              <span className="text-muted-foreground/45">-</span>
+                              <span className="text-rose-500 dark:text-rose-400">{player.losses}L</span>
                             </div>
-                            <span className="hidden sm:inline text-xs font-bold text-slate-400 tabular-nums">
+                            <span className="hidden sm:inline text-xs font-bold text-muted-foreground tabular-nums">
                               共 {player.matches_played} 場
                             </span>
                           </div>
@@ -426,7 +426,7 @@ export function Leaderboard() {
                                 />
                               ))
                             ) : (
-                              <span className="text-xs font-bold text-slate-300">尚無紀錄</span>
+                              <span className="text-xs font-bold text-muted-foreground/60">尚無紀錄</span>
                             )}
                           </div>
                         </td>
@@ -436,12 +436,12 @@ export function Leaderboard() {
                             <span
                               className={cn(
                                 'font-display font-black text-xl sm:text-2xl tracking-tight tabular-nums leading-none',
-                                isTop1 ? 'text-amber-600' : 'text-primary-navy'
+                                isTop1 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
                               )}
                             >
                               {Math.round(player.global_mmr)}
                             </span>
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-wider mt-1">
+                            <span className="text-xs font-black text-muted-foreground uppercase tracking-wider mt-1">
                               ELO
                             </span>
                           </div>
@@ -454,8 +454,8 @@ export function Leaderboard() {
 
               {sortedPlayers.length === 0 && (
                 <div className="py-16 px-4 text-center flex flex-col items-center justify-center">
-                  <Search size={36} className="mb-3 text-slate-200" aria-hidden="true" />
-                  <p className="text-slate-500 font-bold text-sm">
+                  <Search size={36} className="mb-3 text-muted-foreground/40" aria-hidden="true" />
+                  <p className="text-muted-foreground font-bold text-sm">
                     {searchTerm ? `找不到符合「${searchTerm}」的選手` : '目前尚無積分榜資料'}
                   </p>
                 </div>
@@ -480,38 +480,38 @@ function PodiumSlot({ place, player, onSelect }: PodiumSlotProps) {
       avatarSize: 'size-16 sm:size-22 text-xl sm:text-2xl',
       ring: 'border-amber-400',
       badgeBg: 'bg-olympic-gold text-white',
-      pedestal: 'h-24 sm:h-32 bg-gradient-to-t from-amber-200/80 to-amber-50 border-t-4 border-amber-400',
+      pedestal: 'h-24 sm:h-32 bg-gradient-to-t from-amber-200/80 to-amber-50 dark:from-amber-500/25 dark:to-amber-500/5 border-t-4 border-amber-400',
       numeral: 'I',
-      numeralColor: 'text-amber-500/40 text-3xl sm:text-4xl',
-      nameColor: 'text-amber-700',
+      numeralColor: 'text-amber-500/40 dark:text-amber-400/50 text-3xl sm:text-4xl',
+      nameColor: 'text-amber-700 dark:text-amber-300',
     },
     2: {
       avatarSize: 'size-13 sm:size-18 text-base sm:text-xl',
-      ring: 'border-slate-300',
+      ring: 'border-slate-300 dark:border-slate-500',
       badgeBg: 'bg-slate-600 text-white',
-      pedestal: 'h-18 sm:h-24 bg-gradient-to-t from-slate-200/80 to-slate-50 border-t-4 border-slate-300',
+      pedestal: 'h-18 sm:h-24 bg-gradient-to-t from-slate-200/80 to-slate-50 dark:from-slate-600/30 dark:to-slate-600/10 border-t-4 border-slate-300 dark:border-slate-500',
       numeral: 'II',
       numeralColor: 'text-slate-400/50 text-2xl sm:text-3xl',
-      nameColor: 'text-primary-navy',
+      nameColor: 'text-foreground',
     },
     3: {
       avatarSize: 'size-13 sm:size-18 text-base sm:text-xl',
-      ring: 'border-orange-300',
+      ring: 'border-orange-300 dark:border-orange-500/70',
       badgeBg: 'bg-orange-500 text-white',
-      pedestal: 'h-14 sm:h-20 bg-gradient-to-t from-orange-100/80 to-orange-50/40 border-t-4 border-orange-300',
+      pedestal: 'h-14 sm:h-20 bg-gradient-to-t from-orange-100/80 to-orange-50/40 dark:from-orange-500/25 dark:to-orange-500/5 border-t-4 border-orange-300 dark:border-orange-400',
       numeral: 'III',
-      numeralColor: 'text-orange-700/30 text-xl sm:text-2xl',
-      nameColor: 'text-primary-navy',
+      numeralColor: 'text-orange-700/30 dark:text-orange-400/50 text-xl sm:text-2xl',
+      nameColor: 'text-foreground',
     },
   }[place];
 
   if (!player) {
     return (
       <div className="flex flex-col items-center">
-        <div className={cn('rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-white/60 mb-3', styles.avatarSize)}>
-          <span className="text-slate-300 font-display font-black">?</span>
+        <div className={cn('rounded-full border-2 border-dashed border-border flex items-center justify-center bg-card/60 mb-3', styles.avatarSize)}>
+          <span className="text-muted-foreground/50 font-display font-black">?</span>
         </div>
-        <p className="text-xs font-bold text-slate-300 mb-3">虛位以待</p>
+        <p className="text-xs font-bold text-muted-foreground/60 mb-3">虛位以待</p>
         <div className={cn('w-full rounded-t-2xl flex justify-center pt-3', styles.pedestal)}>
           <span className={cn('font-display font-black', styles.numeralColor)}>{styles.numeral}</span>
         </div>
@@ -540,7 +540,7 @@ function PodiumSlot({ place, player, onSelect }: PodiumSlotProps) {
         />
         <span
           className={cn(
-            'absolute -bottom-2 left-1/2 -translate-x-1/2 size-6 sm:size-7 rounded-full flex items-center justify-center font-display font-black text-xs border-2 border-white shadow-sm',
+            'absolute -bottom-2 left-1/2 -translate-x-1/2 size-6 sm:size-7 rounded-full flex items-center justify-center font-display font-black text-xs border-2 border-card shadow-sm',
             styles.badgeBg
           )}
         >
@@ -551,9 +551,9 @@ function PodiumSlot({ place, player, onSelect }: PodiumSlotProps) {
       <p className={cn('font-sans font-black text-xs sm:text-sm md:text-base truncate w-full px-1 group-hover:text-sapphire-blue transition-colors', styles.nameColor)}>
         {player.player_name}
       </p>
-      <p className="font-display font-black text-sm sm:text-base text-primary-navy tabular-nums mt-0.5">
+      <p className="font-display font-black text-sm sm:text-base text-foreground tabular-nums mt-0.5">
         {Math.round(player.global_mmr)}
-        <span className="text-xs font-sans font-bold text-slate-400 ml-1">ELO</span>
+        <span className="text-xs font-sans font-bold text-muted-foreground ml-1">ELO</span>
       </p>
 
       <div className={cn('w-full rounded-t-2xl mt-3 flex justify-center pt-3 transition-all', styles.pedestal)}>

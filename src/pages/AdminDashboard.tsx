@@ -92,12 +92,12 @@ export function AdminDashboard() {
         <Card className={cn(
             "px-4 py-3 flex items-center gap-3.5 border shadow-xs transition-all duration-500 rounded-2xl w-full md:w-auto",
             isSeasonPaused
-                ? "bg-rose-50 text-rose-600 border-rose-200"
-                : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30"
+                : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/12 dark:text-emerald-300 dark:border-emerald-500/30"
         )}>
             <div className={cn(
                 "size-9 rounded-xl flex items-center justify-center shrink-0",
-                isSeasonPaused ? "bg-rose-100" : "bg-emerald-100"
+                isSeasonPaused ? "bg-rose-100 dark:bg-rose-500/20" : "bg-emerald-100 dark:bg-emerald-500/20"
             )}>
                 {isSeasonPaused ? <Pause size={18} /> : <Play size={18} />}
             </div>
@@ -115,7 +115,7 @@ export function AdminDashboard() {
                 title="管理主控台"
                 subtitle="Precision Arena · Admin Control"
                 badge={
-                    <span className="px-2.5 py-0.5 bg-sapphire-blue/10 text-sapphire-blue text-xs font-black uppercase tracking-wider rounded-full border border-sapphire-blue/20">
+                    <span className="px-2.5 py-0.5 bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black uppercase tracking-wider rounded-full border border-sapphire-blue/20 dark:border-blue-500/30">
                         Admin
                     </span>
                 }
@@ -123,7 +123,7 @@ export function AdminDashboard() {
             />
 
             {/* Tab Navigation */}
-            <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/70 w-full md:w-fit">
+            <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-secondary rounded-2xl border border-border w-full md:w-fit">
                 {tabs.map((tab) => (
                     <button
                         type="button"
@@ -132,8 +132,8 @@ export function AdminDashboard() {
                         className={cn(
                             "flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 relative overflow-hidden shrink-0 whitespace-nowrap",
                             activeTab === tab.id
-                                ? "bg-white text-primary-navy shadow-xs"
-                                : "text-slate-500 hover:bg-white/60 hover:text-primary-navy"
+                                ? "bg-card text-foreground shadow-xs"
+                                : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
                         )}
                     >
                         <tab.icon size={16} aria-hidden="true" />
@@ -141,7 +141,7 @@ export function AdminDashboard() {
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="tab-active"
-                                className="absolute inset-0 bg-white -z-10"
+                                className="absolute inset-0 bg-card -z-10"
                                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                             />
                         )}
@@ -155,7 +155,7 @@ export function AdminDashboard() {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="animate-spin text-sapphire-blue" size={40} />
-                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">載入數據中...</p>
+                            <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">載入數據中...</p>
                         </div>
                     </div>
                 ) : (
@@ -253,16 +253,16 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <Card className="arena-card p-6 sm:p-8">
-                <h3 className="text-xl font-black text-primary-navy mb-6 flex items-center gap-3">
+                <h3 className="text-xl font-black text-foreground mb-6 flex items-center gap-3">
                     <Pause className="text-sapphire-blue" size={22} aria-hidden="true" />
                     賽季自動管控
                 </h3>
 
                 <form onSubmit={handleSave} className="space-y-6">
-                    <div className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-surface-subtle/80 rounded-2xl border border-border">
                         <div>
-                            <p className="font-bold text-primary-navy">暫停積分申報</p>
-                            <p className="text-xs text-slate-500 mt-1">開啟後所有人將無法發起新的大會積分報分</p>
+                            <p className="font-bold text-foreground">暫停積分申報</p>
+                            <p className="text-xs text-muted-foreground mt-1">開啟後所有人將無法發起新的大會積分報分</p>
                         </div>
                         <button
                             type="button"
@@ -273,7 +273,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                             disabled={saving}
                             className={cn(
                                 "w-14 h-8 rounded-full transition-colors duration-300 relative shrink-0",
-                                isPaused ? "bg-rose-500" : "bg-slate-300"
+                                isPaused ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"
                             )}
                         >
                             <motion.div
@@ -284,10 +284,10 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                     </div>
 
                     <fieldset className="space-y-3">
-                        <legend className="arena-label text-slate-500">自動產生賽季間隔</legend>
+                        <legend className="arena-label text-muted-foreground">自動產生賽季間隔</legend>
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <label htmlFor={daysId} className="arena-label text-center text-slate-500">Days 天</label>
+                                <label htmlFor={daysId} className="arena-label text-center text-muted-foreground">Days 天</label>
                                 <input
                                     id={daysId}
                                     name="intervalDays"
@@ -299,7 +299,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                                 />
                             </div>
                             <div>
-                                <label htmlFor={hoursId} className="arena-label text-center text-slate-500">Hours 時</label>
+                                <label htmlFor={hoursId} className="arena-label text-center text-muted-foreground">Hours 時</label>
                                 <input
                                     id={hoursId}
                                     name="intervalHours"
@@ -312,7 +312,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                                 />
                             </div>
                             <div>
-                                <label htmlFor={minsId} className="arena-label text-center text-slate-500">Mins 分</label>
+                                <label htmlFor={minsId} className="arena-label text-center text-muted-foreground">Mins 分</label>
                                 <input
                                     id={minsId}
                                     name="intervalMinutes"
@@ -328,7 +328,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                     </fieldset>
 
                     <div>
-                        <label htmlFor={startDateId} className="arena-label text-slate-500">首季起始基準時間 (含秒)</label>
+                        <label htmlFor={startDateId} className="arena-label text-muted-foreground">首季起始基準時間 (含秒)</label>
                         <input
                             id={startDateId}
                             name="seasonStartDate"
@@ -343,7 +343,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                     <Button
                         type="submit"
                         disabled={saving}
-                        className="w-full h-11 rounded-xl bg-primary-navy hover:bg-slate-800 text-white border-none shadow-sm font-display font-black text-sm tracking-wide transition-all"
+                        className="w-full h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground border-none shadow-sm font-display font-black text-sm tracking-wide transition-all"
                     >
                         {saving ? <Loader2 className="animate-spin mr-2" size={18} aria-hidden="true" /> : <Save className="mr-2" size={18} aria-hidden="true" />}
                         儲存設定變更
@@ -445,9 +445,9 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
 
     const getTypeBadge = (type: string) => {
         switch (type) {
-            case 'tournament': return { label: '賽事公告', bg: 'bg-amber-100', text: 'text-amber-700' };
-            case 'club': return { label: '社團公告', bg: 'bg-emerald-100', text: 'text-emerald-700' };
-            default: return { label: '系統公告', bg: 'bg-blue-100', text: 'text-sapphire-blue' };
+            case 'tournament': return { label: '賽事公告', bg: 'bg-amber-100 dark:bg-amber-500/15', text: 'text-amber-700 dark:text-amber-300' };
+            case 'club': return { label: '社團公告', bg: 'bg-emerald-100 dark:bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-300' };
+            default: return { label: '系統公告', bg: 'bg-blue-100 dark:bg-blue-500/15', text: 'text-sapphire-blue dark:text-blue-300' };
         }
     };
 
@@ -456,8 +456,8 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
             {/* Header / New Button */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
-                    <h3 className="text-xl sm:text-2xl font-black text-primary-navy">公告管理</h3>
-                    <p className="text-xs text-slate-500 font-bold tracking-wide">系統、社團與賽事即時資訊發布</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-foreground">公告管理</h3>
+                    <p className="text-xs text-muted-foreground font-bold tracking-wide">系統、社團與賽事即時資訊發布</p>
                 </div>
                 <Button
                     type="button"
@@ -466,7 +466,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                         setFormData({ title: '', content: '', link_text: '', link_url: '', type: 'system', is_active: true });
                         setIsAdding(true);
                     }}
-                    className="h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white transition-all shadow-sm flex items-center gap-2 font-black text-sm"
+                    className="h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white transition-all shadow-sm flex items-center gap-2 font-black text-sm"
                 >
                     <Plus size={17} aria-hidden="true" /> 新增公告
                 </Button>
@@ -480,15 +480,15 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                         <Card key={ann.id} className="arena-card p-4 sm:p-6 flex flex-col gap-4">
                             <div className="space-y-1.5 w-full">
                                 <div className="flex items-center gap-2.5 flex-wrap">
-                                    <h4 className="font-bold text-base md:text-lg text-primary-navy truncate">{ann.title}</h4>
+                                    <h4 className="font-bold text-base md:text-lg text-foreground truncate">{ann.title}</h4>
                                     <span className={cn("px-2.5 py-0.5 text-xs font-black rounded-md", badge.bg, badge.text)}>
                                         {badge.label}
                                     </span>
                                     {!ann.is_active && (
-                                        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-black rounded-md">已下架</span>
+                                        <span className="px-2 py-0.5 bg-secondary text-muted-foreground text-xs font-black rounded-md">已下架</span>
                                     )}
                                 </div>
-                                <p className="text-xs md:text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">{ann.content}</p>
+                                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{ann.content}</p>
                                 {ann.link_url && (
                                     <div className="flex items-center gap-2 text-xs font-bold text-sapphire-blue pt-1">
                                         <ExternalLink size={12} aria-hidden="true" />
@@ -496,11 +496,11 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                                     </div>
                                 )}
                             </div>
-                            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                                 <button
                                     type="button"
                                     onClick={() => handleEdit(ann)}
-                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 rounded-xl transition-colors"
+                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 dark:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
                                 >
                                     <Edit size={14} aria-hidden="true" />
                                     <span>編輯</span>
@@ -508,7 +508,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                                 <button
                                     type="button"
                                     onClick={() => setDeletingAnn(ann)}
-                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors"
+                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:text-rose-300 dark:bg-rose-500/12 dark:hover:bg-rose-500/20 rounded-xl transition-colors"
                                 >
                                     <Trash2 size={14} aria-hidden="true" />
                                     <span>刪除</span>
@@ -519,7 +519,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                 })}
 
                 {announcements.length === 0 && (
-                    <div className="py-20 text-center text-slate-400 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                    <div className="py-20 text-center text-muted-foreground bg-surface-subtle/50 rounded-3xl border border-dashed border-border">
                         目前沒有任何公開公告
                     </div>
                 )}
@@ -558,7 +558,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingAnn(null)}
-                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                         >
                             取消
                         </Button>
@@ -573,9 +573,9 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                 }
             >
                 {deletingAnn && (
-                    <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-4 space-y-1">
-                        <p className="text-sm font-black text-primary-navy">{deletingAnn.title}</p>
-                        <p className="text-xs text-rose-700 font-bold">刪除後將立即從戰情室公告欄移除，無法復原。</p>
+                    <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4 space-y-1">
+                        <p className="text-sm font-black text-foreground">{deletingAnn.title}</p>
+                        <p className="text-xs text-rose-700 dark:text-rose-300 font-bold">刪除後將立即從戰情室公告欄移除，無法復原。</p>
                     </div>
                 )}
             </ResponsiveFormModal>
@@ -605,7 +605,7 @@ function AnnouncementFormContent({
     return (
         <div className="space-y-4">
             <fieldset>
-                <legend className="arena-label text-slate-500">公告類型</legend>
+                <legend className="arena-label text-muted-foreground">公告類型</legend>
                 <div className="grid grid-cols-3 gap-2">
                     {(['system', 'club', 'tournament'] as const).map(t => {
                         const badge = getTypeBadge(t);
@@ -620,7 +620,7 @@ function AnnouncementFormContent({
                                     "min-h-11 px-2 rounded-xl border transition-all text-xs font-black flex items-center justify-center",
                                     isSelected
                                         ? cn(badge.bg, "border-current shadow-xs", badge.text)
-                                        : "bg-white border-slate-300/90 text-slate-500 hover:bg-slate-50"
+                                        : "bg-card border-input text-muted-foreground hover:bg-secondary hover:text-foreground"
                                 )}
                             >
                                 {badge.label}
@@ -631,7 +631,7 @@ function AnnouncementFormContent({
             </fieldset>
 
             <div>
-                <label htmlFor={titleId} className="arena-label text-slate-500">
+                <label htmlFor={titleId} className="arena-label text-muted-foreground">
                     標題 <span aria-hidden="true" className="text-rose-500">*</span>
                 </label>
                 <input
@@ -647,7 +647,7 @@ function AnnouncementFormContent({
             </div>
 
             <div>
-                <label htmlFor={contentId} className="arena-label text-slate-500">內文詳情</label>
+                <label htmlFor={contentId} className="arena-label text-muted-foreground">內文詳情</label>
                 <textarea
                     id={contentId}
                     name="announcementContent"
@@ -661,7 +661,7 @@ function AnnouncementFormContent({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label htmlFor={linkTextId} className="arena-label text-slate-500">連結按鈕文字</label>
+                    <label htmlFor={linkTextId} className="arena-label text-muted-foreground">連結按鈕文字</label>
                     <input
                         id={linkTextId}
                         name="linkText"
@@ -673,7 +673,7 @@ function AnnouncementFormContent({
                     />
                 </div>
                 <div>
-                    <label htmlFor={linkUrlId} className="arena-label text-slate-500">連結 URL</label>
+                    <label htmlFor={linkUrlId} className="arena-label text-muted-foreground">連結 URL</label>
                     <input
                         id={linkUrlId}
                         name="linkUrl"
@@ -689,16 +689,16 @@ function AnnouncementFormContent({
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+            <div className="flex items-center gap-3 p-3.5 bg-surface-subtle border border-border rounded-xl">
                 <input
                     type="checkbox"
                     id={activeId}
                     name="isActive"
                     checked={data.is_active}
                     onChange={e => onChange({ ...data, is_active: e.target.checked })}
-                    className="size-5 rounded border-slate-300 text-sapphire-blue focus:ring-sapphire-blue"
+                    className="size-5 rounded border-input text-sapphire-blue focus:ring-sapphire-blue"
                 />
-                <label htmlFor={activeId} className="text-xs sm:text-sm font-bold text-primary-navy cursor-pointer">
+                <label htmlFor={activeId} className="text-xs sm:text-sm font-bold text-foreground cursor-pointer">
                     上架狀態（開啟後立即對全體成員顯示）
                 </label>
             </div>
@@ -747,14 +747,14 @@ function ResponsiveAnnouncementModal({
                         variant="outline"
                         disabled={isSaving}
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={isSaving || !data.title.trim()}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
                     >
                         {isSaving ? '處理中...' : isEditing ? '儲存變更' : '確認發布'}
                     </Button>
@@ -818,8 +818,8 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
         <div className="space-y-6">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-black text-primary-navy">賽季獎勵設置</h3>
-                    <p className="text-sm text-slate-500 mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
+                    <h3 className="text-xl font-black text-foreground">賽季獎勵設置</h3>
+                    <p className="text-sm text-muted-foreground mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <div>
@@ -840,7 +840,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
                     <Button
                         type="button"
                         onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}
-                        className="h-11 px-5 bg-sapphire-blue hover:bg-primary-navy text-white rounded-xl border-none shadow-sm font-black text-sm"
+                        className="h-11 px-5 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-black text-sm"
                     >
                         <Plus size={17} className="mr-1.5" aria-hidden="true" /> 新增特殊獎項
                     </Button>
@@ -901,7 +901,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingPrizeId(null)}
-                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                         >
                             取消
                         </Button>
@@ -915,8 +915,8 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
                     </>
                 }
             >
-                <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-4">
-                    <p className="text-xs font-bold text-rose-700 leading-relaxed">
+                <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4">
+                    <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-relaxed">
                         確認後將從該賽季獎品展示清單中永久刪除，無法復原。
                     </p>
                 </div>
@@ -993,7 +993,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
     return (
         <Card className={cn(
             "arena-card p-6 sm:p-7 relative group",
-            isNew && "ring-2 ring-sapphire-blue ring-offset-2"
+            isNew && "ring-2 ring-sapphire-blue ring-offset-2 ring-offset-background"
         )}>
             <form onSubmit={handleSubmit} className="space-y-5">
                 {prize?.id && (
@@ -1002,7 +1002,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                         aria-label="刪除獎項"
                         title="刪除獎項"
                         onClick={() => onDelete(prize.id)}
-                        className="absolute top-5 right-5 size-9 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors lg:opacity-0 lg:group-hover:opacity-100"
+                        className="absolute top-5 right-5 size-9 flex items-center justify-center text-muted-foreground hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors lg:opacity-0 lg:group-hover:opacity-100"
                     >
                         <Trash2 size={16} aria-hidden="true" />
                     </button>
@@ -1012,13 +1012,13 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                     <div className={cn(
                         "size-11 rounded-2xl flex items-center justify-center font-black text-lg",
                         isStandard && !label ? (
-                            rank === 1 ? "bg-amber-100 text-amber-600" :
-                                rank === 2 ? "bg-slate-200 text-slate-600" : "bg-orange-100 text-orange-600"
-                        ) : "bg-sapphire-blue/10 text-sapphire-blue"
+                            rank === 1 ? "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" :
+                                rank === 2 ? "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200" : "bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300"
+                        ) : "bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300"
                     )}>
                         {rank || '★'}
                     </div>
-                    <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                         {displayLabel || `Rank ${rank} Prize`}
                     </p>
                 </div>
@@ -1026,7 +1026,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label htmlFor={rankId} className="arena-label text-slate-500">名次 (Rank)</label>
+                            <label htmlFor={rankId} className="arena-label text-muted-foreground">名次 (Rank)</label>
                             <input
                                 id={rankId}
                                 name="prizeRank"
@@ -1037,7 +1037,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                             />
                         </div>
                         <div>
-                            <label htmlFor={labelId} className="arena-label text-slate-500">標籤 (Label)</label>
+                            <label htmlFor={labelId} className="arena-label text-muted-foreground">標籤 (Label)</label>
                             <input
                                 id={labelId}
                                 name="prizeLabel"
@@ -1051,7 +1051,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                     </div>
 
                     <div>
-                        <label htmlFor={itemId} className="arena-label text-slate-500">物品名稱</label>
+                        <label htmlFor={itemId} className="arena-label text-muted-foreground">物品名稱</label>
                         <input
                             id={itemId}
                             name="prizeItemName"
@@ -1065,7 +1065,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
                     <div className="grid grid-cols-3 gap-3">
                         <div className="col-span-1">
-                            <label htmlFor={qtyId} className="arena-label text-slate-500">數量</label>
+                            <label htmlFor={qtyId} className="arena-label text-muted-foreground">數量</label>
                             <input
                                 id={qtyId}
                                 name="prizeQty"
@@ -1077,7 +1077,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                             />
                         </div>
                         <div className="col-span-2">
-                            <label htmlFor={fileId} className="arena-label text-slate-500">圖片</label>
+                            <label htmlFor={fileId} className="arena-label text-muted-foreground">圖片</label>
                             <input
                                 id={fileId}
                                 type="file"
@@ -1091,7 +1091,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                                 variant="outline"
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}
-                                className="w-full min-h-11 h-11 rounded-xl bg-white border-slate-300/90 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                className="w-full min-h-11 h-11 rounded-xl bg-card border-input text-xs font-bold text-muted-foreground hover:bg-secondary hover:text-foreground"
                             >
                                 {uploading ? <Loader2 className="animate-spin mr-1.5" size={15} aria-hidden="true" /> : <UploadCloud className="mr-1.5" size={15} aria-hidden="true" />}
                                 {uploading ? '上傳中...' : url ? '重新上傳' : '上傳圖片'}
@@ -1100,7 +1100,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                     </div>
 
                     {url && (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative flex items-center justify-center p-2 min-h-[112px]">
+                        <div className="rounded-xl overflow-hidden border border-border bg-surface-subtle relative flex items-center justify-center p-2 min-h-[112px]">
                             <img src={url} alt="獎品預覽" className="max-h-28 object-contain" />
                             <button
                                 type="button"
@@ -1116,7 +1116,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
                 <Button
                     type="submit"
-                    className="w-full h-11 bg-primary-navy hover:bg-slate-800 text-white rounded-xl border-none transition-all font-display font-black text-sm"
+                    className="w-full h-11 bg-primary hover:opacity-90 text-primary-foreground rounded-xl border-none transition-all font-display font-black text-sm"
                 >
                     {prize?.id ? '更新項目' : '建立獎項'}
                 </Button>
@@ -1251,7 +1251,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                 <Button
                     type="button"
                     onClick={() => setIsAdding(true)}
-                    className="w-full h-11 bg-sapphire-blue hover:bg-primary-navy text-white rounded-xl border-none transition-all shadow-sm font-black text-sm mb-2"
+                    className="w-full h-11 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none transition-all shadow-sm font-black text-sm mb-2"
                 >
                     <Plus className="mr-1.5" size={17} aria-hidden="true" /> 新賽事
                 </Button>
@@ -1263,15 +1263,15 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                         className={cn(
                             "p-4 cursor-pointer border transition-all rounded-2xl group",
                             selectedTourn === t.id
-                                ? "bg-primary-navy text-white border-primary-navy shadow-md"
-                                : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-xs"
+                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                : "bg-card hover:bg-secondary/60 border-border text-foreground shadow-xs"
                         )}
                     >
                         <div className="flex items-center justify-between">
                             <p className="font-bold truncate pr-3">{t.title}</p>
                             <ChevronRight size={16} aria-hidden="true" className={cn(selectedTourn === t.id ? "opacity-100" : "opacity-0 group-hover:opacity-100")} />
                         </div>
-                        <p className={cn("text-xs mt-1 font-black uppercase tracking-wider", selectedTourn === t.id ? "text-blue-200" : "text-slate-400")}>
+                        <p className={cn("text-xs mt-1 font-black uppercase tracking-wider", selectedTourn === t.id ? "text-blue-100" : "text-muted-foreground")}>
                             {t.status}
                         </p>
                     </Card>
@@ -1282,10 +1282,10 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             <div className="lg:col-span-3">
                 {isAdding ? (
                     <Card className="arena-card p-6 sm:p-8 max-w-2xl">
-                        <h3 className="text-xl sm:text-2xl font-black text-primary-navy mb-6">發起獨立錦標賽</h3>
+                        <h3 className="text-xl sm:text-2xl font-black text-foreground mb-6">發起獨立錦標賽</h3>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
-                                <label htmlFor={titleId} className="arena-label text-slate-500">
+                                <label htmlFor={titleId} className="arena-label text-muted-foreground">
                                     賽事名稱 <span aria-hidden="true" className="text-rose-500">*</span>
                                 </label>
                                 <input
@@ -1300,7 +1300,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 />
                             </div>
                             <div>
-                                <label htmlFor={rulesId} className="arena-label text-slate-500">Challonge 賽程連結 或 規則說明</label>
+                                <label htmlFor={rulesId} className="arena-label text-muted-foreground">Challonge 賽程連結 或 規則說明</label>
                                 <input
                                     id={rulesId}
                                     name="tournamentRules"
@@ -1313,7 +1313,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label htmlFor={startId} className="arena-label text-slate-500">賽事開始時間 (含秒)</label>
+                                    <label htmlFor={startId} className="arena-label text-muted-foreground">賽事開始時間 (含秒)</label>
                                     <input
                                         id={startId}
                                         name="startDate"
@@ -1325,7 +1325,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor={endId} className="arena-label text-slate-500">賽事結束時間 (含秒)</label>
+                                    <label htmlFor={endId} className="arena-label text-muted-foreground">賽事結束時間 (含秒)</label>
                                     <input
                                         id={endId}
                                         name="endDate"
@@ -1338,7 +1338,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor={imageId} className="arena-label text-slate-500">預覽圖 URL</label>
+                                <label htmlFor={imageId} className="arena-label text-muted-foreground">預覽圖 URL</label>
                                 <input
                                     id={imageId}
                                     name="imageUrl"
@@ -1352,19 +1352,19 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                     className="arena-input"
                                 />
                             </div>
-                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-3 border-t border-slate-100">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-3 border-t border-border">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsAdding(false)}
-                                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                                 >
                                     取消
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={createMutation.isPending || !formData.title.trim()}
-                                    className="w-full sm:w-auto h-11 px-7 bg-sapphire-blue hover:bg-primary-navy text-white rounded-xl border-none shadow-sm font-display font-black text-sm disabled:opacity-40"
+                                    className="w-full sm:w-auto h-11 px-7 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-display font-black text-sm disabled:opacity-40"
                                 >
                                     {createMutation.isPending ? '建立中...' : '建立賽事'}
                                 </Button>
@@ -1376,12 +1376,12 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                         <Card className="arena-card p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2.5 flex-wrap">
-                                    <h3 className="text-xl sm:text-2xl font-black text-primary-navy">{activeTournament.title}</h3>
-                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-sapphire-blue text-xs font-black uppercase">
+                                    <h3 className="text-xl sm:text-2xl font-black text-foreground">{activeTournament.title}</h3>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 text-xs font-black uppercase">
                                         {activeTournament.status}
                                     </span>
                                 </div>
-                                <p className="text-sm text-slate-500 mt-1">{participants.length} 位已報名同仁</p>
+                                <p className="text-sm text-muted-foreground mt-1">{participants.length} 位已報名同仁</p>
                             </div>
                             <div className="flex gap-2.5">
                                 <Button
@@ -1391,14 +1391,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         setNextStatus(activeTournament.status || 'registering');
                                         setStatusModalOpen(true);
                                     }}
-                                    className="h-10 rounded-xl font-bold text-slate-600 border-slate-200 hover:bg-slate-100"
+                                    className="h-10 rounded-xl font-bold text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                                 >
                                     切換狀態
                                 </Button>
                                 <Button
                                     type="button"
                                     onClick={() => setDeleteModalOpen(true)}
-                                    className="h-10 rounded-xl font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/80"
+                                    className="h-10 rounded-xl font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:hover:bg-rose-500/20 dark:border-rose-500/30"
                                 >
                                     刪除賽事
                                 </Button>
@@ -1406,7 +1406,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                         </Card>
 
                         <Card className="arena-card p-6 sm:p-8">
-                            <h4 className="font-black text-primary-navy mb-6 flex items-center justify-between">
+                            <h4 className="font-black text-foreground mb-6 flex items-center justify-between">
                                 參賽名單
                                 <Button
                                     type="button"
@@ -1415,36 +1415,36 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         setPlayerSearch('');
                                         setAddPlayerModalOpen(true);
                                     }}
-                                    className="rounded-xl bg-blue-50 text-sapphire-blue hover:bg-blue-100 border-none font-bold"
+                                    className="rounded-xl bg-blue-50 text-sapphire-blue hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25 border-none font-bold"
                                 >
                                     <Plus size={16} className="mr-1" aria-hidden="true" /> 手動加入玩家
                                 </Button>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {participants.map((p) => (
-                                    <div key={p.participant.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between group border border-slate-200/60">
+                                    <div key={p.participant.id} className="p-4 bg-surface-subtle rounded-2xl flex items-center justify-between group border border-border">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <PlayerAvatar
                                                 src={p.user.avatar_url}
                                                 name={p.user.name}
-                                                className="size-10 rounded-xl border border-slate-200 text-xs"
+                                                className="size-10 rounded-xl border border-border text-xs"
                                             />
                                             <div className="min-w-0">
-                                                <p className="font-bold text-slate-800 truncate">{p.user.name}</p>
-                                                <p className="text-xs text-slate-400 font-medium truncate">{p.user.department}</p>
+                                                <p className="font-bold text-foreground truncate">{p.user.name}</p>
+                                                <p className="text-xs text-muted-foreground font-medium truncate">{p.user.department}</p>
                                             </div>
                                         </div>
                                         <button
                                             type="button"
                                             aria-label={`移除參賽者 ${p.user.name}`}
                                             onClick={() => handleRemovePlayer(p.user.id)}
-                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-all lg:opacity-0 lg:group-hover:opacity-100"
+                                            className="p-2 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-lg transition-all lg:opacity-0 lg:group-hover:opacity-100"
                                         >
                                             <Trash2 size={16} aria-hidden="true" />
                                         </button>
                                     </div>
                                 ))}
-                                {participants.length === 0 && <p className="col-span-2 py-8 text-center text-slate-400 text-sm">目前無任何參賽者</p>}
+                                {participants.length === 0 && <p className="col-span-2 py-8 text-center text-muted-foreground text-sm">目前無任何參賽者</p>}
                             </div>
                         </Card>
 
@@ -1467,14 +1467,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setStatusModalOpen(false)}
-                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
+                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                                     >
                                         取消
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={statusMutation.isPending}
-                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
                                     >
                                         {statusMutation.isPending ? '更新中...' : '儲存狀態'}
                                     </Button>
@@ -1495,8 +1495,8 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         className={cn(
                                             "w-full min-h-11 px-4 rounded-xl border text-left text-sm font-black transition-all flex items-center justify-between",
                                             nextStatus === opt.id
-                                                ? "bg-blue-50 border-sapphire-blue text-sapphire-blue"
-                                                : "bg-white border-slate-200 text-primary-navy hover:bg-slate-50"
+                                                ? "bg-blue-50 dark:bg-blue-500/15 border-sapphire-blue text-sapphire-blue dark:text-blue-300"
+                                                : "bg-card border-border text-foreground hover:bg-secondary"
                                         )}
                                     >
                                         <span>{opt.label}</span>
@@ -1525,7 +1525,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setDeleteModalOpen(false)}
-                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
+                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
                                     >
                                         取消
                                     </Button>
@@ -1539,9 +1539,9 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 </>
                             }
                         >
-                            <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-4 space-y-1">
-                                <p className="text-sm font-black text-primary-navy">{activeTournament.title}</p>
-                                <p className="text-xs font-bold text-rose-700">刪除後將同步清除該賽事的參賽名單，無法復原。</p>
+                            <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4 space-y-1">
+                                <p className="text-sm font-black text-foreground">{activeTournament.title}</p>
+                                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">刪除後將同步清除該賽事的參賽名單，無法復原。</p>
                             </div>
                         </ResponsiveFormModal>
 
@@ -1558,7 +1558,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 <Button
                                     type="button"
                                     onClick={() => setAddPlayerModalOpen(false)}
-                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
                                 >
                                     完成
                                 </Button>
@@ -1566,7 +1566,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                         >
                             <div className="space-y-4">
                                 <div>
-                                    <label htmlFor={playerSearchId} className="arena-label text-slate-500">搜尋同仁</label>
+                                    <label htmlFor={playerSearchId} className="arena-label text-muted-foreground">搜尋同仁</label>
                                     <input
                                         id={playerSearchId}
                                         type="search"
@@ -1584,13 +1584,13 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         availableToAdd.map((u) => (
                                             <div
                                                 key={u.id}
-                                                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/80 bg-white"
+                                                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card"
                                             >
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <PlayerAvatar src={u.avatar} name={u.name} className="size-9 rounded-xl text-xs" />
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-primary-navy truncate">{u.name}</p>
-                                                        <p className="text-xs text-slate-400 truncate">{u.department || '一般同仁'}</p>
+                                                        <p className="text-sm font-bold text-foreground truncate">{u.name}</p>
+                                                        <p className="text-xs text-muted-foreground truncate">{u.department || '一般同仁'}</p>
                                                     </div>
                                                 </div>
                                                 <Button
@@ -1598,14 +1598,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                                     size="sm"
                                                     disabled={addParticipantMutation.isPending}
                                                     onClick={() => addParticipantMutation.mutate({ tournId: activeTournament.id, userId: u.id })}
-                                                    className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white text-xs font-black shrink-0"
+                                                    className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white text-xs font-black shrink-0"
                                                 >
                                                     <Plus size={14} className="mr-1" aria-hidden="true" /> 加入
                                                 </Button>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="py-8 text-center text-xs font-bold text-slate-400">
+                                        <p className="py-8 text-center text-xs font-bold text-muted-foreground">
                                             {playerSearch ? '找不到符合的同仁' : '所有同仁皆已在名單內'}
                                         </p>
                                     )}
@@ -1614,7 +1614,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                         </ResponsiveFormModal>
                     </div>
                 ) : (
-                    <div className="h-[400px] flex flex-col items-center justify-center text-slate-300 space-y-4">
+                    <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground/40 space-y-4">
                         <ImageIcon size={64} strokeWidth={1} aria-hidden="true" />
                         <p className="font-bold">請從左側選擇要管理的錦標賽</p>
                     </div>

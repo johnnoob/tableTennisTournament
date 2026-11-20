@@ -1,56 +1,92 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --surface-canvas: #f1f5f9;
+  --surface-shell: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-elevated: #ffffff;
+  --ink-primary: #0f172a;
+  --ink-secondary: #475569;
+  --ink-muted: #64748b;
+  --line-subtle: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --brand-sapphire: #2563eb;
+  --brand-gold: #f59e0b;
+  --brand-smash: #ea580c;
+  --brand-primary-btn: #0f172a;
+  --scrollbar-thumb: #94a3b8;
+  --scrollbar-track: #f1f5f9;
+  --target-size: 24px;
+}
+
+.dark {
+  --surface-canvas: #070b14;
+  --surface-shell: #0b1120;
+  --surface-card: #111a2e;
+  --surface-subtle: #172238;
+  --surface-elevated: #1a2742;
+  --ink-primary: #f1f5f9;
+  --ink-secondary: #94a3b8;
+  --ink-muted: #64748b;
+  --line-subtle: rgba(148, 163, 184, 0.16);
+  --line-strong: rgba(148, 163, 184, 0.28);
+  --brand-sapphire: #3b82f6;
+  --brand-gold: #fbbf24;
+  --brand-smash: #fb923c;
+  --brand-primary-btn: #2563eb;
+  --scrollbar-thumb: #334155;
+  --scrollbar-track: #0b1120;
+}
+
+@theme inline {
   /* 字體設定 */
-  --font-sans: "Public Sans", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", "PingFang TC", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Public Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Noto Sans TC", "PingFang TC", ui-sans-serif, system-ui, sans-serif;
 
-  /* 晨星奧運風：核心色票 */
+  /* 晨星奧運風 + 夜間競技場語意色票 */
   --color-primary-navy: #0f172a;
-  --color-primary-slate: #475569;
+  --color-primary-slate: var(--ink-secondary);
 
-  --color-sapphire-blue: #2563eb;
-  --color-olympic-gold: #f59e0b;
+  --color-sapphire-blue: var(--brand-sapphire);
+  --color-olympic-gold: var(--brand-gold);
+  --color-smash-orange: var(--brand-smash);
 
-  --color-app-bg: #f8fafc;
-  --color-card-bg: #ffffff;
+  --color-surface-shell: var(--surface-shell);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-elevated: var(--surface-elevated);
 
-  /* Shadcn standard variables mapped to Morningstar Olympic tokens */
-  --color-background: var(--color-app-bg);
-  --color-foreground: var(--color-primary-navy);
+  --color-background: var(--surface-canvas);
+  --color-foreground: var(--ink-primary);
 
-  --color-card: var(--color-card-bg);
-  --color-card-foreground: var(--color-primary-navy);
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--ink-primary);
 
-  --color-primary: var(--color-primary-navy);
+  --color-primary: var(--brand-primary-btn);
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: var(--color-primary-navy);
+  --color-secondary: var(--surface-subtle);
+  --color-secondary-foreground: var(--ink-primary);
 
-  --color-accent: var(--color-sapphire-blue);
+  --color-accent: var(--brand-sapphire);
   --color-accent-foreground: #ffffff;
 
-  --color-popover: #ffffff;
-  --color-popover-foreground: var(--color-primary-navy);
+  --color-popover: var(--surface-elevated);
+  --color-popover-foreground: var(--ink-primary);
 
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: var(--color-primary-slate);
+  --color-muted: var(--surface-subtle);
+  --color-muted-foreground: var(--ink-secondary);
 
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: var(--color-sapphire-blue);
+  --color-border: var(--line-subtle);
+  --color-input: var(--line-strong);
+  --color-ring: var(--brand-sapphire);
 
   --radius-lg: 1.5rem;
   --radius-md: 1rem;
   --radius-sm: 0.5rem;
-}
-
-:root {
-  --scrollbar-thumb: #64748b;
-  --scrollbar-track: #f1f5f9;
-  --target-size: 24px;
 }
 
 @media (pointer: coarse) {
@@ -69,7 +105,7 @@
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-200;
     line-height: 1.5;
     overflow-wrap: break-word;
   }
@@ -101,35 +137,44 @@
 
 @layer components {
   .arena-page {
-    @apply w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-5 sm:pt-7 md:pt-9 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-14 space-y-6 md:space-y-8 bg-white min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)];
+    @apply w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-5 sm:pt-7 md:pt-9 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-14 space-y-6 md:space-y-8 bg-transparent min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)];
   }
 
   .arena-card {
-    @apply bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-xs;
+    @apply bg-card rounded-2xl md:rounded-3xl border border-border shadow-xs dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_20px_rgba(2,6,23,0.35)];
   }
 
   .arena-surface {
-    @apply bg-slate-50/70 rounded-2xl md:rounded-3xl border border-slate-200/70;
+    @apply bg-surface-subtle/80 dark:bg-surface-subtle/60 rounded-2xl md:rounded-3xl border border-border;
+  }
+
+  .arena-hero-surface {
+    background-image:
+      radial-gradient(circle at 85% 15%, rgba(37, 99, 235, 0.28), transparent 45%),
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(135deg, #0b1220 0%, #132240 60%, #0f172a 100%);
+    background-size: 100% 100%, 28px 28px, 28px 28px, 100% 100%;
   }
 
   .arena-label {
-    @apply block text-xs font-black text-slate-600 tracking-wide mb-1.5;
+    @apply block text-xs font-black text-muted-foreground tracking-wide mb-1.5;
   }
 
   .arena-input {
-    @apply w-full min-h-11 px-3.5 rounded-xl border border-slate-300/90 bg-white text-base sm:text-sm font-bold text-primary-navy placeholder:text-slate-400 placeholder:font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue aria-invalid:border-rose-500 aria-invalid:focus-visible:ring-rose-500/25 disabled:bg-slate-50 disabled:text-slate-400;
+    @apply w-full min-h-11 px-3.5 rounded-xl border border-input bg-card text-base sm:text-sm font-bold text-foreground placeholder:text-muted-foreground/70 placeholder:font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue aria-invalid:border-rose-500 aria-invalid:focus-visible:ring-rose-500/25 disabled:bg-muted disabled:text-muted-foreground;
   }
 
   .arena-textarea {
-    @apply w-full min-h-24 px-3.5 py-2.5 rounded-xl border border-slate-300/90 bg-white text-base sm:text-sm font-medium text-primary-navy placeholder:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue aria-invalid:border-rose-500 aria-invalid:focus-visible:ring-rose-500/25 resize-y;
+    @apply w-full min-h-24 px-3.5 py-2.5 rounded-xl border border-input bg-card text-base sm:text-sm font-medium text-foreground placeholder:text-muted-foreground/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue aria-invalid:border-rose-500 aria-invalid:focus-visible:ring-rose-500/25 resize-y;
   }
 
   .arena-select {
-    @apply w-full min-h-11 px-3.5 rounded-xl border border-slate-300/90 bg-white text-base sm:text-sm font-bold text-primary-navy transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue;
+    @apply w-full min-h-11 px-3.5 rounded-xl border border-input bg-card text-base sm:text-sm font-bold text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25 focus-visible:border-sapphire-blue;
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white shadow-sm;
+    @apply bg-card/80 backdrop-blur-md border border-border shadow-sm;
   }
 
   .no-line-card {
@@ -184,7 +229,7 @@
     flex-direction: column;
     gap: 0.625rem;
     padding: 0.75rem;
-    background: #f8fafc;
+    background: var(--surface-subtle);
   }
 
   .leaderboard-table tbody tr {
@@ -194,19 +239,29 @@
     align-items: center;
     padding: 0.875rem 0.9375rem;
     border-radius: 1rem;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    border: 1px solid var(--line-subtle);
+    background: var(--surface-card);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
   .leaderboard-table tbody tr.lb-row-me {
-    background: rgba(37, 99, 235, 0.04);
-    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.05);
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+
+  .dark .leaderboard-table tbody tr.lb-row-me {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.45);
   }
 
   .leaderboard-table tbody tr.lb-row-top1 {
-    background: rgba(245, 158, 11, 0.05);
-    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.38);
+  }
+
+  .dark .leaderboard-table tbody tr.lb-row-top1 {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.4);
   }
 
   .leaderboard-table .lb-cell-rank {
@@ -236,7 +291,7 @@
     display: flex;
     align-items: center;
     padding: 0.5rem 0 0;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--line-subtle);
   }
 
   .leaderboard-table .lb-cell-tier {
@@ -264,7 +319,7 @@
     content: attr(data-label);
     font-size: 0.75rem;
     font-weight: 800;
-    color: #94a3b8;
+    color: var(--ink-secondary);
     letter-spacing: 0.05em;
     white-space: nowrap;
   }

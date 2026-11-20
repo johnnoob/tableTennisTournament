@@ -45,11 +45,11 @@ export function ScoreInputSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-black text-slate-600">一鍵點選比分</span>
+        <span className="text-xs font-black text-muted-foreground">一鍵點選比分</span>
         <div
           role="group"
           aria-label="比賽賽制"
-          className="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200/70"
+          className="inline-flex p-0.5 rounded-xl bg-secondary border border-border"
         >
           {(['BO3', 'BO5'] as const).map((fmt) => (
             <button
@@ -66,8 +66,8 @@ export function ScoreInputSection({
               className={cn(
                 'px-3 py-1 rounded-lg text-xs font-black transition-all',
                 format === fmt
-                  ? 'bg-white text-primary-navy shadow-xs'
-                  : 'text-slate-500 hover:text-primary-navy'
+                  ? 'bg-card text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {fmt === 'BO3' ? '三戰兩勝 BO3' : '五戰三勝 BO5'}
@@ -101,8 +101,8 @@ export function ScoreInputSection({
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                     : 'bg-rose-600 text-white border-rose-600 shadow-sm'
                   : preset.win
-                    ? 'bg-emerald-50/60 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70'
-                    : 'bg-rose-50/60 text-rose-700 border-rose-200 hover:bg-rose-100/70'
+                    ? 'bg-emerald-50/60 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70 dark:bg-emerald-500/12 dark:text-emerald-300 dark:border-emerald-500/30 dark:hover:bg-emerald-500/20'
+                    : 'bg-rose-50/60 text-rose-700 border-rose-200 hover:bg-rose-100/70 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 dark:hover:bg-rose-500/20'
               )}
             >
               <span className="font-display font-black text-sm tabular-nums leading-tight">
@@ -117,7 +117,7 @@ export function ScoreInputSection({
       </div>
 
       {/* 精簡橫排微調器 */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 bg-slate-50/80 border border-slate-200/70 rounded-xl p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 bg-surface-subtle/80 border border-border rounded-xl p-3">
         <CompactStepper
           label={sideALabel}
           value={scoreA}
@@ -126,7 +126,7 @@ export function ScoreInputSection({
           isWinning={scoreA > scoreB}
         />
         <span
-          className="h-11 flex items-center justify-center text-lg font-display font-black text-slate-300 px-0.5"
+          className="h-11 flex items-center justify-center text-lg font-display font-black text-muted-foreground/45 px-0.5"
           aria-hidden="true"
         >
           :
@@ -158,20 +158,20 @@ function CompactStepper({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className="text-xs font-black text-slate-500 leading-none">{label}</span>
+      <span className="text-xs font-black text-muted-foreground leading-none">{label}</span>
       <div className="flex items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           aria-label={`減少${label}局數`}
           onClick={() => onChange(Math.max(0, value - 1))}
-          className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
+          className="size-11 rounded-xl bg-card border border-border flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all"
         >
           <Minus size={16} strokeWidth={2.5} aria-hidden="true" />
         </button>
         <span
           className={cn(
             'w-8 text-center font-display font-black text-xl sm:text-2xl tabular-nums',
-            isWinning ? 'text-emerald-600' : 'text-primary-navy'
+            isWinning ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
           )}
         >
           {value}
@@ -180,7 +180,7 @@ function CompactStepper({
           type="button"
           aria-label={`增加${label}局數`}
           onClick={() => onChange(Math.min(max, value + 1))}
-          className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
+          className="size-11 rounded-xl bg-card border border-border flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all"
         >
           <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
         </button>

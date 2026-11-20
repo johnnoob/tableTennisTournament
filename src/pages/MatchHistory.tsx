@@ -109,11 +109,11 @@ export function MatchHistory() {
       <div className="arena-page">
         <PageHeader title="對戰紀錄" subtitle="Match History · Personal Logs" />
         <div className="arena-surface p-8 sm:p-12 text-center max-w-lg mx-auto space-y-4">
-          <div className="size-16 rounded-2xl bg-primary-navy/10 text-primary-navy flex items-center justify-center mx-auto">
+          <div className="size-16 rounded-2xl bg-sapphire-blue/12 text-sapphire-blue flex items-center justify-center mx-auto">
             <Trophy size={30} aria-hidden="true" />
           </div>
-          <h2 className="text-xl font-display font-black text-primary-navy">登入後查看個人對戰紀錄</h2>
-          <p className="text-sm text-slate-500 font-medium leading-relaxed">
+          <h2 className="text-xl font-display font-black text-foreground">登入後查看個人對戰紀錄</h2>
+          <p className="text-sm text-muted-foreground font-medium leading-relaxed">
             登入 Google 帳號即可查詢歷史勝敗場次、積分變動明細，並隨時發起一鍵再戰。
           </p>
           <Button
@@ -163,7 +163,7 @@ export function MatchHistory() {
               <motion.div variants={fadeInUp} className="arena-surface p-3 sm:p-4 space-y-3">
                 <div className="relative group">
                   <Search
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sapphire-blue transition-colors pointer-events-none"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-sapphire-blue transition-colors pointer-events-none"
                     size={16}
                     aria-hidden="true"
                   />
@@ -182,7 +182,7 @@ export function MatchHistory() {
                       type="button"
                       aria-label="清除搜尋"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
                     >
                       <X size={15} aria-hidden="true" />
                     </button>
@@ -202,11 +202,11 @@ export function MatchHistory() {
                           'rounded-xl px-4 h-9 text-xs font-sans tracking-wider font-bold transition-all shrink-0',
                           filter === f
                             ? f === 'all'
-                              ? 'bg-primary-navy text-white shadow-sm'
+                              ? 'bg-primary text-primary-foreground shadow-sm'
                               : f === 'win'
                                 ? 'bg-sapphire-blue text-white shadow-sm'
                                 : 'bg-slate-700 text-white shadow-sm'
-                            : 'bg-white text-primary-navy border border-slate-200 hover:bg-slate-50'
+                            : 'bg-card text-foreground border border-border hover:bg-secondary'
                         )}
                       >
                         {f === 'all' && <><LayoutGrid size={13} className="mr-1.5 inline" aria-hidden="true" /> 全部</>}
@@ -220,7 +220,7 @@ export function MatchHistory() {
                   <div
                     role="group"
                     aria-label="篩選賽制"
-                    className="inline-flex p-0.5 rounded-xl bg-white border border-slate-200/80 shrink-0"
+                    className="inline-flex p-0.5 rounded-xl bg-card border border-border shrink-0"
                   >
                     {([
                       { id: 'all', label: '全賽制' },
@@ -235,8 +235,8 @@ export function MatchHistory() {
                         className={cn(
                           'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
                           matchTypeFilter === t.id
-                            ? 'bg-primary-navy text-white shadow-xs'
-                            : 'text-slate-500 hover:text-primary-navy'
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
                         )}
                       >
                         {t.label}
@@ -248,16 +248,16 @@ export function MatchHistory() {
 
               <section className="space-y-4">
                 <div className="flex items-center gap-4 px-1">
-                  <span className="text-xs uppercase font-sans font-black tracking-[0.18em] text-slate-500 shrink-0">
+                  <span className="text-xs uppercase font-sans font-black tracking-[0.18em] text-muted-foreground shrink-0">
                     時間軸紀錄
                   </span>
-                  <div className="h-px bg-slate-200/80 flex-1" />
+                  <div className="h-px bg-border flex-1" />
                 </div>
 
                 {matches.length === 0 ? (
                   <div className="text-center py-16 arena-surface border-dashed">
-                    <Trophy size={32} className="mx-auto text-slate-300 mb-3" aria-hidden="true" />
-                    <p className="text-slate-500 font-bold text-sm">
+                    <Trophy size={32} className="mx-auto text-muted-foreground/40 mb-3" aria-hidden="true" />
+                    <p className="text-muted-foreground font-bold text-sm">
                       {debouncedSearch
                         ? `找不到符合「${debouncedSearch}」的比賽`
                         : filter !== 'all' || matchTypeFilter !== 'all'
@@ -306,7 +306,7 @@ export function MatchHistory() {
                           />
                         ))}
                       </div>
-                      <span className="text-xs font-display font-black uppercase tracking-widest text-slate-400">
+                      <span className="text-xs font-display font-black uppercase tracking-widest text-muted-foreground">
                         載入更多紀錄...
                       </span>
                     </motion.div>
@@ -314,13 +314,13 @@ export function MatchHistory() {
                 </AnimatePresence>
 
                 {!hasNextPage && matches.length > 0 && (
-                  <div className="flex items-center gap-3 text-slate-300 py-2">
-                    <div className="w-10 h-px bg-slate-200" />
+                  <div className="flex items-center gap-3 text-muted-foreground py-2">
+                    <div className="w-10 h-px bg-border" />
                     <Trophy size={13} aria-hidden="true" />
-                    <span className="text-xs font-display font-bold uppercase tracking-widest text-slate-400">
+                    <span className="text-xs font-display font-bold uppercase tracking-widest text-muted-foreground">
                       已顯示所有對戰紀錄
                     </span>
-                    <div className="w-10 h-px bg-slate-200" />
+                    <div className="w-10 h-px bg-border" />
                   </div>
                 )}
               </div>
@@ -330,24 +330,24 @@ export function MatchHistory() {
             <div className="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last">
               <div className="lg:sticky lg:top-8">
                 <Card className="arena-surface overflow-hidden shadow-xs">
-                  <CardHeader className="pb-3 border-b border-slate-200/70">
-                    <CardTitle className="text-sm font-black uppercase tracking-wider text-primary-navy flex items-center gap-2">
+                  <CardHeader className="pb-3 border-b border-border">
+                    <CardTitle className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
                       <Activity size={16} className="text-sapphire-blue" aria-hidden="true" />
                       個人近況摘要
                     </CardTitle>
-                    <p className="text-xs text-slate-400 font-bold mt-0.5">
+                    <p className="text-xs text-muted-foreground font-bold mt-0.5">
                       基於最近 {stats.totalMatches} 場比賽
                     </p>
                   </CardHeader>
                   <CardContent className="p-5 space-y-6">
                     <div className="space-y-2.5">
                       <div className="flex justify-between items-end">
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-500">勝率</span>
-                        <span className="text-2xl font-display font-black text-primary-navy leading-none tabular-nums">
+                        <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">勝率</span>
+                        <span className="text-2xl font-display font-black text-foreground leading-none tabular-nums">
                           {stats.winRate}%
                         </span>
                       </div>
-                      <div className="h-2.5 w-full bg-slate-200/70 rounded-full overflow-hidden flex">
+                      <div className="h-2.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden flex">
                         <div
                           className="h-full bg-emerald-500 transition-all duration-700 ease-out"
                           style={{ width: `${stats.winRate}%` }}
@@ -358,13 +358,13 @@ export function MatchHistory() {
                         />
                       </div>
                       <div className="flex justify-between text-xs font-black tabular-nums">
-                        <span className="text-emerald-600">{stats.wins} 勝</span>
-                        <span className="text-rose-500">{stats.losses} 敗</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">{stats.wins} 勝</span>
+                        <span className="text-rose-500 dark:text-rose-400">{stats.losses} 敗</span>
                       </div>
                     </div>
 
                     <div className="space-y-2.5">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-500 block">
+                      <span className="text-xs font-black uppercase tracking-wider text-muted-foreground block">
                         近期表現 (近 5 場)
                       </span>
                       <div className="flex items-center gap-2">
@@ -381,27 +381,29 @@ export function MatchHistory() {
                             </div>
                           ))
                         ) : (
-                          <div className="text-xs text-slate-400 font-bold">尚無足夠數據</div>
+                          <div className="text-xs text-muted-foreground font-bold">尚無足夠數據</div>
                         )}
                       </div>
                     </div>
 
-                    <div className="p-3.5 bg-white rounded-2xl flex items-center justify-between border border-slate-200/80">
+                    <div className="p-3.5 bg-card rounded-2xl flex items-center justify-between border border-border">
                       <div className="flex items-center gap-2.5">
                         <div
                           className={cn(
                             'p-2 rounded-xl',
-                            stats.netMmr >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+                            stats.netMmr >= 0
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
+                              : 'bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-400'
                           )}
                         >
                           {stats.netMmr >= 0 ? <TrendingUp size={15} aria-hidden="true" /> : <TrendingDown size={15} aria-hidden="true" />}
                         </div>
-                        <span className="text-xs font-black text-slate-600">近 5 場積分變動</span>
+                        <span className="text-xs font-black text-muted-foreground">近 5 場積分變動</span>
                       </div>
                       <span
                         className={cn(
                           'text-lg font-display font-black tabular-nums',
-                          stats.netMmr >= 0 ? 'text-emerald-600' : 'text-rose-500'
+                          stats.netMmr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
                         )}
                       >
                         {stats.netMmr > 0 ? `+${stats.netMmr}` : stats.netMmr}

@@ -51,13 +51,13 @@ export function LeaderboardSkeleton() {
 
       {/* Table Skeleton */}
       <div className="arena-card overflow-hidden">
-        <div className="bg-slate-50/80 px-4 py-3.5 border-b border-slate-200/70 hidden sm:flex justify-between">
+        <div className="bg-surface-subtle/80 px-4 py-3.5 border-b border-border hidden sm:flex justify-between">
           <Skeleton className="h-4 w-12" />
           <Skeleton className="h-4 w-28" />
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-16" />
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="p-4 flex items-center justify-between gap-4">
               <Skeleton className="size-8 rounded-full shrink-0" />

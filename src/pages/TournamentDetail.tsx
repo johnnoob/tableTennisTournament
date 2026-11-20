@@ -68,13 +68,13 @@ export function TournamentDetail() {
   }, [tournament]);
 
   if (loading) {
-    return <div className="arena-page flex items-center justify-center font-bold text-slate-400">載入賽事中...</div>;
+    return <div className="arena-page flex items-center justify-center font-bold text-muted-foreground">載入賽事中...</div>;
   }
 
   if (!tournament) {
     return (
       <div className="arena-page flex flex-col items-center justify-center space-y-4">
-        <p className="text-slate-500 font-bold">找不到該賽事資訊</p>
+        <p className="text-muted-foreground font-bold">找不到該賽事資訊</p>
         <Button type="button" onClick={() => navigate('/tournament')}>返回賽事中心</Button>
       </div>
     );
@@ -134,7 +134,7 @@ export function TournamentDetail() {
               type="button"
               variant="outline"
               onClick={() => navigate('/tournament')}
-              className="rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 w-fit"
+              className="rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground w-fit"
             >
               <ArrowLeft size={16} className="mr-2" aria-hidden="true" /> 返回賽事中心
             </Button>
@@ -152,31 +152,31 @@ export function TournamentDetail() {
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 relative z-10">
                 <div>
-                  <p className="text-xs uppercase font-sans tracking-widest text-slate-500 font-black mb-2">
+                  <p className="text-xs uppercase font-sans tracking-widest text-muted-foreground font-black mb-2">
                     賽事時間軸
                   </p>
-                  <div className="text-2xl sm:text-4xl md:text-5xl font-display font-black text-primary-navy tracking-tight">
+                  <div className="text-2xl sm:text-4xl md:text-5xl font-display font-black text-foreground tracking-tight">
                     {isCompleted ? (
-                      <>賽事已 <span className="text-slate-300">結束</span></>
+                      <>賽事已 <span className="text-muted-foreground/40">結束</span></>
                     ) : !hasValidTimeline ? (
-                      <>時間 <span className="text-slate-300">待定</span></>
+                      <>時間 <span className="text-muted-foreground/40">待定</span></>
                     ) : (
                       <div className="flex items-baseline gap-2 sm:gap-3.5 tabular-nums">
                         <div className="flex flex-col items-center">
                           <span className="leading-none">{rDays}</span>
-                          <span className="text-xs uppercase font-sans tracking-wider text-slate-400 mt-1.5 font-black">Days</span>
+                          <span className="text-xs uppercase font-sans tracking-wider text-muted-foreground mt-1.5 font-black">Days</span>
                         </div>
-                        <span className="text-slate-300 pb-3">:</span>
+                        <span className="text-muted-foreground/40 pb-3">:</span>
                         <div className="flex flex-col items-center">
                           <span className="leading-none">{rHours.toString().padStart(2, '0')}</span>
-                          <span className="text-xs uppercase font-sans tracking-wider text-slate-400 mt-1.5 font-black">Hrs</span>
+                          <span className="text-xs uppercase font-sans tracking-wider text-muted-foreground mt-1.5 font-black">Hrs</span>
                         </div>
-                        <span className="text-slate-300 pb-3">:</span>
+                        <span className="text-muted-foreground/40 pb-3">:</span>
                         <div className="flex flex-col items-center">
                           <span className="leading-none">{rMinutes.toString().padStart(2, '0')}</span>
-                          <span className="text-xs uppercase font-sans tracking-wider text-slate-400 mt-1.5 font-black">Min</span>
+                          <span className="text-xs uppercase font-sans tracking-wider text-muted-foreground mt-1.5 font-black">Min</span>
                         </div>
-                        <span className="text-slate-300 pb-3">:</span>
+                        <span className="text-muted-foreground/40 pb-3">:</span>
                         <div className="flex flex-col items-center">
                           <span className="leading-none text-sapphire-blue">{rSeconds.toString().padStart(2, '0')}</span>
                           <span className="text-xs uppercase font-sans tracking-wider text-sapphire-blue/70 mt-1.5 font-black">Sec</span>
@@ -188,59 +188,61 @@ export function TournamentDetail() {
                 <span
                   className={cn(
                     'text-xs sm:text-sm font-sans font-black px-3.5 py-1.5 rounded-xl w-fit tabular-nums',
-                    isCompleted ? 'bg-amber-100 text-amber-700' : 'bg-sapphire-blue/10 text-sapphire-blue'
+                    isCompleted
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+                      : 'bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300'
                   )}
                 >
                   {isCompleted ? '🏆 賽事已結束' : hasValidTimeline ? `${progress.toFixed(1)}% 進度` : statusLabel}
                 </span>
               </div>
-              <Progress value={progress} className="h-3.5 bg-slate-200/70 rounded-full relative z-10" />
+              <Progress value={progress} className="h-3.5 bg-slate-200/70 dark:bg-slate-800 rounded-full relative z-10" />
             </Card>
           </motion.section>
 
           <motion.section variants={fadeInUp} className="space-y-5">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 font-sans border-b border-slate-100 pb-3 inline-block">
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground font-sans border-b border-border pb-3 inline-block">
               賽事資訊
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-                <div className="bg-white p-3 rounded-xl shadow-xs border border-slate-200/70 text-sapphire-blue w-fit">
+              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-surface-subtle/80 border border-border">
+                <div className="bg-card p-3 rounded-xl shadow-xs border border-border text-sapphire-blue w-fit">
                   <Calendar size={22} aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase font-sans font-black text-slate-400 tracking-wider">活動期間</p>
-                  <p className="text-sm font-sans font-extrabold text-primary-navy mt-1 tabular-nums">
+                  <p className="text-xs uppercase font-sans font-black text-muted-foreground tracking-wider">活動期間</p>
+                  <p className="text-sm font-sans font-extrabold text-foreground mt-1 tabular-nums">
                     {hasValidTimeline
                       ? `${formatLocalTime(sDate, 'yyyy/MM/dd')} - ${formatLocalTime(eDate, 'yyyy/MM/dd')}`
                       : '依社團公告另行通知'}
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-                <div className="bg-white p-3 rounded-xl shadow-xs border border-slate-200/70 text-sapphire-blue w-fit">
+              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-surface-subtle/80 border border-border">
+                <div className="bg-card p-3 rounded-xl shadow-xs border border-border text-sapphire-blue w-fit">
                   <Clock size={22} aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase font-sans font-black text-slate-400 tracking-wider">目前狀態</p>
-                  <p className="text-sm font-sans font-extrabold text-primary-navy mt-1">{statusLabel}</p>
+                  <p className="text-xs uppercase font-sans font-black text-muted-foreground tracking-wider">目前狀態</p>
+                  <p className="text-sm font-sans font-extrabold text-foreground mt-1">{statusLabel}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-                <div className="bg-white p-3 rounded-xl shadow-xs border border-slate-200/70 text-sapphire-blue w-fit">
+              <div className="flex flex-col gap-3 p-5 rounded-2xl bg-surface-subtle/80 border border-border">
+                <div className="bg-card p-3 rounded-xl shadow-xs border border-border text-sapphire-blue w-fit">
                   <Scale size={22} aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase font-sans font-black text-slate-400 tracking-wider">賽事性質</p>
-                  <p className="text-sm font-sans font-bold text-primary-navy mt-1">獨立錦標賽活動</p>
+                  <p className="text-xs uppercase font-sans font-black text-muted-foreground tracking-wider">賽事性質</p>
+                  <p className="text-sm font-sans font-bold text-foreground mt-1">獨立錦標賽活動</p>
                 </div>
               </div>
             </div>
 
             <div className="arena-surface p-6 sm:p-8 space-y-4">
-              <h3 className="font-display font-black text-primary-navy text-lg sm:text-xl">
+              <h3 className="font-display font-black text-foreground text-lg sm:text-xl">
                 參賽辦法與說明
               </h3>
-              <p className="text-sm text-slate-600 font-sans leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-muted-foreground font-sans leading-relaxed whitespace-pre-wrap">
                 {tournament.rules || '依官方賽事公告辦理。'}
               </p>
               {externalUrl && (
@@ -261,7 +263,7 @@ export function TournamentDetail() {
             <section className="space-y-5">
               <motion.h2
                 variants={fadeInUp}
-                className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 font-sans border-b border-slate-100 pb-3 inline-block"
+                className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground font-sans border-b border-border pb-3 inline-block"
               >
                 賽事獎勵
               </motion.h2>
@@ -273,12 +275,12 @@ export function TournamentDetail() {
               >
                 {(tournament.prizes || []).map((prize, idx) => (
                   <motion.div key={prize.position || idx} variants={itemVariants} className="relative mt-2 group">
-                    <div className="absolute -top-2.5 -left-2.5 size-10 rounded-xl bg-white/95 backdrop-blur-md flex items-center justify-center font-display font-black shadow-md border border-slate-200 z-20">
+                    <div className="absolute -top-2.5 -left-2.5 size-10 rounded-xl bg-popover/95 backdrop-blur-md flex items-center justify-center font-display font-black text-foreground shadow-md border border-border z-20">
                       {prize.position}
                     </div>
 
                     <Card className="arena-card overflow-hidden group hover:shadow-md transition-all p-0">
-                      <div className="h-44 relative overflow-hidden bg-slate-50">
+                      <div className="h-44 relative overflow-hidden bg-surface-subtle">
                         <img
                           src={prize.image_url}
                           alt={prize.item_name}
@@ -289,10 +291,10 @@ export function TournamentDetail() {
                         <span className="text-xs uppercase font-sans font-black text-sapphire-blue tracking-wider block mb-1.5">
                           {prize.label}
                         </span>
-                        <h4 className="font-display font-bold text-primary-navy text-base leading-snug mb-1.5">
+                        <h4 className="font-display font-bold text-foreground text-base leading-snug mb-1.5">
                           {prize.item_name}
                         </h4>
-                        <p className="text-xs text-slate-500 font-sans">{prize.description}</p>
+                        <p className="text-xs text-muted-foreground font-sans">{prize.description}</p>
                       </div>
                     </Card>
                   </motion.div>
@@ -305,9 +307,9 @@ export function TournamentDetail() {
         {/* Right Column — 真實排行榜前五強 */}
         <div className="xl:col-span-4 space-y-6">
           <section className="space-y-5">
-            <motion.div variants={fadeInUp} className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-lg sm:text-xl text-primary-navy font-display font-black">本季種子實力榜 Top 5</h2>
-              <Trophy size={18} className="text-slate-300" aria-hidden="true" />
+            <motion.div variants={fadeInUp} className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="text-lg sm:text-xl text-foreground font-display font-black">本季種子實力榜 Top 5</h2>
+              <Trophy size={18} className="text-muted-foreground/40" aria-hidden="true" />
             </motion.div>
 
             <motion.div
@@ -327,12 +329,12 @@ export function TournamentDetail() {
                       newParams.set('inspect', player.player_id);
                       setSearchParams(newParams);
                     }}
-                    className="w-full text-left flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/70 hover:bg-slate-100/80 transition-colors border border-slate-200/70 relative overflow-visible group mt-2 cursor-pointer"
+                    className="w-full text-left flex items-center gap-3.5 p-3.5 rounded-2xl bg-surface-subtle/80 hover:bg-secondary transition-colors border border-border relative overflow-visible group mt-2 cursor-pointer"
                   >
                     <div
                       className={cn(
-                        'absolute -left-2 -top-2.5 size-8 sm:size-9 rounded-xl flex items-center justify-center font-display font-black text-sm shrink-0 shadow-sm z-20 border-2 border-white tabular-nums',
-                        idx === 0 ? 'bg-olympic-gold text-white' : 'bg-white text-slate-600'
+                        'absolute -left-2 -top-2.5 size-8 sm:size-9 rounded-xl flex items-center justify-center font-display font-black text-sm shrink-0 shadow-sm z-20 border-2 border-card tabular-nums',
+                        idx === 0 ? 'bg-olympic-gold text-white' : 'bg-card text-foreground'
                       )}
                     >
                       {player.rank}
@@ -341,26 +343,26 @@ export function TournamentDetail() {
                       <PlayerAvatar
                         src={player.avatar_url}
                         name={player.player_name}
-                        className="size-10 rounded-full border border-slate-200 text-sm"
+                        className="size-10 rounded-full border border-border text-sm"
                       />
                       <div className="min-w-0">
-                        <h4 className="font-sans font-black text-primary-navy text-sm truncate group-hover:text-sapphire-blue transition-colors">
+                        <h4 className="font-sans font-black text-foreground text-sm truncate group-hover:text-sapphire-blue transition-colors">
                           {player.player_name}
                         </h4>
-                        <p className="text-xs font-sans font-bold text-slate-400 truncate mt-0.5 tabular-nums">
+                        <p className="text-xs font-sans font-bold text-muted-foreground truncate mt-0.5 tabular-nums">
                           勝率 {player.win_rate} • {player.department || '一般同仁'}
                         </p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="font-display font-black text-lg text-primary-navy tabular-nums">
+                      <span className="font-display font-black text-lg text-foreground tabular-nums">
                         {Math.round(player.global_mmr).toLocaleString()}
                       </span>
                     </div>
                   </motion.button>
                 ))
               ) : (
-                <div className="py-12 text-center text-slate-400 font-bold text-xs arena-surface border-dashed">
+                <div className="py-12 text-center text-muted-foreground font-bold text-xs arena-surface border-dashed">
                   目前尚無賽季排名資料
                 </div>
               )}
