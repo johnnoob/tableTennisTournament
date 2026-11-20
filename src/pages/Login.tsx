@@ -30,22 +30,22 @@ export function Login() {
           </div>
           <div>
             <h1 className="text-white font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
-            <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
+            <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
           </div>
         </div>
 
         {/* 中間精神標語 */}
         <div className="relative z-10 space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sapphire-blue/20 border border-sapphire-blue/30 text-blue-300 text-xs font-black uppercase tracking-widest">
-            <Shield size={14} />
-            Season 4 Official Platform
+            <Shield size={14} aria-hidden="true" />
+            Precision Arena · Official Platform
           </div>
           <h2 className="text-5xl font-display font-black text-white leading-[1.1] tracking-tight italic">
             淬鍊每一拍的<br />
-            <span className="text-amber-500">極致榮耀。</span>
+            <span className="text-olympic-gold">極致榮耀。</span>
           </h2>
           <p className="text-slate-300 font-medium leading-relaxed">
-            歡迎來到機關專屬桌球戰情室。免報名、隨時戰，透過雙軌積分系統記錄您的每一場熱血對決。
+            歡迎來到機關專屬桌球戰情室。免報名、隨時戰，透過單軌 Elo 積分系統記錄您的每一場熱血對決。
           </p>
         </div>
 
@@ -61,11 +61,11 @@ export function Login() {
         {/* 手機版顯示的頂部 Logo */}
         <div className="lg:hidden flex items-center gap-3 mb-12">
           <div className="size-12 rounded-2xl bg-primary-navy flex items-center justify-center shadow-xl">
-            <Trophy size={24} className="text-amber-500" />
+            <Trophy size={24} className="text-amber-500" aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-primary-navy font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
+            <p className="text-xs text-slate-500 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
           </div>
         </div>
 
@@ -74,33 +74,21 @@ export function Login() {
           {/* 登入標題 */}
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-display font-black text-primary-navy tracking-tight">登入戰情室</h2>
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-              支援同仁與外單位交流人員登入
+            <p className="text-sm font-bold text-slate-500 tracking-wide">
+              使用 Google 帳號一鍵驗證進入戰情室
             </p>
           </div>
 
           {/* 登入按鈕區 (SSO) */}
-          <div className="space-y-4 pt-4">
-
-            {/* LINE 登入按鈕 (品牌綠色 #06C755) */}
-            <Button
-              className="w-full h-14 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] text-white font-bold tracking-widest shadow-lg shadow-[#06C755]/20 transition-all active:scale-95 flex items-center justify-center gap-3"
-            >
-              {/* 簡單用圓圈模擬 LINE Logo，實務上可替換為真實 SVG */}
-              <div className="size-6 bg-white rounded-full flex items-center justify-center">
-                <div className="w-3.5 h-2.5 bg-[#06C755] rounded-sm" />
-              </div>
-              使用 LINE 帳號登入
-            </Button>
-
+          <div className="space-y-3.5 pt-2">
             {/* Google 登入按鈕 */}
             <Button
+              type="button"
               variant="outline"
-              className="w-full h-14 rounded-2xl bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-bold tracking-widest shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+              className="w-full h-14 rounded-2xl bg-white hover:bg-slate-50 border-slate-300 text-primary-navy font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
               onClick={handleGoogleLogin}
             >
-              {/* Google G Logo (簡化版 SVG) */}
-              <svg className="size-5" viewBox="0 0 24 24">
+              <svg className="size-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -109,6 +97,14 @@ export function Login() {
               使用 Google 帳號登入
             </Button>
 
+            {/* LINE 登入按鈕 (尚未串接，顯示明確狀態避免無回應疑惑) */}
+            <Button
+              type="button"
+              disabled
+              className="w-full h-12 rounded-2xl bg-slate-100 text-slate-400 border border-slate-200 font-bold tracking-wide flex items-center justify-center gap-2.5 opacity-80"
+            >
+              LINE 帳號登入（即將開放）
+            </Button>
           </div>
 
           {/* 訪客/純瀏覽入口 */}

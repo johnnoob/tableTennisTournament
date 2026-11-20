@@ -59,7 +59,36 @@ export interface PlayerStats {
   wins: number;
   losses: number;
   win_rate: string;
+  pts_change?: number;
   chart_data: ChartDataPoint[];
+}
+
+export interface H2HRecentMatch {
+  id: string;
+  date: string;
+  my_score: number;
+  opp_score: number;
+  is_winner: boolean;
+  mmr_delta: number;
+  format: string;
+}
+
+export interface H2HBucket {
+  matches: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  net_mmr: number;
+  recent: H2HRecentMatch[];
+}
+
+export interface H2HResponse {
+  is_self: boolean;
+  total_matches: number;
+  total_vs_matches: number;
+  singles_vs: H2HBucket;
+  doubles_vs: H2HBucket;
+  doubles_with: H2HBucket;
 }
 
 export interface RivalryItem {

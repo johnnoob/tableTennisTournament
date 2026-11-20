@@ -223,7 +223,9 @@ def get_my_matches(
     session: Session = Depends(get_session),
     limit: int = 20,
     offset: int = 0,
-    result_filter: str = "all"
+    result_filter: str = "all",
+    match_type: str = "all",
+    search: str = ""
 ):
     statement = select(Match).where(
         or_(
@@ -235,9 +237,14 @@ def get_my_matches(
     ).order_by(Match.created_at.desc())
 
     all_matches = session.exec(statement).all()
+    q = search.strip().lower()
 
     result = []
     for m in all_matches:
+        m_type = m.match_type if m.match_type else "singles"
+        if match_type in ("singles", "doubles") and m_type != match_type:
+            continue
+
         team_a_p1 = session.get(User, m.team_a_p1_id)
         team_b_p1 = session.get(User, m.team_b_p1_id)
         if not team_a_p1 or not team_b_p1:
@@ -253,16 +260,27 @@ def get_my_matches(
 
         player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
         opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
+        involved_users = [team_a_p1, team_b_p1]
 
         team_a_p2 = None
         team_b_p2 = None
         if m.match_type == "doubles":
             if m.team_a_p2_id:
                 team_a_p2 = session.get(User, m.team_a_p2_id)
-                if team_a_p2: player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+                if team_a_p2:
+                    player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+                    involved_users.append(team_a_p2)
             if m.team_b_p2_id:
                 team_b_p2 = session.get(User, m.team_b_p2_id)
-                if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+                if team_b_p2:
+                    opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+                    involved_users.append(team_b_p2)
+
+        if q and not any(
+            q in (u.name or "").lower() or q in (u.department or "").lower()
+            for u in involved_users
+        ):
+            continue
 
         delta = m.mmr_exchanged if m.mmr_exchanged else 0
         a_change = round(delta) if a_won else -round(delta)
@@ -275,7 +293,7 @@ def get_my_matches(
             "score": [m.score_a, m.score_b],
             "result": my_result,
             "status": m.status,
-            "type": m.match_type if m.match_type else "singles",
+            "type": m_type,
             "tournament": "雙打積分賽" if m.match_type == "doubles" else "單打積分賽",
             "mmrChange": [a_change, b_change],
             "player1": player1_data,

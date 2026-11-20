@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, func
 from database import get_session
 from services.auth_jwt import get_current_user # 🌟 引入警衛
-from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation
+from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match
+from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
 
 router = APIRouter(tags=["Users"])
@@ -19,7 +20,8 @@ def get_all_users(session: Session = Depends(get_session)):
             "name": user.name,
             "department": user.department,
             "id": user.id,
-            "mmr": user.global_mmr
+            "mmr": user.global_mmr,
+            "avatar": user.avatar_url,
         }
         for user in users
     ]
@@ -458,4 +460,115 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
         "goldenPartner": golden_list,
         "nemesis": nemesis_list,
         "chart_data": chart_data
+    }
+
+
+@router.get("/api/users/{target_id}/h2h", summary="取得我與指定選手的單/雙打交手與搭檔對比")
+def get_user_h2h(
+    target_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target_user = session.get(User, target_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="找不到該玩家")
+
+    def _empty_bucket():
+        return {
+            "matches": 0,
+            "wins": 0,
+            "losses": 0,
+            "win_rate": 0,
+            "net_mmr": 0,
+            "recent": [],
+        }
+
+    buckets = {
+        "singles_vs": _empty_bucket(),
+        "doubles_vs": _empty_bucket(),
+        "doubles_with": _empty_bucket(),
+    }
+
+    if current_user.id == target_id:
+        return {
+            "is_self": True,
+            "total_matches": 0,
+            "total_vs_matches": 0,
+            **buckets,
+        }
+
+    my_rows = session.exec(
+        select(MatchParticipation, Match)
+        .join(Match, MatchParticipation.match_id == Match.id)
+        .where(MatchParticipation.user_id == current_user.id)
+        .where(Match.status.in_(["confirmed", "completed"]))
+        .order_by(Match.created_at.desc())
+    ).all()
+
+    if not my_rows:
+        return {
+            "is_self": False,
+            "total_matches": 0,
+            "total_vs_matches": 0,
+            **buckets,
+        }
+
+    my_match_ids = [m.id for _p, m in my_rows]
+    target_parts = session.exec(
+        select(MatchParticipation)
+        .where(MatchParticipation.user_id == target_id)
+        .where(MatchParticipation.match_id.in_(my_match_ids))
+    ).all()
+    target_by_match = {tp.match_id: tp for tp in target_parts}
+
+    for my_p, match in my_rows:
+        target_p = target_by_match.get(match.id)
+        if not target_p:
+            continue
+
+        same_team = my_p.team == target_p.team
+        m_type = match.match_type or "singles"
+
+        if m_type == "singles" and not same_team:
+            key = "singles_vs"
+        elif m_type == "doubles" and not same_team:
+            key = "doubles_vs"
+        elif m_type == "doubles" and same_team:
+            key = "doubles_with"
+        else:
+            continue
+
+        b = buckets[key]
+        if my_p.is_winner:
+            b["wins"] += 1
+        else:
+            b["losses"] += 1
+        b["net_mmr"] += my_p.mmr_delta
+
+        if len(b["recent"]) < 3:
+            is_team_a = my_p.team == "A"
+            b["recent"].append({
+                "id": str(match.id),
+                "date": ensure_utc(match.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "my_score": match.score_a if is_team_a else match.score_b,
+                "opp_score": match.score_b if is_team_a else match.score_a,
+                "is_winner": my_p.is_winner,
+                "mmr_delta": round(my_p.mmr_delta),
+                "format": match.format or "BO3",
+            })
+
+    for b in buckets.values():
+        total = b["wins"] + b["losses"]
+        b["matches"] = total
+        b["win_rate"] = round((b["wins"] / total) * 100) if total > 0 else 0
+        b["net_mmr"] = round(b["net_mmr"])
+
+    total_vs = buckets["singles_vs"]["matches"] + buckets["doubles_vs"]["matches"]
+    total_all = total_vs + buckets["doubles_with"]["matches"]
+
+    return {
+        "is_self": False,
+        "total_matches": total_all,
+        "total_vs_matches": total_vs,
+        **buckets,
     }

@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Timer, Crown, History } from 'lucide-react';
+import { Search, Timer, Crown, History, X, Users } from 'lucide-react';
 import { getTierBadge } from '@/lib/ranking';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
+import { PageHeader } from '@/components/PageHeader';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/utils/apiClient';
 
@@ -24,7 +26,7 @@ export function Leaderboard() {
     queryFn: async () => {
       const res = await apiClient.get('/seasons');
       return res.data;
-    }
+    },
   });
 
   useEffect(() => {
@@ -36,35 +38,72 @@ export function Leaderboard() {
   const { data: leaderboardData, isPending: isLeaderboardLoading } = useQuery({
     queryKey: ['leaderboard', selectedSeason],
     queryFn: async () => {
-      const url = selectedSeason !== 'all-time'
-        ? `/leaderboard?season_id=${selectedSeason}`
-        : "/leaderboard";
+      const url = `/leaderboard?season_id=${encodeURIComponent(selectedSeason)}`;
       const res = await apiClient.get(url);
       return res.data;
     },
     enabled: !!selectedSeason,
-    refetchInterval: 10000, // 🌟 新增這行，讓排行榜每 10 秒自動更新
+    refetchInterval: 10000,
   });
 
   const realLeaderboard = leaderboardData?.leaderboard || [];
-  const seasonName = leaderboardData?.season_name || "讀取中...";
+  const seasonName = leaderboardData?.season_name || '讀取中...';
   const isLoading = isSeasonsLoading || isLeaderboardLoading;
 
   const currentSeasonObj = seasons.find((s: any) => s.id === selectedSeason);
   const isSeasonEnded = currentSeasonObj?.status === 'completed';
   const isAllTime = selectedSeason === 'all-time';
-  const showPodium = (isSeasonEnded || isAllTime) && !searchTerm;
+
+  const openInspect = (playerId: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('inspect', playerId);
+    setSearchParams(newParams);
+  };
 
   const sortedPlayers = useMemo(() => {
-    return realLeaderboard.filter((p: any) =>
-      p.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.department && p.department.includes(searchTerm))
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return realLeaderboard;
+    return realLeaderboard.filter(
+      (p: any) =>
+        p.player_name.toLowerCase().includes(q) ||
+        (p.department && p.department.toLowerCase().includes(q))
     );
   }, [realLeaderboard, searchTerm]);
 
   const podiumPlayers = useMemo(() => {
     return sortedPlayers.filter((p: any) => p.rank !== '-').slice(0, 3);
   }, [sortedPlayers]);
+
+  const rankedCount = useMemo(() => {
+    return realLeaderboard.filter((p: any) => p.rank !== '-').length;
+  }, [realLeaderboard]);
+
+  const showPodium = !searchTerm.trim() && podiumPlayers.length > 0;
+
+  const seasonStatusBadge = (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider',
+        isAllTime
+          ? 'bg-purple-100 text-purple-700'
+          : isSeasonEnded
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-emerald-100 text-emerald-700'
+      )}
+    >
+      {isAllTime ? <Crown size={13} aria-hidden="true" /> : <Timer size={13} aria-hidden="true" />}
+      {seasonName}
+    </span>
+  );
+
+  const countAction = (
+    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-bold text-slate-600">
+      <Users size={14} className="text-sapphire-blue" aria-hidden="true" />
+      <span>
+        已上榜 <strong className="font-display font-black text-primary-navy tabular-nums">{rankedCount}</strong> / {realLeaderboard.length} 人
+      </span>
+    </div>
+  );
 
   return (
     <AnimatePresence mode="wait">
@@ -74,7 +113,7 @@ export function Leaderboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.25 }}
         >
           <LeaderboardSkeleton />
         </motion.div>
@@ -85,38 +124,27 @@ export function Leaderboard() {
           initial="initial"
           animate="animate"
           exit="exit"
-          className="pb-24 pt-8 md:pt-12 px-4 md:px-12 space-y-8 bg-slate-50/30 min-h-screen relative"
+          className="arena-page"
         >
-          <motion.header variants={fadeInUp} className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-2 md:w-3 bg-gradient-to-b from-sapphire-blue to-blue-800 rounded-full h-12 md:h-16 mr-4 md:mr-6 shrink-0" />
-              <div className="space-y-1">
-                <h1 className="text-4xl md:text-5xl text-primary-navy font-display tracking-tighter font-black uppercase leading-none">
-                  {isAllTime ? "Hall of Fame" : "Leaderboard"}
-                </h1>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-[10px] md:text-xs uppercase tracking-widest transition-colors",
-                    isAllTime ? "bg-purple-100 text-purple-700" :
-                    isSeasonEnded ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                  )}>
-                    {isAllTime ? <Crown size={14} /> : <Timer size={14} />} {seasonName}
-                  </div>
-                  <p className="text-[10px] md:text-xs text-slate-400 font-sans font-black uppercase tracking-[0.3em] opacity-60">
-                    Precision Arena · Ranking System
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.header>
+          <motion.div variants={fadeInUp}>
+            <PageHeader
+              title={isAllTime ? '歷史殿堂總榜' : '賽季積分榜'}
+              subtitle="Precision Arena · Single-Track Elo"
+              badge={seasonStatusBadge}
+              actions={countAction}
+            />
+          </motion.div>
 
-          <motion.div variants={fadeInUp} className="bg-white/50 backdrop-blur-sm p-3 rounded-[2.5rem] border border-slate-100/50 flex flex-col md:flex-row items-stretch md:items-center gap-4">
-            <Select 
-              value={selectedSeason} 
+          {/* 篩選與搜尋列 */}
+          <motion.div
+            variants={fadeInUp}
+            className="arena-surface p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+          >
+            <Select
+              value={selectedSeason}
               onValueChange={(val) => {
                 if (val) {
                   setSelectedSeason(val);
-                  // 🌟 同步更新網址，讓重新整理或分享連結也能維持在同一賽季
                   const newParams = new URLSearchParams(searchParams);
                   if (val === 'all-time') {
                     newParams.delete('season_id');
@@ -127,9 +155,9 @@ export function Leaderboard() {
                 }
               }}
             >
-              <SelectTrigger className="w-full md:w-64 h-12 bg-white border-slate-100 rounded-2xl font-bold text-primary-navy shadow-sm">
+              <SelectTrigger className="w-full sm:w-64 h-11 bg-white border-slate-200 rounded-xl font-bold text-primary-navy shadow-xs">
                 <div className="flex items-center gap-2 truncate">
-                  <History size={16} className="text-slate-400 shrink-0" />
+                  <History size={16} className="text-slate-400 shrink-0" aria-hidden="true" />
                   <SelectValue placeholder="選擇賽季" />
                 </div>
               </SelectTrigger>
@@ -139,233 +167,279 @@ export function Leaderboard() {
                     {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="all-time" className="font-bold">👑 All-Time 總榜</SelectItem>
+                <SelectItem value="all-time" className="font-bold">
+                  👑 All-Time 歷史總榜
+                </SelectItem>
               </SelectContent>
             </Select>
 
-            <div className="relative flex-1 max-w-xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <div className="relative flex-1">
+              <Search
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                size={17}
+                aria-hidden="true"
+              />
               <input
                 type="text"
+                aria-label="搜尋同仁姓名或單位"
                 placeholder="搜尋同仁姓名或單位..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-12 pl-11 pr-4 rounded-2xl border border-slate-100 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/20 focus:border-sapphire-blue transition-all font-bold text-slate-600 placeholder:text-slate-400 shadow-sm"
+                className="w-full h-11 pl-10 pr-10 rounded-xl border border-slate-200 bg-white text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/20 focus:border-sapphire-blue transition-all font-bold text-primary-navy placeholder:text-slate-400 shadow-xs"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="清除搜尋"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-navy hover:bg-slate-100 transition-colors"
+                >
+                  <X size={15} aria-hidden="true" />
+                </button>
+              )}
             </div>
           </motion.div>
 
-          {/* 榮譽頒獎台 */}
-          {showPodium && podiumPlayers.length > 0 && (
-            <motion.div 
+          {/* Top 3 榮譽頒獎台 */}
+          {showPodium && (
+            <motion.section
               variants={fadeInUp}
-              className="flex justify-center items-end h-64 md:h-72 gap-2 md:gap-4 mt-24 mb-16 relative"
+              aria-label="前三名領先榜"
+              className="arena-surface px-3 sm:px-6 pt-5 pb-0 overflow-hidden"
             >
-              {/* 2nd Place */}
-              <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
-                {podiumPlayers[1] ? (
-                  <>
-                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                      <img src={podiumPlayers[1].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-slate-300 object-cover shadow-lg" alt="" />
-                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-300 text-slate-700 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">2</div>
-                    </div>
-                    <p className="font-black text-primary-navy text-sm truncate w-full text-center">{podiumPlayers[1].player_name}</p>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center mb-4">
-                    <div className="size-16 md:size-20 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50/50">
-                      <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
-                        <span className="text-xl font-bold">?</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Vacant</p>
-                  </div>
-                )}
-                <div className="w-full h-24 md:h-32 bg-linear-to-t from-slate-200 to-slate-100 rounded-t-xl mt-4 border-t-4 border-slate-300 flex justify-center pt-4">
-                  <span className="font-display font-black text-slate-400/50 text-2xl">II</span>
-                </div>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  {isAllTime ? '歷史積分殿堂 Top 3' : isSeasonEnded ? '賽季最終頒獎台' : '目前領先前三名'}
+                </p>
+                <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+                  點擊選手查看完整戰績
+                </span>
               </div>
 
-              {/* 1st Place */}
-              <div className="flex flex-col items-center relative z-20 w-28 md:w-40 -mt-8">
-                {podiumPlayers[0] ? (
-                  <>
-                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                      <Crown size={32} className="absolute -top-10 left-1/2 -translate-x-1/2 text-amber-500 animate-bounce" />
-                      <img src={podiumPlayers[0].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-20 md:size-24 rounded-full border-4 border-amber-400 object-cover shadow-xl" alt="" />
-                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white size-7 md:size-9 rounded-full flex items-center justify-center font-black border-2 border-white">1</div>
-                    </div>
-                    <p className="font-black text-amber-600 text-base truncate w-full text-center">{podiumPlayers[0].player_name}</p>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center mb-4">
-                    <div className="size-20 md:size-24 rounded-full border-2 border-dashed border-amber-200 flex items-center justify-center bg-amber-50/30">
-                      <div className="size-10 rounded-full bg-amber-100/50 flex items-center justify-center text-amber-400">
-                        <Crown size={20} />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-[10px] font-black text-amber-400/60 uppercase tracking-[0.4em]">No.1 Vacancy</p>
-                  </div>
-                )}
-                <div className="w-full h-32 md:h-44 bg-linear-to-t from-amber-200 to-amber-100 rounded-t-xl mt-4 border-t-4 border-amber-400 flex justify-center pt-4">
-                  <span className="font-display font-black text-amber-500/30 text-4xl">I</span>
-                </div>
-              </div>
+              <div className="grid grid-cols-3 items-end gap-2 sm:gap-5 max-w-3xl mx-auto pt-4 sm:pt-6">
+                {/* 第 2 名 */}
+                <PodiumSlot
+                  place={2}
+                  player={podiumPlayers[1]}
+                  onSelect={openInspect}
+                />
 
-              {/* 3rd Place */}
-              <div className="flex flex-col items-center relative z-10 w-24 md:w-32">
-                {podiumPlayers[2] ? (
-                  <>
-                    <div className="relative mb-4 hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
-                      <img src={podiumPlayers[2].avatar_url || '/api/placeholder/150/150'} referrerPolicy="no-referrer" className="size-16 md:size-20 rounded-full border-4 border-orange-300 object-cover shadow-lg" alt="" />
-                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-orange-300 text-orange-800 size-6 md:size-8 rounded-full flex items-center justify-center font-black text-sm border-2 border-white">3</div>
-                    </div>
-                    <p className="font-black text-primary-navy text-sm truncate w-full text-center">{podiumPlayers[2].player_name}</p>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center mb-4">
-                    <div className="size-16 md:size-20 rounded-full border-2 border-dashed border-orange-200 flex items-center justify-center bg-orange-50/50">
-                      <div className="size-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-300">
-                        <span className="text-xl font-bold">?</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-[9px] font-black text-orange-300 uppercase tracking-[0.3em]">Vacant</p>
-                  </div>
-                )}
-                <div className="w-full h-20 md:h-24 bg-linear-to-t from-orange-100 to-orange-50 rounded-t-xl mt-4 border-t-4 border-orange-300 flex justify-center pt-4">
-                  <span className="font-display font-black text-orange-800/20 text-xl">III</span>
-                </div>
+                {/* 第 1 名 */}
+                <PodiumSlot
+                  place={1}
+                  player={podiumPlayers[0]}
+                  onSelect={openInspect}
+                />
+
+                {/* 第 3 名 */}
+                <PodiumSlot
+                  place={3}
+                  player={podiumPlayers[2]}
+                  onSelect={openInspect}
+                />
               </div>
-            </motion.div>
+            </motion.section>
           )}
 
-          {/* 數據表格 */}
-          <div className="bg-white rounded-4xl border border-slate-100 shadow-sm relative z-20">
-            <div className="no-scrollbar rounded-4xl">
-              <table className="w-full text-left border-collapse">
-                <thead className="z-30">
-                  <tr className="border-b border-slate-100">
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest w-24 text-center bg-slate-50/90 backdrop-blur-md z-30">Rank</th>
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/90 backdrop-blur-md z-30">Player</th>
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/90 backdrop-blur-md z-30">Tier Badge</th>
-                    {/* 新增戰績與近期狀態欄位 */}
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden md:table-cell bg-slate-50/90 backdrop-blur-md z-30">Record</th>
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center hidden lg:table-cell bg-slate-50/90 backdrop-blur-md z-30">Recent Form</th>
-                    <th className="sticky top-0 py-5 px-6 text-xs font-black uppercase tracking-widest text-right text-primary-navy bg-slate-50/90 backdrop-blur-md z-30">
-                      Rating
+          {/* 積分數據表（桌面表格 + 容器寬度 <640px 自動轉卡片） */}
+          <motion.div variants={fadeInUp}>
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby="leaderboard-table-caption"
+              className="leaderboard-table-wrapper arena-card overflow-x-auto"
+            >
+              <table className="leaderboard-table w-full text-left">
+                <caption id="leaderboard-table-caption" className="sr-only">
+                  {seasonName} 積分排行榜
+                </caption>
+                <thead>
+                  <tr className="border-b border-slate-200/80">
+                    <th
+                      scope="col"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider w-20 text-center bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      名次
+                    </th>
+                    <th
+                      scope="col"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      選手
+                    </th>
+                    <th
+                      scope="col"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      段位與勝率
+                    </th>
+                    <th
+                      scope="col"
+                      className="lb-col-record sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      戰績
+                    </th>
+                    <th
+                      scope="col"
+                      className="lb-col-form sticky top-0 py-3.5 px-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      近 5 場
+                    </th>
+                    <th
+                      scope="col"
+                      className="sticky top-0 py-3.5 px-4 text-xs font-black text-primary-navy uppercase tracking-wider text-right bg-slate-50/95 backdrop-blur-md z-10"
+                    >
+                      積分 (ELO)
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {sortedPlayers.map((player: any) => {
                     const rank = player.rank;
                     const tier = getTierBadge(player.global_mmr);
-                    const isTop1 = rank === 1 && showPodium;
+                    const isTop1 = rank === 1;
+                    const isMe = currentUser?.id === player.player_id;
+                    const trendStr = String(player.trend ?? '0');
+                    const isPositiveTrend = trendStr.startsWith('+');
 
                     return (
                       <tr
                         key={player.player_id}
-                        onClick={() => {
-                          const newParams = new URLSearchParams(searchParams);
-                          newParams.set('inspect', player.player_id);
-                          setSearchParams(newParams);
-                        }}
+                        onClick={() => openInspect(player.player_id)}
                         className={cn(
-                          "group hover:bg-slate-50/50 transition-all cursor-pointer active:scale-[0.99] relative",
-                          isTop1 && "bg-amber-50/30",
-                          currentUser?.id === player.player_id && "bg-sapphire-blue/5 border-l-4 border-sapphire-blue ring-1 ring-sapphire-blue/10"
+                          'group hover:bg-slate-50/80 transition-colors cursor-pointer',
+                          isTop1 && 'lb-row-top1 bg-amber-50/35',
+                          isMe && 'lb-row-me bg-sapphire-blue/[0.04]'
                         )}
                       >
-                        <td className="py-4 px-4 md:px-6 w-24">
-                          <div className="flex flex-col items-center justify-center">
-                            <span className={cn(
-                              "font-display font-black text-xl tabular-nums leading-none",
-                              rank <= 3 && showPodium ? "text-slate-400 text-2xl" : "text-slate-300"
-                            )}>
-                              {rank}
-                            </span>
-                            {/* Trend Indicator */}
-                            {player.trend !== "0" && (
-                              <span className={cn(
-                                "text-[10px] font-black mt-1",
-                                typeof player.trend === 'string' && player.trend.startsWith('+') ? "text-emerald-500" : "text-rose-500"
-                              )}>
-                                {typeof player.trend === 'string' && player.trend.startsWith('+') ? '▲' : '▼'} {String(player.trend).replace(/[+-]/, '')}
+                        <td className="lb-cell-rank py-3.5 px-4 w-20 text-center">
+                          <div className="flex flex-col items-center justify-center gap-0.5">
+                            {rank === 1 || rank === 2 || rank === 3 ? (
+                              <span
+                                className={cn(
+                                  'size-8 rounded-full flex items-center justify-center font-display font-black text-sm tabular-nums border',
+                                  rank === 1
+                                    ? 'bg-amber-100 text-amber-700 border-amber-300'
+                                    : rank === 2
+                                      ? 'bg-slate-200/80 text-slate-700 border-slate-300'
+                                      : 'bg-orange-100 text-orange-700 border-orange-300'
+                                )}
+                              >
+                                {rank}
+                              </span>
+                            ) : (
+                              <span className="font-display font-black text-lg text-slate-400 tabular-nums leading-none">
+                                {rank}
                               </span>
                             )}
-                            {rank === 1 && player.trend === "0" && <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter mt-1 italic">☆ TOP</span>}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 md:px-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative shrink-0">
-                              <img
-                                src={player.avatar_url || '/api/placeholder/150/150'}
-                                className="size-10 md:size-12 rounded-2xl object-cover border-2 border-white shadow-sm group-hover:scale-110 transition-transform"
-                                alt=""
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-sans font-black text-primary-navy text-sm md:text-base truncate group-hover:text-sapphire-blue transition-colors">
-                                {player.player_name}
-                              </p>
-                              <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest truncate">
-                                {player.department || "一般同仁"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 md:px-6">
-                          <div className="flex flex-col gap-1">
-                            <div className={cn(
-                              "flex items-center gap-1.5 px-2.5 py-1 rounded-full border w-fit shadow-sm",
-                              tier.color
-                            )}>
-                              {tier.icon}
-                              <span className="text-[10px] font-black uppercase tracking-widest">{tier.name}</span>
-                            </div>
-                            <div className="text-[9px] font-bold text-slate-400 tracking-wider ml-1 uppercase">
-                              Win Rate: {player.win_rate}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 md:px-6 text-center hidden md:table-cell">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-emerald-600 font-black text-sm">{player.wins}W</span>
-                              <span className="text-slate-300 text-xs">-</span>
-                              <span className="text-rose-600 font-black text-sm">{player.losses}L</span>
-                            </div>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{player.matches_played} Total</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 md:px-6 text-center hidden lg:table-cell">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {player.recent_form && player.recent_form.length > 0 ? (
-                                player.recent_form.map((result: string, idx: number) => (
-                                  <div 
-                                    key={idx} 
-                                    className={cn(
-                                      "size-2.5 rounded-full shadow-sm border border-white/50",
-                                      result === 'W' ? "bg-emerald-500" : "bg-rose-500"
-                                    )}
-                                    title={result === 'W' ? 'Win' : 'Loss'}
-                                  />
-                                ))
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-300 uppercase italic opacity-40">No Data</span>
+                            {trendStr !== '0' && (
+                              <span
+                                className={cn(
+                                  'text-xs font-black tabular-nums',
+                                  isPositiveTrend ? 'text-emerald-600' : 'text-rose-500'
+                                )}
+                              >
+                                {isPositiveTrend ? '▲' : '▼'} {trendStr.replace(/[+-]/, '')}
+                              </span>
                             )}
                           </div>
                         </td>
-                        <td className="py-4 px-4 md:px-6 text-right">
-                          <div className="flex flex-col items-end gap-1">
-                            <span className={cn(
-                                "font-display font-black text-xl md:text-3xl tracking-tighter tabular-nums leading-none",
-                                isTop1 ? "text-amber-600" : "text-primary-navy"
-                            )}>
+
+                        <th scope="row" className="lb-cell-player py-3.5 px-4 font-normal text-left">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openInspect(player.player_id);
+                            }}
+                            className="flex items-center gap-3 text-left w-full min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue"
+                          >
+                            <PlayerAvatar
+                              src={player.avatar_url}
+                              name={player.player_name}
+                              className="size-10 md:size-11 rounded-xl md:rounded-2xl border border-slate-200/80 shadow-xs text-sm group-hover:scale-105 transition-transform"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-sans font-black text-primary-navy text-sm md:text-base truncate group-hover:text-sapphire-blue transition-colors">
+                                  {player.player_name}
+                                </span>
+                                {isMe && (
+                                  <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-xs font-black uppercase tracking-wider shrink-0">
+                                    YOU
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-400 font-bold truncate">
+                                {player.department || '一般同仁'}
+                              </p>
+                            </div>
+                          </button>
+                        </th>
+
+                        <td className="lb-cell-tier py-3.5 px-4">
+                          <div className="flex flex-wrap sm:flex-col items-center sm:items-start gap-x-2.5 gap-y-1">
+                            <div
+                              className={cn(
+                                'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border w-fit',
+                                tier.color
+                              )}
+                            >
+                              {tier.icon}
+                              <span className="text-xs font-black whitespace-nowrap">{tier.name}</span>
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 tabular-nums whitespace-nowrap">
+                              勝率 {player.win_rate}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="lb-cell-record lb-col-record py-3.5 px-4 text-center" data-label="戰績">
+                          <div className="flex items-center sm:flex-col justify-center gap-1.5 sm:gap-0.5">
+                            <div className="flex items-center gap-1 text-xs sm:text-sm font-black tabular-nums whitespace-nowrap">
+                              <span className="text-emerald-600">{player.wins}W</span>
+                              <span className="text-slate-300">-</span>
+                              <span className="text-rose-500">{player.losses}L</span>
+                            </div>
+                            <span className="hidden sm:inline text-xs font-bold text-slate-400 tabular-nums">
+                              共 {player.matches_played} 場
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="lb-cell-form lb-col-form py-3.5 px-4 text-center" data-label="近 5 場">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {player.recent_form && player.recent_form.length > 0 ? (
+                              player.recent_form.map((result: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className={cn(
+                                    'size-2.5 rounded-full shrink-0',
+                                    result === 'W' ? 'bg-emerald-500' : 'bg-rose-500'
+                                  )}
+                                  title={result === 'W' ? '勝' : '敗'}
+                                  aria-label={result === 'W' ? '勝' : '敗'}
+                                />
+                              ))
+                            ) : (
+                              <span className="text-xs font-bold text-slate-300">尚無紀錄</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="lb-cell-rating py-3.5 px-4 text-right">
+                          <div className="flex flex-col items-end">
+                            <span
+                              className={cn(
+                                'font-display font-black text-xl sm:text-2xl tracking-tight tabular-nums leading-none',
+                                isTop1 ? 'text-amber-600' : 'text-primary-navy'
+                              )}
+                            >
                               {Math.round(player.global_mmr)}
                             </span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">Rating</span>
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-wider mt-1">
+                              ELO
+                            </span>
                           </div>
                         </td>
                       </tr>
@@ -373,16 +447,114 @@ export function Leaderboard() {
                   })}
                 </tbody>
               </table>
+
+              {sortedPlayers.length === 0 && (
+                <div className="py-16 px-4 text-center flex flex-col items-center justify-center">
+                  <Search size={36} className="mb-3 text-slate-200" aria-hidden="true" />
+                  <p className="text-slate-500 font-bold text-sm">
+                    {searchTerm ? `找不到符合「${searchTerm}」的選手` : '目前尚無積分榜資料'}
+                  </p>
+                </div>
+              )}
             </div>
-            {sortedPlayers.length === 0 && (
-              <div className="py-20 text-center flex flex-col items-center justify-center text-slate-300">
-                <Search size={48} className="mb-4 opacity-20" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">找不到符合條件的人選</p>
-              </div>
-            )}
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+interface PodiumSlotProps {
+  place: 1 | 2 | 3;
+  player?: any;
+  onSelect: (id: string) => void;
+}
+
+function PodiumSlot({ place, player, onSelect }: PodiumSlotProps) {
+  const styles = {
+    1: {
+      avatarSize: 'size-16 sm:size-22 text-xl sm:text-2xl',
+      ring: 'border-amber-400',
+      badgeBg: 'bg-olympic-gold text-white',
+      pedestal: 'h-24 sm:h-32 bg-gradient-to-t from-amber-200/80 to-amber-50 border-t-4 border-amber-400',
+      numeral: 'I',
+      numeralColor: 'text-amber-500/40 text-3xl sm:text-4xl',
+      nameColor: 'text-amber-700',
+    },
+    2: {
+      avatarSize: 'size-13 sm:size-18 text-base sm:text-xl',
+      ring: 'border-slate-300',
+      badgeBg: 'bg-slate-600 text-white',
+      pedestal: 'h-18 sm:h-24 bg-gradient-to-t from-slate-200/80 to-slate-50 border-t-4 border-slate-300',
+      numeral: 'II',
+      numeralColor: 'text-slate-400/50 text-2xl sm:text-3xl',
+      nameColor: 'text-primary-navy',
+    },
+    3: {
+      avatarSize: 'size-13 sm:size-18 text-base sm:text-xl',
+      ring: 'border-orange-300',
+      badgeBg: 'bg-orange-500 text-white',
+      pedestal: 'h-14 sm:h-20 bg-gradient-to-t from-orange-100/80 to-orange-50/40 border-t-4 border-orange-300',
+      numeral: 'III',
+      numeralColor: 'text-orange-700/30 text-xl sm:text-2xl',
+      nameColor: 'text-primary-navy',
+    },
+  }[place];
+
+  if (!player) {
+    return (
+      <div className="flex flex-col items-center">
+        <div className={cn('rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-white/60 mb-3', styles.avatarSize)}>
+          <span className="text-slate-300 font-display font-black">?</span>
+        </div>
+        <p className="text-xs font-bold text-slate-300 mb-3">虛位以待</p>
+        <div className={cn('w-full rounded-t-2xl flex justify-center pt-3', styles.pedestal)}>
+          <span className={cn('font-display font-black', styles.numeralColor)}>{styles.numeral}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(player.player_id)}
+      className="group flex flex-col items-center w-full text-center focus-visible:outline-2 focus-visible:outline-sapphire-blue rounded-2xl"
+    >
+      <div className="relative mb-3 transition-transform duration-300 group-hover:-translate-y-1">
+        {place === 1 && (
+          <Crown
+            size={24}
+            aria-hidden="true"
+            className="absolute -top-6 left-1/2 -translate-x-1/2 text-olympic-gold drop-shadow-xs"
+          />
+        )}
+        <PlayerAvatar
+          src={player.avatar_url}
+          name={player.player_name}
+          className={cn('rounded-full border-4 shadow-md', styles.avatarSize, styles.ring)}
+        />
+        <span
+          className={cn(
+            'absolute -bottom-2 left-1/2 -translate-x-1/2 size-6 sm:size-7 rounded-full flex items-center justify-center font-display font-black text-xs border-2 border-white shadow-sm',
+            styles.badgeBg
+          )}
+        >
+          {place}
+        </span>
+      </div>
+
+      <p className={cn('font-sans font-black text-xs sm:text-sm md:text-base truncate w-full px-1 group-hover:text-sapphire-blue transition-colors', styles.nameColor)}>
+        {player.player_name}
+      </p>
+      <p className="font-display font-black text-sm sm:text-base text-primary-navy tabular-nums mt-0.5">
+        {Math.round(player.global_mmr)}
+        <span className="text-xs font-sans font-bold text-slate-400 ml-1">ELO</span>
+      </p>
+
+      <div className={cn('w-full rounded-t-2xl mt-3 flex justify-center pt-3 transition-all', styles.pedestal)}>
+        <span className={cn('font-display font-black', styles.numeralColor)}>{styles.numeral}</span>
+      </div>
+    </button>
   );
 }

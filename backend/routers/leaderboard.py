@@ -11,7 +11,78 @@ router = APIRouter(tags=["Leaderboard"])
 
 @router.get("/api/leaderboard", summary="取得本季排行榜與動能指標")
 def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(get_session)):
-    
+    # 🌟 0. All-Time 歷史生涯總榜
+    if season_id == "all-time":
+        users = session.exec(select(User).where(User.role != "guest")).all()
+        rows = session.exec(
+            select(MatchParticipation, Match)
+            .join(Match, MatchParticipation.match_id == Match.id)
+            .where(Match.status.in_(["confirmed", "completed"]))
+            .order_by(Match.created_at.desc())
+        ).all()
+
+        career_stats: dict = {}
+        for part, _m in rows:
+            entry = career_stats.setdefault(
+                part.user_id, {"matches_played": 0, "wins": 0, "recent_form": []}
+            )
+            entry["matches_played"] += 1
+            if part.is_winner:
+                entry["wins"] += 1
+            if len(entry["recent_form"]) < 5:
+                entry["recent_form"].append("W" if part.is_winner else "L")
+
+        combined_data = []
+        for user in users:
+            st = career_stats.get(user.id, {"matches_played": 0, "wins": 0, "recent_form": []})
+            combined_data.append({
+                "user": user,
+                "matches_played": st["matches_played"],
+                "wins": st["wins"],
+                "recent_form": st["recent_form"],
+                "display_mmr": user.global_mmr,
+            })
+
+        active_data = [d for d in combined_data if d["matches_played"] > 0]
+        inactive_data = [d for d in combined_data if d["matches_played"] == 0]
+        active_data.sort(key=lambda x: x["display_mmr"], reverse=True)
+
+        current_rank = 1
+        for i, data in enumerate(active_data):
+            if i > 0 and data["display_mmr"] < active_data[i - 1]["display_mmr"]:
+                current_rank = i + 1
+            data["computed_rank"] = current_rank
+
+        for data in inactive_data:
+            data["computed_rank"] = "-"
+
+        leaderboard_data = []
+        for data in active_data + inactive_data:
+            user = data["user"]
+            matches_played = data["matches_played"]
+            wins = data["wins"]
+            win_rate_val = (wins / matches_played) * 100 if matches_played > 0 else 0.0
+            leaderboard_data.append({
+                "rank": data["computed_rank"],
+                "player_id": str(user.id),
+                "player_name": user.name,
+                "department": user.department,
+                "avatar_url": user.avatar_url,
+                "matches_played": matches_played,
+                "global_mmr": round(data["display_mmr"]),
+                "wins": wins,
+                "losses": matches_played - wins,
+                "win_rate": f"{win_rate_val:.1f}%",
+                "trend": "0",
+                "recent_form": data["recent_form"],
+            })
+
+        return {
+            "season_id": "all-time",
+            "season_name": "All-Time 歷史總榜",
+            "leaderboard": leaderboard_data,
+        }
+
     # 🌟 1. 取得指定或目前的賽季
     if season_id:
         season = session.get(Season, season_id)

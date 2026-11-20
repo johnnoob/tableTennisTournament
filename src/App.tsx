@@ -78,12 +78,12 @@ function AppContent() {
       <Toaster richColors position="top-center" />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full min-w-0 lg:ml-72 xl:ml-80 transition-all duration-300">
-        <div className="min-h-screen bg-white lg:my-4 lg:mr-4 lg:rounded-[2.5rem] shadow-xl shadow-slate-200/50 relative border border-slate-100/50">
+      <main className="flex-1 w-full min-w-0 pt-16 lg:pt-0 lg:ml-72 xl:ml-80 transition-all duration-300">
+        <div className="min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)] bg-white lg:my-4 lg:mr-4 lg:rounded-[2rem] lg:shadow-sm relative lg:border lg:border-slate-200/70 overflow-x-clip">
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
           {loading ? (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center min-h-[calc(100dvh-6rem)]">
               <PingPongLoader />
             </div>
           ) : (
@@ -105,11 +105,14 @@ function AppContent() {
       {/* 🌟全域懸浮報分按鈕 (Global Floating Action Button) */}
       {/* 判斷：必須是登入狀態，且不能在登入頁面，才會顯示 */}
       {user && !isLoginPage && (
-        <div className="fixed bottom-24 right-6 lg:bottom-10 lg:right-12 z-[100] lg:hidden">
+        <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-50 lg:hidden">
           <ReportScore
             trigger={
-              <Button className="size-14 lg:size-16 rounded-full bg-sapphire-blue shadow-xl shadow-sapphire-blue/40 border-none group transition-all duration-300 hover:scale-110 active:scale-95">
-                <Plus size={28} className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
+              <Button
+                aria-label="申報比分"
+                className="size-14 rounded-full bg-sapphire-blue hover:bg-blue-700 shadow-xl shadow-sapphire-blue/35 border-none group transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <Plus size={26} aria-hidden="true" className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
               </Button>
             }
           />

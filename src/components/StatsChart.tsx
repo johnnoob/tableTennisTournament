@@ -32,7 +32,7 @@ const CustomizedDot = (props: any) => {
       </g>
     );
   }
-  return <circle cx={cx} cy={cy} r={4} stroke="white" strokeWidth={2} fill="#0058be" />;
+  return <circle cx={cx} cy={cy} r={4} stroke="white" strokeWidth={2} fill="#2563eb" />;
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -41,8 +41,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const isReset = data.event_type === 'soft_reset';
 
     return (
-      <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-50 min-w-[140px]">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">{label}</p>
+      <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-200/80 min-w-[140px]">
+        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">{label}</p>
         <div className="space-y-1">
           {isReset ? (
             <>
@@ -107,8 +107,8 @@ export function StatsChart({
           <AreaChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0058be" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#0058be" stopOpacity={0} />
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.14} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eceef0" />
@@ -116,18 +116,18 @@ export function StatsChart({
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#3c475a', opacity: 0.5 }}
+              tick={{ fontSize: 12, fill: '#3c475a', opacity: 0.65 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#3c475a', opacity: 0.5 }}
+              tick={{ fontSize: 12, fill: '#3c475a', opacity: 0.65 }}
               domain={['dataMin - 50', 'dataMax + 50']} // 讓上下有點留白空間
             />
             <Tooltip
               content={<CustomTooltip />}
-              cursor={{ stroke: '#0058be', strokeWidth: 1, strokeDasharray: '4 4' }}
+              cursor={{ stroke: '#2563eb', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
             {/* 動態渲染參考線 */}
             {chartData.map((entry, index) => (
@@ -137,14 +137,14 @@ export function StatsChart({
                   x={entry.name}
                   stroke="#94a3b8"
                   strokeDasharray="3 3"
-                  label={{ value: '賽季重置', position: 'top', fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
+                  label={{ value: '賽季重置', position: 'top', fill: '#64748b', fontSize: 12, fontWeight: 'bold' }}
                 />
               )
             ))}
             <Area
               type="monotone"
               dataKey="rating"
-              stroke="#0058be"
+              stroke="#2563eb"
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#colorRating)"
@@ -165,4 +165,4 @@ export function StatsChart({
       {content}
     </Card>
   );
-}
+}

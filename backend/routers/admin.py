@@ -184,6 +184,20 @@ def update_tournament_status(id: UUID, status: str, session: Session = Depends(g
     session.refresh(evt)
     return evt
 
+@router.delete("/tournaments/{id}", dependencies=[Depends(require_admin)])
+def delete_tournament(id: UUID, session: Session = Depends(get_session)):
+    evt = session.get(TournamentEvent, id)
+    if not evt:
+        raise HTTPException(status_code=404, detail="找不到錦標賽")
+    parts = session.exec(
+        select(TournamentParticipant).where(TournamentParticipant.tournament_id == id)
+    ).all()
+    for p in parts:
+        session.delete(p)
+    session.delete(evt)
+    session.commit()
+    return {"message": "錦標賽已刪除"}
+
 @router.get("/tournaments/{id}/participants", dependencies=[Depends(require_admin)])
 def get_participants(id: UUID, session: Session = Depends(get_session)):
     statement = select(TournamentParticipant).where(TournamentParticipant.tournament_id == id)

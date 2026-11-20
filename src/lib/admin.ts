@@ -44,6 +44,8 @@ export const adminApi = {
     adminFetch("/tournaments", { method: "POST", body: JSON.stringify(data) }),
   updateTournamentStatus: (id: string, status: string) => 
     adminFetch(`/tournaments/${id}/status?status=${status}`, { method: "PUT" }),
+  deleteTournament: (id: string) =>
+    adminFetch(`/tournaments/${id}`, { method: "DELETE" }),
   
   // Tournament Participants
   getParticipants: (id: string) => adminFetch(`/tournaments/${id}/participants`),
