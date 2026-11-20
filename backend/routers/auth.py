@@ -1,5 +1,9 @@
+import logging
+from urllib.parse import quote, urlparse
+
 from fastapi import APIRouter, Request, Depends, Response, HTTPException
 from fastapi.responses import RedirectResponse
+from authlib.integrations.base_client import OAuthError
 from authlib.integrations.starlette_client import OAuth
 from sqlmodel import Session, select
 from uuid import UUID
@@ -15,10 +19,25 @@ from services.auth_jwt import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS
 )
-from urllib.parse import urlparse
 import jwt
 
 router = APIRouter(tags=["Auth"])
+logger = logging.getLogger(__name__)
+
+
+def _get_request_origin(request: Request) -> str:
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+    host = (
+        request.headers.get("x-forwarded-host")
+        or request.headers.get("host")
+        or request.url.netloc
+    ).split(",")[0].strip()
+    return f"{proto}://{host}".rstrip("/")
+
+
+def _normalize_origin(origin: str) -> tuple[str, str]:
+    parsed = urlparse(origin.strip().rstrip("/"))
+    return (parsed.scheme.lower(), parsed.netloc.lower())
 
 
 def _resolve_cookie_samesite() -> str:
@@ -48,17 +67,61 @@ oauth.register(
 @router.get("/api/auth/google/login")
 async def google_login(request: Request):
     """前端點擊登入後，會先呼叫這支 API，我們再把它導向 Google"""
-    redirect_uri = f"{settings.effective_backend_url}/api/auth/google/callback"
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    request_origin = _get_request_origin(request)
+    target_origin = settings.effective_backend_url
+
+    if (
+        target_origin
+        and "canonical" not in request.query_params
+        and _normalize_origin(request_origin) != _normalize_origin(target_origin)
+    ):
+        canonical_redirect = RedirectResponse(
+            url=f"{target_origin}/api/auth/google/login?canonical=1",
+            status_code=302,
+        )
+        canonical_redirect.headers["Cache-Control"] = "no-store"
+        return canonical_redirect
+
+    active_origin = (
+        target_origin
+        if target_origin and _normalize_origin(request_origin) == _normalize_origin(target_origin)
+        else request_origin
+    )
+    redirect_uri = f"{active_origin}/api/auth/google/callback"
+    response = await oauth.google.authorize_redirect(request, redirect_uri)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 @router.get("/api/auth/google/callback")
 async def google_callback(request: Request, session: Session = Depends(get_session)):
     """Google 驗證成功後，會帶著資料回到這裡"""
-    token = await oauth.google.authorize_access_token(request)
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except OAuthError as exc:
+        logger.warning(
+            "Google OAuth callback error=%s desc=%s origin=%s has_session_cookie=%s",
+            exc.error,
+            exc.description,
+            _get_request_origin(request),
+            "session" in request.cookies,
+        )
+        err_code = quote(exc.error or "oauth_failed")
+        err_redirect = RedirectResponse(
+            url=f"{settings.effective_frontend_url}/login?error={err_code}",
+            status_code=302,
+        )
+        err_redirect.headers["Cache-Control"] = "no-store"
+        return err_redirect
+
     user_info = token.get('userinfo')
     
     if not user_info:
-        return {"error": "無法取得 Google 使用者資訊"}
+        err_redirect = RedirectResponse(
+            url=f"{settings.effective_frontend_url}/login?error=missing_userinfo",
+            status_code=302,
+        )
+        err_redirect.headers["Cache-Control"] = "no-store"
+        return err_redirect
 
     google_id = user_info.get("sub")
     email = user_info.get("email")
@@ -100,6 +163,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
 
     # 🚀 4. 使用 HttpOnly Cookie 儲存雙 Token
     response = RedirectResponse(url=f"{settings.effective_frontend_url}/")
+    response.headers["Cache-Control"] = "no-store"
     
     # 🔐 設定 Access Token Cookie (短效)
     response.set_cookie(

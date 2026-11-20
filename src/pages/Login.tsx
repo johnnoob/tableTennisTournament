@@ -1,6 +1,12 @@
-import { Trophy, Shield, Target, ArrowRight } from 'lucide-react';
+import { Trophy, Shield, Target, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  mismatching_state: '登入驗證狀態已失效，請重新點擊 Google 登入。',
+  access_denied: '您已取消 Google 帳號授權，請再試一次。',
+  missing_userinfo: '無法取得 Google 帳號資料，請稍後再試。',
+};
 
 const handleGoogleLogin = () => {
   const apiBaseUrl =
@@ -10,6 +16,12 @@ const handleGoogleLogin = () => {
 };
 
 export function Login() {
+  const [searchParams] = useSearchParams();
+  const authError = searchParams.get('error');
+  const authErrorMessage = authError
+    ? OAUTH_ERROR_MESSAGES[authError] || 'Google 登入失敗，請稍後再試。'
+    : null;
+
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white">
 
@@ -81,6 +93,16 @@ export function Login() {
 
           {/* 登入按鈕區 (SSO) */}
           <div className="space-y-3.5 pt-2">
+            {authErrorMessage && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-700 flex items-start gap-2.5"
+              >
+                <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" aria-hidden="true" />
+                <span>{authErrorMessage}</span>
+              </div>
+            )}
+
             {/* Google 登入按鈕 */}
             <Button
               type="button"
