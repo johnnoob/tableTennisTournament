@@ -117,7 +117,7 @@ export function ScoreInputSection({
       </div>
 
       {/* 精簡橫排微調器 */}
-      <div className="flex items-center justify-between gap-2 bg-slate-50/80 border border-slate-200/70 rounded-xl p-2.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 bg-slate-50/80 border border-slate-200/70 rounded-xl p-3">
         <CompactStepper
           label={sideALabel}
           value={scoreA}
@@ -125,7 +125,12 @@ export function ScoreInputSection({
           onChange={onScoreAChange}
           isWinning={scoreA > scoreB}
         />
-        <span className="text-lg font-display font-black text-slate-300" aria-hidden="true">:</span>
+        <span
+          className="h-11 flex items-center justify-center text-lg font-display font-black text-slate-300 px-0.5"
+          aria-hidden="true"
+        >
+          :
+        </span>
         <CompactStepper
           label={sideBLabel}
           value={scoreB}
@@ -152,32 +157,34 @@ function CompactStepper({
   isWinning: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
-      <span className="text-xs font-black text-slate-500 hidden sm:inline mr-1">{label}</span>
-      <button
-        type="button"
-        aria-label={`減少${label}局數`}
-        onClick={() => onChange(Math.max(0, value - 1))}
-        className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
-      >
-        <Minus size={16} strokeWidth={2.5} aria-hidden="true" />
-      </button>
-      <span
-        className={cn(
-          'w-8 text-center font-display font-black text-xl sm:text-2xl tabular-nums',
-          isWinning ? 'text-emerald-600' : 'text-primary-navy'
-        )}
-      >
-        {value}
-      </span>
-      <button
-        type="button"
-        aria-label={`增加${label}局數`}
-        onClick={() => onChange(Math.min(max, value + 1))}
-        className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
-      >
-        <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
-      </button>
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="text-xs font-black text-slate-500 leading-none">{label}</span>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <button
+          type="button"
+          aria-label={`減少${label}局數`}
+          onClick={() => onChange(Math.max(0, value - 1))}
+          className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
+        >
+          <Minus size={16} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+        <span
+          className={cn(
+            'w-8 text-center font-display font-black text-xl sm:text-2xl tabular-nums',
+            isWinning ? 'text-emerald-600' : 'text-primary-navy'
+          )}
+        >
+          {value}
+        </span>
+        <button
+          type="button"
+          aria-label={`增加${label}局數`}
+          onClick={() => onChange(Math.min(max, value + 1))}
+          className="size-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-primary-navy hover:bg-slate-100 active:scale-95 transition-all"
+        >
+          <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }

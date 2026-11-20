@@ -1,4 +1,4 @@
-import type { Player } from '@/data/mockData';
+import type { DashboardPlayer } from '@/types/api.types';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldCheck, TrendingUp, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,7 @@ import { getTierBadge } from '@/lib/ranking';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 
 interface RankingCardProps {
-  player: Player;
+  player: DashboardPlayer;
   variant?: 'featured' | 'standard';
 }
 

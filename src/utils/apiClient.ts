@@ -1,14 +1,26 @@
 import axios from 'axios';
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    _retry?: boolean;
+    skipGlobalErrorToast?: boolean;
+  }
+}
+
+interface FailedQueueItem {
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}
+
 // 🌟 全域錯誤提示冷卻時間
 let lastErrorToastTime = 0;
 let lastErrorMessage = '';
 
 // 🌟 無感刷新相關變數
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: FailedQueueItem[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
@@ -79,7 +91,7 @@ apiClient.interceptors.response.use(
     }
 
     // Global Error Toasts: 攔截非 401 的錯誤並顯示提示
-    if (error.response?.status !== 401) {
+    if (error.response?.status !== 401 && !originalRequest?.skipGlobalErrorToast) {
       let errorMessage = "網路連線異常，請檢查您的網路狀態";
 
       if (error.response) {

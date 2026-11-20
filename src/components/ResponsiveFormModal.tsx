@@ -73,11 +73,11 @@ export function ResponsiveFormModal({
   const titleId = React.useId();
 
   const headerInner = (TitleComponent: typeof DialogTitle | typeof DrawerTitle, DescComponent: typeof DialogDescription | typeof DrawerDescription) => (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-3">
       {icon && (
         <div
           className={cn(
-            'size-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
+            'size-9 rounded-xl flex items-center justify-center shrink-0',
             TONE_BADGE_CLASSES[tone]
           )}
           aria-hidden="true"
@@ -85,7 +85,7 @@ export function ResponsiveFormModal({
           {icon}
         </div>
       )}
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="min-w-0 flex-1 space-y-0.5 text-left">
         <TitleComponent id={titleId} className={cn('text-lg font-display font-black leading-snug', TONE_TITLE_CLASSES[tone])}>
           {title}
         </TitleComponent>
@@ -133,10 +133,16 @@ export function ResponsiveFormModal({
             SIZE_CLASSES[size]
           )}
         >
-          <DialogHeader className="px-6 pt-5 pb-3.5 pr-14 border-b border-slate-100 text-left shrink-0">
+          <DialogHeader className="px-6 py-4 pr-14 border-b border-slate-100 text-left shrink-0">
             {headerInner(DialogTitle, DialogDescription)}
           </DialogHeader>
-          {renderShell('px-6 py-4', 'px-6 py-4 bg-slate-50/70 flex items-center justify-end gap-2.5')}
+          {renderShell(
+            'px-6 py-4',
+            cn(
+              'px-6 py-4 bg-slate-50/70 flex items-center gap-2.5',
+              size === 'sm' ? 'justify-center [&>*]:flex-1' : 'justify-end'
+            )
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -146,12 +152,15 @@ export function ResponsiveFormModal({
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent className="p-0 flex flex-col max-h-[94dvh] overflow-hidden">
-        <DrawerHeader className="px-5 pt-2.5 pb-3 border-b border-slate-100 text-left shrink-0">
+        <DrawerHeader className="px-5 pt-2.5 pb-3 border-b border-slate-100 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left shrink-0">
           {headerInner(DrawerTitle, DrawerDescription)}
         </DrawerHeader>
         {renderShell(
           'px-5 py-4',
-          'px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] bg-white flex flex-col-reverse sm:flex-row sm:justify-end gap-2'
+          cn(
+            'px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] bg-white flex flex-col-reverse sm:flex-row sm:items-center gap-2',
+            size === 'sm' ? 'sm:justify-center sm:[&>*]:flex-1' : 'sm:justify-end'
+          )
         )}
       </DrawerContent>
     </Drawer>

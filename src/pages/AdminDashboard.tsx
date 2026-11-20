@@ -23,9 +23,10 @@ import {
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { adminApi } from '@/lib/admin';
+import { adminApi, type AnnouncementPayload, type TournamentCreatePayload } from '@/lib/admin';
 import apiClient from '@/utils/apiClient';
 import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize } from '@/types/admin';
+import type { AnnouncementType, SeasonSummary } from '@/types/api.types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -65,10 +66,10 @@ export function AdminDashboard() {
     });
 
     // Fetch seasons
-    const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery({
+    const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery<SeasonSummary[]>({
         queryKey: ['seasons', 'list'],
         queryFn: async () => {
-            const res = await apiClient.get('/seasons');
+            const res = await apiClient.get<SeasonSummary[]>('/seasons');
             return res.data;
         }
     });
@@ -85,22 +86,24 @@ export function AdminDashboard() {
         queryClient.invalidateQueries({ queryKey: ['seasons'] });
     };
 
+    const isSeasonPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
+
     const statusCard = (
         <Card className={cn(
             "px-4 py-3 flex items-center gap-3.5 border shadow-xs transition-all duration-500 rounded-2xl w-full md:w-auto",
-            configs.find((c: any) => c.key === 'season_paused')?.value === 'true'
+            isSeasonPaused
                 ? "bg-rose-50 text-rose-600 border-rose-200"
                 : "bg-emerald-50 text-emerald-600 border-emerald-200"
         )}>
             <div className={cn(
                 "size-9 rounded-xl flex items-center justify-center shrink-0",
-                configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? "bg-rose-100" : "bg-emerald-100"
+                isSeasonPaused ? "bg-rose-100" : "bg-emerald-100"
             )}>
-                {configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? <Pause size={18} /> : <Play size={18} />}
+                {isSeasonPaused ? <Pause size={18} /> : <Play size={18} />}
             </div>
             <div>
                 <p className="text-xs font-black uppercase tracking-wider opacity-75">賽季狀態</p>
-                <p className="font-bold text-sm">{configs.find((c: any) => c.key === 'season_paused')?.value === 'true' ? '已暫停報分' : '正常運作中'}</p>
+                <p className="font-bold text-sm">{isSeasonPaused ? '已暫停報分' : '正常運作中'}</p>
             </div>
         </Card>
     );
@@ -186,11 +189,11 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
     const minsId = useId();
     const startDateId = useId();
 
-    const isPaused = configs.find((c: any) => c.key === 'season_paused')?.value === 'true';
-    const intervalDays = configs.find((c: any) => c.key === 'season_interval_days')?.value || '90';
-    const intervalHours = configs.find((c: any) => c.key === 'season_interval_hours')?.value || '0';
-    const intervalMinutes = configs.find((c: any) => c.key === 'season_interval_minutes')?.value || '0';
-    const startDate = configs.find((c: any) => c.key === 'season_start_date')?.value || '';
+    const isPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
+    const intervalDays = configs.find((c) => c.key === 'season_interval_days')?.value || '90';
+    const intervalHours = configs.find((c) => c.key === 'season_interval_hours')?.value || '0';
+    const intervalMinutes = configs.find((c) => c.key === 'season_interval_minutes')?.value || '0';
+    const startDate = configs.find((c) => c.key === 'season_start_date')?.value || '';
 
     const [localDays, setLocalDays] = useState(intervalDays);
     const [localHours, setLocalHours] = useState(intervalHours);
@@ -213,7 +216,7 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
             onUpdate();
             toast.success("系統設定已更新！");
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
             toast.error("更新失敗", { description: err.message || "請檢查網路連線" });
         }
     });
@@ -375,34 +378,34 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deletingAnn, setDeletingAnn] = useState<Announcement | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<AnnouncementPayload>({
         title: '',
         content: '',
         link_text: '',
         link_url: '',
-        type: 'system' as 'club' | 'system' | 'tournament',
+        type: 'system',
         is_active: true
     });
 
     const createMutation = useMutation({
-        mutationFn: (data: any) => adminApi.createAnnouncement(data),
+        mutationFn: (data: AnnouncementPayload) => adminApi.createAnnouncement(data),
         onSuccess: () => {
             setIsAdding(false);
             onUpdate();
             toast.success("公告發布成功");
         },
-        onError: (err: any) => toast.error("發布失敗", { description: err.message })
+        onError: (err: Error) => toast.error("發布失敗", { description: err.message })
     });
 
     const updateMutation = useMutation({
-        mutationFn: (data: { id: string, payload: any }) => adminApi.updateAnnouncement(data.id, data.payload),
+        mutationFn: (data: { id: string; payload: AnnouncementPayload }) => adminApi.updateAnnouncement(data.id, data.payload),
         onSuccess: () => {
             setIsAdding(false);
             setEditingId(null);
             onUpdate();
             toast.success("公告已更新");
         },
-        onError: (err: any) => toast.error("更新失敗", { description: err.message })
+        onError: (err: Error) => toast.error("更新失敗", { description: err.message })
     });
 
     const deleteMutation = useMutation({
@@ -412,7 +415,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
             onUpdate();
             toast.success("公告已刪除");
         },
-        onError: (err: any) => toast.error("刪除失敗", { description: err.message })
+        onError: (err: Error) => toast.error("刪除失敗", { description: err.message })
     });
 
     const handleSave = (data: typeof formData) => {
@@ -555,14 +558,14 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingAnn(null)}
-                            className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                         >
                             取消
                         </Button>
                         <Button
                             type="submit"
                             disabled={deleteMutation.isPending}
-                            className="w-full lg:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
+                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
                         >
                             {deleteMutation.isPending ? '刪除中...' : '確認刪除'}
                         </Button>
@@ -589,16 +592,9 @@ function AnnouncementFormContent({
     onChange,
     getTypeBadge,
 }: {
-    data: {
-        title: string;
-        content: string;
-        link_text: string;
-        link_url: string;
-        type: 'club' | 'system' | 'tournament';
-        is_active: boolean;
-    };
-    onChange: (next: any) => void;
-    getTypeBadge: (type: string) => { label: string; bg: string; text: string };
+    data: AnnouncementPayload;
+    onChange: (next: AnnouncementPayload) => void;
+    getTypeBadge: (type: AnnouncementType) => { label: string; bg: string; text: string };
 }) {
     const titleId = useId();
     const contentId = useId();
@@ -671,7 +667,7 @@ function AnnouncementFormContent({
                         name="linkText"
                         type="text"
                         placeholder="例：前往報名"
-                        value={data.link_text}
+                        value={data.link_text || ''}
                         onChange={e => onChange({ ...data, link_text: e.target.value })}
                         className="arena-input"
                     />
@@ -686,7 +682,7 @@ function AnnouncementFormContent({
                         autoCapitalize="none"
                         spellCheck={false}
                         placeholder="https://..."
-                        value={data.link_url}
+                        value={data.link_url || ''}
                         onChange={e => onChange({ ...data, link_url: e.target.value })}
                         className="arena-input"
                     />
@@ -726,17 +722,10 @@ function ResponsiveAnnouncementModal({
     title: string;
     isEditing: boolean;
     isSaving: boolean;
-    data: {
-        title: string;
-        content: string;
-        link_text: string;
-        link_url: string;
-        type: 'club' | 'system' | 'tournament';
-        is_active: boolean;
-    };
-    onChange: (next: any) => void;
-    onSave: (data: any) => void;
-    getTypeBadge: (type: string) => { label: string; bg: string; text: string };
+    data: AnnouncementPayload;
+    onChange: (next: AnnouncementPayload) => void;
+    onSave: (data: AnnouncementPayload) => void;
+    getTypeBadge: (type: AnnouncementType) => { label: string; bg: string; text: string };
 }) {
     return (
         <ResponsiveFormModal
@@ -758,14 +747,14 @@ function ResponsiveAnnouncementModal({
                         variant="outline"
                         disabled={isSaving}
                         onClick={onClose}
-                        className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={isSaving || !data.title.trim()}
-                        className="w-full lg:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-primary-navy text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
                     >
                         {isSaving ? '處理中...' : isEditing ? '儲存變更' : '確認發布'}
                     </Button>
@@ -777,7 +766,7 @@ function ResponsiveAnnouncementModal({
     );
 }
 
-function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => void }) {
+function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdate: () => void }) {
     const seasonSelectId = useId();
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]?.id || '');
     const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
@@ -802,7 +791,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
             toast.success("獎項已更新");
             onUpdate();
         },
-        onError: (err: any) => toast.error("儲存失敗", { description: err.message })
+        onError: (err: Error) => toast.error("儲存失敗", { description: err.message })
     });
 
     const deleteMutation = useMutation({
@@ -813,7 +802,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
             onUpdate();
             toast.success("獎項已刪除");
         },
-        onError: (err: any) => toast.error("刪除失敗", { description: err.message })
+        onError: (err: Error) => toast.error("刪除失敗", { description: err.message })
     });
 
     const handleSavePrize = (p: Partial<SeasonPrize>) => {
@@ -881,10 +870,10 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                     />
                 ))}
 
-                {extraPrizes.map((p: any, idx: number) => (
+                {extraPrizes.map((p, idx: number) => (
                     <PrizeFormCard
                         key={`extra-${idx}`}
-                        prize={p as SeasonPrize}
+                        prize={p}
                         isNew
                         onSave={handleSavePrize}
                         onDelete={() => setExtraPrizes(extraPrizes.filter((_, i) => i !== idx))}
@@ -912,14 +901,14 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingPrizeId(null)}
-                            className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                         >
                             取消
                         </Button>
                         <Button
                             type="submit"
                             disabled={deleteMutation.isPending}
-                            className="w-full lg:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
+                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
                         >
                             {deleteMutation.isPending ? '刪除中...' : '確認刪除'}
                         </Button>
@@ -938,8 +927,8 @@ function PrizeManager({ seasons, onUpdate }: { seasons: any[], onUpdate: () => v
 
 function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
     rank?: number,
-    prize?: SeasonPrize,
-    onSave: (p: any) => void,
+    prize?: Partial<SeasonPrize>,
+    onSave: (p: Partial<SeasonPrize>) => void,
     onDelete: (id?: string) => void,
     isNew?: boolean
 }) {
@@ -969,8 +958,8 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
             }
             setUrl(uploadedUrl);
             toast.success("圖片上傳成功！");
-        } catch (err: any) {
-            toast.error(err.message || "上傳失敗");
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "上傳失敗");
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1176,14 +1165,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     });
 
     const createMutation = useMutation({
-        mutationFn: (data: any) => adminApi.createTournament(data),
+        mutationFn: (data: TournamentCreatePayload) => adminApi.createTournament(data),
         onSuccess: () => {
             setIsAdding(false);
             setFormData({ title: '', rules: '', image_url: '', start_date: '', end_date: '' });
             onUpdate();
             toast.success("賽事建立成功");
         },
-        onError: (err: any) => toast.error("建立失敗", { description: err.message })
+        onError: (err: Error) => toast.error("建立失敗", { description: err.message })
     });
 
     const statusMutation = useMutation({
@@ -1194,7 +1183,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             onUpdate();
             toast.success("賽事狀態已更新");
         },
-        onError: (err: any) => toast.error("狀態更新失敗", { description: err.message }),
+        onError: (err: Error) => toast.error("狀態更新失敗", { description: err.message }),
     });
 
     const deleteTournMutation = useMutation({
@@ -1205,7 +1194,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             onUpdate();
             toast.success("賽事已刪除");
         },
-        onError: (err: any) => toast.error("刪除賽事失敗", { description: err.message }),
+        onError: (err: Error) => toast.error("刪除賽事失敗", { description: err.message }),
     });
 
     const addParticipantMutation = useMutation({
@@ -1215,7 +1204,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             fetchParticipants();
             toast.success("已將同仁加入參賽名單");
         },
-        onError: (err: any) => toast.error("加入失敗", { description: err.message }),
+        onError: (err: Error) => toast.error("加入失敗", { description: err.message }),
     });
 
     const removeParticipantMutation = useMutation({
@@ -1224,7 +1213,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             fetchParticipants();
             toast.success("已移除參賽者");
         },
-        onError: (err: any) => toast.error("移除失敗", { description: err.message })
+        onError: (err: Error) => toast.error("移除失敗", { description: err.message })
     });
 
     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1247,7 +1236,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     };
 
     const activeTournament = tournaments.find(t => t.id === selectedTourn);
-    const participantUserIds = new Set(participants.map((p: any) => String(p.user?.id)));
+    const participantUserIds = new Set(participants.map((p) => String(p.user?.id)));
     const availableToAdd = allUsers.filter((u) => {
         if (participantUserIds.has(String(u.id))) return false;
         const q = playerSearch.trim().toLowerCase();
@@ -1432,7 +1421,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 </Button>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {participants.map((p: any) => (
+                                {participants.map((p) => (
                                     <div key={p.participant.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between group border border-slate-200/60">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <PlayerAvatar
@@ -1478,14 +1467,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setStatusModalOpen(false)}
-                                        className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
+                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
                                     >
                                         取消
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={statusMutation.isPending}
-                                        className="w-full lg:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
                                     >
                                         {statusMutation.isPending ? '更新中...' : '儲存狀態'}
                                     </Button>
@@ -1536,14 +1525,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setDeleteModalOpen(false)}
-                                        className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
+                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold"
                                     >
                                         取消
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={deleteTournMutation.isPending}
-                                        className="w-full lg:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm"
+                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm"
                                     >
                                         {deleteTournMutation.isPending ? '刪除中...' : '確認刪除'}
                                     </Button>
@@ -1569,7 +1558,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 <Button
                                     type="button"
                                     onClick={() => setAddPlayerModalOpen(false)}
-                                    className="w-full lg:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
                                 >
                                     完成
                                 </Button>

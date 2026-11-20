@@ -1,3 +1,5 @@
+import type { SeasonPrize } from '@/types/admin';
+
 /**
  * 全站 API 型別定義中心
  * 建立嚴謹的 TypeScript 防護網，消滅 any
@@ -18,7 +20,7 @@ export interface Announcement {
 export interface MatchPlayer {
   id: string;
   name: string;
-  avatar: string;
+  avatar?: string | null;
 }
 
 export interface MatchFeedItem {
@@ -35,30 +37,46 @@ export interface MatchFeedItem {
   opponent: MatchPlayer[];
 }
 
+export interface MatchHistoryResponse {
+  total: number;
+  matches: MatchFeedItem[];
+  hasMore: boolean;
+}
+
 export interface User {
   id: string;
-  email?: string;
+  email?: string | null;
   name: string;
-  username: string; // 從 OAuth 或前端推導
-  department?: string;
-  avatar?: string;
+  username?: string; // 從 OAuth 或前端推導
+  department?: string | null;
+  avatar?: string | null;
+  avatar_url?: string | null;
   isVerified?: boolean;
   mmr?: number;
+  global_mmr?: number;
+  role?: string;
+  auth_provider?: string;
+  dominant_hand?: string | null;
+  rubber_forehand?: string | null;
+  rubber_backhand?: string | null;
+  gender?: string | null;
 }
 
 export interface ChartDataPoint {
   name: string; // 用於 X 軸顯示 (原本是 date)
   rating: number; // 用於 Y 軸 (原本是 mmr)
-  event_type?: 'match' | 'soft_reset';
+  event_type?: 'match' | 'soft_reset' | 'decay';
 }
 
 export interface PlayerStats {
   rank: string | number;
-  season_lp: number;
+  season_lp?: number;
   global_mmr: number;
+  matches_played?: number;
   wins: number;
   losses: number;
   win_rate: string;
+  trend?: string;
   pts_change?: number;
   chart_data: ChartDataPoint[];
 }
@@ -114,17 +132,35 @@ export interface RawLeaderboardItem {
   player_id: string;
   player_name: string;
   rank: string | number;
-  season_lp: number;
+  season_lp?: number;
   global_mmr: number;
   avatar_url?: string;
   department?: string;
   wins: number;
+  losses?: number;
   matches_played: number;
   win_rate: string;
+  trend?: string;
+  recent_form?: string[];
 }
 
 export interface LeaderboardResponse {
+  season_id?: string | null;
+  season_name?: string;
   leaderboard: RawLeaderboardItem[];
+}
+
+export interface SeasonSummary {
+  id: string;
+  name: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  participants_count?: number;
+}
+
+export interface SeasonDetailResponse extends SeasonSummary {
+  prizes?: SeasonPrize[];
 }
 
 // 用於 Dashboard 渲染的 Player 映射結構 (相容 RankingCard)
@@ -135,6 +171,7 @@ export interface DashboardPlayer {
   rank: string | number;
   rating: number;
   mmr: number;
+  global_mmr?: number;
   avatar: string;
   isVerified: boolean;
   department?: string;
@@ -142,6 +179,6 @@ export interface DashboardPlayer {
     wins: number;
     losses: number;
     winRate: number | string;
-    avgScore: number;
+    avgScore?: number;
   };
 }

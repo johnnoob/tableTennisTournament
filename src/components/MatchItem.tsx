@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Scale, CalendarDays, RotateCcw } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { PlayerAvatar } from './PlayerAvatar';
 import { ReportScore } from './ReportScore';
@@ -277,6 +278,7 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
             <Button
               type="button"
               variant="outline"
+              onClick={() => toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理')}
               className="w-full max-w-sm bg-rose-50/40 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 rounded-xl h-11 font-sans font-black text-xs uppercase tracking-wider gap-2 shadow-none"
             >
               <Scale size={15} aria-hidden="true" />

@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/PageHeader';
-import { Trophy, Calendar, ArrowRight, CalendarX, Inbox, Sparkles, Target, Zap, Users, Filter, CheckCircle2 } from 'lucide-react';
+import { Trophy, Calendar, ArrowRight, CalendarX, Inbox, Sparkles, Target, Zap, Users, Filter, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
@@ -12,8 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { useThrottledCallback } from '@tanstack/react-pacer';
 import apiClient from '@/utils/apiClient';
+import type { TournamentEvent } from '@/types/admin';
+import type { SeasonSummary } from '@/types/api.types';
 
-function EmptyState({ icon: Icon, title, description, className }: { icon: any; title: string; description: string; className?: string }) {
+function EmptyState({ icon: Icon, title, description, className }: { icon: LucideIcon; title: string; description: string; className?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -47,18 +49,18 @@ export function Tournament() {
   const [visibleCount, setVisibleCount] = useState(6);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const { data: tournamentList = [], isPending: isTournamentsLoading } = useQuery({
+  const { data: tournamentList = [], isPending: isTournamentsLoading } = useQuery<TournamentEvent[]>({
     queryKey: ['tournaments'],
     queryFn: async () => {
-      const res = await apiClient.get('/tournaments');
+      const res = await apiClient.get<TournamentEvent[]>('/tournaments');
       return res.data;
     }
   });
 
-  const { data: seasonList = [], isPending: isSeasonsLoading } = useQuery({
+  const { data: seasonList = [], isPending: isSeasonsLoading } = useQuery<SeasonSummary[]>({
     queryKey: ['seasons', 'list'],
     queryFn: async () => {
-      const res = await apiClient.get('/seasons');
+      const res = await apiClient.get<SeasonSummary[]>('/seasons');
       return res.data;
     }
   });
@@ -68,15 +70,15 @@ export function Tournament() {
     setVisibleCount(6);
   }, [tournamentStatusFilter, activeTab]);
 
-  const filteredTournaments = tournamentList.filter((t: any) => {
+  const filteredTournaments = tournamentList.filter((t) => {
     if (tournamentStatusFilter === 'all') return true;
     return t.status === tournamentStatusFilter;
   });
 
-  const displayHeroTournaments = filteredTournaments.filter((t: any) => ['ongoing', 'registering'].includes(t.status));
-  const displayStandardTournaments = filteredTournaments.filter((t: any) => !['ongoing', 'registering'].includes(t.status));
+  const displayHeroTournaments = filteredTournaments.filter((t) => ['ongoing', 'registering'].includes(t.status));
+  const displayStandardTournaments = filteredTournaments.filter((t) => !['ongoing', 'registering'].includes(t.status));
 
-  const filteredSeasons = seasonList.filter((s: any) => {
+  const filteredSeasons = seasonList.filter((s) => {
     if (tournamentStatusFilter === 'all') return true;
     if (tournamentStatusFilter === 'ongoing') return s.status === 'active';
     if (tournamentStatusFilter === 'completed') return s.status === 'completed';
@@ -129,14 +131,14 @@ export function Tournament() {
       <TabsList className="bg-slate-100/80 p-1 rounded-2xl h-12 w-full md:w-fit grid grid-cols-2 border border-slate-200/70">
         <TabsTrigger
           value="seasons"
-          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-[state=active]:bg-white data-[state=active]:text-sapphire-blue data-[state=active]:shadow-xs"
+          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-white data-active:text-sapphire-blue data-active:shadow-xs"
         >
           <Trophy size={15} aria-hidden="true" />
           積分賽季
         </TabsTrigger>
         <TabsTrigger
           value="exclusive"
-          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-xs"
+          className="rounded-xl px-5 font-display font-black text-xs tracking-wider transition-all gap-2 data-active:bg-white data-active:text-amber-600 data-active:shadow-xs"
         >
           <Target size={15} aria-hidden="true" />
           獨立錦標賽
@@ -236,7 +238,7 @@ export function Tournament() {
                   animate="visible"
                   className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5"
                 >
-                  {filteredSeasons.slice(0, visibleCount).map((s: any, idx: number) => (
+                  {filteredSeasons.slice(0, visibleCount).map((s, idx: number) => (
                     <motion.div key={s.id || idx} variants={itemVariants}>
                       <Card
                         onClick={() => navigate(`/season/${s.id}`)}
@@ -311,7 +313,7 @@ export function Tournament() {
                       <p className="text-xs text-slate-400 font-bold">Live Now · 開放報名或進行中錦標賽</p>
                     </div>
                     <div className="space-y-5">
-                      {displayHeroTournaments.map((t: any, idx: number) => (
+                      {displayHeroTournaments.map((t, idx: number) => (
                         <motion.section
                           key={t.id || idx}
                           variants={fadeInUp}
@@ -374,7 +376,7 @@ export function Tournament() {
                       animate="visible"
                       className="grid grid-cols-1 2xl:grid-cols-2 gap-4"
                     >
-                      {displayStandardTournaments.slice(0, visibleCount).map((t: any, idx: number) => (
+                      {displayStandardTournaments.slice(0, visibleCount).map((t, idx: number) => (
                         <motion.div key={t.id || idx} variants={itemVariants}>
                           <Card
                             onClick={() => navigate(`/tournament/${t.id}`)}

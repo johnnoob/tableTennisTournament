@@ -12,31 +12,32 @@ import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/a
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import apiClient from '@/utils/apiClient';
+import type { LeaderboardResponse, RawLeaderboardItem, SeasonDetailResponse } from '@/types/api.types';
 
 export function SeasonDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: season, isPending: isSeasonLoading } = useQuery({
+  const { data: season, isPending: isSeasonLoading } = useQuery<SeasonDetailResponse>({
     queryKey: ['seasons', 'detail', id],
     queryFn: async () => {
-      const res = await apiClient.get(`/seasons/${id}`);
+      const res = await apiClient.get<SeasonDetailResponse>(`/seasons/${id}`);
       return res.data;
     },
     enabled: !!id
   });
 
-  const { data: lbData, isPending: isLbLoading } = useQuery({
+  const { data: lbData, isPending: isLbLoading } = useQuery<LeaderboardResponse>({
     queryKey: ['leaderboard', id],
     queryFn: async () => {
-      const res = await apiClient.get(`/leaderboard?season_id=${id}`);
+      const res = await apiClient.get<LeaderboardResponse>(`/leaderboard?season_id=${id}`);
       return res.data;
     },
     enabled: !!id
   });
 
   const loading = isSeasonLoading || isLbLoading;
-  const topPlayers = lbData?.leaderboard?.slice(0, 5) || [];
+  const topPlayers: RawLeaderboardItem[] = lbData?.leaderboard?.slice(0, 5) || [];
 
   const [now, setNow] = useState(new Date());
 
@@ -188,7 +189,7 @@ export function SeasonDetail() {
               className="grid grid-cols-1 md:grid-cols-3 gap-5"
             >
               {[1, 2, 3].map((rank) => {
-                const prize = (season.prizes || []).find((p: any) => p.rank === rank);
+                const prize = (season.prizes || []).find((p) => p.rank === rank);
                 return (
                   <motion.div key={rank} variants={itemVariants} className="relative mt-2 group">
                     <div
@@ -251,7 +252,7 @@ export function SeasonDetail() {
               animate="visible"
               className="space-y-3"
             >
-              {topPlayers.map((player: any, idx: number) => (
+              {topPlayers.map((player, idx: number) => (
                 <motion.button
                   type="button"
                   key={player.player_id}

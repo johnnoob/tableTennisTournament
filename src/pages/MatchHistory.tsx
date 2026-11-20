@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 import { MatchHistorySkeleton } from '@/components/MatchHistorySkeleton';
 import { useAuth } from '@/hooks/useAuth';
+import type { MatchFeedItem, MatchHistoryResponse } from '@/types/api.types';
 
 const PAGE_SIZE = 15;
 
@@ -33,9 +34,9 @@ export function MatchHistory() {
   }, [searchQuery]);
 
   // 列表主查詢（支援結果、單雙打、跨頁關鍵字搜尋）
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useInfiniteQuery<MatchHistoryResponse>({
     queryKey: ['matches', 'history', filter, matchTypeFilter, debouncedSearch],
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         limit: String(PAGE_SIZE),
         offset: String(pageParam),
@@ -45,7 +46,7 @@ export function MatchHistory() {
       if (debouncedSearch) {
         params.set('search', debouncedSearch);
       }
-      const res = await apiClient.get(`/users/me/matches?${params.toString()}`);
+      const res = await apiClient.get<MatchHistoryResponse>(`/users/me/matches?${params.toString()}`);
       return res.data;
     },
     initialPageParam: 0,
@@ -57,10 +58,10 @@ export function MatchHistory() {
   });
 
   // 獨立抓最近 5 場固定資料供右側摘要使用（不因切換篩選而歸零）
-  const { data: summaryData } = useQuery({
+  const { data: summaryData } = useQuery<MatchHistoryResponse>({
     queryKey: ['matches', 'history', 'summary'],
     queryFn: async () => {
-      const res = await apiClient.get('/users/me/matches?limit=5&offset=0&result_filter=all');
+      const res = await apiClient.get<MatchHistoryResponse>('/users/me/matches?limit=5&offset=0&result_filter=all');
       return res.data;
     },
     enabled: !!user,
@@ -89,12 +90,12 @@ export function MatchHistory() {
 
   const stats = useMemo(() => {
     const recentMatches = summaryData?.matches?.slice(0, 5) || [];
-    const wins = recentMatches.filter((m: any) => m.result === 'win').length;
+    const wins = recentMatches.filter((m) => m.result === 'win').length;
     const losses = recentMatches.length - wins;
     const winRate = recentMatches.length > 0 ? Math.round((wins / recentMatches.length) * 100) : 0;
-    const recentForm = recentMatches.map((m: any) => (m.result === 'win' ? 'W' : 'L'));
-    const netMmr = recentMatches.reduce((acc: number, m: any) => {
-      const isTeamA = m.player1?.some((p: any) => String(p.id) === String(user?.id));
+    const recentForm = recentMatches.map((m) => (m.result === 'win' ? 'W' : 'L'));
+    const netMmr = recentMatches.reduce((acc, m) => {
+      const isTeamA = m.player1?.some((p) => String(p.id) === String(user?.id));
       const change = isTeamA ? (m.mmrChange?.[0] || 0) : (m.mmrChange?.[1] || 0);
       return acc + change;
     }, 0);
@@ -271,7 +272,7 @@ export function MatchHistory() {
                     animate="visible"
                     className="space-y-3"
                   >
-                    {matches.map((match: any) => (
+                    {matches.map((match: MatchFeedItem) => (
                       <motion.div key={match.id} variants={itemVariants}>
                         <MatchItem match={match} />
                       </motion.div>

@@ -41,31 +41,35 @@ export const getTierBadge = (mmr: number, iconSize: number = 14) => {
  * 2. 只有 0 場對戰紀錄者，名次顯示為 "-"
  * 3. 排序規則：有紀錄者優先 (Active)，且依積分降冪；無紀錄者 (Inactive) 墊底。
  */
-export const calculateRankings = (players: any[]) => {
+export const calculateRankings = <
+  T extends { matches_played?: number; global_mmr?: number; rank?: number | string }
+>(
+  players: T[]
+): T[] => {
   if (!players || players.length === 0) return [];
 
   // 深拷貝避免影響原始資料 (Redux/State Safety)
-  const data = JSON.parse(JSON.stringify(players));
+  const data = JSON.parse(JSON.stringify(players)) as T[];
 
   // 1. 分類：參賽者 (Active) 與 未參賽者 (Inactive)
-  const active = data.filter((p: any) => (p.matches_played || 0) > 0);
-  const inactive = data.filter((p: any) => (p.matches_played || 0) === 0);
+  const active = data.filter((p) => (p.matches_played || 0) > 0);
+  const inactive = data.filter((p) => (p.matches_played || 0) === 0);
 
   // 2. 排序 Active Players (積分由高到低)
-  active.sort((a: any, b: any) => (b.global_mmr || 0) - (a.global_mmr || 0));
+  active.sort((a, b) => (b.global_mmr || 0) - (a.global_mmr || 0));
 
   // 3. 計算名次
   let currentRank = 1;
   for (let i = 0; i < active.length; i++) {
     // 如果不是第一個，且分數比前一個低，則跳到正確的流水號名次
-    if (i > 0 && active[i].global_mmr < active[i - 1].global_mmr) {
+    if (i > 0 && (active[i].global_mmr || 0) < (active[i - 1].global_mmr || 0)) {
       currentRank = i + 1;
     }
     active[i].rank = currentRank;
   }
 
   // 4. 設定 Inactive 名次
-  inactive.forEach((p: any) => {
+  inactive.forEach((p) => {
     p.rank = "-";
   });
 

@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/utils/apiClient';
+import type { LeaderboardResponse, RawLeaderboardItem, SeasonSummary } from '@/types/api.types';
 
 export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,10 +22,10 @@ export function Leaderboard() {
   const urlSeasonId = searchParams.get('season_id');
   const [selectedSeason, setSelectedSeason] = useState<string>(urlSeasonId || '');
 
-  const { data: seasons = [], isPending: isSeasonsLoading } = useQuery({
+  const { data: seasons = [], isPending: isSeasonsLoading } = useQuery<SeasonSummary[]>({
     queryKey: ['seasons', 'list'],
     queryFn: async () => {
-      const res = await apiClient.get('/seasons');
+      const res = await apiClient.get<SeasonSummary[]>('/seasons');
       return res.data;
     },
   });
@@ -35,22 +36,25 @@ export function Leaderboard() {
     }
   }, [seasons, selectedSeason]);
 
-  const { data: leaderboardData, isPending: isLeaderboardLoading } = useQuery({
+  const { data: leaderboardData, isPending: isLeaderboardLoading } = useQuery<LeaderboardResponse>({
     queryKey: ['leaderboard', selectedSeason],
     queryFn: async () => {
       const url = `/leaderboard?season_id=${encodeURIComponent(selectedSeason)}`;
-      const res = await apiClient.get(url);
+      const res = await apiClient.get<LeaderboardResponse>(url);
       return res.data;
     },
     enabled: !!selectedSeason,
     refetchInterval: 10000,
   });
 
-  const realLeaderboard = leaderboardData?.leaderboard || [];
+  const realLeaderboard = useMemo(
+    () => leaderboardData?.leaderboard ?? [],
+    [leaderboardData]
+  );
   const seasonName = leaderboardData?.season_name || '讀取中...';
   const isLoading = isSeasonsLoading || isLeaderboardLoading;
 
-  const currentSeasonObj = seasons.find((s: any) => s.id === selectedSeason);
+  const currentSeasonObj = seasons.find((s) => s.id === selectedSeason);
   const isSeasonEnded = currentSeasonObj?.status === 'completed';
   const isAllTime = selectedSeason === 'all-time';
 
@@ -64,18 +68,18 @@ export function Leaderboard() {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return realLeaderboard;
     return realLeaderboard.filter(
-      (p: any) =>
+      (p) =>
         p.player_name.toLowerCase().includes(q) ||
         (p.department && p.department.toLowerCase().includes(q))
     );
   }, [realLeaderboard, searchTerm]);
 
   const podiumPlayers = useMemo(() => {
-    return sortedPlayers.filter((p: any) => p.rank !== '-').slice(0, 3);
+    return sortedPlayers.filter((p) => p.rank !== '-').slice(0, 3);
   }, [sortedPlayers]);
 
   const rankedCount = useMemo(() => {
-    return realLeaderboard.filter((p: any) => p.rank !== '-').length;
+    return realLeaderboard.filter((p) => p.rank !== '-').length;
   }, [realLeaderboard]);
 
   const showPodium = !searchTerm.trim() && podiumPlayers.length > 0;
@@ -162,7 +166,7 @@ export function Leaderboard() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {seasons.map((s: any) => (
+                {seasons.map((s) => (
                   <SelectItem key={s.id} value={s.id} className="font-bold">
                     {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
                   </SelectItem>
@@ -294,7 +298,7 @@ export function Leaderboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {sortedPlayers.map((player: any) => {
+                  {sortedPlayers.map((player) => {
                     const rank = player.rank;
                     const tier = getTierBadge(player.global_mmr);
                     const isTop1 = rank === 1;
@@ -466,7 +470,7 @@ export function Leaderboard() {
 
 interface PodiumSlotProps {
   place: 1 | 2 | 3;
-  player?: any;
+  player?: RawLeaderboardItem;
   onSelect: (id: string) => void;
 }
 

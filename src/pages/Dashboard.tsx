@@ -404,7 +404,7 @@ export function Dashboard() {
                           department: user?.department || '',
                           rating: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
                           mmr: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
-                          rank: (myStats?.rank || '-') as any,
+                          rank: myStats?.rank ?? '-',
                           stats: {
                             winRate: myStats?.win_rate || '0%',
                             wins: myStats?.wins || 0,

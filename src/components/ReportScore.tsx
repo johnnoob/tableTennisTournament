@@ -173,6 +173,15 @@ export function ReportScore({
     findInitialSlot(initialMatchType, initialPartnerId, initialOpponentId, initialOpponent2Id)
   );
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const resetTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   const resetFormState = React.useCallback(
     (nextType: MatchType = initialMatchType) => {
@@ -198,6 +207,10 @@ export function ReportScore({
   );
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
     if (!isControlled) {
       setInternalOpen(nextOpen);
     }
@@ -205,7 +218,10 @@ export function ReportScore({
     if (nextOpen) {
       resetFormState(initialMatchType);
     } else if (isSuccess) {
-      setTimeout(() => resetFormState(initialMatchType), 250);
+      resetTimerRef.current = window.setTimeout(() => {
+        resetFormState(initialMatchType);
+        resetTimerRef.current = null;
+      }, 250);
     }
   };
 
@@ -345,7 +361,7 @@ export function ReportScore({
 
   const mutation = useMutation({
     mutationFn: async (payload: ReportPayload) => {
-      return apiClient.post('/matches', payload);
+      return apiClient.post('/matches', payload, { skipGlobalErrorToast: true });
     },
     onMutate: async (newMatch) => {
       await queryClient.cancelQueries({ queryKey: ['matches', 'recent'] });
@@ -397,6 +413,7 @@ export function ReportScore({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
       queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
@@ -588,13 +605,13 @@ export function ReportScore({
               <TabsList className="grid w-full grid-cols-2 rounded-2xl p-1 h-11 bg-slate-100 border border-slate-200/70">
                 <TabsTrigger
                   value="singles"
-                  className="rounded-xl text-sm font-black data-[state=active]:bg-white data-[state=active]:text-primary-navy data-[state=active]:shadow-xs"
+                  className="rounded-xl text-sm font-black data-active:bg-white data-active:text-primary-navy data-active:shadow-xs"
                 >
                   單打 1v1
                 </TabsTrigger>
                 <TabsTrigger
                   value="doubles"
-                  className="rounded-xl text-sm font-black data-[state=active]:bg-white data-[state=active]:text-primary-navy data-[state=active]:shadow-xs"
+                  className="rounded-xl text-sm font-black data-active:bg-white data-active:text-primary-navy data-active:shadow-xs"
                 >
                   雙打 2v2
                 </TabsTrigger>
@@ -603,87 +620,86 @@ export function ReportScore({
           )}
 
           {/* 2. 對戰陣容槽位 (Slot-First Matchup Stage) */}
-          <section aria-label="對戰陣容" className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4">
+          <section aria-label="對戰陣容" className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 space-y-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+              <p className="text-xs font-black text-slate-500">我方</p>
+              <span className="text-xs font-bold text-slate-400 text-center whitespace-nowrap px-1 sm:px-2">
+                {matchFormat}
+              </span>
+              <p className="text-xs font-black text-slate-500 text-right">對手</p>
+            </div>
+
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
               {/* 我方陣營 */}
-              <div className="space-y-2 min-w-0">
-                <p className="text-xs font-black text-slate-500 flex items-center justify-between">
-                  <span>我方</span>
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 min-w-0">
-                    <PlayerAvatar
-                      src={currentUser.avatar_url || currentUser.avatar}
-                      name={currentUser.name}
-                      className="size-8 rounded-lg text-xs"
-                    />
-                    <span className="text-xs sm:text-sm font-black text-primary-navy truncate">
-                      {currentUser.name}
-                    </span>
-                  </div>
-
-                  {matchType === 'doubles' && (
-                    <LineupSlotButton
-                      label="選搭檔"
-                      roleBadge="搭檔"
-                      badgeColor="bg-amber-100 text-amber-700"
-                      player={selectedPartner}
-                      isActive={activeSlot === 'partner'}
-                      disabled={editMode}
-                      onFocus={() => setActiveSlot('partner')}
-                      onClear={() => {
-                        setSelectedPartnerId(null);
-                        setActiveSlot('partner');
-                      }}
-                    />
-                  )}
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-white border border-slate-200/80 min-w-0">
+                  <PlayerAvatar
+                    src={currentUser.avatar_url || currentUser.avatar}
+                    name={currentUser.name}
+                    className="size-8 rounded-lg text-xs"
+                  />
+                  <span className="text-xs sm:text-sm font-black text-primary-navy truncate">
+                    {currentUser.name}
+                  </span>
                 </div>
+
+                {matchType === 'doubles' && (
+                  <LineupSlotButton
+                    label="選搭檔"
+                    roleBadge="搭檔"
+                    badgeColor="bg-amber-100 text-amber-700"
+                    player={selectedPartner}
+                    isActive={activeSlot === 'partner'}
+                    disabled={editMode}
+                    onFocus={() => setActiveSlot('partner')}
+                    onClear={() => {
+                      setSelectedPartnerId(null);
+                      setActiveSlot('partner');
+                    }}
+                  />
+                )}
               </div>
 
               {/* 中央即時比分 */}
-              <div className="flex flex-col items-center justify-center px-1 sm:px-2 shrink-0">
+              <div className="flex items-center justify-center px-1 sm:px-2 shrink-0">
                 <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-primary-navy tabular-nums">
                   <span className={cn(scoreA > scoreB && 'text-emerald-600')}>{scoreA}</span>
                   <span className="text-slate-300">:</span>
                   <span className={cn(scoreB > scoreA && 'text-emerald-600')}>{scoreB}</span>
                 </div>
-                <span className="text-xs font-bold text-slate-400 mt-0.5 whitespace-nowrap">{matchFormat}</span>
               </div>
 
               {/* 對手陣營 */}
-              <div className="space-y-2 min-w-0">
-                <p className="text-xs font-black text-slate-500 text-right">對手</p>
-                <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <LineupSlotButton
+                  label={matchType === 'singles' ? '選對手' : '對手 1'}
+                  roleBadge="對手"
+                  badgeColor="bg-blue-100 text-sapphire-blue"
+                  player={opponent1}
+                  isActive={activeSlot === 'opp1'}
+                  disabled={editMode}
+                  onFocus={() => setActiveSlot('opp1')}
+                  onClear={() => {
+                    setOpponent1Id(null);
+                    setActiveSlot('opp1');
+                  }}
+                />
+
+                {matchType === 'doubles' && (
                   <LineupSlotButton
-                    label={matchType === 'singles' ? '選對手' : '對手 1'}
+                    label="對手 2"
                     roleBadge="對手"
                     badgeColor="bg-blue-100 text-sapphire-blue"
-                    player={opponent1}
-                    isActive={activeSlot === 'opp1'}
+                    player={opponent2}
+                    isActive={activeSlot === 'opp2'}
                     disabled={editMode}
-                    onFocus={() => setActiveSlot('opp1')}
+                    onFocus={() => setActiveSlot('opp2')}
                     onClear={() => {
-                      setOpponent1Id(null);
-                      setActiveSlot('opp1');
+                      setOpponent2Id(null);
+                      setActiveSlot('opp2');
                     }}
                   />
-
-                  {matchType === 'doubles' && (
-                    <LineupSlotButton
-                      label="對手 2"
-                      roleBadge="對手"
-                      badgeColor="bg-blue-100 text-sapphire-blue"
-                      player={opponent2}
-                      isActive={activeSlot === 'opp2'}
-                      disabled={editMode}
-                      onFocus={() => setActiveSlot('opp2')}
-                      onClear={() => {
-                        setOpponent2Id(null);
-                        setActiveSlot('opp2');
-                      }}
-                    />
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </section>
@@ -881,7 +897,7 @@ export function ReportScore({
                 type="button"
                 variant="outline"
                 onClick={handleQuickRematch}
-                className="w-full lg:w-auto h-11 px-5 rounded-xl border-sapphire-blue/30 text-sapphire-blue hover:bg-blue-50 font-black text-sm gap-1.5"
+                className="w-full sm:w-auto h-11 px-5 rounded-xl border-sapphire-blue/30 text-sapphire-blue hover:bg-blue-50 font-black text-sm gap-1.5"
               >
                 <RotateCcw size={15} aria-hidden="true" />
                 原陣容再報一場
@@ -890,7 +906,7 @@ export function ReportScore({
             <Button
               type="button"
               onClick={() => handleOpenChange(false)}
-              className="w-full lg:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
             >
               完成
             </Button>
@@ -901,14 +917,14 @@ export function ReportScore({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+              className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={seasonPaused || !isLineupReady || isSubmitting || !scoreValidation.valid}
-              className="w-full lg:w-auto h-11 px-7 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm tracking-wide transition-all disabled:opacity-35 shadow-sm"
+              className="w-full sm:w-auto h-11 px-7 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm tracking-wide transition-all disabled:opacity-35 shadow-sm"
             >
               {submitLabel}
             </Button>
@@ -944,7 +960,7 @@ function LineupSlotButton({
     return (
       <div
         className={cn(
-          'flex items-center gap-2 p-2 rounded-xl bg-white border transition-all min-w-0',
+          'flex items-center gap-2 min-h-12 px-2.5 py-2 rounded-xl bg-white border transition-all min-w-0',
           isActive ? 'border-sapphire-blue ring-2 ring-sapphire-blue/25' : 'border-slate-200/80'
         )}
       >

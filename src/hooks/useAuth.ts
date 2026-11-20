@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import apiClient from '@/utils/apiClient';
+import type { User } from '@/types/api.types';
 
 /**
  * useAuth Hook
@@ -13,15 +15,15 @@ export function useAuth() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  const query = useQuery<User | null>({
     queryKey: ['authUser'],
     queryFn: async () => {
       try {
-        const res = await apiClient.get('/users/me');
+        const res = await apiClient.get<User>('/users/me');
         return res.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 如果是 401 錯誤，代表未登入，這裡回傳 null
-        if (error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
           return null;
         }
         throw error;
@@ -56,4 +58,3 @@ export function useAuth() {
     logout,
   };
 }
-

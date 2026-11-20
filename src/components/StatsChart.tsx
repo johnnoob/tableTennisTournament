@@ -7,7 +7,7 @@ import { Star } from 'lucide-react';
 interface DataPoint {
   name: string;
   rating: number;
-  event_type?: 'match' | 'soft_reset';
+  event_type?: 'match' | 'soft_reset' | 'decay';
 }
 
 interface StatsChartProps {
@@ -18,9 +18,25 @@ interface StatsChartProps {
   height?: number;
 }
 
-const CustomizedDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (payload.event_type === 'soft_reset') {
+interface CustomizedDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: DataPoint;
+}
+
+interface TooltipEntry {
+  payload?: DataPoint;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string | number;
+}
+
+const CustomizedDot = ({ cx, cy, payload }: CustomizedDotProps) => {
+  if (cx === undefined || cy === undefined) return null;
+  if (payload?.event_type === 'soft_reset') {
     return (
       <g transform={`translate(${cx - 8}, ${cy - 8})`}>
         <path
@@ -35,9 +51,9 @@ const CustomizedDot = (props: any) => {
   return <circle cx={cx} cy={cy} r={4} stroke="white" strokeWidth={2} fill="#2563eb" />;
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const data = payload?.[0]?.payload;
+  if (active && data) {
     const isReset = data.event_type === 'soft_reset';
 
     return (

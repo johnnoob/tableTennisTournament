@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
@@ -136,6 +136,15 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const confirmResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (confirmResetTimerRef.current !== null) {
+        window.clearTimeout(confirmResetTimerRef.current);
+      }
+    };
+  }, []);
 
   // Dispute modal state
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -146,9 +155,10 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
     e.preventDefault();
     setIsConfirming(true);
     try {
-      await apiClient.post(`/matches/${match.id}/confirm`);
+      await apiClient.post(`/matches/${match.id}/confirm`, undefined, { skipGlobalErrorToast: true });
       queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
       queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
+      queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
@@ -158,7 +168,8 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
       setIsSuccess(true);
       toast.success('賽果確認完成，積分已即時更新');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : '網路連線錯誤';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const errorMessage = detail || (err instanceof Error ? err.message : '網路連線錯誤');
       toast.error('確認失敗：' + errorMessage);
       setIsConfirming(false);
     }
@@ -166,9 +177,16 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
 
   const handleConfirmOpenChange = (nextOpen: boolean) => {
     if (isConfirming) return;
+    if (confirmResetTimerRef.current !== null) {
+      window.clearTimeout(confirmResetTimerRef.current);
+      confirmResetTimerRef.current = null;
+    }
     setConfirmOpen(nextOpen);
     if (!nextOpen && isSuccess) {
-      setTimeout(() => setIsSuccess(false), 250);
+      confirmResetTimerRef.current = window.setTimeout(() => {
+        setIsSuccess(false);
+        confirmResetTimerRef.current = null;
+      }, 250);
     }
   };
 
@@ -341,7 +359,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 title="提出異議"
                 className="size-10 rounded-xl border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 bg-white"
               >
-                <X size={18} strokeWidth={2.5} aria-hidden="true" />
+                <X size={18} strokeWidth={2.5} aria-hidden="true" className="size-4.5" />
               </Button>
             }
             footer={
@@ -350,14 +368,14 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                   type="button"
                   variant="outline"
                   onClick={() => setDisputeOpen(false)}
-                  className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                  className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                 >
                   取消
                 </Button>
                 <Button
                   type="submit"
                   disabled={!disputeReason.trim()}
-                  className="w-full lg:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
+                  className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
                 >
                   送出異議
                 </Button>
@@ -418,7 +436,7 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 <Button
                   type="button"
                   onClick={() => handleConfirmOpenChange(false)}
-                  className="w-full lg:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
+                  className="w-full sm:w-auto h-11 px-8 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm"
                 >
                   完成
                 </Button>
@@ -429,14 +447,14 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                     variant="outline"
                     disabled={isConfirming}
                     onClick={() => handleConfirmOpenChange(false)}
-                    className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
                   >
                     取消
                   </Button>
                   <Button
                     type="submit"
                     disabled={isConfirming}
-                    className="w-full lg:w-auto h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-sm shadow-sm"
+                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-sm shadow-sm"
                   >
                     {isConfirming ? '處理中...' : '確認，賽果無誤'}
                   </Button>
@@ -478,7 +496,7 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
   const doDelete = async (matchId: string) => {
     setDeletingId(matchId);
     try {
-      await apiClient.delete(`/matches/${matchId}`);
+      await apiClient.delete(`/matches/${matchId}`, { skipGlobalErrorToast: true });
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
@@ -611,11 +629,26 @@ function DeleteConfirmButton({
 }) {
   const [open, setOpen] = useState(false);
   const isLoss = match.score[0] < match.score[1];
+  const confirmTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) {
+        window.clearTimeout(confirmTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleConfirmSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setOpen(false);
-    setTimeout(() => onConfirm(), 150);
+    if (confirmTimerRef.current !== null) {
+      window.clearTimeout(confirmTimerRef.current);
+    }
+    confirmTimerRef.current = window.setTimeout(() => {
+      confirmTimerRef.current = null;
+      onConfirm();
+    }, 150);
   };
 
   return (
@@ -647,13 +680,13 @@ function DeleteConfirmButton({
             type="button"
             variant="outline"
             onClick={() => setOpen(false)}
-            className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-4 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
           >
             取消，繼續等待
           </Button>
           <Button
             type="submit"
-            className="w-full lg:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm gap-1.5"
+            className="w-full sm:w-auto h-11 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm gap-1.5"
           >
             <Trash2 size={15} aria-hidden="true" />
             確認撤回申報
@@ -739,7 +772,11 @@ function EditScoreButton({
 
     setSaving(true);
     try {
-      await apiClient.patch(`/matches/${match.id}`, { score_a: scoreA, score_b: scoreB });
+      await apiClient.patch(
+        `/matches/${match.id}`,
+        { score_a: scoreA, score_b: scoreB },
+        { skipGlobalErrorToast: true }
+      );
       onSuccess();
       toast.success(`已更新比分為 ${scoreA} : ${scoreB}`);
       setOpen(false);
@@ -780,14 +817,14 @@ function EditScoreButton({
             variant="outline"
             disabled={saving}
             onClick={() => setOpen(false)}
-            className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
           >
             取消
           </Button>
           <Button
             type="submit"
             disabled={saving || !validation.valid}
-            className="w-full lg:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm shadow-sm disabled:opacity-35"
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary-navy hover:bg-slate-800 text-white font-display font-black text-sm shadow-sm disabled:opacity-35"
           >
             {saving ? '儲存中...' : '儲存修改'}
           </Button>

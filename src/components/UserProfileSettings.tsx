@@ -83,9 +83,22 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
   const [errorMsg, setErrorMsg] = React.useState("")
+  const closeTimerRef = React.useRef<number | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [])
 
   // 每次開啟時從 user 狀態重設表單，避免 useEffect set-state
   const handleOpenChange = (nextOpen: boolean) => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
     setOpen(nextOpen)
     if (nextOpen && user) {
       setName(user.name || "")
@@ -111,14 +124,18 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
     const startTime = Date.now()
 
     try {
-      await apiClient.patch('/users/me', {
-        name: name.trim(),
-        department: department.trim() || null,
-        gender: gender || null,
-        dominant_hand: dominantHand || null,
-        rubber_forehand: forehand || null,
-        rubber_backhand: backhand || null,
-      })
+      await apiClient.patch(
+        '/users/me',
+        {
+          name: name.trim(),
+          department: department.trim() || null,
+          gender: gender || null,
+          dominant_hand: dominantHand || null,
+          rubber_forehand: forehand || null,
+          rubber_backhand: backhand || null,
+        },
+        { skipGlobalErrorToast: true }
+      )
 
       const elapsedTime = Date.now() - startTime
       if (elapsedTime < 500) {
@@ -128,9 +145,13 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       queryClient.invalidateQueries({ queryKey: ['authUser'] })
       setIsSuccess(true)
       toast.success("個人設定已更新")
-      setTimeout(() => setOpen(false), 900)
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null
+        setOpen(false)
+      }, 900)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "儲存失敗，請稍後再試"
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      const msg = detail || (err instanceof Error ? err.message : "儲存失敗，請稍後再試")
       setErrorMsg(msg)
       toast.error(msg)
     } finally {
@@ -161,7 +182,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
             variant="outline"
             disabled={isSaving}
             onClick={() => setOpen(false)}
-            className="w-full lg:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
           >
             取消
           </Button>
@@ -169,7 +190,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
             type="submit"
             disabled={isSaving || isSuccess || !name.trim()}
             className={cn(
-              "w-full lg:w-auto h-11 px-6 rounded-xl font-display font-black text-sm tracking-wide transition-all gap-2 shadow-sm",
+              "w-full sm:w-auto h-11 px-6 rounded-xl font-display font-black text-sm tracking-wide transition-all gap-2 shadow-sm",
               isSuccess
                 ? "bg-emerald-600 text-white"
                 : "bg-primary-navy hover:bg-slate-800 text-white disabled:opacity-40"

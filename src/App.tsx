@@ -112,7 +112,7 @@ function AppContent() {
                 aria-label="申報比分"
                 className="size-14 rounded-full bg-sapphire-blue hover:bg-blue-700 shadow-xl shadow-sapphire-blue/35 border-none group transition-all duration-300 hover:scale-105 active:scale-95"
               >
-                <Plus size={26} aria-hidden="true" className="text-white transform group-hover:rotate-90 transition-transform duration-300" />
+                <Plus aria-hidden="true" className="size-6.5 text-white transform group-hover:rotate-90 transition-transform duration-300" />
               </Button>
             }
           />
