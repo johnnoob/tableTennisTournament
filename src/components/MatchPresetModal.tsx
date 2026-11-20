@@ -394,7 +394,15 @@ export function MatchPresetEditorModal({
               placeholder="搜尋同仁姓名或處室..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="arena-input pl-10 pr-10"
+              onFocus={(e) => {
+                const inputEl = e.currentTarget;
+                window.setTimeout(() => {
+                  if (inputEl.isConnected) {
+                    inputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 120);
+              }}
+              className="arena-input pl-10 pr-10 scroll-mt-3"
             />
             {searchTerm && (
               <button

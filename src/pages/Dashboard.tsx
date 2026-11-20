@@ -12,10 +12,9 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ReportScore } from '@/components/ReportScore';
 import { MatchPresetEditorModal, MatchPresetManagerModal } from '@/components/MatchPresetModal';
 import {
-  getMatchupSignature,
-  getPresetSignature,
+  formatQuickMatchLabel,
   MAX_MATCH_PRESETS,
-  useMatchPresets,
+  useQuickMatchItems,
 } from '@/hooks/useMatchPresets';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,9 +49,7 @@ import { isTopTierRank } from '@/lib/ranking';
 import type {
   Announcement,
   MatchFeedItem,
-  MatchHistoryResponse,
   MatchPreset,
-  MatchPresetPlayer,
   RivalsResponse,
   PartnersResponse,
   LeaderboardResponse,
@@ -238,24 +235,13 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
   );
 }
 
-interface QuickMatchCardItem {
-  key: string;
-  signature: string;
-  isCustom: boolean;
-  label?: string | null;
-  matchType: 'singles' | 'doubles';
-  partner: MatchPresetPlayer | null;
-  opponent1: MatchPresetPlayer | null;
-  opponent2: MatchPresetPlayer | null;
-  matchCount?: number;
-}
-
 export function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: user } = useAuth();
   const [chartInterval, setChartInterval] = useState<string>('recent');
   const [quickFilter, setQuickFilter] = useState<'all' | 'singles' | 'doubles'>('all');
+  const [showAllQuickItems, setShowAllQuickItems] = useState(false);
   const [quickReportState, setQuickReportState] = useState<{
     open: boolean;
     nonce: number;
@@ -364,17 +350,13 @@ export function Dashboard() {
     retry: 1,
   });
 
-  const { data: myRecentMatchesData } = useQuery<MatchHistoryResponse>({
-    queryKey: ['users', 'me', 'matches', 'quick-suggest'],
-    queryFn: async () => {
-      const res = await apiClient.get<MatchHistoryResponse>('/users/me/matches?limit=30');
-      return res.data;
-    },
+  const { items: quickMatchItems, customPresets } = useQuickMatchItems({
     enabled: isLoggedIn,
-    staleTime: 30000,
+    userId: user?.id,
+    rivals,
+    partners,
+    recentFeed,
   });
-
-  const { data: customPresets = [] } = useMatchPresets(isLoggedIn);
 
   const openQuickReport = (
     matchType: 'singles' | 'doubles',
@@ -407,209 +389,14 @@ export function Dashboard() {
 
   const ptsChange = myStats?.pts_change;
 
-  const quickMatchItems = useMemo<QuickMatchCardItem[]>(() => {
-    if (!user) return [];
-    const myId = String(user.id);
-    const seenSignatures = new Set<string>();
-    const items: QuickMatchCardItem[] = [];
-
-    // 1. 使用者自訂組合優先置頂
-    customPresets.forEach((preset) => {
-      const sig = getPresetSignature(preset);
-      seenSignatures.add(sig);
-      items.push({
-        key: `custom-${preset.id}`,
-        signature: sig,
-        isCustom: true,
-        label: preset.label,
-        matchType: preset.match_type,
-        partner: preset.partner ?? null,
-        opponent1: preset.opponent1 ?? null,
-        opponent2: preset.opponent2 ?? null,
-      });
-    });
-
-    // 2. 從個人最近 30 場歷史戰績統計常打雙打 4 人組合與常打單打對手
-    const doublesMap = new Map<
-      string,
-      {
-        partner: MatchPresetPlayer;
-        opponent1: MatchPresetPlayer;
-        opponent2: MatchPresetPlayer;
-        count: number;
-      }
-    >();
-    const singlesMap = new Map<
-      string,
-      {
-        opponent: MatchPresetPlayer;
-        count: number;
-      }
-    >();
-
-    const personalMatches = myRecentMatchesData?.matches ?? [];
-    personalMatches.forEach((match) => {
-      if (match.status === 'disputed') return;
-      const p1List = match.player1 || [];
-      const oppList = match.opponent || [];
-      const amInPlayer1 = p1List.some((p) => String(p.id) === myId);
-      const amInOpponent = oppList.some((p) => String(p.id) === myId);
-      if (!amInPlayer1 && !amInOpponent) return;
-
-      const myTeam = amInPlayer1 ? p1List : oppList;
-      const enemyTeam = amInPlayer1 ? oppList : p1List;
-
-      if (match.type === 'doubles' && enemyTeam.length >= 2) {
-        const myPartner = myTeam.find((p) => String(p.id) !== myId);
-        if (!myPartner || !enemyTeam[0] || !enemyTeam[1]) return;
-
-        const sortedOpps = [enemyTeam[0], enemyTeam[1]].sort((a, b) =>
-          String(a.id).localeCompare(String(b.id))
-        );
-        const sig = getMatchupSignature({
-          matchType: 'doubles',
-          partnerId: String(myPartner.id),
-          opponent1Id: String(sortedOpps[0].id),
-          opponent2Id: String(sortedOpps[1].id),
-        });
-        const existing = doublesMap.get(sig);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          doublesMap.set(sig, {
-            partner: { id: String(myPartner.id), name: myPartner.name, avatar: myPartner.avatar },
-            opponent1: {
-              id: String(sortedOpps[0].id),
-              name: sortedOpps[0].name,
-              avatar: sortedOpps[0].avatar,
-            },
-            opponent2: {
-              id: String(sortedOpps[1].id),
-              name: sortedOpps[1].name,
-              avatar: sortedOpps[1].avatar,
-            },
-            count: 1,
-          });
-        }
-      } else if (match.type === 'singles' && enemyTeam[0]) {
-        const enemy = enemyTeam[0];
-        const enemyId = String(enemy.id);
-        if (enemyId === myId) return;
-        const sig = getMatchupSignature({ matchType: 'singles', opponent1Id: enemyId });
-        const existing = singlesMap.get(sig);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          singlesMap.set(sig, {
-            opponent: { id: enemyId, name: enemy.name, avatar: enemy.avatar },
-            count: 1,
-          });
-        }
-      }
-    });
-
-    const autoDoubles: QuickMatchCardItem[] = [];
-    Array.from(doublesMap.entries())
-      .sort((a, b) => b[1].count - a[1].count)
-      .forEach(([sig, val]) => {
-        if (seenSignatures.has(sig) || autoDoubles.length >= 4) return;
-        seenSignatures.add(sig);
-        autoDoubles.push({
-          key: `auto-${sig}`,
-          signature: sig,
-          isCustom: false,
-          matchType: 'doubles',
-          partner: val.partner,
-          opponent1: val.opponent1,
-          opponent2: val.opponent2,
-          matchCount: val.count,
-        });
-      });
-
-    // 若雙打 4 人固定局不足，從黃金搭檔補入「固定搭檔」卡片
-    if (autoDoubles.length < 2) {
-      partners.golden_partners.forEach((p) => {
-        const partnerId = String(p.id);
-        if (partnerId === myId || autoDoubles.length >= 2) return;
-        const sig = getMatchupSignature({ matchType: 'doubles', partnerId });
-        if (seenSignatures.has(sig)) return;
-        seenSignatures.add(sig);
-        autoDoubles.push({
-          key: `auto-${sig}`,
-          signature: sig,
-          isCustom: false,
-          matchType: 'doubles',
-          partner: { id: partnerId, name: p.name, avatar: p.avatar },
-          opponent1: null,
-          opponent2: null,
-          matchCount: p.matches,
-        });
-      });
-    }
-
-    const autoSingles: QuickMatchCardItem[] = [];
-    Array.from(singlesMap.entries())
-      .sort((a, b) => b[1].count - a[1].count)
-      .forEach(([sig, val]) => {
-        if (seenSignatures.has(sig) || autoSingles.length >= 6) return;
-        seenSignatures.add(sig);
-        autoSingles.push({
-          key: `auto-${sig}`,
-          signature: sig,
-          isCustom: false,
-          matchType: 'singles',
-          partner: null,
-          opponent1: val.opponent,
-          opponent2: null,
-          matchCount: val.count,
-        });
-      });
-
-    // 若近期單打樣本較少，補入宿敵／提款機／全域最新對戰玩家
-    if (autoSingles.length < 4) {
-      const addFallbackSingle = (id?: string, name?: string, avatar?: string | null, count?: number) => {
-        if (!id || !name || autoSingles.length >= 6) return;
-        const cleanId = String(id);
-        if (cleanId === myId) return;
-        const sig = getMatchupSignature({ matchType: 'singles', opponent1Id: cleanId });
-        if (seenSignatures.has(sig)) return;
-        seenSignatures.add(sig);
-        autoSingles.push({
-          key: `auto-${sig}`,
-          signature: sig,
-          isCustom: false,
-          matchType: 'singles',
-          partner: null,
-          opponent1: { id: cleanId, name, avatar },
-          opponent2: null,
-          matchCount: count,
-        });
-      };
-
-      rivals.nemesis.forEach((p) => addFallbackSingle(p.id, p.name, p.avatar, p.matches));
-      rivals.minions.forEach((p) => addFallbackSingle(p.id, p.name, p.avatar, p.matches));
-      recentFeed.forEach((match) => {
-        [...(match.player1 || []), ...(match.opponent || [])].forEach((p) =>
-          addFallbackSingle(p.id, p.name, p.avatar)
-        );
-      });
-    }
-
-    // 將系統自動推薦交叉排列（讓「全部」Tab 一進來就能同時看到雙打與單打）
-    const autoMerged: QuickMatchCardItem[] = [];
-    const maxLen = Math.max(autoDoubles.length, autoSingles.length);
-    for (let i = 0; i < maxLen && autoMerged.length < 8; i++) {
-      if (i < autoSingles.length && autoMerged.length < 8) autoMerged.push(autoSingles[i]);
-      if (i < autoDoubles.length && autoMerged.length < 8) autoMerged.push(autoDoubles[i]);
-    }
-
-    return [...items, ...autoMerged];
-  }, [user, customPresets, myRecentMatchesData, partners, rivals, recentFeed]);
-
   const filteredQuickItems = useMemo(() => {
     if (quickFilter === 'all') return quickMatchItems;
     return quickMatchItems.filter((item) => item.matchType === quickFilter);
   }, [quickMatchItems, quickFilter]);
+
+  const visibleQuickItems = showAllQuickItems
+    ? filteredQuickItems
+    : filteredQuickItems.slice(0, 6);
 
   return (
     <AnimatePresence mode="wait">
@@ -664,8 +451,8 @@ export function Dashboard() {
           </motion.div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-10 items-start">
-            <div className="xl:col-span-8 space-y-8 md:space-y-10">
-              <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8 md:space-y-10">
+            <div className="xl:col-span-8 min-w-0 space-y-8 md:space-y-10">
+              <motion.div variants={containerVariants} initial="hidden" animate="visible" className="min-w-0 space-y-8 md:space-y-10">
                 {!isLoggedIn && (
                   <motion.section
                     variants={itemVariants}
@@ -733,7 +520,7 @@ export function Dashboard() {
                     </motion.section>
 
                     {/* Quick-Match Bar (Singles + Doubles + Custom Presets) */}
-                    <motion.section variants={itemVariants} className="space-y-3">
+                    <motion.section variants={itemVariants} className="space-y-3 min-w-0">
                       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <h2 className="text-sm sm:text-base font-display font-black text-foreground flex items-center gap-2">
@@ -753,7 +540,10 @@ export function Dashboard() {
                               <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() => setQuickFilter(tab.id)}
+                                onClick={() => {
+                                  setQuickFilter(tab.id);
+                                  setShowAllQuickItems(false);
+                                }}
                                 className={cn(
                                   'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
                                   quickFilter === tab.id
@@ -793,125 +583,147 @@ export function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar pb-1.5">
-                        {filteredQuickItems.map((item) => {
-                          const isDoubles = item.matchType === 'doubles';
-                          const hasBothOpponents =
-                            Boolean(item.opponent1) && Boolean(item.opponent2);
-                          const displayTitle =
-                            item.label?.trim() ||
-                            (item.matchType === 'singles'
-                              ? item.opponent1?.name || '單打對手'
-                              : hasBothOpponents
-                                ? `搭 ${item.partner?.name ?? ''} vs ${item.opponent1?.name ?? ''}/${item.opponent2?.name ?? ''}`
-                                : `搭 ${item.partner?.name ?? ''} · 自選對手`);
+                      {visibleQuickItems.length > 0 ? (
+                        <div className="space-y-2.5">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-2.5">
+                            {visibleQuickItems.map((item) => {
+                              const isDoubles = item.matchType === 'doubles';
+                              const hasBothOpponents =
+                                Boolean(item.opponent1) && Boolean(item.opponent2);
+                              const displayTitle = formatQuickMatchLabel(item);
 
-                          return (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() =>
-                                openQuickReport(
-                                  item.matchType,
-                                  item.partner?.id ?? null,
-                                  item.opponent1?.id ?? null,
-                                  item.opponent2?.id ?? null
-                                )
-                              }
-                              className={cn(
-                                'shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-card hover:bg-secondary border shadow-xs transition-all group text-left min-h-[60px]',
-                                item.isCustom
-                                  ? 'border-amber-400/50 dark:border-amber-400/40 hover:border-amber-400'
-                                  : 'border-border hover:border-sapphire-blue/40'
-                              )}
-                            >
-                              {isDoubles ? (
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <PlayerAvatar
-                                    src={item.partner?.avatar}
-                                    name={item.partner?.name || '搭'}
-                                    className="size-9 rounded-xl border border-amber-400/60 text-xs"
-                                  />
-                                  {hasBothOpponents && item.opponent1 && item.opponent2 && (
-                                    <>
-                                      <span className="text-[10px] font-black text-muted-foreground">
-                                        VS
-                                      </span>
-                                      <div className="flex -space-x-2">
-                                        <PlayerAvatar
-                                          src={item.opponent1.avatar}
-                                          name={item.opponent1.name}
-                                          className="size-8 rounded-lg border-2 border-card text-xs"
-                                        />
-                                        <PlayerAvatar
-                                          src={item.opponent2.avatar}
-                                          name={item.opponent2.name}
-                                          className="size-8 rounded-lg border-2 border-card text-xs"
-                                        />
-                                      </div>
-                                    </>
+                              return (
+                                <button
+                                  key={item.key}
+                                  type="button"
+                                  onClick={() =>
+                                    openQuickReport(
+                                      item.matchType,
+                                      item.partner?.id ?? null,
+                                      item.opponent1?.id ?? null,
+                                      item.opponent2?.id ?? null
+                                    )
+                                  }
+                                  className={cn(
+                                    'w-full min-w-0 flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-card hover:bg-secondary border shadow-xs transition-all group text-left min-h-[60px]',
+                                    item.isCustom
+                                      ? 'border-amber-400/50 dark:border-amber-400/40 hover:border-amber-400'
+                                      : 'border-border hover:border-sapphire-blue/40'
                                   )}
-                                </div>
-                              ) : (
-                                <PlayerAvatar
-                                  src={item.opponent1?.avatar}
-                                  name={item.opponent1?.name || '對'}
-                                  className="size-9 rounded-xl border border-border text-xs shrink-0 group-hover:scale-105 transition-transform"
-                                />
-                              )}
-
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1">
-                                  {item.isCustom && (
-                                    <Star
-                                      size={11}
-                                      fill="currentColor"
-                                      className="text-olympic-gold shrink-0"
-                                      aria-hidden="true"
+                                >
+                                  {isDoubles ? (
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <PlayerAvatar
+                                        src={item.partner?.avatar}
+                                        name={item.partner?.name || '搭'}
+                                        className="size-9 rounded-xl border border-amber-400/60 text-xs"
+                                      />
+                                      {hasBothOpponents && item.opponent1 && item.opponent2 && (
+                                        <>
+                                          <span className="text-[10px] font-black text-muted-foreground">
+                                            VS
+                                          </span>
+                                          <div className="flex -space-x-2">
+                                            <PlayerAvatar
+                                              src={item.opponent1.avatar}
+                                              name={item.opponent1.name}
+                                              className="size-8 rounded-lg border-2 border-card text-xs"
+                                            />
+                                            <PlayerAvatar
+                                              src={item.opponent2.avatar}
+                                              name={item.opponent2.name}
+                                              className="size-8 rounded-lg border-2 border-card text-xs"
+                                            />
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <PlayerAvatar
+                                      src={item.opponent1?.avatar}
+                                      name={item.opponent1?.name || '對'}
+                                      className="size-9 rounded-xl border border-border text-xs shrink-0 group-hover:scale-105 transition-transform"
                                     />
                                   )}
-                                  <p
-                                    className={cn(
-                                      'text-xs font-black text-foreground group-hover:text-sapphire-blue transition-colors truncate',
-                                      isDoubles && hasBothOpponents
-                                        ? 'max-w-[155px]'
-                                        : 'max-w-[100px]'
-                                    )}
-                                  >
-                                    {displayTitle}
-                                  </p>
-                                </div>
 
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span
-                                    className={cn(
-                                      'px-1.5 py-0.2 rounded-md text-[10px] font-black',
-                                      isDoubles
-                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-                                        : 'bg-blue-100 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300'
-                                    )}
-                                  >
-                                    {isDoubles ? (hasBothOpponents ? '雙打' : '搭檔') : '單打'}
-                                  </span>
-                                  <span className="text-[11px] font-bold text-smash-orange leading-tight whitespace-nowrap">
-                                    {item.matchCount ? `常打 ${item.matchCount} 場` : '⚡ 報分'}
-                                  </span>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1 min-w-0">
+                                      {item.isCustom && (
+                                        <Star
+                                          size={11}
+                                          fill="currentColor"
+                                          className="text-olympic-gold shrink-0"
+                                          aria-hidden="true"
+                                        />
+                                      )}
+                                      <p className="text-xs font-black text-foreground group-hover:text-sapphire-blue transition-colors truncate">
+                                        {displayTitle}
+                                      </p>
+                                    </div>
 
-                        <button
-                          type="button"
-                          disabled={customPresets.length >= MAX_MATCH_PRESETS}
-                          onClick={() => openPresetEditor(null)}
-                          className="shrink-0 min-h-[60px] px-3.5 rounded-2xl bg-surface-subtle hover:bg-secondary border border-dashed border-border text-muted-foreground hover:text-foreground text-xs font-black flex items-center gap-1.5 transition-colors disabled:opacity-45"
-                        >
-                          <Plus size={14} aria-hidden="true" />
-                          <span>新增自訂組合</span>
-                        </button>
-                      </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span
+                                        className={cn(
+                                          'px-1.5 py-0.2 rounded-md text-[10px] font-black shrink-0',
+                                          isDoubles
+                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+                                            : 'bg-blue-100 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300'
+                                        )}
+                                      >
+                                        {isDoubles ? (hasBothOpponents ? '雙打' : '搭檔') : '單打'}
+                                      </span>
+                                      <span className="text-[11px] font-bold text-smash-orange leading-tight truncate">
+                                        {item.matchCount ? `常打 ${item.matchCount} 場` : '⚡ 報分'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {filteredQuickItems.length > 6 && (
+                            <div className="flex justify-center pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowAllQuickItems((prev) => !prev)}
+                                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {showAllQuickItems ? (
+                                  <>
+                                    <span>收合顯示</span>
+                                    <ChevronUp size={13} aria-hidden="true" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>展開全部 (共 {filteredQuickItems.length} 組)</span>
+                                    <ChevronDown size={13} aria-hidden="true" />
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl bg-surface-subtle/80 border border-dashed border-border p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <p className="text-xs font-bold text-muted-foreground">
+                            {quickFilter === 'doubles'
+                              ? '尚無常打雙打組合，可手動建立固定搭檔或四人團！'
+                              : quickFilter === 'singles'
+                                ? '尚無常打單打對手，可手動新增常用對手！'
+                                : '尚無快速約戰組合，立即新增常用對手或固定雙打團吧！'}
+                          </p>
+                          <button
+                            type="button"
+                            disabled={customPresets.length >= MAX_MATCH_PRESETS}
+                            onClick={() => openPresetEditor(null)}
+                            className="shrink-0 h-9 px-3.5 rounded-xl bg-sapphire-blue text-white text-xs font-black inline-flex items-center gap-1.5 hover:bg-blue-700 transition-colors disabled:opacity-45"
+                          >
+                            <Plus size={14} aria-hidden="true" />
+                            <span>新增自訂組合</span>
+                          </button>
+                        </div>
+                      )}
                     </motion.section>
 
                     {/* Rating Progression Chart */}
@@ -1121,7 +933,7 @@ export function Dashboard() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="xl:col-span-4 space-y-6"
+              className="xl:col-span-4 min-w-0 space-y-6"
             >
               <motion.section variants={itemVariants} className="space-y-4">
                 <div className="flex items-center justify-between px-1">

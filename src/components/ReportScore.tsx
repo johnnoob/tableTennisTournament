@@ -3,7 +3,7 @@ import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
-import { Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star } from 'lucide-react';
+import { Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star, Zap } from 'lucide-react';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
 import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/matchScore';
@@ -13,11 +13,13 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  formatQuickMatchLabel,
   getMatchupSignature,
   getPresetSignature,
   MAX_MATCH_PRESETS,
   useCreateMatchPreset,
-  useMatchPresets,
+  useQuickMatchItems,
+  type QuickMatchCardItem,
 } from '@/hooks/useMatchPresets';
 
 interface UserOption {
@@ -259,7 +261,10 @@ export function ReportScore({
     enabled: !!currentUser && open,
   });
 
-  const { data: savedPresets = [] } = useMatchPresets(Boolean(currentUser && open && !editMode));
+  const { items: quickItems, customPresets: savedPresets } = useQuickMatchItems({
+    enabled: Boolean(currentUser && open && !editMode),
+    userId: currentUser?.id,
+  });
   const createPresetMutation = useCreateMatchPreset();
 
   // 讀取已快取的近期對戰名單，將常交手的同事置頂方便點選
@@ -348,6 +353,21 @@ export function ReportScore({
       opponent1_id: opponent1Id,
       opponent2_id: matchType === 'doubles' ? opponent2Id : null,
     });
+  };
+
+  const handleApplyQuickItem = (item: QuickMatchCardItem) => {
+    if (editMode) return;
+    const nextType = item.matchType;
+    const nextPartner = nextType === 'doubles' ? (item.partner?.id ?? null) : null;
+    const nextOpp1 = item.opponent1?.id ?? null;
+    const nextOpp2 = nextType === 'doubles' ? (item.opponent2?.id ?? null) : null;
+
+    setMatchType(nextType);
+    setSelectedPartnerId(nextPartner);
+    setOpponent1Id(nextOpp1);
+    setOpponent2Id(nextOpp2);
+    setSearchTerm('');
+    setActiveSlot(findInitialSlot(nextType, nextPartner, nextOpp1, nextOpp2));
   };
 
   const findNextEmptySlot = (
@@ -555,7 +575,7 @@ export function ReportScore({
   };
 
   const bodyContent = (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0">
       {isSuccess ? (
         <div className="flex flex-col items-center justify-center py-4 space-y-5 animate-in fade-in zoom-in-95 duration-300">
           <div className="size-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
@@ -668,6 +688,65 @@ export function ReportScore({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+          )}
+
+          {/* ⚡ 快速帶入常用組合（精簡單排） */}
+          {!editMode && quickItems.length > 0 && (
+            <div className="space-y-1.5 min-w-0">
+              <p className="text-xs font-black text-muted-foreground flex items-center gap-1">
+                <Zap size={12} className="text-smash-orange" aria-hidden="true" />
+                快速帶入常用組合
+              </p>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                {quickItems.slice(0, 8).map((item) => {
+                  const isActive = currentLineupSignature === item.signature;
+                  const avatarPlayer =
+                    item.matchType === 'doubles' ? item.partner : item.opponent1;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleApplyQuickItem(item)}
+                      className={cn(
+                        'shrink-0 h-9 px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 transition-all',
+                        isActive
+                          ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:bg-blue-500/20 dark:border-blue-400 dark:text-blue-300'
+                          : item.isCustom
+                            ? 'bg-card border-amber-400/50 text-foreground hover:bg-secondary'
+                            : 'bg-card border-border text-foreground hover:bg-secondary'
+                      )}
+                    >
+                      <PlayerAvatar
+                        src={avatarPlayer?.avatar}
+                        name={avatarPlayer?.name || '球'}
+                        className="size-5 rounded-md text-[10px]"
+                      />
+                      {item.isCustom && (
+                        <Star
+                          size={11}
+                          fill="currentColor"
+                          className="text-olympic-gold shrink-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span
+                        className={cn(
+                          'text-[10px] font-black px-1 py-0.2 rounded',
+                          item.matchType === 'doubles'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
+                            : 'bg-blue-100 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300'
+                        )}
+                      >
+                        {item.matchType === 'doubles' ? '雙' : '單'}
+                      </span>
+                      <span className="truncate max-w-[140px]">
+                        {formatQuickMatchLabel(item)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* 2. 對戰陣容槽位 (Slot-First Matchup Stage) */}
@@ -837,7 +916,15 @@ export function ReportScore({
                   placeholder="搜尋姓名或處室..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="arena-input pl-10 pr-10"
+                  onFocus={(e) => {
+                    const inputEl = e.currentTarget;
+                    window.setTimeout(() => {
+                      if (inputEl.isConnected) {
+                        inputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }, 120);
+                  }}
+                  className="arena-input pl-10 pr-10 scroll-mt-3"
                 />
                 {searchTerm && (
                   <button
