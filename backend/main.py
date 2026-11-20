@@ -15,31 +15,35 @@ from routers.seasons import router as seasons_router
 from routers.admin import router as admin_router
 from routers.content import router as content_router
 from routers.cron import router as cron_router
-from services.scheduler import scheduler, setup_scheduler
-from services.season_service import ensure_current_quarter_season
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動排程器 (僅當設定開啟時)
-    if settings.enable_local_scheduler:
-        setup_scheduler()
+    # 啟動排程器 (僅限非正式環境且明確開啟設定時)
+    scheduler = None
+    if settings.enable_local_scheduler and not settings.is_production:
+        from services.scheduler import setup_scheduler
+        scheduler = setup_scheduler()
         scheduler.start()
         logging.info("[Main] Local APScheduler started.")
 
-    # 開機預檢：確保現在的季度有賽季可打
-    generator = get_session()
-    session = next(generator)
-    try:
-        logging.info("伺服器重啟預檢：檢查當前賽季是否建立...")
-        ensure_current_quarter_season(session)
-    finally:
-        session.close()
+    # 開機預檢：僅在非正式環境執行，避免 Serverless 冷啟動重複查 DB
+    if not settings.is_production:
+        from services.season_service import ensure_current_quarter_season
+
+        generator = get_session()
+        session = next(generator)
+        try:
+            logging.info("伺服器重啟預檢：檢查當前賽季是否建立...")
+            ensure_current_quarter_season(session)
+        finally:
+            session.close()
 
     yield
     # 關閉時執行
-    if settings.enable_local_scheduler:
-        scheduler.shutdown()
+    if scheduler is not None:
+        from services.scheduler import shutdown_scheduler
+        shutdown_scheduler()
         logging.info("[Main] Local APScheduler shut down.")
 
 
@@ -55,7 +59,12 @@ app = FastAPI(
 )
 
 # 2. Session 中介軟體（讀取 secret_key from settings）
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    same_site="lax",
+    https_only=settings.is_production,
+)
 
 # 3. CORS 設定（讀取 allowed_origins from settings）
 app.add_middleware(

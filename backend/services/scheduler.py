@@ -1,14 +1,12 @@
 import logging
 from datetime import datetime, timezone, timedelta
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 from database import get_session
 from config import settings
 from services.season_service import auto_generate_quarterly_season
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+_scheduler = None
 
 def _apply_decay(session_factory):
     """
@@ -137,8 +135,15 @@ def setup_scheduler():
     設定排程器任務。
     本地開發模式下，只有 settings.enable_local_scheduler = True 才會被啟動。
     """
+    global _scheduler
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.interval import IntervalTrigger
+
+    if _scheduler is None:
+        _scheduler = AsyncIOScheduler()
+
     # 賽季自動生成 (維持每分鐘掃描一次，確保精準)
-    scheduler.add_job(
+    _scheduler.add_job(
         auto_generate_quarterly_season,
         trigger=IntervalTrigger(minutes=1),
         args=[get_session],
@@ -150,7 +155,7 @@ def setup_scheduler():
     # 在生產環境通常透過 cron.py Webhook 觸發，故這裡預設頻率較低，僅作為本地開發的後備。
     decay_trigger = IntervalTrigger(minutes=5) if settings.cron_test_mode else IntervalTrigger(hours=12)
     
-    scheduler.add_job(
+    _scheduler.add_job(
         _apply_decay,
         trigger=decay_trigger,
         args=[get_session],
@@ -159,3 +164,12 @@ def setup_scheduler():
     )
     
     logger.info(f"[APScheduler] Initialization complete. Local Scheduler: {settings.enable_local_scheduler}")
+    return _scheduler
+
+
+def shutdown_scheduler():
+    """關閉本地 APScheduler 實例"""
+    global _scheduler
+    if _scheduler is not None:
+        _scheduler.shutdown()
+        _scheduler = None

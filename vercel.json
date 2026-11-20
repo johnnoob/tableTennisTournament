@@ -1,12 +1,26 @@
 {
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "https://tabletennistournament.onrender.com/api/$1"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sin1"],
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "backend/**",
+      "excludeFiles": "{backend/venv/**,backend/alembic/**,backend/**/__pycache__/**,backend/*.db,backend/.env*,backend/seed.py,node_modules/**,src/**,dist/**,public/**,.agents/**,.stitch/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/cron/run-tasks",
+      "schedule": "0 20 * * *"
+    }
+  ]
 }

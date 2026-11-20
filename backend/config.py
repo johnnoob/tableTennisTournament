@@ -14,12 +14,16 @@ from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # ── 決定要不要載入 .env 檔 ─────────────────────────────────────────────────
-APP_ENV = os.getenv("APP_ENV", "development")
+APP_ENV = os.getenv("APP_ENV") or ("production" if os.getenv("VERCEL") else "development")
 
-if APP_ENV != "production":
+if APP_ENV != "production" and not os.getenv("VERCEL"):
     # 本地開發：載入 backend/.env
     env_file_path = Path(__file__).parent / ".env"
     load_dotenv(env_file_path, override=True)
+
+DEFAULT_FRONTEND_URL = "http://localhost:5173"
+DEFAULT_BACKEND_URL = "http://localhost:8000"
+DEFAULT_CRON_SECRET_KEY = "precision-arena-cron-secret-2026"
 
 
 class Settings(BaseSettings):
@@ -29,7 +33,7 @@ class Settings(BaseSettings):
     """
 
     # ── 應用程式環境 ──────────────────────────────────────────────
-    app_env: str = "development"
+    app_env: str = APP_ENV
 
     # ── 資料庫 ────────────────────────────────────────────────────
     database_url: str = "sqlite:///arena.db"  # 緊急 fallback，正式環境必須覆蓋
@@ -52,8 +56,10 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
 
     # ── 前端 Base URL（用於 OAuth callback 後的轉跳）────────────────
-    frontend_url: str = "http://localhost:5173"
-    backend_url: str = "http://localhost:8000"
+    frontend_url: str = DEFAULT_FRONTEND_URL
+    backend_url: str = DEFAULT_BACKEND_URL
+    vercel_project_production_url: str = ""
+    vercel_url: str = ""
 
     # ── Cloudinary ────────────────────────────────────────────────
     cloudinary_name: str = ""
@@ -64,7 +70,8 @@ class Settings(BaseSettings):
     # ── 背景任務 (Cron / Scheduler) ─────────────────────────────────
     enable_local_scheduler: bool = False  # 是否在本地啟動 APScheduler
     cron_test_mode: bool = False         # 測試模式：時間單位會從 Days/Hours 變更為 Minutes
-    cron_secret_key: str = "precision-arena-cron-secret-2026"
+    cron_secret: str = ""                # Vercel Cron 原生環境變數 CRON_SECRET
+    cron_secret_key: str = DEFAULT_CRON_SECRET_KEY
     
     # 扣分 (Decay) 參數
     decay_threshold_value: int = 21      # 閒置多少單位開始扣分
@@ -79,9 +86,43 @@ class Settings(BaseSettings):
         return self.app_env == "production"
 
     @property
+    def _vercel_origin(self) -> str:
+        host = (self.vercel_project_production_url or self.vercel_url).strip()
+        if not host:
+            return ""
+        if host.startswith("http://") or host.startswith("https://"):
+            return host.rstrip("/")
+        return f"https://{host}".rstrip("/")
+
+    @property
+    def effective_frontend_url(self) -> str:
+        if self.frontend_url != DEFAULT_FRONTEND_URL or not os.getenv("VERCEL"):
+            return self.frontend_url.rstrip("/")
+        return self._vercel_origin or self.frontend_url.rstrip("/")
+
+    @property
+    def effective_backend_url(self) -> str:
+        if self.backend_url != DEFAULT_BACKEND_URL or not os.getenv("VERCEL"):
+            return self.backend_url.rstrip("/")
+        return self._vercel_origin or self.backend_url.rstrip("/")
+
+    @property
+    def effective_cron_secrets(self) -> set[str]:
+        if self.cron_secret:
+            secrets = {self.cron_secret}
+            if self.cron_secret_key and self.cron_secret_key != DEFAULT_CRON_SECRET_KEY:
+                secrets.add(self.cron_secret_key)
+            return secrets
+        return {self.cron_secret_key} if self.cron_secret_key else set()
+
+    @property
     def allowed_origins_list(self) -> list[str]:
         """將逗號分隔的字串轉為 list，供 CORSMiddleware 使用"""
-        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+        origins = [o.strip().rstrip("/") for o in self.allowed_origins.split(",") if o.strip()]
+        frontend_origin = self.effective_frontend_url
+        if frontend_origin and frontend_origin not in origins:
+            origins.append(frontend_origin)
+        return origins
 
     class Config:
         # 允許額外欄位（忽略未定義的環境變數）

@@ -15,9 +15,24 @@ from services.auth_jwt import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS
 )
+from urllib.parse import urlparse
 import jwt
 
 router = APIRouter(tags=["Auth"])
+
+
+def _resolve_cookie_samesite() -> str:
+    if not settings.is_production:
+        return "lax"
+    frontend_host = urlparse(settings.effective_frontend_url).hostname
+    backend_host = urlparse(settings.effective_backend_url).hostname
+    if frontend_host and backend_host and frontend_host == backend_host:
+        return "lax"
+    return "none"
+
+
+COOKIE_SAMESITE = _resolve_cookie_samesite()
+COOKIE_SECURE = settings.is_production
 
 
 # 🌟 初始化 OAuth
@@ -33,7 +48,7 @@ oauth.register(
 @router.get("/api/auth/google/login")
 async def google_login(request: Request):
     """前端點擊登入後，會先呼叫這支 API，我們再把它導向 Google"""
-    redirect_uri = f"{settings.backend_url}/api/auth/google/callback"
+    redirect_uri = f"{settings.effective_backend_url}/api/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/api/auth/google/callback")
@@ -84,16 +99,16 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
     refresh_token = create_refresh_token(user.id)
 
     # 🚀 4. 使用 HttpOnly Cookie 儲存雙 Token
-    response = RedirectResponse(url=f"{settings.frontend_url}/")
+    response = RedirectResponse(url=f"{settings.effective_frontend_url}/")
     
     # 🔐 設定 Access Token Cookie (短效)
     response.set_cookie(
         key="auth_token",
         value=access_token,
         httponly=True,
-        samesite="none",
+        samesite=COOKIE_SAMESITE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=settings.is_production
+        secure=COOKIE_SECURE
     )
 
     # 🔐 設定 Refresh Token Cookie (長效)
@@ -101,17 +116,27 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        samesite="none",
+        samesite=COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        secure=settings.is_production
+        secure=COOKIE_SECURE
     )
     return response
 
 @router.post("/api/auth/logout")
 async def logout(response: Response):
     """清除所有 Auth 相關的 Cookie 登出"""
-    response.delete_cookie("auth_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie(
+        "auth_token",
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
+    )
+    response.delete_cookie(
+        "refresh_token",
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
+    )
     return {"message": "Logged out successfully"}
 
 @router.post("/api/auth/refresh")
@@ -159,9 +184,9 @@ async def refresh_token(
             key="auth_token",
             value=new_access_token,
             httponly=True,
-            samesite="none",
+            samesite=COOKIE_SAMESITE,
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            secure=settings.is_production
+            secure=COOKIE_SECURE
         )
         return {"status": "success", "message": "Access token refreshed"}
         

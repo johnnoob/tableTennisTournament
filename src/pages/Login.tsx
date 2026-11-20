@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
 const handleGoogleLogin = () => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiBaseUrl =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.PROD ? '/api' : 'http://localhost:8000/api');
   window.location.href = `${apiBaseUrl}/auth/google/login`;
 };
 

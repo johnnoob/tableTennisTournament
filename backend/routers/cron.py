@@ -1,3 +1,4 @@
+import hmac
 import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Header
@@ -13,13 +14,25 @@ from services.season_service import auto_generate_quarterly_season
 router = APIRouter(tags=["Internal Cron"])
 logger = logging.getLogger(__name__)
 
-@router.post("/api/internal/cron/run-tasks", summary="執行所有背景排程任務 (需攜帶密鑰)")
+@router.api_route(
+    "/api/internal/cron/run-tasks",
+    methods=["GET", "POST"],
+    summary="執行所有背景排程任務 (需攜帶密鑰)",
+)
 def run_scheduled_tasks(
-    x_cron_secret: str = Header(...), 
+    authorization: str | None = Header(default=None),
+    x_cron_secret: str | None = Header(default=None),
     session: Session = Depends(get_session)
 ):
-    # 🟢 1. 安全驗證：比對 Header 中的密鑰與環境變數
-    if x_cron_secret != settings.cron_secret_key:
+    # 🟢 1. 安全驗證：支援 Vercel Cron (Authorization: Bearer) 與既有 X-Cron-Secret
+    valid_secrets = settings.effective_cron_secrets
+    candidate = None
+    if authorization and authorization.startswith("Bearer "):
+        candidate = authorization[len("Bearer "):].strip()
+    elif x_cron_secret:
+        candidate = x_cron_secret.strip()
+
+    if not candidate or not any(hmac.compare_digest(candidate, secret) for secret in valid_secrets):
         raise HTTPException(status_code=401, detail="Unauthorized execution: Invalid secret key")
 
     results = []

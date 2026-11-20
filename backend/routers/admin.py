@@ -1,22 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
-import cloudinary
-import cloudinary.uploader
 import os
 from sqlmodel import Session, select
 from typing import List
 from uuid import UUID
 
+from config import settings
 from database import get_session
 from services.auth_jwt import get_current_user
 from models import User, SystemConfig, Announcement, SeasonPrize, TournamentEvent, TournamentParticipant
 from schemas import ConfigUpdate, AnnouncementCreate, AnnouncementUpdate, SeasonPrizeUpdate, SeasonPrizeCreate, TournamentEventCreate, ParticipantAdd
-
-cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-    secure=True # 強制使用 HTTPS
-)
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -37,6 +29,15 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="僅允許升傳 JPG, PNG, 或 GIF 格式的圖片")
     
     try:
+        import cloudinary
+        import cloudinary.uploader
+
+        cloudinary.config(
+            cloud_name=settings.cloudinary_name or os.getenv("CLOUDINARY_NAME"),
+            api_key=settings.cloudinary_api_key or os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=settings.cloudinary_api_secret or os.getenv("CLOUDINARY_API_SECRET"),
+            secure=True,  # 強制使用 HTTPS
+        )
         result = cloudinary.uploader.upload(file.file)
         return {"url": result.get("secure_url")}
     except Exception as e:

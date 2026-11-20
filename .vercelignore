@@ -1,0 +1,12 @@
+backend/venv
+backend/.env
+backend/.env.*
+backend/*.db
+backend/alembic
+backend/seed.py
+**/__pycache__
+*.pyc
+.agents
+.stitch
+workflow.drawio
+MACBOOK_SETUP_GUIDE.md
