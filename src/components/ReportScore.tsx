@@ -13,7 +13,6 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import {
-  formatQuickMatchLabel,
   getMatchupSignature,
   getPresetSignature,
   MAX_MATCH_PRESETS,
@@ -370,6 +369,11 @@ export function ReportScore({
     setActiveSlot(findInitialSlot(nextType, nextPartner, nextOpp1, nextOpp2));
   };
 
+  const filteredQuickItems = React.useMemo(
+    () => quickItems.filter((item) => item.matchType === matchType),
+    [quickItems, matchType]
+  );
+
   const findNextEmptySlot = (
     nextPartner: string | null,
     nextOpp1: string | null,
@@ -690,18 +694,26 @@ export function ReportScore({
             </Tabs>
           )}
 
-          {/* ⚡ 快速帶入常用組合（精簡單排） */}
-          {!editMode && quickItems.length > 0 && (
+          {/* ⚡ 快速帶入常用組合（依目前賽制過濾，精簡單排） */}
+          {!editMode && filteredQuickItems.length > 0 && (
             <div className="space-y-1.5 min-w-0">
               <p className="text-xs font-black text-muted-foreground flex items-center gap-1">
                 <Zap size={12} className="text-smash-orange" aria-hidden="true" />
-                快速帶入常用組合
+                快速帶入
               </p>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                {quickItems.slice(0, 8).map((item) => {
+                {filteredQuickItems.slice(0, 8).map((item) => {
                   const isActive = currentLineupSignature === item.signature;
                   const avatarPlayer =
                     item.matchType === 'doubles' ? item.partner : item.opponent1;
+                  const chipLabel =
+                    item.label?.trim() ||
+                    (item.matchType === 'singles'
+                      ? item.opponent1?.name || '對手'
+                      : item.opponent1 && item.opponent2
+                        ? `${item.partner?.name ?? ''} · ${item.opponent1.name}/${item.opponent2.name}`
+                        : `搭 ${item.partner?.name ?? ''}`);
+
                   return (
                     <button
                       key={item.key}
@@ -729,19 +741,7 @@ export function ReportScore({
                           aria-hidden="true"
                         />
                       )}
-                      <span
-                        className={cn(
-                          'text-[10px] font-black px-1 py-0.2 rounded',
-                          item.matchType === 'doubles'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
-                            : 'bg-blue-100 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300'
-                        )}
-                      >
-                        {item.matchType === 'doubles' ? '雙' : '單'}
-                      </span>
-                      <span className="truncate max-w-[140px]">
-                        {formatQuickMatchLabel(item)}
-                      </span>
+                      <span className="truncate max-w-[180px]">{chipLabel}</span>
                     </button>
                   );
                 })}
@@ -751,12 +751,9 @@ export function ReportScore({
 
           {/* 2. 對戰陣容槽位 (Slot-First Matchup Stage) */}
           <section aria-label="對戰陣容" className="bg-surface-subtle/80 border border-border rounded-2xl p-3.5 sm:p-4 space-y-2">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+            <div className="flex items-center justify-between">
               <p className="text-xs font-black text-muted-foreground">我方</p>
-              <span className="text-xs font-bold text-muted-foreground text-center whitespace-nowrap px-1 sm:px-2">
-                {scoreA > 0 || scoreB > 0 ? matchFormat : ''}
-              </span>
-              <p className="text-xs font-black text-muted-foreground text-right">對手</p>
+              <p className="text-xs font-black text-muted-foreground">對手</p>
             </div>
 
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
@@ -790,19 +787,11 @@ export function ReportScore({
                 )}
               </div>
 
-              {/* 中央即時比分 / VS */}
-              <div className="flex items-center justify-center px-1 sm:px-2 shrink-0">
-                {scoreA > 0 || scoreB > 0 ? (
-                  <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-foreground tabular-nums">
-                    <span className={cn(scoreA > scoreB && 'text-emerald-600 dark:text-emerald-400')}>{scoreA}</span>
-                    <span className="text-muted-foreground/45">:</span>
-                    <span className={cn(scoreB > scoreA && 'text-emerald-600 dark:text-emerald-400')}>{scoreB}</span>
-                  </div>
-                ) : (
-                  <span className="font-display font-black text-sm sm:text-base text-muted-foreground tracking-widest">
-                    VS
-                  </span>
-                )}
+              {/* 中央 VS */}
+              <div className="flex items-center justify-center px-1.5 sm:px-3 shrink-0">
+                <span className="font-display font-black text-sm sm:text-base text-muted-foreground tracking-widest">
+                  VS
+                </span>
               </div>
 
               {/* 對手陣營 */}

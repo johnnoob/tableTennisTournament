@@ -12,7 +12,6 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ReportScore } from '@/components/ReportScore';
 import { MatchPresetEditorModal, MatchPresetManagerModal } from '@/components/MatchPresetModal';
 import {
-  formatQuickMatchLabel,
   MAX_MATCH_PRESETS,
   useQuickMatchItems,
 } from '@/hooks/useMatchPresets';
@@ -590,7 +589,24 @@ export function Dashboard() {
                               const isDoubles = item.matchType === 'doubles';
                               const hasBothOpponents =
                                 Boolean(item.opponent1) && Boolean(item.opponent2);
-                              const displayTitle = formatQuickMatchLabel(item);
+                              const customLabel = item.label?.trim();
+                              const avatarPlayer = isDoubles ? item.partner : item.opponent1;
+
+                              const primaryTitle =
+                                customLabel ||
+                                (isDoubles
+                                  ? `搭 ${item.partner?.name ?? '搭檔'}`
+                                  : item.opponent1?.name || '單打對手');
+
+                              const secondarySubtitle = isDoubles
+                                ? hasBothOpponents
+                                  ? `vs ${item.opponent1?.name ?? ''} · ${item.opponent2?.name ?? ''}`
+                                  : '雙打搭檔'
+                                : customLabel
+                                  ? item.opponent1?.name || '單打'
+                                  : item.matchCount && item.matchCount > 1
+                                    ? `單打 · ${item.matchCount} 場`
+                                    : '單打';
 
                               return (
                                 <button
@@ -605,48 +621,24 @@ export function Dashboard() {
                                     )
                                   }
                                   className={cn(
-                                    'w-full min-w-0 flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-card hover:bg-secondary border shadow-xs transition-all group text-left min-h-[60px]',
+                                    'w-full min-w-0 flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-card hover:bg-secondary border shadow-xs transition-all group text-left',
                                     item.isCustom
                                       ? 'border-amber-400/50 dark:border-amber-400/40 hover:border-amber-400'
                                       : 'border-border hover:border-sapphire-blue/40'
                                   )}
                                 >
-                                  {isDoubles ? (
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      <PlayerAvatar
-                                        src={item.partner?.avatar}
-                                        name={item.partner?.name || '搭'}
-                                        className="size-9 rounded-xl border border-amber-400/60 text-xs"
-                                      />
-                                      {hasBothOpponents && item.opponent1 && item.opponent2 && (
-                                        <>
-                                          <span className="text-[10px] font-black text-muted-foreground">
-                                            VS
-                                          </span>
-                                          <div className="flex -space-x-2">
-                                            <PlayerAvatar
-                                              src={item.opponent1.avatar}
-                                              name={item.opponent1.name}
-                                              className="size-8 rounded-lg border-2 border-card text-xs"
-                                            />
-                                            <PlayerAvatar
-                                              src={item.opponent2.avatar}
-                                              name={item.opponent2.name}
-                                              className="size-8 rounded-lg border-2 border-card text-xs"
-                                            />
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <PlayerAvatar
-                                      src={item.opponent1?.avatar}
-                                      name={item.opponent1?.name || '對'}
-                                      className="size-9 rounded-xl border border-border text-xs shrink-0 group-hover:scale-105 transition-transform"
-                                    />
-                                  )}
+                                  <PlayerAvatar
+                                    src={avatarPlayer?.avatar}
+                                    name={avatarPlayer?.name || '球'}
+                                    className={cn(
+                                      'size-9 rounded-xl text-xs shrink-0 transition-transform group-hover:scale-105',
+                                      isDoubles
+                                        ? 'border border-amber-400/70'
+                                        : 'border border-border'
+                                    )}
+                                  />
 
-                                  <div className="min-w-0 flex-1">
+                                  <div className="min-w-0 flex-1 space-y-0.5">
                                     <div className="flex items-center gap-1 min-w-0">
                                       {item.isCustom && (
                                         <Star
@@ -656,26 +648,13 @@ export function Dashboard() {
                                           aria-hidden="true"
                                         />
                                       )}
-                                      <p className="text-xs font-black text-foreground group-hover:text-sapphire-blue transition-colors truncate">
-                                        {displayTitle}
+                                      <p className="text-xs sm:text-sm font-black text-foreground group-hover:text-sapphire-blue transition-colors truncate">
+                                        {primaryTitle}
                                       </p>
                                     </div>
-
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                      <span
-                                        className={cn(
-                                          'px-1.5 py-0.2 rounded-md text-[10px] font-black shrink-0',
-                                          isDoubles
-                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-                                            : 'bg-blue-100 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300'
-                                        )}
-                                      >
-                                        {isDoubles ? (hasBothOpponents ? '雙打' : '搭檔') : '單打'}
-                                      </span>
-                                      <span className="text-[11px] font-bold text-smash-orange leading-tight truncate">
-                                        {item.matchCount ? `常打 ${item.matchCount} 場` : '⚡ 報分'}
-                                      </span>
-                                    </div>
+                                    <p className="text-xs font-medium text-muted-foreground truncate">
+                                      {secondarySubtitle}
+                                    </p>
                                   </div>
                                 </button>
                               );
