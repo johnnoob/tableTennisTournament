@@ -754,7 +754,7 @@ export function ReportScore({
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
               <p className="text-xs font-black text-muted-foreground">我方</p>
               <span className="text-xs font-bold text-muted-foreground text-center whitespace-nowrap px-1 sm:px-2">
-                {matchFormat}
+                {scoreA > 0 || scoreB > 0 ? matchFormat : ''}
               </span>
               <p className="text-xs font-black text-muted-foreground text-right">對手</p>
             </div>
@@ -790,13 +790,19 @@ export function ReportScore({
                 )}
               </div>
 
-              {/* 中央即時比分 */}
+              {/* 中央即時比分 / VS */}
               <div className="flex items-center justify-center px-1 sm:px-2 shrink-0">
-                <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-foreground tabular-nums">
-                  <span className={cn(scoreA > scoreB && 'text-emerald-600 dark:text-emerald-400')}>{scoreA}</span>
-                  <span className="text-muted-foreground/45">:</span>
-                  <span className={cn(scoreB > scoreA && 'text-emerald-600 dark:text-emerald-400')}>{scoreB}</span>
-                </div>
+                {scoreA > 0 || scoreB > 0 ? (
+                  <div className="flex items-center gap-1 font-display font-black text-2xl sm:text-3xl text-foreground tabular-nums">
+                    <span className={cn(scoreA > scoreB && 'text-emerald-600 dark:text-emerald-400')}>{scoreA}</span>
+                    <span className="text-muted-foreground/45">:</span>
+                    <span className={cn(scoreB > scoreA && 'text-emerald-600 dark:text-emerald-400')}>{scoreB}</span>
+                  </div>
+                ) : (
+                  <span className="font-display font-black text-sm sm:text-base text-muted-foreground tracking-widest">
+                    VS
+                  </span>
+                )}
               </div>
 
               {/* 對手陣營 */}
