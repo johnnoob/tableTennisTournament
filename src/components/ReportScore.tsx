@@ -3,7 +3,7 @@ import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
-import { Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles } from 'lucide-react';
+import { Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star } from 'lucide-react';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
 import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/matchScore';
@@ -12,6 +12,13 @@ import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  getMatchupSignature,
+  getPresetSignature,
+  MAX_MATCH_PRESETS,
+  useCreateMatchPreset,
+  useMatchPresets,
+} from '@/hooks/useMatchPresets';
 
 interface UserOption {
   id: string;
@@ -252,6 +259,9 @@ export function ReportScore({
     enabled: !!currentUser && open,
   });
 
+  const { data: savedPresets = [] } = useMatchPresets(Boolean(currentUser && open && !editMode));
+  const createPresetMutation = useCreateMatchPreset();
+
   // 讀取已快取的近期對戰名單，將常交手的同事置頂方便點選
   const cachedRecentMatches = open
     ? queryClient.getQueryData<CachedRecentMatch[]>(['matches', 'recent'])
@@ -299,6 +309,46 @@ export function ReportScore({
     matchType === 'singles'
       ? !!opponent1Id
       : !!selectedPartnerId && !!opponent1Id && !!opponent2Id;
+
+  const canSaveAsPreset =
+    !editMode &&
+    Boolean(currentUser) &&
+    (matchType === 'singles'
+      ? Boolean(opponent1Id)
+      : Boolean(selectedPartnerId) &&
+        ((!opponent1Id && !opponent2Id) || (Boolean(opponent1Id) && Boolean(opponent2Id))));
+
+  const currentLineupSignature = canSaveAsPreset
+    ? getMatchupSignature({
+        matchType,
+        partnerId: matchType === 'doubles' ? selectedPartnerId : null,
+        opponent1Id,
+        opponent2Id: matchType === 'doubles' ? opponent2Id : null,
+      })
+    : null;
+
+  const isCurrentLineupSaved =
+    Boolean(currentLineupSignature) &&
+    savedPresets.some((p) => getPresetSignature(p) === currentLineupSignature);
+
+  const isPresetLimitReached = savedPresets.length >= MAX_MATCH_PRESETS;
+
+  const handleSaveAsPreset = () => {
+    if (
+      !canSaveAsPreset ||
+      isCurrentLineupSaved ||
+      isPresetLimitReached ||
+      createPresetMutation.isPending
+    ) {
+      return;
+    }
+    createPresetMutation.mutate({
+      match_type: matchType,
+      partner_id: matchType === 'doubles' ? selectedPartnerId : null,
+      opponent1_id: opponent1Id,
+      opponent2_id: matchType === 'doubles' ? opponent2Id : null,
+    });
+  };
 
   const findNextEmptySlot = (
     nextPartner: string | null,
@@ -414,6 +464,7 @@ export function ReportScore({
       queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
       queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
       queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'matches'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
@@ -715,21 +766,55 @@ export function ReportScore({
                       ? '點選一位對手同事'
                       : '陣容已選好（點擊槽位或下方人員可替換）'}
                 </p>
-                {(selectedPartnerId || opponent1Id || opponent2Id) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedPartnerId(null);
-                      setOpponent1Id(null);
-                      setOpponent2Id(null);
-                      setActiveSlot(matchType === 'doubles' ? 'partner' : 'opp1');
-                    }}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-sapphire-blue hover:underline shrink-0"
-                  >
-                    <RotateCcw size={12} aria-hidden="true" />
-                    重設
-                  </button>
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                  {canSaveAsPreset && (
+                    <button
+                      type="button"
+                      disabled={
+                        isCurrentLineupSaved ||
+                        isPresetLimitReached ||
+                        createPresetMutation.isPending
+                      }
+                      onClick={handleSaveAsPreset}
+                      className={cn(
+                        'inline-flex items-center gap-1 text-xs font-black transition-colors shrink-0',
+                        isCurrentLineupSaved
+                          ? 'text-amber-600 dark:text-amber-300'
+                          : isPresetLimitReached
+                            ? 'text-muted-foreground/50'
+                            : 'text-amber-600 dark:text-amber-400 hover:underline'
+                      )}
+                    >
+                      <Star
+                        size={12}
+                        fill={isCurrentLineupSaved ? 'currentColor' : 'none'}
+                        aria-hidden="true"
+                      />
+                      {isCurrentLineupSaved
+                        ? '已收藏組合'
+                        : createPresetMutation.isPending
+                          ? '收藏中...'
+                          : isPresetLimitReached
+                            ? '常用已滿'
+                            : '存為常用'}
+                    </button>
+                  )}
+                  {(selectedPartnerId || opponent1Id || opponent2Id) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerId(null);
+                        setOpponent1Id(null);
+                        setOpponent2Id(null);
+                        setActiveSlot(matchType === 'doubles' ? 'partner' : 'opp1');
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-sapphire-blue hover:underline shrink-0"
+                    >
+                      <RotateCcw size={12} aria-hidden="true" />
+                      重設
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="relative">
@@ -892,6 +977,30 @@ export function ReportScore({
       footer={
         isSuccess ? (
           <>
+            {canSaveAsPreset && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={
+                  isCurrentLineupSaved ||
+                  isPresetLimitReached ||
+                  createPresetMutation.isPending
+                }
+                onClick={handleSaveAsPreset}
+                className="w-full sm:w-auto h-11 px-4 rounded-xl border-amber-300/80 dark:border-amber-500/40 text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/15 font-black text-sm gap-1.5"
+              >
+                <Star
+                  size={15}
+                  fill={isCurrentLineupSaved ? 'currentColor' : 'none'}
+                  aria-hidden="true"
+                />
+                {isCurrentLineupSaved
+                  ? '已收藏組合'
+                  : createPresetMutation.isPending
+                    ? '收藏中...'
+                    : '存為常用組合'}
+              </Button>
+            )}
             {!editMode && opponent1Id && (
               <Button
                 type="button"

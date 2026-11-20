@@ -286,3 +286,18 @@ class TournamentParticipant(SQLModel, table=True):
 
     tournament: TournamentEvent = Relationship(back_populates="participants")
     user: User = Relationship()
+
+# ==========================================
+# 13. MatchPreset 表 (個人常用約戰組合)
+# ==========================================
+class MatchPreset(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    match_type: str = Field(default="singles", description="singles 或 doubles")
+    label: Optional[str] = Field(default=None, max_length=32, description="自訂組合暱稱")
+    partner_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
+    opponent1_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
+    opponent2_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
+    sort_order: int = Field(default=0, description="排序權重，越小越前面")
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)

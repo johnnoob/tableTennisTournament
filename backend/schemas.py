@@ -73,3 +73,20 @@ class TournamentEventCreate(BaseModel):
 
 class ParticipantAdd(BaseModel):
     user_id: UUID
+
+
+class MatchPresetCreate(BaseModel):
+    match_type: str = Field(default="singles", description="singles 或 doubles")
+    label: Optional[str] = None
+    partner_id: Optional[UUID] = None
+    opponent1_id: Optional[UUID] = None
+    opponent2_id: Optional[UUID] = None
+
+
+class MatchPresetUpdate(BaseModel):
+    match_type: Optional[str] = None
+    label: Optional[str] = None
+    partner_id: Optional[UUID] = None
+    opponent1_id: Optional[UUID] = None
+    opponent2_id: Optional[UUID] = None
+    sort_order: Optional[int] = None

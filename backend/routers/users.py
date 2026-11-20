@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, func
 from database import get_session
 from services.auth_jwt import get_current_user # 🌟 引入警衛
-from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match
+from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, utc_now
+from schemas import MatchPresetCreate, MatchPresetUpdate
 from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
+
+MAX_MATCH_PRESETS = 8
+_preset_table_ready = False
 
 router = APIRouter(tags=["Users"])
 
@@ -572,3 +576,247 @@ def get_user_h2h(
         "total_vs_matches": total_vs,
         **buckets,
     }
+
+
+def _ensure_preset_table(session: Session):
+    global _preset_table_ready
+    if _preset_table_ready:
+        return
+    MatchPreset.__table__.create(bind=session.get_bind(), checkfirst=True)
+    _preset_table_ready = True
+
+
+def _canonical_preset_key(
+    match_type: str,
+    partner_id: UUID | None,
+    opp1_id: UUID | None,
+    opp2_id: UUID | None,
+) -> str:
+    if match_type == "singles":
+        return f"singles:{opp1_id or ''}"
+    if opp1_id and opp2_id:
+        opps = "+".join(sorted([str(opp1_id), str(opp2_id)]))
+        return f"doubles:{partner_id or ''}:{opps}"
+    return f"doubles:{partner_id or ''}:open"
+
+
+def _normalize_label(label: str | None) -> str | None:
+    if label is None:
+        return None
+    cleaned = label.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > 32:
+        raise HTTPException(status_code=422, detail="組合暱稱最多 32 個字")
+    return cleaned
+
+
+def _validate_preset_lineup(
+    session: Session,
+    current_user_id: UUID,
+    match_type: str,
+    partner_id: UUID | None,
+    opp1_id: UUID | None,
+    opp2_id: UUID | None,
+) -> tuple[UUID | None, UUID | None, UUID | None]:
+    if match_type not in ("singles", "doubles"):
+        raise HTTPException(status_code=422, detail="賽制僅支援 singles 或 doubles")
+
+    if match_type == "singles":
+        partner_id = None
+        opp2_id = None
+        if opp1_id is None:
+            raise HTTPException(status_code=422, detail="單打組合必須選擇 1 位對手")
+    else:
+        if partner_id is None:
+            raise HTTPException(status_code=422, detail="雙打組合必須選擇 1 位搭檔")
+        if (opp1_id is None) != (opp2_id is None):
+            raise HTTPException(status_code=422, detail="雙打組合請選滿 2 位對手，或保留空位建立固定搭檔")
+
+    member_ids = [uid for uid in (partner_id, opp1_id, opp2_id) if uid is not None]
+    if current_user_id in member_ids:
+        raise HTTPException(status_code=422, detail="對戰組合不能包含自己")
+    if len(set(member_ids)) != len(member_ids):
+        raise HTTPException(status_code=422, detail="同一組合中不能重複選擇相同同仁")
+
+    if member_ids:
+        found_users = session.exec(select(User).where(User.id.in_(member_ids))).all()
+        if len(found_users) != len(member_ids):
+            raise HTTPException(status_code=404, detail="找不到指定的同仁資料")
+
+    return partner_id, opp1_id, opp2_id
+
+
+def _serialize_presets(session: Session, presets: list[MatchPreset]) -> list[dict]:
+    user_ids: set[UUID] = set()
+    for p in presets:
+        for uid in (p.partner_id, p.opponent1_id, p.opponent2_id):
+            if uid is not None:
+                user_ids.add(uid)
+
+    user_map: dict[UUID, User] = {}
+    if user_ids:
+        users = session.exec(select(User).where(User.id.in_(list(user_ids)))).all()
+        user_map = {u.id: u for u in users}
+
+    def fmt_player(uid: UUID | None):
+        if uid is None:
+            return None
+        u = user_map.get(uid)
+        if not u:
+            return None
+        return {
+            "id": str(u.id),
+            "name": u.name,
+            "avatar": u.avatar_url,
+            "department": u.department,
+        }
+
+    return [
+        {
+            "id": str(p.id),
+            "match_type": p.match_type,
+            "label": p.label,
+            "sort_order": p.sort_order,
+            "partner": fmt_player(p.partner_id),
+            "opponent1": fmt_player(p.opponent1_id),
+            "opponent2": fmt_player(p.opponent2_id),
+            "created_at": ensure_utc(p.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        for p in presets
+    ]
+
+
+@router.get("/api/users/me/presets", summary="取得我的常用約戰組合")
+def get_my_match_presets(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    _ensure_preset_table(session)
+    presets = session.exec(
+        select(MatchPreset)
+        .where(MatchPreset.user_id == current_user.id)
+        .order_by(MatchPreset.sort_order.asc(), MatchPreset.created_at.desc())
+    ).all()
+    return _serialize_presets(session, list(presets))
+
+
+@router.post("/api/users/me/presets", summary="新增常用約戰組合")
+def create_my_match_preset(
+    req: MatchPresetCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    _ensure_preset_table(session)
+    existing = list(
+        session.exec(
+            select(MatchPreset).where(MatchPreset.user_id == current_user.id)
+        ).all()
+    )
+    if len(existing) >= MAX_MATCH_PRESETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"常用約戰組合上限為 {MAX_MATCH_PRESETS} 組，請先刪除不常用的組合",
+        )
+
+    partner_id, opp1_id, opp2_id = _validate_preset_lineup(
+        session,
+        current_user.id,
+        req.match_type,
+        req.partner_id,
+        req.opponent1_id,
+        req.opponent2_id,
+    )
+    new_key = _canonical_preset_key(req.match_type, partner_id, opp1_id, opp2_id)
+    for item in existing:
+        existing_key = _canonical_preset_key(
+            item.match_type, item.partner_id, item.opponent1_id, item.opponent2_id
+        )
+        if existing_key == new_key:
+            raise HTTPException(status_code=409, detail="此對戰組合已經在常用清單中")
+
+    clean_label = _normalize_label(req.label)
+    next_sort = (min(item.sort_order for item in existing) - 1) if existing else 0
+
+    preset = MatchPreset(
+        user_id=current_user.id,
+        match_type=req.match_type,
+        label=clean_label,
+        partner_id=partner_id,
+        opponent1_id=opp1_id,
+        opponent2_id=opp2_id,
+        sort_order=next_sort,
+    )
+    session.add(preset)
+    session.commit()
+    session.refresh(preset)
+    return _serialize_presets(session, [preset])[0]
+
+
+@router.patch("/api/users/me/presets/{preset_id}", summary="更新或置頂常用約戰組合")
+def update_my_match_preset(
+    preset_id: UUID,
+    req: MatchPresetUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    _ensure_preset_table(session)
+    preset = session.get(MatchPreset, preset_id)
+    if not preset or preset.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="找不到此常用組合")
+
+    fields = req.model_fields_set
+    next_match_type = req.match_type if "match_type" in fields and req.match_type else preset.match_type
+    next_partner_id = req.partner_id if "partner_id" in fields else preset.partner_id
+    next_opp1_id = req.opponent1_id if "opponent1_id" in fields else preset.opponent1_id
+    next_opp2_id = req.opponent2_id if "opponent2_id" in fields else preset.opponent2_id
+
+    partner_id, opp1_id, opp2_id = _validate_preset_lineup(
+        session,
+        current_user.id,
+        next_match_type,
+        next_partner_id,
+        next_opp1_id,
+        next_opp2_id,
+    )
+
+    next_key = _canonical_preset_key(next_match_type, partner_id, opp1_id, opp2_id)
+    others = session.exec(
+        select(MatchPreset)
+        .where(MatchPreset.user_id == current_user.id)
+        .where(MatchPreset.id != preset.id)
+    ).all()
+    for other in others:
+        if _canonical_preset_key(other.match_type, other.partner_id, other.opponent1_id, other.opponent2_id) == next_key:
+            raise HTTPException(status_code=409, detail="與其他已收藏的對戰組合重複")
+
+    preset.match_type = next_match_type
+    preset.partner_id = partner_id
+    preset.opponent1_id = opp1_id
+    preset.opponent2_id = opp2_id
+    if "label" in fields:
+        preset.label = _normalize_label(req.label)
+    if "sort_order" in fields and req.sort_order is not None:
+        preset.sort_order = req.sort_order
+    preset.updated_at = utc_now()
+
+    session.add(preset)
+    session.commit()
+    session.refresh(preset)
+    return _serialize_presets(session, [preset])[0]
+
+
+@router.delete("/api/users/me/presets/{preset_id}", summary="刪除常用約戰組合")
+def delete_my_match_preset(
+    preset_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    _ensure_preset_table(session)
+    preset = session.get(MatchPreset, preset_id)
+    if not preset or preset.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="找不到此常用組合")
+
+    session.delete(preset)
+    session.commit()
+    return {"message": "已移除常用組合", "id": str(preset_id)}

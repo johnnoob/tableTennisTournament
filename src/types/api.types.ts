@@ -182,3 +182,38 @@ export interface DashboardPlayer {
     avgScore?: number;
   };
 }
+
+export interface MatchPresetPlayer {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  department?: string | null;
+}
+
+export interface MatchPreset {
+  id: string;
+  match_type: 'singles' | 'doubles';
+  label?: string | null;
+  sort_order: number;
+  partner?: MatchPresetPlayer | null;
+  opponent1?: MatchPresetPlayer | null;
+  opponent2?: MatchPresetPlayer | null;
+  created_at: string;
+}
+
+export interface MatchPresetCreatePayload {
+  match_type: 'singles' | 'doubles';
+  label?: string | null;
+  partner_id?: string | null;
+  opponent1_id?: string | null;
+  opponent2_id?: string | null;
+}
+
+export interface MatchPresetUpdatePayload {
+  match_type?: 'singles' | 'doubles';
+  label?: string | null;
+  partner_id?: string | null;
+  opponent1_id?: string | null;
+  opponent2_id?: string | null;
+  sort_order?: number;
+}
