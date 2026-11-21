@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0b1220" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+    <linearGradient id="paddle" x1="160" y1="120" x2="360" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fb923c" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="184" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="10" />
+  <ellipse cx="268" cy="228" rx="102" ry="108" transform="rotate(-32 268 228)" fill="url(#paddle)" />
+  <rect x="162" y="295" width="38" height="106" rx="19" transform="rotate(-32 162 295)" fill="#f59e0b" />
+  <circle cx="348" cy="144" r="28" fill="#fbbf24" />
+  <circle cx="348" cy="144" r="28" stroke="#fef3c7" stroke-width="6" stroke-opacity="0.7" />
+</svg>

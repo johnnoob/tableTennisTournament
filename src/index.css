@@ -137,7 +137,7 @@
 
 @layer components {
   .arena-page {
-    @apply w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-5 sm:pt-7 md:pt-9 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-14 space-y-6 md:space-y-8 bg-transparent min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)];
+    @apply w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 pt-5 sm:pt-7 md:pt-9 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-14 space-y-6 md:space-y-8 bg-transparent min-h-[calc(100dvh-3.5rem)] md:min-h-[calc(100dvh-2rem)];
   }
 
   .arena-card {

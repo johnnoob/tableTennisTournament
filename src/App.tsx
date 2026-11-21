@@ -72,16 +72,16 @@ function AppContent() {
   // App Shell — Navigation 永遠可見，Loading 僅影響主內容
   // ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background font-sans selection:bg-sapphire-blue/15 flex relative">
+    <div className="min-h-screen bg-background font-sans selection:bg-sapphire-blue/15 flex flex-col md:flex-row relative">
 
-      {/* Navigation Layer (Contains Fixed Mobile & Desktop Navs) */}
+      {/* Navigation Layer (Contains Mobile Auto-Hide, Tablet Rail & Desktop Sidebar) */}
       <Navigation />
       <GlobalPlayerDrawer />
       <Toaster richColors position="top-center" theme={resolvedTheme} />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full min-w-0 pt-16 lg:pt-0 lg:ml-64 transition-all duration-300">
-        <div className="min-h-[calc(100dvh-4rem)] lg:min-h-[calc(100dvh-2rem)] bg-surface-shell lg:my-4 lg:mr-4 lg:rounded-[2rem] lg:shadow-sm dark:lg:shadow-black/40 relative lg:border lg:border-border overflow-x-clip">
+      <main className="flex-1 w-full min-w-0 md:ml-20 lg:ml-64 transition-all duration-300">
+        <div className="min-h-[calc(100dvh-3.5rem)] md:min-h-[calc(100dvh-2rem)] bg-surface-shell md:my-4 md:mr-4 md:rounded-[2rem] md:shadow-sm dark:md:shadow-black/40 relative md:border md:border-border overflow-x-clip">
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
           {loading ? (
