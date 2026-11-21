@@ -5,7 +5,7 @@ import apiClient from '@/utils/apiClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RankingCard } from '@/components/RankingCard';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
-import { MatchItem } from '@/components/MatchItem';
+import { MatchSeriesItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
@@ -38,8 +38,11 @@ import {
   Plus,
   Star,
   SlidersHorizontal,
+  Globe,
+  UserCheck,
 } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
+import { clusterMatchesIntoSeries } from '@/lib/matchDate';
 import { PendingActions } from '@/components/PendingActions';
 import { useAuth } from '@/hooks/useAuth';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
@@ -48,6 +51,7 @@ import { isTopTierRank } from '@/lib/ranking';
 import type {
   Announcement,
   MatchFeedItem,
+  MatchHistoryResponse,
   MatchPreset,
   RivalsResponse,
   PartnersResponse,
@@ -241,6 +245,9 @@ export function Dashboard() {
   const [chartInterval, setChartInterval] = useState<string>('recent');
   const [quickFilter, setQuickFilter] = useState<'all' | 'singles' | 'doubles'>('all');
   const [showAllQuickItems, setShowAllQuickItems] = useState(false);
+  const [feedScope, setFeedScope] = useState<'all' | 'mine'>('all');
+  const [showAllFeedClusters, setShowAllFeedClusters] = useState(false);
+  const [isFeedSectionCollapsed, setIsFeedSectionCollapsed] = useState(false);
   const [quickReportState, setQuickReportState] = useState<{
     open: boolean;
     nonce: number;
@@ -286,11 +293,37 @@ export function Dashboard() {
   const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
     queryKey: ['matches', 'recent'],
     queryFn: async () => {
-      const res = await apiClient.get<MatchFeedItem[]>('/matches/recent?limit=8');
+      const res = await apiClient.get<MatchFeedItem[]>('/matches/recent?limit=16');
       return res.data;
     },
     refetchInterval: 10000,
   });
+
+  const { data: myRecentData, isPending: isMyRecentLoading } = useQuery({
+    queryKey: ['matches', 'history', 'dashboard-mine', user?.id],
+    queryFn: async () => {
+      const res = await apiClient.get<MatchHistoryResponse>(
+        '/users/me/matches?limit=16&offset=0&result_filter=all&match_type=all',
+      );
+      return res.data;
+    },
+    enabled: isLoggedIn,
+    refetchInterval: 15000,
+  });
+
+  const activeFeedMatches = useMemo(
+    () => (feedScope === 'mine' ? (myRecentData?.matches ?? []) : recentFeed),
+    [feedScope, myRecentData, recentFeed],
+  );
+  const feedClusters = useMemo(
+    () => clusterMatchesIntoSeries(activeFeedMatches),
+    [activeFeedMatches],
+  );
+  const DEFAULT_VISIBLE_CLUSTERS = 4;
+  const visibleFeedClusters = showAllFeedClusters
+    ? feedClusters
+    : feedClusters.slice(0, DEFAULT_VISIBLE_CLUSTERS);
+  const hiddenClusterCount = Math.max(0, feedClusters.length - DEFAULT_VISIBLE_CLUSTERS);
 
   const { data: rivals = { nemesis: [], minions: [] } } = useQuery({
     queryKey: ['users', 'me', 'rivals'],
@@ -870,41 +903,170 @@ export function Dashboard() {
                   </>
                 )}
 
-                <motion.section variants={itemVariants} className="space-y-4">
-                  <div className="flex items-center justify-between gap-2 px-1">
+                <motion.section variants={itemVariants} className="space-y-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1">
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2.5 flex-wrap">
                         <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
                           近期戰報動態
                         </h2>
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 border border-sapphire-blue/20">
-                          全部戰報
-                        </span>
+                        <div
+                          role="group"
+                          aria-label="切換近期戰報動態範圍"
+                          className="inline-flex p-0.5 rounded-xl bg-secondary border border-border"
+                        >
+                          <button
+                            type="button"
+                            aria-pressed={feedScope === 'all'}
+                            onClick={() => {
+                              setFeedScope('all');
+                              setShowAllFeedClusters(false);
+                              setIsFeedSectionCollapsed(false);
+                            }}
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                              feedScope === 'all'
+                                ? 'bg-card text-foreground shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground',
+                            )}
+                          >
+                            <Globe size={12} aria-hidden="true" />
+                            <span>全部</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={feedScope === 'mine'}
+                            onClick={() => {
+                              if (!isLoggedIn) {
+                                navigate('/login');
+                                return;
+                              }
+                              setFeedScope('mine');
+                              setShowAllFeedClusters(false);
+                              setIsFeedSectionCollapsed(false);
+                            }}
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                              feedScope === 'mine'
+                                ? 'bg-card text-foreground shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground',
+                            )}
+                          >
+                            <UserCheck size={12} aria-hidden="true" />
+                            <span>個人</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
-                        All-Club Live Feed · 所有同仁最新對戰
+                      <p className="text-xs text-muted-foreground font-sans font-bold mt-0.5">
+                        {feedScope === 'all' ? 'All-Club Live Feed' : 'My Recent Matches'}
+                        {activeFeedMatches.length > 0 && (
+                          <>
+                            {' · '}共 {activeFeedMatches.length} 場
+                            {feedClusters.length < activeFeedMatches.length &&
+                              ` · 同組連打已收疊為 ${feedClusters.length} 組`}
+                          </>
+                        )}
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-xs font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3 shrink-0"
-                      onClick={() => navigate('/history?scope=all')}
-                    >
-                      查看全部
-                    </Button>
+
+                    <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0">
+                      <button
+                        type="button"
+                        aria-expanded={!isFeedSectionCollapsed}
+                        onClick={() => setIsFeedSectionCollapsed((prev) => !prev)}
+                        className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <span>{isFeedSectionCollapsed ? '展開' : '收合'}</span>
+                        {isFeedSectionCollapsed ? (
+                          <ChevronDown size={13} aria-hidden="true" />
+                        ) : (
+                          <ChevronUp size={13} aria-hidden="true" />
+                        )}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-8 text-xs font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3"
+                        onClick={() =>
+                          navigate(feedScope === 'mine' ? '/history?scope=mine' : '/history?scope=all')
+                        }
+                      >
+                        查看全部
+                      </Button>
+                    </div>
                   </div>
 
-                  {recentFeed.length > 0 ? (
-                    <div className="bg-card border border-border rounded-2xl md:rounded-3xl overflow-hidden shadow-xs divide-y divide-border/70">
-                      {recentFeed.map((match) => (
-                        <MatchItem key={match.id} match={match} variant="feed" />
-                      ))}
+                  {isFeedSectionCollapsed ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsFeedSectionCollapsed(false)}
+                      className="w-full py-3 px-4 rounded-2xl border border-dashed border-border bg-surface-subtle/60 hover:bg-secondary text-xs font-bold text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <span>
+                        已收合 {activeFeedMatches.length} 場{feedScope === 'mine' ? '個人' : '全部'}近期戰報（點擊展開）
+                      </span>
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </button>
+                  ) : feedScope === 'mine' && isMyRecentLoading && activeFeedMatches.length === 0 ? (
+                    <div className="text-center py-10 arena-surface text-xs font-bold text-muted-foreground">
+                      載入個人近期戰報中...
+                    </div>
+                  ) : activeFeedMatches.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {feedScope === 'all' ? (
+                        <div className="bg-card border border-border rounded-2xl md:rounded-3xl overflow-hidden shadow-xs divide-y divide-border/70">
+                          {visibleFeedClusters.map((cluster) => (
+                            <MatchSeriesItem
+                              key={cluster.key}
+                              cluster={cluster}
+                              variant="feed"
+                              timeDisplay="smart"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {visibleFeedClusters.map((cluster) => (
+                            <MatchSeriesItem
+                              key={cluster.key}
+                              cluster={cluster}
+                              variant="personal"
+                              timeDisplay="smart"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {feedClusters.length > DEFAULT_VISIBLE_CLUSTERS && (
+                        <div className="flex justify-center pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllFeedClusters((prev) => !prev)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-black text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showAllFeedClusters ? (
+                              <>
+                                <span>收合部分戰報（僅顯示最新 {DEFAULT_VISIBLE_CLUSTERS} 組）</span>
+                                <ChevronUp size={13} aria-hidden="true" />
+                              </>
+                            ) : (
+                              <>
+                                <span>
+                                  展開其餘 {hiddenClusterCount} 組戰報（共 {feedClusters.length} 組 / {activeFeedMatches.length} 場）
+                                </span>
+                                <ChevronDown size={13} aria-hidden="true" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-14 arena-surface border-dashed">
                       <History size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
-                      <p className="text-muted-foreground font-bold text-xs">目前還沒有對戰紀錄</p>
+                      <p className="text-muted-foreground font-bold text-xs">
+                        {feedScope === 'mine' ? '您目前還沒有個人對戰紀錄' : '目前還沒有對戰紀錄'}
+                      </p>
                     </div>
                   )}
                 </motion.section>

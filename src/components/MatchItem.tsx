@@ -1,4 +1,5 @@
-import { RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Layers, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -6,7 +7,11 @@ import { PlayerAvatar } from './PlayerAvatar';
 import { ReportScore } from './ReportScore';
 import { useAuth } from '@/hooks/useAuth';
 import { inferMatchFormat } from '@/lib/matchScore';
-import { formatMatchClock, formatSmartMatchTime } from '@/lib/matchDate';
+import {
+  formatMatchClock,
+  formatSmartMatchTime,
+  type MatchSeriesCluster,
+} from '@/lib/matchDate';
 
 interface MatchPlayer {
   id?: string;
@@ -728,6 +733,665 @@ export function MatchItem({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Mechanism 1: Same-Day Same-Matchup Expandable Series Row / Card
+export function MatchSeriesItem({
+  cluster,
+  variant = 'feed',
+  timeDisplay = 'smart',
+}: Readonly<{
+  cluster: MatchSeriesCluster;
+  variant?: 'feed' | 'personal';
+  timeDisplay?: 'smart' | 'clock';
+}>) {
+  const [expanded, setExpanded] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: currentUser } = useAuth();
+
+  if (cluster.matches.length === 1) {
+    return (
+      <MatchItem
+        match={cluster.matches[0]}
+        variant={variant}
+        timeDisplay={timeDisplay}
+      />
+    );
+  }
+
+  const openInspect = (playerId?: string) => {
+    if (!playerId) return;
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('inspect', playerId);
+    setSearchParams(newParams);
+  };
+
+  const isDoubles = cluster.type === 'doubles';
+  const latest = cluster.latestMatch;
+  const rawDate = latest?.date || latest?.created_at;
+  const displayTime =
+    timeDisplay === 'clock' ? formatMatchClock(rawDate) : formatSmartMatchTime(rawDate);
+
+  const myId = currentUser?.id ? String(currentUser.id) : null;
+  const iAmInT1 = myId
+    ? cluster.anchorTeam1.some((p) => String(p.id) === myId)
+    : false;
+  const iAmInT2 = myId
+    ? cluster.anchorTeam2.some((p) => String(p.id) === myId)
+    : false;
+  const canRematch = Boolean(myId && (iAmInT1 || iAmInT2));
+
+  const useT1AsMe = iAmInT1 || !iAmInT2;
+  const myTeam = useT1AsMe ? cluster.anchorTeam1 : cluster.anchorTeam2;
+  const rivalTeam = useT1AsMe ? cluster.anchorTeam2 : cluster.anchorTeam1;
+  const myWins = useT1AsMe ? cluster.team1Wins : cluster.team2Wins;
+  const myLosses = useT1AsMe ? cluster.team2Wins : cluster.team1Wins;
+  const myNetDelta = useT1AsMe ? cluster.team1NetDelta : cluster.team2NetDelta;
+  const myPartner = isDoubles
+    ? myTeam.find((p) => p.id && String(p.id) !== myId) ?? null
+    : null;
+  const latestScore = latest?.score || [0, 0];
+  const latestFormat = inferMatchFormat(latestScore[0], latestScore[1]);
+
+  const rematchOpp1Id = rivalTeam[0]?.id || null;
+  const rematchOpp2Id = isDoubles ? rivalTeam[1]?.id || null : null;
+
+  const renderRematchButton = (compact = false) => {
+    if (!canRematch || !rematchOpp1Id) return null;
+    return (
+      <ReportScore
+        initialMatchType={cluster.type}
+        initialFormat={latestFormat}
+        initialPartnerId={myPartner?.id || null}
+        initialOpponentId={rematchOpp1Id}
+        initialOpponent2Id={rematchOpp2Id}
+        trigger={
+          <button
+            type="button"
+            aria-label="發起再戰"
+            title="再戰"
+            className={cn(
+              'inline-flex items-center justify-center gap-1 rounded-lg bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0',
+              compact ? 'h-6 px-2 text-[11px]' : 'h-7 px-2.5 text-xs rounded-xl',
+            )}
+          >
+            <RotateCcw size={11} aria-hidden="true" />
+            <span>再戰</span>
+          </button>
+        }
+      />
+    );
+  };
+
+  if (variant === 'feed') {
+    const t1Lead = cluster.team1Wins > cluster.team2Wins;
+    const t2Lead = cluster.team2Wins > cluster.team1Wins;
+
+    return (
+      <div className="transition-colors">
+        <div className="px-3.5 md:px-4 py-3 hover:bg-surface-subtle/60 space-y-2">
+          {/* Desktop Series Row */}
+          <div className="hidden md:grid md:grid-cols-[120px_minmax(0,1fr)_124px] items-center gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-muted-foreground tabular-nums truncate">
+                {displayTime}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {isDoubles ? (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                    雙打
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-muted-foreground/80 leading-none">
+                    單打
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
+                  <Layers size={10} aria-hidden="true" />
+                  連打 {cluster.matches.length} 場
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 min-w-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 min-w-0">
+                <div className="flex items-center justify-end gap-2.5 min-w-0">
+                  {cluster.team1NetDelta !== 0 && (
+                    <span
+                      className={cn(
+                        'text-[11px] font-display font-black tabular-nums shrink-0',
+                        cluster.team1NetDelta > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400',
+                      )}
+                    >
+                      {formatDelta(cluster.team1NetDelta)}
+                    </span>
+                  )}
+                  <TeamNames
+                    players={cluster.anchorTeam1}
+                    onInspect={openInspect}
+                    align="right"
+                    className={cn(
+                      'font-display text-sm',
+                      t1Lead || !t2Lead
+                        ? 'font-black text-foreground'
+                        : 'font-bold text-muted-foreground',
+                    )}
+                  />
+                  <TeamAvatars
+                    players={cluster.anchorTeam1}
+                    onInspect={openInspect}
+                    avatarClassName="size-8 rounded-xl text-xs"
+                    overlapClassName="-space-x-2.5"
+                    placeholderClassName="size-8"
+                    wonRing={t1Lead && cluster.allSettled}
+                  />
+                </div>
+
+                <div className="px-2.5 py-1 rounded-xl bg-surface-subtle border border-border/80 flex items-center gap-1.5 font-display font-black text-sm tabular-nums shrink-0">
+                  <span className={t1Lead ? 'text-foreground' : 'text-muted-foreground/70'}>
+                    {cluster.team1Wins}勝
+                  </span>
+                  <span className="text-muted-foreground/40 text-xs">:</span>
+                  <span className={t2Lead ? 'text-foreground' : 'text-muted-foreground/70'}>
+                    {cluster.team2Wins}勝
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-start gap-2.5 min-w-0">
+                  <TeamAvatars
+                    players={cluster.anchorTeam2}
+                    onInspect={openInspect}
+                    avatarClassName="size-8 rounded-xl text-xs"
+                    overlapClassName="-space-x-2.5"
+                    placeholderClassName="size-8"
+                    wonRing={t2Lead && cluster.allSettled}
+                  />
+                  <TeamNames
+                    players={cluster.anchorTeam2}
+                    onInspect={openInspect}
+                    align="left"
+                    className={cn(
+                      'font-display text-sm',
+                      t2Lead || !t1Lead
+                        ? 'font-black text-foreground'
+                        : 'font-bold text-muted-foreground',
+                    )}
+                  />
+                  {cluster.team2NetDelta !== 0 && (
+                    <span
+                      className={cn(
+                        'text-[11px] font-display font-black tabular-nums shrink-0',
+                        cluster.team2NetDelta > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400',
+                      )}
+                    >
+                      {formatDelta(cluster.team2NetDelta)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Chronological Mini Score Pills */}
+              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                {cluster.games.map((g) => (
+                  <span
+                    key={g.match.id}
+                    className={cn(
+                      'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                      g.isPending
+                        ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                        : 'bg-surface-subtle border-border/70 text-foreground/85',
+                    )}
+                  >
+                    <span className="text-muted-foreground mr-1">#{g.index}</span>
+                    {g.team1Score}:{g.team2Score}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-1.5 shrink-0">
+              {cluster.hasPending && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30">
+                  含待確認
+                </span>
+              )}
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setExpanded((prev) => !prev)}
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors"
+              >
+                <span>{expanded ? '收合' : '明細'}</span>
+                <ChevronDown
+                  size={13}
+                  aria-hidden="true"
+                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Stacked Series Summary */}
+          <div className="md:hidden space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                {isDoubles ? (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                    雙打
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
+                    單打
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
+                  <Layers size={10} aria-hidden="true" />
+                  連打 {cluster.matches.length} 場
+                </span>
+                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                  · {displayTime}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setExpanded((prev) => !prev)}
+                className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-foreground shrink-0"
+              >
+                <span>{expanded ? '收合' : '明細'}</span>
+                <ChevronDown
+                  size={12}
+                  aria-hidden="true"
+                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <TeamAvatars
+                    players={cluster.anchorTeam1}
+                    onInspect={openInspect}
+                    avatarClassName="size-7 rounded-lg text-[11px]"
+                    overlapClassName="-space-x-2"
+                    placeholderClassName="size-7"
+                  />
+                  <TeamNames
+                    players={cluster.anchorTeam1}
+                    onInspect={openInspect}
+                    align="left"
+                    className={cn(
+                      'font-display text-sm',
+                      t1Lead || !t2Lead
+                        ? 'font-black text-foreground'
+                        : 'font-bold text-muted-foreground',
+                    )}
+                  />
+                  {cluster.team1NetDelta !== 0 && (
+                    <span
+                      className={cn(
+                        'text-xs font-display font-black tabular-nums shrink-0',
+                        cluster.team1NetDelta > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400',
+                      )}
+                    >
+                      {formatDelta(cluster.team1NetDelta)}
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'font-display font-black text-base tabular-nums shrink-0',
+                    t1Lead ? 'text-foreground' : 'text-muted-foreground/70',
+                  )}
+                >
+                  {cluster.team1Wins} 勝
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <TeamAvatars
+                    players={cluster.anchorTeam2}
+                    onInspect={openInspect}
+                    avatarClassName="size-7 rounded-lg text-[11px]"
+                    overlapClassName="-space-x-2"
+                    placeholderClassName="size-7"
+                  />
+                  <TeamNames
+                    players={cluster.anchorTeam2}
+                    onInspect={openInspect}
+                    align="left"
+                    className={cn(
+                      'font-display text-sm',
+                      t2Lead || !t1Lead
+                        ? 'font-black text-foreground'
+                        : 'font-bold text-muted-foreground',
+                    )}
+                  />
+                  {cluster.team2NetDelta !== 0 && (
+                    <span
+                      className={cn(
+                        'text-xs font-display font-black tabular-nums shrink-0',
+                        cluster.team2NetDelta > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400',
+                      )}
+                    >
+                      {formatDelta(cluster.team2NetDelta)}
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'font-display font-black text-base tabular-nums shrink-0',
+                    t2Lead ? 'text-foreground' : 'text-muted-foreground/70',
+                  )}
+                >
+                  {cluster.team2Wins} 勝
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              {cluster.games.map((g) => (
+                <span
+                  key={g.match.id}
+                  className={cn(
+                    'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                    g.isPending
+                      ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                      : 'bg-surface-subtle border-border/70 text-foreground/85',
+                  )}
+                >
+                  <span className="text-muted-foreground mr-1">#{g.index}</span>
+                  {g.team1Score}:{g.team2Score}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="bg-surface-subtle/50 border-t border-border/60 divide-y divide-border/50 pl-2 sm:pl-4">
+            {cluster.matches.map((m) => (
+              <MatchItem key={m.id} match={m} variant="feed" timeDisplay="clock" />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Personal Perspective Series Card (Scheme B + Folding)
+  const netWon = myWins > myLosses;
+  const netLost = myLosses > myWins;
+  const allPending = cluster.games.every((g) => g.isPending);
+
+  const railClass = allPending
+    ? 'bg-amber-400'
+    : netWon
+      ? 'bg-emerald-500'
+      : netLost
+        ? 'bg-rose-500'
+        : 'bg-sapphire-blue';
+
+  const surfaceWashClass = allPending
+    ? 'bg-amber-50/30 dark:bg-amber-500/[0.05]'
+    : netWon
+      ? 'bg-emerald-50/25 dark:bg-emerald-500/[0.04]'
+      : netLost
+        ? 'bg-rose-50/20 dark:bg-rose-500/[0.04]'
+        : 'bg-blue-50/20 dark:bg-blue-500/[0.04]';
+
+  const summaryColorClass = allPending
+    ? 'text-amber-600 dark:text-amber-400'
+    : netWon
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : netLost
+        ? 'text-rose-600 dark:text-rose-400'
+        : 'text-sapphire-blue dark:text-blue-400';
+
+  const netDeltaNode = allPending ? (
+    <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80">待結算</span>
+  ) : myNetDelta !== 0 ? (
+    <span
+      className={cn(
+        'text-xs font-display font-black tabular-nums',
+        myNetDelta > 0
+          ? 'text-emerald-600 dark:text-emerald-400'
+          : 'text-rose-600 dark:text-rose-400',
+      )}
+    >
+      {formatDelta(myNetDelta)} 分
+    </span>
+  ) : (
+    <span className="text-xs font-bold text-muted-foreground tabular-nums">0 分</span>
+  );
+
+  return (
+    <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch">
+      <div className={cn('w-1.5 shrink-0', railClass)} aria-hidden="true" />
+
+      <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
+        {/* Desktop Personal Series Header */}
+        <div className="hidden sm:flex items-center justify-between gap-3 md:gap-4 px-4 py-3">
+          <div className="w-[76px] shrink-0 flex flex-col">
+            <span className={cn('text-xs font-display font-black tracking-wide leading-tight', summaryColorClass)}>
+              {myWins}勝 {myLosses}敗
+            </span>
+            <div className="mt-0.5 leading-tight">{netDeltaNode}</div>
+          </div>
+
+          <div className="w-[68px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
+            <span className="text-[10px] font-black text-sapphire-blue leading-none">連打</span>
+            <span className="font-display font-black text-base leading-tight text-foreground tabular-nums mt-0.5">
+              {cluster.matches.length} 場
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <TeamAvatars
+              players={rivalTeam}
+              onInspect={openInspect}
+              avatarClassName="size-9 md:size-10 rounded-xl text-xs"
+              overlapClassName="-space-x-2.5"
+              placeholderClassName="size-9 md:size-10"
+            />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <span className="text-[11px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                  VS
+                </span>
+                <TeamNames
+                  players={rivalTeam}
+                  onInspect={openInspect}
+                  align="left"
+                  className="text-sm md:text-base font-display font-black text-foreground"
+                />
+                {isDoubles ? (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                    雙打
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
+                    單打
+                  </span>
+                )}
+                {isDoubles && myPartner && (
+                  <button
+                    type="button"
+                    onClick={() => openInspect(myPartner.id)}
+                    disabled={!myPartner.id}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[160px] transition-colors leading-none"
+                  >
+                    · 搭檔：{myPartner.name}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {cluster.games.map((g) => {
+                  const myScore = useT1AsMe ? g.team1Score : g.team2Score;
+                  const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
+                  const won = myScore > oppScore;
+
+                  return (
+                    <span
+                      key={g.match.id}
+                      className={cn(
+                        'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                        g.isPending
+                          ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                          : won
+                            ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
+                            : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
+                      )}
+                    >
+                      <span className="opacity-65 mr-1">#{g.index}</span>
+                      {myScore}:{oppScore}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-muted-foreground tabular-nums">
+              {displayTime}
+            </span>
+            {renderRematchButton(false)}
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((prev) => !prev)}
+              className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors"
+            >
+              <span>{expanded ? '收合' : '明細'}</span>
+              <ChevronDown
+                size={13}
+                aria-hidden="true"
+                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Personal Series Header */}
+        <div className="sm:hidden px-3 py-2.5 space-y-2">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span className={cn('text-xs font-display font-black', summaryColorClass)}>
+                {myWins}勝 {myLosses}敗
+              </span>
+              {netDeltaNode}
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
+                <Layers size={10} aria-hidden="true" />
+                連打 {cluster.matches.length} 場
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                {displayTime}
+              </span>
+              {renderRematchButton(true)}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <TeamAvatars
+                players={rivalTeam}
+                onInspect={openInspect}
+                avatarClassName="size-9 rounded-xl text-xs"
+                overlapClassName="-space-x-2"
+                placeholderClassName="size-9"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="text-[10px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                    VS
+                  </span>
+                  <TeamNames
+                    players={rivalTeam}
+                    onInspect={openInspect}
+                    align="left"
+                    className="text-sm font-display font-black text-foreground"
+                  />
+                </div>
+                {isDoubles && myPartner && (
+                  <button
+                    type="button"
+                    onClick={() => openInspect(myPartner.id)}
+                    disabled={!myPartner.id}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
+                  >
+                    搭檔：{myPartner.name}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((prev) => !prev)}
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-foreground shrink-0"
+            >
+              <span>{expanded ? '收合' : '明細'}</span>
+              <ChevronDown
+                size={12}
+                aria-hidden="true"
+                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {cluster.games.map((g) => {
+              const myScore = useT1AsMe ? g.team1Score : g.team2Score;
+              const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
+              const won = myScore > oppScore;
+
+              return (
+                <span
+                  key={g.match.id}
+                  className={cn(
+                    'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                    g.isPending
+                      ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                      : won
+                        ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
+                        : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
+                  )}
+                >
+                  <span className="opacity-65 mr-1">#{g.index}</span>
+                  {myScore}:{oppScore}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background/40 space-y-2">
+            {cluster.matches.map((m) => (
+              <MatchItem key={m.id} match={m} variant="personal" timeDisplay="clock" />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

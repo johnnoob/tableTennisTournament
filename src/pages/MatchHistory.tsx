@@ -3,7 +3,7 @@ import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiClient from '@/utils/apiClient';
-import { MatchItem } from '@/components/MatchItem';
+import { MatchItem, MatchSeriesItem } from '@/components/MatchItem';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,12 +22,15 @@ import {
   Globe,
   CheckCircle2,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageVariants } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
-import { groupMatchesByDate } from '@/lib/matchDate';
+import { clusterMatchesIntoSeries, groupMatchesByDate } from '@/lib/matchDate';
 import type { MatchFeedItem, MatchHistoryResponse } from '@/types/api.types';
 
 const PAGE_SIZE = 50;
@@ -52,6 +55,8 @@ export function MatchHistory() {
   const [matchTypeFilter, setMatchTypeFilter] = useState<'all' | 'singles' | 'doubles'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [clusterSeriesEnabled, setClusterSeriesEnabled] = useState(true);
+  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -150,7 +155,6 @@ export function MatchHistory() {
     [filteredQuery.data],
   );
 
-  // 若後端篩選結果尚未返回，先用記憶體中的 baseMatches 即時過濾顯示，實現首次點擊 0ms 秒切
   const usingServerResults =
     needsServerFallback && Boolean(filteredQuery.data) && !filteredQuery.isPlaceholderData;
   const sourceMatches = usingServerResults ? serverMatches : baseMatches;
@@ -183,7 +187,65 @@ export function MatchHistory() {
     });
   }, [sourceMatches, scope, resultFilter, statusFilter, matchTypeFilter, searchQuery]);
 
-  const groupedMatches = useMemo(() => groupMatchesByDate(filteredMatches), [filteredMatches]);
+  const currentUserId = user?.id ? String(user.id) : null;
+
+  // Mechanism 1 + 2: 依日期分段並計算當日戰績與同組連打收疊
+  const dateSections = useMemo(() => {
+    const groups = groupMatchesByDate(filteredMatches);
+
+    return groups.map((group) => {
+      const clusters = clusterMatchesIntoSeries(group.items);
+      let wins = 0;
+      let losses = 0;
+      let netDelta = 0;
+
+      if (scope === 'mine') {
+        for (const m of group.items) {
+          if (m.result === 'win') wins += 1;
+          else if (m.result === 'loss') losses += 1;
+
+          const isSettled = m.status === 'confirmed' || m.status === 'completed';
+          if (isSettled && currentUserId) {
+            const isTeamA = m.player1?.some((p) => String(p.id) === currentUserId);
+            const delta = isTeamA ? m.mmrChange?.[0] || 0 : m.mmrChange?.[1] || 0;
+            netDelta += delta;
+          }
+        }
+      }
+
+      return {
+        ...group,
+        clusters,
+        wins,
+        losses,
+        netDelta: Math.round(netDelta * 10) / 10,
+      };
+    });
+  }, [filteredMatches, scope, currentUserId]);
+
+  const totalClusterCount = useMemo(
+    () => dateSections.reduce((sum, s) => sum + s.clusters.length, 0),
+    [dateSections],
+  );
+
+  const allDatesCollapsed =
+    dateSections.length > 0 && dateSections.every((s) => Boolean(collapsedDates[s.key]));
+
+  const toggleDateCollapsed = (dateKey: string) => {
+    setCollapsedDates((prev) => ({ ...prev, [dateKey]: !prev[dateKey] }));
+  };
+
+  const toggleAllDates = () => {
+    if (allDatesCollapsed) {
+      setCollapsedDates({});
+    } else {
+      const next: Record<string, boolean> = {};
+      for (const s of dateSections) {
+        next[s.key] = true;
+      }
+      setCollapsedDates(next);
+    }
+  };
 
   const activeScrollQuery = needsServerFallback ? filteredQuery : activeBaseQuery;
   const hasMorePages = Boolean(activeScrollQuery.hasNextPage);
@@ -191,7 +253,7 @@ export function MatchHistory() {
 
   const isListLoading =
     scope === 'mine'
-      ? (isAuthLoading || (!!user && myBaseQuery.isPending && baseMatches.length === 0))
+      ? isAuthLoading || (!!user && myBaseQuery.isPending && baseMatches.length === 0)
       : allBaseQuery.isPending && baseMatches.length === 0;
 
   const isSyncingOlderMatches =
@@ -224,7 +286,6 @@ export function MatchHistory() {
     [hasMorePages, isListLoading, isFetchingMore, handleLoadMore],
   );
 
-  // 直接從 myBaseQuery 前 5 場計算右側「個人近況摘要」，零額外請求且隨勝敗更新同步
   const stats = useMemo(() => {
     const recentMatches = myBaseQuery.data?.pages[0]?.matches.slice(0, 5) || [];
     const wins = recentMatches.filter((m) => m.result === 'win').length;
@@ -263,60 +324,99 @@ export function MatchHistory() {
       <PageHeader
         title="對戰紀錄"
         subtitle={headerSubtitle}
-        actions={
-          <div
-            role="tablist"
-            aria-label="切換對戰紀錄範圍"
-            className="inline-flex p-1 rounded-2xl bg-secondary border border-border w-full sm:w-auto"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={scope === 'mine'}
-              onClick={() => setScope('mine')}
-              className={cn(
-                'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all',
-                scope === 'mine'
-                  ? 'bg-card text-foreground shadow-xs border border-border/60'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <UserCheck size={14} aria-hidden="true" />
-              <span>個人戰績</span>
-              {typeof myTotal === 'number' && (
-                <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
-                  {myTotal}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={scope === 'all'}
-              onClick={() => setScope('all')}
-              className={cn(
-                'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all',
-                scope === 'all'
-                  ? 'bg-card text-foreground shadow-xs border border-border/60'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Globe size={14} aria-hidden="true" />
-              <span>全部戰報</span>
-              {typeof allTotal === 'number' && (
-                <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
-                  {allTotal}
-                </span>
-              )}
-            </button>
-          </div>
-        }
       />
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-start">
         {/* 左側主內容區（搜尋與篩選列固定不卸載，切換條件絕不重新整理頁面） */}
         <div className="flex-1 space-y-5 min-w-0 w-full">
           <div className="arena-surface p-3 sm:p-4 space-y-3">
+            {/* Scope + Folding Controls Row */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border/70">
+              <div
+                role="tablist"
+                aria-label="切換對戰紀錄範圍"
+                className="inline-flex p-1 rounded-2xl bg-secondary border border-border w-full sm:w-auto"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === 'mine'}
+                  onClick={() => setScope('mine')}
+                  className={cn(
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all',
+                    scope === 'mine'
+                      ? 'bg-card text-foreground shadow-xs border border-border/60'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <UserCheck size={14} aria-hidden="true" />
+                  <span>個人戰績</span>
+                  {typeof myTotal === 'number' && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
+                      {myTotal}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === 'all'}
+                  onClick={() => setScope('all')}
+                  className={cn(
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all',
+                    scope === 'all'
+                      ? 'bg-card text-foreground shadow-xs border border-border/60'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <Globe size={14} aria-hidden="true" />
+                  <span>全部戰報</span>
+                  {typeof allTotal === 'number' && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
+                      {allTotal}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  aria-pressed={clusterSeriesEnabled}
+                  onClick={() => setClusterSeriesEnabled((prev) => !prev)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border text-xs font-black transition-colors',
+                    clusterSeriesEnabled
+                      ? 'bg-sapphire-blue/10 border-sapphire-blue/30 text-sapphire-blue dark:bg-blue-500/15 dark:border-blue-400/30 dark:text-blue-300'
+                      : 'bg-card border-border text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <Layers size={13} aria-hidden="true" />
+                  <span>同組連打收疊</span>
+                </button>
+
+                {dateSections.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAllDates}
+                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {allDatesCollapsed ? (
+                      <>
+                        <ChevronDown size={13} aria-hidden="true" />
+                        <span>展開全部日期</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronUp size={13} aria-hidden="true" />
+                        <span>收合全部日期</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="relative group">
               <Search
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-sapphire-blue transition-colors pointer-events-none"
@@ -432,7 +532,7 @@ export function MatchHistory() {
             </div>
           </div>
 
-          <section className="space-y-5">
+          <section className="space-y-4">
             {scope === 'mine' && !isAuthLoading && !user ? (
               <div className="arena-surface p-8 sm:p-12 text-center space-y-4">
                 <div className="size-14 rounded-2xl bg-sapphire-blue/12 text-sapphire-blue flex items-center justify-center mx-auto">
@@ -486,44 +586,134 @@ export function MatchHistory() {
                 </p>
               </div>
             ) : (
-              <div className={cn('space-y-5 transition-opacity duration-200', isSyncingOlderMatches && 'opacity-70')}>
-                {groupedMatches.map((dateGroup) => (
-                  <div key={dateGroup.key} className="space-y-2.5">
-                    <div className="flex items-center gap-3 px-1">
-                      <span className="text-xs font-display font-black tracking-wide text-foreground shrink-0">
-                        {dateGroup.label}
-                      </span>
-                      <span className="text-[11px] font-bold text-muted-foreground shrink-0">
-                        {dateGroup.items.length} 場
-                      </span>
-                      <div className="h-px bg-border flex-1" />
-                    </div>
+              <div className={cn('space-y-3.5 transition-opacity duration-200', isSyncingOlderMatches && 'opacity-70')}>
+                {clusterSeriesEnabled && totalClusterCount < filteredMatches.length && (
+                  <p className="text-[11px] font-bold text-muted-foreground px-1">
+                    已為您將同日同組連打收疊為 {totalClusterCount} 組（原 {filteredMatches.length} 場），點擊任一日期標題亦可折疊。
+                  </p>
+                )}
 
-                    {scope === 'mine' ? (
-                      <div className="space-y-2">
-                        {dateGroup.items.map((match: MatchFeedItem) => (
-                          <MatchItem
-                            key={match.id}
-                            match={match}
-                            variant="personal"
-                            timeDisplay="clock"
+                {dateSections.map((dateSection) => {
+                  const isCollapsed = Boolean(collapsedDates[dateSection.key]);
+
+                  return (
+                    <div key={dateSection.key} className="space-y-2">
+                      {/* Mechanism 2: Clickable Date Accordion Header */}
+                      <button
+                        type="button"
+                        aria-expanded={!isCollapsed}
+                        onClick={() => toggleDateCollapsed(dateSection.key)}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <ChevronDown
+                            size={15}
+                            aria-hidden="true"
+                            className={cn(
+                              'text-muted-foreground transition-transform duration-200 shrink-0',
+                              isCollapsed && '-rotate-90',
+                            )}
                           />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-border/70">
-                        {dateGroup.items.map((match: MatchFeedItem) => (
-                          <MatchItem
-                            key={match.id}
-                            match={match}
-                            variant="feed"
-                            timeDisplay="clock"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          <span className="text-xs sm:text-sm font-display font-black tracking-wide text-foreground">
+                            {dateSection.label}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-card border border-border text-[11px] font-bold text-muted-foreground tabular-nums">
+                            {dateSection.items.length} 場
+                          </span>
+                          {clusterSeriesEnabled &&
+                            dateSection.clusters.length < dateSection.items.length && (
+                              <span className="text-[11px] font-bold text-sapphire-blue dark:text-blue-300">
+                                收疊為 {dateSection.clusters.length} 組
+                              </span>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-2.5 shrink-0 text-xs font-black tabular-nums">
+                          {scope === 'mine' && (
+                            <div className="flex items-center gap-1.5">
+                              <span>
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  {dateSection.wins}勝
+                                </span>{' '}
+                                <span className="text-rose-500 dark:text-rose-400">
+                                  {dateSection.losses}敗
+                                </span>
+                              </span>
+                              {dateSection.netDelta !== 0 && (
+                                <span
+                                  className={cn(
+                                    'px-1.5 py-0.5 rounded-md text-[11px] font-display font-black',
+                                    dateSection.netDelta > 0
+                                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                      : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+                                  )}
+                                >
+                                  {dateSection.netDelta > 0
+                                    ? `+${dateSection.netDelta}`
+                                    : dateSection.netDelta}{' '}
+                                  分
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <span className="text-[11px] font-bold text-muted-foreground">
+                            {isCollapsed ? '展開' : '收合'}
+                          </span>
+                        </div>
+                      </button>
+
+                      {!isCollapsed && (
+                        clusterSeriesEnabled ? (
+                          scope === 'mine' ? (
+                            <div className="space-y-2">
+                              {dateSection.clusters.map((cluster) => (
+                                <MatchSeriesItem
+                                  key={cluster.key}
+                                  cluster={cluster}
+                                  variant="personal"
+                                  timeDisplay="clock"
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-border/70">
+                              {dateSection.clusters.map((cluster) => (
+                                <MatchSeriesItem
+                                  key={cluster.key}
+                                  cluster={cluster}
+                                  variant="feed"
+                                  timeDisplay="clock"
+                                />
+                              ))}
+                            </div>
+                          )
+                        ) : scope === 'mine' ? (
+                          <div className="space-y-2">
+                            {dateSection.items.map((match: MatchFeedItem) => (
+                              <MatchItem
+                                key={match.id}
+                                match={match}
+                                variant="personal"
+                                timeDisplay="clock"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs divide-y divide-border/70">
+                            {dateSection.items.map((match: MatchFeedItem) => (
+                              <MatchItem
+                                key={match.id}
+                                match={match}
+                                variant="feed"
+                                timeDisplay="clock"
+                              />
+                            ))}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { formatLocalTime } from '@/lib/utils';
+import type { MatchFeedItem, MatchPlayer } from '@/types/api.types';
 
 const WEEKDAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'] as const;
 
@@ -80,4 +81,146 @@ export function groupMatchesByDate<T extends { date?: string; created_at?: strin
   }
 
   return groups;
+}
+
+export function normalizeTeamKey(players: MatchPlayer[]): string {
+  return (players || [])
+    .map((p) => String(p.id || p.name))
+    .sort((a, b) => a.localeCompare(b))
+    .join(',');
+}
+
+export interface MatchSeriesGameSummary {
+  match: MatchFeedItem;
+  index: number;
+  team1Score: number;
+  team2Score: number;
+  team1Won: boolean;
+  team1Delta: number;
+  team2Delta: number;
+  isPending: boolean;
+  isDisputed: boolean;
+  isSettled: boolean;
+}
+
+export interface MatchSeriesCluster {
+  key: string;
+  dateKey: string;
+  type: 'singles' | 'doubles';
+  matches: MatchFeedItem[];
+  games: MatchSeriesGameSummary[];
+  latestMatch: MatchFeedItem;
+  anchorTeam1: MatchPlayer[];
+  anchorTeam2: MatchPlayer[];
+  team1Wins: number;
+  team2Wins: number;
+  team1NetDelta: number;
+  team2NetDelta: number;
+  hasPending: boolean;
+  hasDisputed: boolean;
+  allSettled: boolean;
+}
+
+export function clusterMatchesIntoSeries(matches: MatchFeedItem[]): MatchSeriesCluster[] {
+  const bucketMap = new Map<
+    string,
+    { dateKey: string; type: 'singles' | 'doubles'; items: MatchFeedItem[] }
+  >();
+  const orderedKeys: string[] = [];
+
+  for (const m of matches) {
+    const dateKey = getMatchDateGroup(m.date || m.created_at).key;
+    const type: 'singles' | 'doubles' = m.type === 'doubles' ? 'doubles' : 'singles';
+    const [sideA, sideB] = [
+      normalizeTeamKey(m.player1 || []),
+      normalizeTeamKey(m.opponent || []),
+    ].sort((a, b) => a.localeCompare(b));
+    const key = `${dateKey}::${type}::${sideA}::${sideB}`;
+
+    const existing = bucketMap.get(key);
+    if (existing) {
+      existing.items.push(m);
+    } else {
+      bucketMap.set(key, { dateKey, type, items: [m] });
+      orderedKeys.push(key);
+    }
+  }
+
+  return orderedKeys.map((key) => {
+    const bucket = bucketMap.get(key)!;
+    const clusterMatches = bucket.items;
+    const latestMatch = clusterMatches[0];
+    const anchorTeam1 = latestMatch.player1 || [];
+    const anchorTeam2 = latestMatch.opponent || [];
+    const anchorTeam1Key = normalizeTeamKey(anchorTeam1);
+
+    const chronological = [...clusterMatches].reverse();
+    let team1Wins = 0;
+    let team2Wins = 0;
+    let team1Net = 0;
+    let team2Net = 0;
+    let hasPending = false;
+    let hasDisputed = false;
+    let allSettled = true;
+
+    const games: MatchSeriesGameSummary[] = chronological.map((m, idx) => {
+      const score = m.score || [0, 0];
+      const sameOrientation = normalizeTeamKey(m.player1 || []) === anchorTeam1Key;
+      const team1Score = sameOrientation ? score[0] : score[1];
+      const team2Score = sameOrientation ? score[1] : score[0];
+      const team1Won = team1Score > team2Score;
+
+      const rawP1 = m.mmrChange?.[0] ?? 0;
+      const rawP2 = m.mmrChange?.[1] ?? 0;
+      const team1Delta = sameOrientation ? rawP1 : rawP2;
+      const team2Delta = sameOrientation ? rawP2 : rawP1;
+
+      const isPending = m.status === 'pending';
+      const isDisputed = m.status === 'disputed';
+      const isSettled = m.status === 'confirmed' || m.status === 'completed';
+
+      if (team1Won) team1Wins += 1;
+      else if (team2Score > team1Score) team2Wins += 1;
+
+      if (isPending) hasPending = true;
+      if (isDisputed) hasDisputed = true;
+      if (isSettled) {
+        team1Net += team1Delta;
+        team2Net += team2Delta;
+      } else {
+        allSettled = false;
+      }
+
+      return {
+        match: m,
+        index: idx + 1,
+        team1Score,
+        team2Score,
+        team1Won,
+        team1Delta,
+        team2Delta,
+        isPending,
+        isDisputed,
+        isSettled,
+      };
+    });
+
+    return {
+      key,
+      dateKey: bucket.dateKey,
+      type: bucket.type,
+      matches: clusterMatches,
+      games,
+      latestMatch,
+      anchorTeam1,
+      anchorTeam2,
+      team1Wins,
+      team2Wins,
+      team1NetDelta: Math.round(team1Net * 10) / 10,
+      team2NetDelta: Math.round(team2Net * 10) / 10,
+      hasPending,
+      hasDisputed,
+      allSettled,
+    };
+  });
 }
