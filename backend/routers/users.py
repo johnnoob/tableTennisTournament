@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, or_
 from database import get_session
 from services.auth_jwt import get_current_user # 🌟 引入警衛
 from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, utc_now
@@ -88,53 +88,110 @@ from services.season_service import get_current_season
 
 @router.get("/api/users/me/stats", summary="獲取當前登入者的戰力與歷史數據")
 def get_my_stats(
-    interval: str = "recent", # 🌟 新增 interval 參數 (接收: recent, hour, day, month, quarter)
-    current_user: User = Depends(get_current_user), 
+    interval: str = "recent",
+    current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    # 🌟 使用與排行榜一致的自動賽季引擎
     active_season = get_current_season(session)
-    
-    rank, win_rate, trend = "-", "0%", "new"
-    lp, matches_played = current_user.global_mmr, 0
-    my_record = None  # 🔧 Fix: ensure my_record is always defined
+
+    rank: int | str = "-"
+    win_rate = "0%"
+    trend = "new"
+    matches_played = 0
+    wins = 0
+    losses = 0
+    my_record = None
 
     if active_season:
-        # (這裡計算 rank, win_rate, trend 的邏輯跟原本一樣，保持不變)
         my_record = session.exec(select(SeasonRecord).where(
             SeasonRecord.user_id == current_user.id, SeasonRecord.season_id == active_season.id
         )).first()
 
-        if my_record:
+        if my_record and my_record.matches_played > 0:
             matches_played = my_record.matches_played
-            if matches_played > 0:
-                win_rate = f"{(my_record.wins / matches_played) * 100:.1f}%"
+            wins = my_record.wins
+            losses = max(0, matches_played - wins)
+            win_rate = f"{(wins / matches_played) * 100:.1f}%"
 
-            # 🌟 修正：排名只計算「本季有出賽 (matches_played > 0)」的活躍玩家
-            if matches_played > 0:
-                statement = select(func.count(User.id)).join(
-                    SeasonRecord, User.id == SeasonRecord.user_id
-                ).where(
-                    User.role != "guest",
-                    SeasonRecord.season_id == active_season.id,
-                    SeasonRecord.matches_played > 0,
-                    User.global_mmr > current_user.global_mmr
-                )
-                higher_scores_count = session.exec(statement).one()
-                rank = higher_scores_count + 1
-            else:
-                rank = "-"  # 尚未出賽時，不顯示排名
+            statement = select(func.count(User.id)).join(
+                SeasonRecord, User.id == SeasonRecord.user_id
+            ).where(
+                User.role != "guest",
+                SeasonRecord.season_id == active_season.id,
+                SeasonRecord.matches_played > 0,
+                User.global_mmr > current_user.global_mmr
+            )
+            higher_scores_count = session.exec(statement).one()
+            rank = higher_scores_count + 1
 
-            if my_record.previous_rank:
+            if my_record.previous_rank and isinstance(rank, int):
                 if rank < my_record.previous_rank: trend = "up"
                 elif rank > my_record.previous_rank: trend = "down"
                 else: trend = "same"
 
+    # 讀取玩家參與的實際對戰紀錄（供 SeasonRecord 為 0 時保底補齊，及計算連勝/近5場走勢）
+    user_matches = session.exec(
+        select(Match)
+        .where(
+            or_(
+                Match.team_a_p1_id == current_user.id,
+                Match.team_a_p2_id == current_user.id,
+                Match.team_b_p1_id == current_user.id,
+                Match.team_b_p2_id == current_user.id,
+            )
+        )
+        .order_by(Match.created_at.desc())
+    ).all()
+
+    settled_matches = [m for m in user_matches if m.status in ("confirmed", "completed")]
+    counted_matches = settled_matches if settled_matches else [
+        m for m in user_matches if m.status != "disputed"
+    ]
+
+    match_outcomes = []
+    for m in counted_matches:
+        in_a = current_user.id in (m.team_a_p1_id, m.team_a_p2_id)
+        a_won = m.score_a > m.score_b
+        i_won = (in_a and a_won) or (not in_a and not a_won)
+        delta = round(m.mmr_exchanged or 0)
+        my_delta = delta if i_won else -delta
+        match_outcomes.append({"won": i_won, "delta": my_delta})
+
+    if matches_played == 0 and len(match_outcomes) > 0:
+        matches_played = len(match_outcomes)
+        wins = sum(1 for item in match_outcomes if item["won"])
+        losses = matches_played - wins
+        win_rate = f"{(wins / matches_played) * 100:.1f}%"
+
+    if rank == "-" and (matches_played > 0 or round(current_user.global_mmr) != 1000):
+        higher_count = session.exec(
+            select(func.count(User.id)).where(
+                User.role != "guest",
+                User.id != current_user.id,
+                User.global_mmr > current_user.global_mmr,
+            )
+        ).one()
+        rank = higher_count + 1
+
+    # 近 5 場走勢（左舊右新）與連勝／連敗數
+    recent_5 = list(reversed(match_outcomes[:5]))
+    recent_form = ["W" if item["won"] else "L" for item in recent_5]
+    recent_5_delta = round(sum(item["delta"] for item in recent_5))
+
+    current_streak = 0
+    if match_outcomes:
+        first_won = match_outcomes[0]["won"]
+        for item in match_outcomes:
+            if item["won"] == first_won:
+                current_streak += 1
+            else:
+                break
+        if not first_won:
+            current_streak = -current_streak
+
     # ==========================================
     # 🌟 核心修改：歷史軌跡的時間維度分組
     # ==========================================
-    
-    # 1. 抓出該玩家「所有」的歷史紀錄 (依照時間舊到新排序)
     history = session.exec(
         select(PlayerStatHistory)
         .where(PlayerStatHistory.user_id == current_user.id)
@@ -146,55 +203,81 @@ def get_my_stats(
 
     if not history:
         chart_data.append({"name": "Start", "rating": round(current_user.global_mmr)})
+        if round(current_user.global_mmr) != 1000:
+            pts_change = round(current_user.global_mmr - 1000)
     else:
         if interval == "recent":
-            # 預設：只取最近 10 場比賽
             for h in history[-10:]:
                 chart_data.append({
-                    "name": h.recorded_at.strftime("%m/%d %H:%M"), 
+                    "name": h.recorded_at.strftime("%m/%d %H:%M"),
                     "rating": round(h.mmr)
                 })
         else:
-            # 依據選擇的維度進行分組 (Grouping)
             grouped_data = {}
             for h in history:
                 if interval == "hour":
-                    key = h.recorded_at.strftime("%m/%d %H:00") # 分組到小時
+                    key = h.recorded_at.strftime("%m/%d %H:00")
                 elif interval == "day":
-                    key = h.recorded_at.strftime("%m/%d")       # 分組到天
+                    key = h.recorded_at.strftime("%m/%d")
                 elif interval == "month":
-                    key = h.recorded_at.strftime("%Y/%m")       # 分組到月
+                    key = h.recorded_at.strftime("%Y/%m")
                 elif interval == "quarter":
                     q = (h.recorded_at.month - 1) // 3 + 1
-                    key = f"{h.recorded_at.year}-Q{q}"          # 分組到季
+                    key = f"{h.recorded_at.year}-Q{q}"
 
-                # 🌟 Python 字典特性：相同的 key 如果重複寫入，會蓋掉前面的。
-                # 這剛好符合我們要的：取該時段的「最終積分」！
                 grouped_data[key] = round(h.mmr)
-            
-            # 將字典轉回陣列給前端
+
             for k, v in grouped_data.items():
                 chart_data.append({"name": k, "rating": v})
 
-            # 限制顯示數量，確保圖表好閱讀
-            if interval == "hour": chart_data = chart_data[-24:]     # 顯示最近 24 小時
-            elif interval == "day": chart_data = chart_data[-30:]    # 顯示最近 30 天
-            elif interval == "month": chart_data = chart_data[-12:]  # 顯示最近 12 個月
-            elif interval == "quarter": chart_data = chart_data[-10:] # 顯示最近 10 季
+            if interval == "hour": chart_data = chart_data[-24:]
+            elif interval == "day": chart_data = chart_data[-30:]
+            elif interval == "month": chart_data = chart_data[-12:]
+            elif interval == "quarter": chart_data = chart_data[-10:]
 
-        # 2. 計算 PTS 變化 (不論圖表怎麼顯示，這裡的變化是指「最新一場」跟「前一場」的差異)
         if len(history) >= 2:
             pts_change = round(history[-1].mmr - history[-2].mmr)
         else:
-            pts_change = round(history[-1].mmr - 1000) # 若只有一場，跟初始分 1000 比
+            pts_change = round(history[-1].mmr - 1000)
+
+    peak_mmr = round(max([current_user.global_mmr] + [h.mmr for h in history]))
+
+    higher_user = session.exec(
+        select(User)
+        .where(
+            User.role != "guest",
+            User.id != current_user.id,
+            User.global_mmr > current_user.global_mmr,
+        )
+        .order_by(User.global_mmr.asc())
+    ).first()
+    next_rival = None
+    if higher_user:
+        target_rank = (rank - 1) if isinstance(rank, int) and rank > 1 else 1
+        next_rival = {
+            "id": str(higher_user.id),
+            "name": higher_user.name,
+            "avatar": higher_user.avatar_url,
+            "mmr": round(higher_user.global_mmr),
+            "mmr_gap": max(1, round(higher_user.global_mmr - current_user.global_mmr)),
+            "target_rank": target_rank,
+        }
 
     return {
-        "rank": rank, "win_rate": win_rate, "trend": trend, 
+        "rank": rank,
+        "win_rate": win_rate,
+        "trend": trend,
         "global_mmr": round(current_user.global_mmr),
-        "matches_played": matches_played, 
-        "wins": my_record.wins if my_record else 0,
-        "losses": (my_record.matches_played - my_record.wins) if my_record else 0,
-        "chart_data": chart_data, "pts_change": pts_change
+        "matches_played": matches_played,
+        "wins": wins,
+        "losses": losses,
+        "chart_data": chart_data,
+        "pts_change": pts_change,
+        "recent_form": recent_form,
+        "recent_5_delta": recent_5_delta,
+        "current_streak": current_streak,
+        "peak_mmr": peak_mmr,
+        "next_rival": next_rival,
     }
 
 # ==========================================

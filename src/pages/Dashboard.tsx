@@ -84,22 +84,22 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
       case 'tournament':
         return {
           icon: Trophy,
-          badgeBg: 'bg-amber-500/20',
-          badgeText: 'text-amber-300',
+          badgeBg: 'bg-amber-500/15 border border-amber-500/25 dark:bg-amber-500/20 dark:border-amber-400/30',
+          badgeText: 'text-amber-700 dark:text-amber-300',
           label: '賽事公告',
         };
       case 'club':
         return {
           icon: Users,
-          badgeBg: 'bg-emerald-500/20',
-          badgeText: 'text-emerald-300',
+          badgeBg: 'bg-emerald-500/15 border border-emerald-500/25 dark:bg-emerald-500/20 dark:border-emerald-400/30',
+          badgeText: 'text-emerald-700 dark:text-emerald-300',
           label: '社團公告',
         };
       default:
         return {
           icon: Megaphone,
-          badgeBg: 'bg-sapphire-blue/25',
-          badgeText: 'text-blue-300',
+          badgeBg: 'bg-sapphire-blue/12 border border-sapphire-blue/25 dark:bg-sapphire-blue/25 dark:border-blue-400/30',
+          badgeText: 'text-sapphire-blue dark:text-blue-300',
           label: '系統公告',
         };
     }
@@ -120,7 +120,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="arena-hero-surface rounded-2xl px-3.5 sm:px-4 py-2.5 border border-slate-700/80 shadow-md shadow-primary-navy/10 overflow-hidden"
+        className="arena-hero-surface rounded-2xl px-3.5 sm:px-4 py-2.5 border border-blue-200/85 dark:border-slate-700/80 shadow-xs dark:shadow-md dark:shadow-primary-navy/10 overflow-hidden"
       >
         <div className="flex items-center justify-between gap-2.5 sm:gap-4 min-h-8">
           <button
@@ -147,13 +147,13 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.18 }}
-                className="text-xs sm:text-sm font-display font-black text-white truncate group-hover:text-blue-200 transition-colors"
+                className="text-xs sm:text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue dark:group-hover:text-blue-300 transition-colors"
               >
                 {current.title}
               </motion.span>
             </AnimatePresence>
 
-            <span className="hidden md:inline-flex items-center gap-1 text-slate-400 text-xs font-bold tabular-nums shrink-0">
+            <span className="hidden md:inline-flex items-center gap-1 text-muted-foreground text-xs font-bold tabular-nums shrink-0">
               <Timer size={12} aria-hidden="true" />
               {formatLocalTime(current.created_at, 'yyyy-MM-dd')}
             </span>
@@ -162,14 +162,14 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
           <div className="flex items-center gap-1.5 shrink-0">
             {items.length > 1 && (
               <>
-                <span className="hidden sm:inline text-xs font-black text-white/60 tabular-nums px-1">
+                <span className="hidden sm:inline text-xs font-black text-muted-foreground tabular-nums px-1">
                   {(safeIndex + 1).toString().padStart(2, '0')}/{items.length.toString().padStart(2, '0')}
                 </span>
                 <button
                   type="button"
                   aria-label="上一則公告"
                   onClick={prevMsg}
-                  className="size-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                  className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-white transition-colors"
                 >
                   <ChevronLeft size={14} strokeWidth={2.5} aria-hidden="true" />
                 </button>
@@ -177,7 +177,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
                   type="button"
                   aria-label="下一則公告"
                   onClick={nextMsg}
-                  className="size-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                  className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-white transition-colors"
                 >
                   <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
                 </button>
@@ -189,7 +189,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
               aria-expanded={expanded}
               aria-label={expanded ? '收合公告詳情' : '展開公告詳情'}
               onClick={() => setExpanded((prev) => !prev)}
-              className="h-8 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center gap-1 text-xs font-bold text-slate-200 transition-colors"
+              className="h-8 px-2.5 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center gap-1 text-xs font-bold text-foreground dark:text-slate-200 transition-colors"
             >
               <span className="hidden sm:inline">{expanded ? '收合' : '詳情'}</span>
               {expanded ? (
@@ -210,12 +210,12 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pt-3 mt-2.5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pt-3 mt-2.5 border-t border-border/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-foreground/85 dark:text-slate-200 font-medium leading-relaxed whitespace-pre-line">
                     {current.content}
                   </p>
-                  <p className="text-xs text-slate-400 font-bold md:hidden tabular-nums">
+                  <p className="text-xs text-muted-foreground font-bold md:hidden tabular-nums">
                     發布日期：{formatLocalTime(current.created_at, 'yyyy-MM-dd')}
                   </p>
                 </div>
@@ -223,7 +223,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
                   <Button
                     type="button"
                     onClick={() => window.open(current.link_url, '_blank')}
-                    className="h-9 px-4 rounded-xl font-black text-xs tracking-wider bg-white hover:bg-slate-100 text-primary-navy shrink-0 gap-1"
+                    className="h-9 px-4 rounded-xl font-black text-xs tracking-wider bg-sapphire-blue hover:bg-blue-700 text-white shrink-0 gap-1"
                   >
                     {current.link_text || '了解詳情'}
                     <ChevronRight size={14} strokeWidth={3} aria-hidden="true" />
@@ -488,16 +488,16 @@ export function Dashboard() {
                 {!isLoggedIn && (
                   <motion.section
                     variants={itemVariants}
-                    className="arena-hero-surface text-white rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-lg border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+                    className="arena-hero-surface text-foreground rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-md dark:shadow-lg border border-blue-200/85 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
                   >
                     <div className="space-y-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sapphire-blue/25 text-blue-200 text-xs font-black uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/25 dark:text-blue-200 border border-sapphire-blue/20 text-xs font-black uppercase tracking-wider">
                         訪客瀏覽模式
                       </span>
-                      <h2 className="text-xl sm:text-2xl font-display font-black tracking-tight">
+                      <h2 className="text-xl sm:text-2xl font-display font-black tracking-tight text-foreground">
                         登入戰情室，記錄每場熱血對決
                       </h2>
-                      <p className="text-sm text-slate-300 font-medium leading-relaxed">
+                      <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                         登入後可即時申報單雙打比分、追蹤個人 Elo 走勢，並查看與所有對手的 H2H 交手分析。
                       </p>
                     </div>
@@ -514,7 +514,7 @@ export function Dashboard() {
 
                 {isLoggedIn && (
                   <>
-                    {/* Hero Personal Card with Tier Progress & Report CTA */}
+                    {/* Hero Personal Card with Dopamine Pro Stats & Report CTA */}
                     <motion.section variants={itemVariants}>
                       <RankingCard
                         player={{
@@ -524,9 +524,18 @@ export function Dashboard() {
                           avatar: user?.avatar_url || user?.avatar || '',
                           isVerified: user?.isVerified || false,
                           department: user?.department || '',
+                          dominantHand: user?.dominant_hand,
+                          rubberForehand: user?.rubber_forehand,
+                          rubberBackhand: user?.rubber_backhand,
                           rating: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
                           mmr: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
                           rank: myStats?.rank ?? '-',
+                          ptsChange: myStats?.pts_change,
+                          recentForm: myStats?.recent_form,
+                          recent5Delta: myStats?.recent_5_delta,
+                          currentStreak: myStats?.current_streak,
+                          peakMmr: myStats?.peak_mmr,
+                          nextRival: myStats?.next_rival,
                           stats: {
                             winRate: myStats?.win_rate || '0%',
                             wins: myStats?.wins || 0,

@@ -102,18 +102,18 @@ export function GlobalPlayerDrawer() {
 
     return (
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="arena-hero-surface p-5 md:p-6 text-white relative shrink-0">
+        <div className="arena-hero-surface p-5 md:p-6 text-foreground border-b border-blue-200/70 dark:border-slate-700/80 relative shrink-0">
           {isDesktop && (
             <button
               type="button"
               aria-label="關閉玩家資料"
               onClick={closeDrawer}
-              className="absolute top-4 right-4 z-50 size-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              className="absolute top-4 right-4 z-50 size-9 flex items-center justify-center rounded-full bg-secondary/90 hover:bg-secondary dark:bg-white/10 dark:hover:bg-white/20 transition-colors"
             >
-              <X className="size-5 text-white" aria-hidden="true" />
+              <X className="size-5 text-foreground" aria-hidden="true" />
             </button>
           )}
-          <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 pointer-events-none">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.06] dark:opacity-10 rotate-12 pointer-events-none text-sapphire-blue dark:text-white">
             <Trophy size={96} aria-hidden="true" />
           </div>
           <div className="relative z-10 text-left">
@@ -121,13 +121,13 @@ export function GlobalPlayerDrawer() {
               <PlayerAvatar
                 src={player.avatar}
                 name={player.name}
-                className="size-14 md:size-18 rounded-2xl border-2 border-white/20 shadow-lg text-xl"
+                className="size-14 md:size-18 rounded-2xl border-2 border-blue-200/80 dark:border-white/20 shadow-lg text-xl"
               />
               <div className="min-w-0 pr-6">
-                <h3 className="text-lg md:text-2xl font-display font-black tracking-wide text-white leading-tight truncate">
+                <h3 className="text-lg md:text-2xl font-display font-black tracking-wide text-foreground leading-tight truncate">
                   {player.name}
                 </h3>
-                <p className="text-slate-400 font-bold text-xs mt-0.5 truncate">
+                <p className="text-muted-foreground font-bold text-xs mt-0.5 truncate">
                   {player.department || '未設定單位'}
                 </p>
                 <div

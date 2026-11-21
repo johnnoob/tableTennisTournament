@@ -320,8 +320,8 @@ export function Tournament() {
                           onClick={() => navigate(`/tournament/${t.id}`)}
                           className="cursor-pointer group"
                         >
-                          <div className="arena-hero-surface rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 text-white relative overflow-hidden shadow-lg border border-slate-700/80 hover:border-sapphire-blue/60 transition-all">
-                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 group-hover:scale-105 transition-all pointer-events-none">
+                          <div className="arena-hero-surface rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 text-foreground relative overflow-hidden shadow-md dark:shadow-lg border border-blue-200/80 dark:border-slate-700/80 hover:border-sapphire-blue/60 transition-all">
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.07] dark:opacity-10 group-hover:opacity-15 dark:group-hover:opacity-20 group-hover:scale-105 transition-all pointer-events-none text-sapphire-blue dark:text-white">
                               <Trophy size={150} strokeWidth={1} aria-hidden="true" />
                             </div>
 
@@ -331,15 +331,15 @@ export function Tournament() {
                               </Badge>
 
                               <div className="space-y-3">
-                                <h3 className="text-2xl sm:text-4xl font-display font-black tracking-tight">
+                                <h3 className="text-2xl sm:text-4xl font-display font-black tracking-tight text-foreground">
                                   {t.title}
                                 </h3>
-                                <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-300">
-                                  <span className="inline-flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 tabular-nums">
+                                <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-muted-foreground">
+                                  <span className="inline-flex items-center gap-2 bg-card/85 dark:bg-white/10 px-3 py-1.5 rounded-full border border-border dark:border-white/10 tabular-nums text-foreground">
                                     <Calendar size={14} className="text-sapphire-blue" aria-hidden="true" />
                                     {formatLocalTime(t.created_at, 'yyyy/MM/dd')}
                                   </span>
-                                  <span className="inline-flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                                  <span className="inline-flex items-center gap-2 bg-card/85 dark:bg-white/10 px-3 py-1.5 rounded-full border border-border dark:border-white/10 text-foreground">
                                     <Trophy size={14} className="text-olympic-gold" aria-hidden="true" />
                                     特別錦標賽
                                   </span>

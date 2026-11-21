@@ -27,7 +27,7 @@ export function Login() {
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
 
       {/* 🌟 左側：品牌形象視覺區 (晨星奧運風 + 球館聚光燈) */}
-      <div className="relative hidden lg:flex flex-col justify-between w-1/2 arena-hero-surface p-12 overflow-hidden">
+      <div className="relative hidden lg:flex flex-col justify-between w-1/2 arena-hero-dark p-12 overflow-hidden">
         {/* 背景裝飾浮水印 */}
         <div className="absolute -bottom-24 -left-24 opacity-5 pointer-events-none">
           <Trophy size={600} />

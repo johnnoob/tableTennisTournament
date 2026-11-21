@@ -69,6 +69,15 @@ export interface ChartDataPoint {
   event_type?: 'match' | 'soft_reset' | 'decay';
 }
 
+export interface NextRivalInfo {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  mmr: number;
+  mmr_gap: number;
+  target_rank: number;
+}
+
 export interface PlayerStats {
   rank: string | number;
   season_lp?: number;
@@ -79,6 +88,11 @@ export interface PlayerStats {
   win_rate: string;
   trend?: string;
   pts_change?: number;
+  recent_form?: string[];
+  recent_5_delta?: number;
+  current_streak?: number;
+  peak_mmr?: number;
+  next_rival?: NextRivalInfo | null;
   chart_data: ChartDataPoint[];
 }
 
@@ -176,6 +190,15 @@ export interface DashboardPlayer {
   avatar: string;
   isVerified: boolean;
   department?: string;
+  dominantHand?: string | null;
+  rubberForehand?: string | null;
+  rubberBackhand?: string | null;
+  ptsChange?: number;
+  recentForm?: string[];
+  recent5Delta?: number;
+  currentStreak?: number;
+  peakMmr?: number;
+  nextRival?: NextRivalInfo | null;
   stats: {
     wins: number;
     losses: number;
