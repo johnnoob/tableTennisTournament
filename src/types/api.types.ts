@@ -157,12 +157,59 @@ export interface RawLeaderboardItem {
   win_rate: string;
   trend?: string;
   recent_form?: string[];
+  current_streak?: number;
+  weekly_mmr_delta?: number;
+}
+
+export interface SeasonPulse {
+  season_id: string;
+  season_name: string;
+  status: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  days_remaining?: number | null;
+  progress_percent?: number | null;
+  total_matches: number;
+  active_players: number;
+  matches_last_7d: number;
+  total_members: number;
+}
+
+export interface ClubSpotlightBase {
+  player_id: string;
+  player_name: string;
+  department?: string | null;
+  avatar_url?: string | null;
+  global_mmr: number;
+}
+
+export interface ClubSpotlightStreak extends ClubSpotlightBase {
+  streak: number;
+}
+
+export interface ClubSpotlightClimber extends ClubSpotlightBase {
+  mmr_delta: number;
+  window_label: string;
+}
+
+export interface ClubSpotlightActive extends ClubSpotlightBase {
+  matches_count: number;
+  wins: number;
+  scope_label: string;
+}
+
+export interface ClubSpotlights {
+  hot_streak?: ClubSpotlightStreak | null;
+  weekly_climber?: ClubSpotlightClimber | null;
+  most_active?: ClubSpotlightActive | null;
 }
 
 export interface LeaderboardResponse {
   season_id?: string | null;
   season_name?: string;
   leaderboard: RawLeaderboardItem[];
+  season_pulse?: SeasonPulse | null;
+  spotlights?: ClubSpotlights | null;
 }
 
 export interface SeasonSummary {

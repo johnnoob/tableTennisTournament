@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '@/utils/apiClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RankingCard } from '@/components/RankingCard';
+import { ClubRightRail } from '@/components/ClubRightRail';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { MatchSeriesItem } from '@/components/MatchItem';
 import { StatsChart } from '@/components/StatsChart';
@@ -18,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Search,
   Skull,
   Crown,
   ChevronLeft,
@@ -28,7 +28,6 @@ import {
   Trophy,
   Timer,
   History,
-  ArrowRight,
   Zap,
   Megaphone,
   Users,
@@ -47,7 +46,6 @@ import { PendingActions } from '@/components/PendingActions';
 import { useAuth } from '@/hooks/useAuth';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
 
-import { isTopTierRank } from '@/lib/ranking';
 import type {
   Announcement,
   MatchFeedItem,
@@ -57,7 +55,6 @@ import type {
   PartnersResponse,
   LeaderboardResponse,
   PlayerStats,
-  DashboardPlayer,
   RivalryItem
 } from '@/types/api.types';
 
@@ -248,6 +245,7 @@ export function Dashboard() {
   const [feedScope, setFeedScope] = useState<'all' | 'mine'>('all');
   const [showAllFeedClusters, setShowAllFeedClusters] = useState(false);
   const [isFeedSectionCollapsed, setIsFeedSectionCollapsed] = useState(false);
+  const [railScope, setRailScope] = useState<'season' | 'all-time'>('season');
   const [quickReportState, setQuickReportState] = useState<{
     open: boolean;
     nonce: number;
@@ -345,30 +343,24 @@ export function Dashboard() {
     refetchInterval: 15000,
   });
 
-  const { data: topPlayers = [], isPending: isLeaderboardLoading } = useQuery({
+  const { data: seasonLeaderboardData, isPending: isLeaderboardLoading } = useQuery<LeaderboardResponse>({
     queryKey: ['leaderboard'],
     queryFn: async () => {
-      const leaderRes = await apiClient.get<LeaderboardResponse>('/leaderboard');
-      if (!leaderRes.data || !leaderRes.data.leaderboard) return [];
-      return leaderRes.data.leaderboard.slice(0, 3).map((p): DashboardPlayer => ({
-        id: p.player_id,
-        name: p.player_name,
-        username: p.player_name,
-        rank: p.rank,
-        rating: Math.round(p.global_mmr),
-        mmr: Math.round(p.global_mmr),
-        avatar: p.avatar_url || '',
-        isVerified: isTopTierRank(p.rank),
-        department: p.department,
-        stats: {
-          wins: p.wins,
-          losses: p.matches_played - p.wins,
-          winRate: parseFloat(p.win_rate),
-          avgScore: 0,
-        },
-      }));
+      const res = await apiClient.get<LeaderboardResponse>('/leaderboard');
+      return res.data;
     },
     refetchInterval: 10000,
+  });
+
+  const { data: allTimeLeaderboardData, isFetching: isAllTimeFetching } = useQuery<LeaderboardResponse>({
+    queryKey: ['leaderboard', 'all-time'],
+    queryFn: async () => {
+      const res = await apiClient.get<LeaderboardResponse>('/leaderboard?season_id=all-time');
+      return res.data;
+    },
+    enabled: railScope === 'all-time',
+    placeholderData: keepPreviousData,
+    refetchInterval: 15000,
   });
 
   const { data: myStats, isPending: isStatsLoading, isError: isStatsError } = useQuery({
@@ -416,7 +408,7 @@ export function Dashboard() {
 
   const isFirstLoading =
     (isFeedLoading && recentFeed.length === 0) ||
-    (isLeaderboardLoading && topPlayers.length === 0) ||
+    (isLeaderboardLoading && !seasonLeaderboardData) ||
     (isLoggedIn && isStatsLoading && !myStats && !isStatsError);
 
   const ptsChange = myStats?.pts_change;
@@ -549,7 +541,7 @@ export function Dashboard() {
                             trigger={
                               <Button
                                 type="button"
-                                className="w-full sm:w-auto h-10 px-4 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-xs tracking-wider shadow-md shadow-smash-orange/25 border-none gap-1.5"
+                                className="w-full sm:w-auto h-11 sm:h-10 px-4 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm sm:text-xs tracking-wider shadow-md shadow-smash-orange/25 border-none gap-1.5"
                               >
                                 <Zap size={14} aria-hidden="true" />
                                 立即報分
@@ -1086,48 +1078,17 @@ export function Dashboard() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="xl:col-span-4 min-w-0 space-y-6"
+              className="xl:col-span-4 min-w-0 xl:sticky xl:top-6"
             >
-              <motion.section variants={itemVariants} className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div>
-                    <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
-                      群雄榜單
-                    </h2>
-                    <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
-                      Top Rivals · Global Elo
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="前往完整積分榜"
-                    className="rounded-full bg-secondary border border-border text-foreground"
-                    onClick={() => navigate('/leaderboard')}
-                  >
-                    <ArrowRight size={17} aria-hidden="true" />
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {topPlayers.length > 0 ? (
-                    topPlayers.map((player) => (
-                      <RankingCard key={player.id} player={player} />
-                    ))
-                  ) : (
-                    <div className="text-center py-10 arena-surface border-dashed">
-                      <Search size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
-                      <p className="text-muted-foreground font-bold text-xs">尚無排行榜資料</p>
-                    </div>
-                  )}
-                  <Button
-                    onClick={() => navigate('/leaderboard')}
-                    variant="outline"
-                    className="w-full h-12 bg-card hover:bg-secondary text-foreground border-border rounded-2xl font-sans font-black text-xs uppercase tracking-widest mt-2"
-                  >
-                    查看完整積分榜
-                  </Button>
-                </div>
-              </motion.section>
+              <ClubRightRail
+                seasonData={seasonLeaderboardData}
+                allTimeData={allTimeLeaderboardData}
+                isAllTimeFetching={isAllTimeFetching}
+                scope={railScope}
+                onScopeChange={setRailScope}
+                currentUserId={user?.id}
+                onInspectPlayer={openInspect}
+              />
             </motion.div>
           </div>
 

@@ -12,6 +12,7 @@ import {
   Zap,
   Sparkles,
   Swords,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -158,31 +159,39 @@ export function RankingCard({
   const hasNumericRank = displayRank !== '-' && displayRank !== '';
 
   return (
-    <Card className="group relative transition-all duration-300 overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-5 sm:p-6 mt-3 border border-blue-200/85 dark:border-slate-700/80 shadow-md shadow-sapphire-blue/8 dark:shadow-primary-navy/30">
-      {/* Floating Rank Badge */}
+    <Card className="group relative transition-all duration-300 overflow-hidden sm:overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-4 sm:p-6 mt-1 sm:mt-3 border border-blue-200/85 dark:border-slate-700/80 shadow-md shadow-sapphire-blue/8 dark:shadow-primary-navy/30">
+      {/* Floating Rank Badge (Tablet / Desktop) */}
       <div
         className={cn(
-          'absolute -left-2 -top-2.5 sm:-left-3 sm:-top-3 flex items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-12 sm:size-14 bg-olympic-gold text-white',
-          hasNumericRank ? 'text-lg sm:text-xl' : 'text-xs tracking-wider',
+          'hidden sm:flex absolute -left-3 -top-3 items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-14 bg-olympic-gold text-white',
+          hasNumericRank ? 'text-xl' : 'text-xs tracking-wider',
         )}
       >
         {hasNumericRank ? `#${displayRank}` : 'NEW'}
       </div>
 
-      <CardContent className="p-0 space-y-5">
+      <CardContent className="p-0 space-y-4 sm:space-y-5">
         {/* Zone 1: Player Identity, Loadout Strip & Live ELO Momentum */}
         <Link
           to={`?inspect=${player.id}`}
-          className="block rounded-2xl pt-1 pl-5 sm:pl-6 focus-visible:outline-2 focus-visible:outline-sapphire-blue"
+          className="block rounded-2xl pt-0 sm:pt-1 pl-0 sm:pl-6 focus-visible:outline-2 focus-visible:outline-sapphire-blue"
         >
-          <div className="flex items-start justify-between gap-3 w-full">
-            <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3.5 sm:gap-4 w-full">
+            <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
               <div
                 className={cn(
                   'relative shrink-0 p-[2.5px] rounded-2xl bg-gradient-to-br shadow-md',
                   getTierAvatarRing(displayRating),
                 )}
               >
+                <span
+                  className={cn(
+                    'sm:hidden absolute -top-2 -left-2 z-10 min-w-6 h-6 px-1.5 rounded-full bg-olympic-gold text-white font-display font-black flex items-center justify-center shadow-md ring-2 ring-card tabular-nums',
+                    hasNumericRank ? 'text-[11px]' : 'text-[9px] tracking-wider',
+                  )}
+                >
+                  {hasNumericRank ? `#${displayRank}` : 'NEW'}
+                </span>
                 <PlayerAvatar
                   src={player.avatar}
                   name={player.name}
@@ -195,37 +204,39 @@ export function RankingCard({
                 )}
               </div>
 
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-display font-black truncate transition-colors text-xl sm:text-2xl text-foreground group-hover:text-sapphire-blue dark:group-hover:text-blue-300">
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h3 className="font-display font-black truncate leading-tight transition-colors text-lg sm:text-2xl text-foreground group-hover:text-sapphire-blue dark:group-hover:text-blue-300">
                     {player.name}
                   </h3>
-                  <div
-                    className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black shadow-2xs whitespace-nowrap',
-                      tier.color,
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <div
+                      className={cn(
+                        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black shadow-2xs whitespace-nowrap',
+                        tier.color,
+                      )}
+                    >
+                      {tier.icon} {tier.name}
+                    </div>
+                    {currentStreak >= 2 && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-black shadow-xs whitespace-nowrap">
+                        <Flame size={12} aria-hidden="true" />
+                        {currentStreak} 連勝中
+                      </span>
                     )}
-                  >
-                    {tier.icon} {tier.name}
+                    {currentStreak === 1 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/25 text-xs font-black whitespace-nowrap">
+                        <Zap size={11} aria-hidden="true" />
+                        近期獲勝
+                      </span>
+                    )}
+                    {currentStreak <= -2 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/12 text-muted-foreground border border-border text-xs font-black whitespace-nowrap">
+                        <Swords size={11} aria-hidden="true" />
+                        蓄力反擊
+                      </span>
+                    )}
                   </div>
-                  {currentStreak >= 2 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-black shadow-xs whitespace-nowrap">
-                      <Flame size={12} aria-hidden="true" />
-                      {currentStreak} 連勝中
-                    </span>
-                  )}
-                  {currentStreak === 1 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/25 text-xs font-black whitespace-nowrap">
-                      <Zap size={11} aria-hidden="true" />
-                      近期獲勝
-                    </span>
-                  )}
-                  {currentStreak <= -2 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/12 text-muted-foreground border border-border text-xs font-black whitespace-nowrap">
-                      <Swords size={11} aria-hidden="true" />
-                      蓄力反擊
-                    </span>
-                  )}
                 </div>
 
                 {/* Loadout & Identity Badges */}
@@ -238,7 +249,7 @@ export function RankingCard({
                     {handLabel}持拍
                   </span>
                   {rubbersLabel && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/85 dark:bg-white/10 border border-blue-100 dark:border-white/10 text-xs font-bold text-foreground/85 truncate max-w-[220px]">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/85 dark:bg-white/10 border border-blue-100 dark:border-white/10 text-xs font-bold text-foreground/85 truncate max-w-full sm:max-w-[220px]">
                       {rubbersLabel}
                     </span>
                   )}
@@ -246,19 +257,24 @@ export function RankingCard({
               </div>
             </div>
 
-            {/* Live ELO Score + Latest Delta */}
-            <div className="text-right shrink-0">
-              <div className="font-display font-black tracking-tight tabular-nums leading-none text-3xl sm:text-5xl text-foreground">
-                {currentRounded}
+            {/* Live ELO Spotlight Strip (Mobile) / Score Block (Desktop) */}
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-900/55 border border-blue-100/90 dark:border-white/10 shadow-2xs sm:block sm:p-0 sm:rounded-none sm:bg-transparent dark:sm:bg-transparent sm:border-0 sm:shadow-none sm:text-right shrink-0">
+              <div className="flex items-baseline sm:justify-end">
+                <span className="font-display font-black tracking-tight tabular-nums leading-none text-3xl sm:text-5xl text-foreground">
+                  {currentRounded}
+                </span>
+                <span className="sm:hidden text-xs uppercase tracking-wider font-sans font-black text-muted-foreground ml-1.5">
+                  ELO
+                </span>
               </div>
-              <div className="flex items-center justify-end gap-1.5 mt-2">
-                <span className="text-xs uppercase tracking-wider font-sans font-black text-muted-foreground">
+              <div className="flex items-center justify-end gap-1.5 sm:mt-2">
+                <span className="hidden sm:inline text-xs uppercase tracking-wider font-sans font-black text-muted-foreground">
                   ELO
                 </span>
                 {ptsChange !== 0 ? (
                   <span
                     className={cn(
-                      'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-display font-black tabular-nums whitespace-nowrap',
+                      'inline-flex items-center gap-0.5 px-2.5 py-1 sm:px-2 sm:py-0.5 rounded-full text-xs font-display font-black tabular-nums whitespace-nowrap',
                       ptsChange > 0
                         ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                         : 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
@@ -272,31 +288,33 @@ export function RankingCard({
                     {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-muted-foreground">基準 1000</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full sm:p-0 sm:bg-transparent bg-secondary/70 text-xs font-bold text-muted-foreground">
+                    基準 1000
+                  </span>
                 )}
               </div>
             </div>
           </div>
         </Link>
 
-        {/* Zone 2: 4-Pod Dopamine Bento Grid */}
+        {/* Zone 2: Mobile-First 1-2-1 Bento Grid (Tablet 2x2 / Desktop 4-col) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pl-0 sm:pl-6">
           {/* Pod 1: Win Rate & W-L Split */}
-          <div className="rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+          <div className="col-span-1 order-1 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
             <div className="flex items-center justify-between gap-1">
               <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
-                勝率 &amp; 戰績
+                勝率<span className="hidden sm:inline"> &amp; 戰績</span>
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] font-display font-black text-foreground tabular-nums whitespace-nowrap">
                 {totalMatches} 場
               </span>
             </div>
             <div>
-              <div className="flex items-baseline justify-between gap-1">
-                <span className="text-xl sm:text-2xl font-display font-black text-foreground tabular-nums leading-none">
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                <span className="text-2xl font-display font-black text-foreground tabular-nums leading-none">
                   {winRateNum}%
                 </span>
-                <span className="text-xs font-display font-black tabular-nums whitespace-nowrap">
+                <span className="text-xs font-display font-black tabular-nums whitespace-nowrap mt-0.5 sm:mt-0">
                   <span className="text-emerald-600 dark:text-emerald-400">{wins}W</span>
                   <span className="text-muted-foreground/50 mx-0.5">-</span>
                   <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
@@ -312,12 +330,12 @@ export function RankingCard({
           </div>
 
           {/* Pod 2: Recent 5 Form & Net Delta */}
-          <div className="rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+          <div className="col-span-2 sm:col-span-1 order-3 sm:order-2 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
             <div className="flex items-center justify-between gap-1">
               <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
                 近 5 場手感
               </span>
-              {recentForm.length > 0 && recent5Delta !== 0 && (
+              {recentForm.length > 0 && recent5Delta !== 0 ? (
                 <span
                   className={cn(
                     'text-[11px] font-display font-black tabular-nums whitespace-nowrap',
@@ -326,18 +344,23 @@ export function RankingCard({
                       : 'text-rose-500 dark:text-rose-400',
                   )}
                 >
+                  <span className="sm:hidden">淨變動 </span>
                   {recent5Delta > 0 ? `+${recent5Delta}` : recent5Delta} 分
                 </span>
-              )}
+              ) : recentForm.length === 0 ? (
+                <span className="text-[11px] font-bold text-muted-foreground sm:hidden">
+                  尚無紀錄
+                </span>
+              ) : null}
             </div>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-5 gap-2 sm:gap-1.5">
               {Array.from({ length: 5 }).map((_, idx) => {
                 const res = recentForm[idx];
                 return (
                   <div
                     key={idx}
                     className={cn(
-                      'h-7 rounded-lg flex items-center justify-center text-xs font-display font-black',
+                      'h-9 sm:h-7 rounded-xl sm:rounded-lg flex items-center justify-center text-sm sm:text-xs font-display font-black',
                       res === 'W'
                         ? 'bg-emerald-500 text-white shadow-2xs'
                         : res === 'L'
@@ -356,46 +379,53 @@ export function RankingCard({
           {nextRival ? (
             <Link
               to={`?inspect=${nextRival.id}`}
-              className="rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900/80 border border-blue-100/90 dark:border-white/10 hover:border-sapphire-blue/50 shadow-2xs flex flex-col justify-between gap-2 transition-colors"
+              className="col-span-2 sm:col-span-1 order-4 sm:order-3 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900/80 border border-blue-100/90 dark:border-white/10 hover:border-sapphire-blue/50 shadow-2xs flex flex-col justify-between gap-2 transition-colors"
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                   <Target size={12} className="text-smash-orange shrink-0" aria-hidden="true" />
                   超車雷達
                 </span>
-                <span className="text-[11px] font-display font-black text-smash-orange whitespace-nowrap">
+                <span className="px-2 py-0.5 rounded-full bg-smash-orange/12 text-smash-orange text-[11px] font-display font-black whitespace-nowrap">
                   差 {nextRival.mmr_gap} 分
                 </span>
               </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <PlayerAvatar
-                  src={nextRival.avatar}
-                  name={nextRival.name}
-                  className="size-7 rounded-lg text-[10px] shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm font-display font-black text-foreground truncate leading-tight">
-                    #{nextRival.target_rank} {nextRival.name}
-                  </p>
-                  <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
-                    {nextRival.mmr} ELO
-                  </p>
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 sm:gap-2 min-w-0">
+                  <PlayerAvatar
+                    src={nextRival.avatar}
+                    name={nextRival.name}
+                    className="size-9 sm:size-7 rounded-xl sm:rounded-lg text-xs sm:text-[10px] shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-display font-black text-foreground truncate leading-tight">
+                      #{nextRival.target_rank} {nextRival.name}
+                    </p>
+                    <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                      {nextRival.mmr} ELO
+                    </p>
+                  </div>
                 </div>
+                <ChevronRight
+                  size={16}
+                  className="sm:hidden text-muted-foreground shrink-0"
+                  aria-hidden="true"
+                />
               </div>
             </Link>
           ) : (
-            <div className="rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-amber-200/80 dark:border-amber-500/30 shadow-2xs flex flex-col justify-between gap-2">
+            <div className="col-span-2 sm:col-span-1 order-4 sm:order-3 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-amber-200/80 dark:border-amber-500/30 shadow-2xs flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                   <Target size={12} className="text-olympic-gold shrink-0" aria-hidden="true" />
                   目前排名位置
                 </span>
               </div>
-              <div>
-                <p className="text-sm sm:text-base font-display font-black text-foreground leading-tight">
+              <div className="min-w-0">
+                <p className="text-sm sm:text-base font-display font-black text-foreground leading-tight truncate">
                   {totalMatches > 0 ? '👑 全場最高積分' : '等待首戰定級'}
                 </p>
-                <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                <p className="text-[11px] font-bold text-muted-foreground mt-0.5 truncate">
                   {totalMatches > 0 ? '持續守住王座領先優勢' : '打完第 1 場即開啟超車雷達'}
                 </p>
               </div>
@@ -403,45 +433,63 @@ export function RankingCard({
           )}
 
           {/* Pod 4: Career Peak ELO */}
-          <div className="rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+          <div className="col-span-1 order-2 sm:order-4 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
             <div className="flex items-center justify-between gap-1">
               <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                 <Trophy size={12} className="text-olympic-gold shrink-0" aria-hidden="true" />
                 生涯巔峰
               </span>
               {isAtPeak && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black whitespace-nowrap">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black whitespace-nowrap shrink-0">
                   <Sparkles size={10} aria-hidden="true" />
-                  紀錄中
+                  <span className="sm:hidden">新高</span>
+                  <span className="hidden sm:inline">紀錄中</span>
                 </span>
               )}
             </div>
             <div>
-              <p className="text-xl sm:text-2xl font-display font-black text-foreground tabular-nums leading-none">
+              <p className="text-2xl font-display font-black text-foreground tabular-nums leading-none">
                 {peakMmr}
-                <span className="text-xs font-bold text-muted-foreground ml-1">ELO</span>
+                <span className="text-[11px] font-bold text-muted-foreground ml-1">ELO</span>
               </p>
               <p className="text-[11px] font-bold text-muted-foreground mt-1.5 truncate">
                 {isAtPeak
-                  ? '目前正處於歷史最高點'
+                  ? '正處歷史最高點'
                   : peakGap > 0
-                    ? `距個人巔峰還差 ${peakGap} 分`
-                    : '完成首場比賽紀錄新高'}
+                    ? `距巔峰差 ${peakGap} 分`
+                    : '首戰即紀錄新高'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Zone 3: Tier Promotion Bar + Report Score Action */}
-        <div className="pt-4 border-t border-blue-200/60 dark:border-white/10 pl-0 sm:pl-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="pt-3.5 sm:pt-4 border-t border-blue-200/60 dark:border-white/10 pl-0 sm:pl-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4">
           <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-bold text-foreground/85 truncate">
-                {tierProgress.nextTierName
-                  ? `距離 ${tierProgress.nextTierName} (${tierProgress.targetMmr}) 還差 ${tierProgress.remainingMmr} ELO · 約再贏 ${estimatedWinsToNextTier} 場`
-                  : '已登頂最高段位 · 菁英殿堂'}
-              </span>
-              <span className="font-display font-black text-sapphire-blue dark:text-olympic-gold tabular-nums shrink-0">
+            <div className="flex items-start sm:items-center justify-between gap-2 text-xs">
+              <div className="min-w-0 leading-snug">
+                {tierProgress.nextTierName ? (
+                  <>
+                    <span className="font-black text-foreground">
+                      距離 {tierProgress.nextTierName} ({tierProgress.targetMmr})
+                    </span>
+                    <span className="block sm:inline text-muted-foreground sm:text-foreground/85 font-bold mt-0.5 sm:mt-0 sm:ml-1.5">
+                      還差{' '}
+                      <span className="text-foreground font-black tabular-nums">
+                        {tierProgress.remainingMmr}
+                      </span>{' '}
+                      ELO · 約再贏{' '}
+                      <span className="text-sapphire-blue dark:text-blue-300 font-black tabular-nums">
+                        {estimatedWinsToNextTier}
+                      </span>{' '}
+                      場
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-black text-foreground">已登頂最高段位 · 菁英殿堂</span>
+                )}
+              </div>
+              <span className="font-display font-black text-sm sm:text-xs text-sapphire-blue dark:text-olympic-gold tabular-nums shrink-0">
                 {tierProgress.progressPercent}%
               </span>
             </div>
@@ -459,7 +507,7 @@ export function RankingCard({
               />
             </div>
           </div>
-          {actionSlot && <div className="shrink-0">{actionSlot}</div>}
+          {actionSlot && <div className="w-full sm:w-auto shrink-0">{actionSlot}</div>}
         </div>
       </CardContent>
     </Card>
