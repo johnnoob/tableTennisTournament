@@ -194,12 +194,12 @@ export function Navigation() {
                 trigger={
                   <button
                     type="button"
-                    aria-label="申報比分"
+                    aria-label="立即報分"
                     className="min-h-12 w-full rounded-xl bg-gradient-to-br from-smash-orange to-orange-600 text-white shadow-md shadow-smash-orange/25 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
                   >
                     <Plus size={19} strokeWidth={2.75} aria-hidden="true" />
-                    <span className="text-[11px] font-sans font-black leading-tight">
-                      報分
+                    <span className="text-[11px] font-sans font-black leading-tight truncate max-w-full">
+                      立即報分
                     </span>
                   </button>
                 }
@@ -207,12 +207,12 @@ export function Navigation() {
             ) : (
               <NavLink
                 to="/login"
-                aria-label="登入以申報比分"
+                aria-label="登入以立即報分"
                 className="min-h-12 w-full rounded-xl bg-gradient-to-br from-sapphire-blue to-blue-700 text-white shadow-md shadow-sapphire-blue/25 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
               >
                 <Plus size={19} strokeWidth={2.75} aria-hidden="true" />
-                <span className="text-[11px] font-sans font-black leading-tight">
-                  報分
+                <span className="text-[11px] font-sans font-black leading-tight truncate max-w-full">
+                  立即報分
                 </span>
               </NavLink>
             )}
@@ -242,8 +242,8 @@ export function Navigation() {
               trigger={
                 <Button
                   type="button"
-                  aria-label="申報比分"
-                  title="申報比分"
+                  aria-label="立即報分"
+                  title="立即報分"
                   className="size-11 p-0 rounded-2xl bg-gradient-to-br from-smash-orange to-orange-600 hover:opacity-95 text-white shadow-md shadow-smash-orange/25 border-none"
                 >
                   <Plus size={20} strokeWidth={2.75} aria-hidden="true" />
@@ -348,9 +348,12 @@ export function Navigation() {
           {user ? (
             <ReportScore
               trigger={
-                <Button className="w-full h-12 rounded-2xl bg-gradient-to-r from-sapphire-blue to-blue-700 hover:opacity-95 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-sapphire-blue/25 transition-all border-none">
+                <Button
+                  type="button"
+                  className="w-full h-12 rounded-2xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-smash-orange/25 transition-all border-none"
+                >
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  申報比分
+                  立即報分
                 </Button>
               }
             />

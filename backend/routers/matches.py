@@ -5,13 +5,14 @@ import datetime
 
 from database import get_session
 from models import Match, Notification, User, SeasonRecord
-from schemas import MatchCreateReq
+from schemas import MatchCreateReq, MatchBatchConfirmReq
 
 from services.elo_engine import get_team_mmr, calculate_match_deltas
 from services.auth_jwt import get_current_user
 from services.season_service import get_current_season, ensure_utc
 from services.match_service import (
     settle_match_transaction,
+    settle_matches_batch_transaction,
     MatchNotFoundError,
     MatchAlreadySettledError,
     ConfirmPermissionError,
@@ -118,6 +119,33 @@ def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(g
     session.add(match)
     session.commit()
     return {"message": "比分已更新", "score_a": match.score_a, "score_b": match.score_b}
+
+@router.post("/api/matches/confirm-batch", summary="批次確認多筆比分並依序結算積分")
+def confirm_matches_batch(
+    req: MatchBatchConfirmReq,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    try:
+        result = settle_matches_batch_transaction(
+            session=session,
+            match_ids=req.match_ids,
+            current_user_id=current_user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except MatchNotFoundError:
+        raise HTTPException(status_code=404, detail="找不到部分待確認比賽，請重新整理後再試")
+    except MatchAlreadySettledError:
+        raise HTTPException(status_code=400, detail="部分比賽已確認或已撤回，請重新整理後再試")
+    except ConfirmPermissionError:
+        raise HTTPException(status_code=403, detail="您沒有權限確認清單中的部分比賽！")
+
+    return {
+        "message": f"已完成 {result['confirmed_count']} 場賽果確認，積分結算完畢！",
+        **result,
+    }
+
 
 @router.post("/api/matches/{match_id}/confirm", summary="確認比分並結算積分 (觸發 Elo 引擎)")
 def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):

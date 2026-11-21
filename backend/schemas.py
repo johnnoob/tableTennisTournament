@@ -22,6 +22,11 @@ class MatchCreateReq(BaseModel):
     # 發起人 (通常未來會從 JWT Token 解析，目前開發階段先由前端傳遞)
     reported_by: UUID
 
+
+class MatchBatchConfirmReq(BaseModel):
+    """前端批次確認多筆待確認賽果"""
+    match_ids: list[UUID] = Field(..., min_length=1, max_length=50)
+
 class SeasonCreate(BaseModel):
     """管理員創建賽季時傳遞的資料結構"""
     id: str  # 強制符合 YYYY-QX

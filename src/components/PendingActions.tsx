@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,47 +8,49 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
 import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/matchScore';
-import { Clock, ChevronDown, Check, X, ShieldAlert, Zap, Pencil, Trash2, CheckCircle2, Trophy } from 'lucide-react';
+import {
+  formatSignedDelta,
+  formatTeamNames,
+  getMatchPerspective,
+  getRemainingTimeStr,
+  groupPendingMatches,
+  type MatchupGroup,
+  type PendingMatch,
+} from '@/lib/pendingMatchGroups';
+import {
+  Clock,
+  ChevronDown,
+  Check,
+  CheckCheck,
+  Flag,
+  X,
+  ShieldAlert,
+  Zap,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Trophy,
+} from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 
-// 統一的 Pending Match 資料形狀（從後端 API 回傳）
-interface PendingPlayer {
-  id: string;
-  name: string;
-  avatar?: string | null;
+interface BatchConfirmResponse {
+  message: string;
+  confirmed_count: number;
+  current_user_total_delta: number;
+  current_user_new_mmr: number;
 }
 
-interface PendingMatch {
-  id: string;
-  date: string;
-  score: [number, number];
-  result: string;
-  status: string;
-  type: string;
-  mmrChange: [number, number];
-  player1: PendingPlayer[];
-  opponent: PendingPlayer[];
-  submittedBy?: string;
-  expiresAt?: string;
+function invalidateMatchSettlementQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
+  queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
+  queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
+  queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
+  queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+  queryClient.invalidateQueries({ queryKey: ['authUser'] });
+  queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+  queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
+  queryClient.invalidateQueries({ queryKey: ['users', 'me', 'partners'] });
 }
-
-const getRemainingTimeStr = (expiresAtStr?: string) => {
-  if (!expiresAtStr) return '--:--';
-  const expiresAt = new Date(expiresAtStr).getTime();
-  const now = Date.now();
-  const diffMs = expiresAt - now;
-
-  if (diffMs <= 0) return '已逾期';
-
-  const h = Math.floor(diffMs / (1000 * 60 * 60));
-  const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-};
-
-const formatTeamNames = (players: PendingPlayer[]) =>
-  players.length > 1
-    ? players.map((p) => p.name?.split(' ')[0] || '?').join(' / ')
-    : players[0]?.name || '未知選手';
 
 export function PendingActions() {
   const { data: currentUser } = useAuth();
@@ -66,14 +68,16 @@ export function PendingActions() {
   if (pendingMatches.length === 0) return null;
 
   const isOpponentSide = (m: PendingMatch) =>
-    m.opponent.some((p) => p.id === currentUser?.id);
+    m.opponent.some((p) => String(p.id) === String(currentUser?.id));
 
   const actionRequired = pendingMatches.filter(isOpponentSide);
   const waitingOnOthers = pendingMatches.filter((m) => !isOpponentSide(m));
 
   return (
     <div className="space-y-3 md:space-y-4 mb-2 md:mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-      {actionRequired.length > 0 && <ActionRequiredGroup matches={actionRequired} />}
+      {actionRequired.length > 0 && (
+        <ActionRequiredGroup matches={actionRequired} currentUserId={currentUser?.id} />
+      )}
       {waitingOnOthers.length > 0 && (
         <WaitingOnOthersGroup matches={waitingOnOthers} currentUserId={currentUser?.id} />
       )}
@@ -82,43 +86,92 @@ export function PendingActions() {
 }
 
 // Group 1: Action Required (High Priority, Rose)
-function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
+function ActionRequiredGroup({
+  matches,
+  currentUserId,
+}: {
+  matches: PendingMatch[];
+  currentUserId?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const displayMatches = expanded ? matches : matches.slice(0, 3);
-  const hasMore = matches.length > 3;
+  const [batchAllOpen, setBatchAllOpen] = useState(false);
+
+  const groups = useMemo(
+    () => groupPendingMatches(matches, 'confirm', currentUserId),
+    [matches, currentUserId],
+  );
+
+  const displayGroups = expanded ? groups : groups.slice(0, 3);
+  const hasMore = groups.length > 3;
 
   return (
     <div className="bg-rose-50/50 dark:bg-rose-950/25 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs">
-      <div className="bg-rose-100/60 dark:bg-rose-900/30 px-5 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="bg-rose-100/60 dark:bg-rose-900/30 px-4 md:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative shrink-0">
             <ShieldAlert className="text-rose-600 dark:text-rose-400 relative z-10" size={22} aria-hidden="true" />
             <div className="absolute inset-0 bg-rose-400 blur-md opacity-25 animate-pulse rounded-full" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="font-display font-black text-rose-600 dark:text-rose-400 text-base md:text-lg leading-tight tracking-wide">
               待您確認賽果 ({matches.length})
             </h3>
-            <span className="text-xs font-bold text-rose-500/80 dark:text-rose-300/80 tracking-wider uppercase block">
-              Action Required
+            <span className="text-xs font-bold text-rose-500/85 dark:text-rose-300/80 tracking-wider uppercase block">
+              {groups.length < matches.length
+                ? `Action Required · 已整併為 ${groups.length} 組對戰`
+                : 'Action Required'}
             </span>
           </div>
         </div>
+
+        {groups.length >= 2 && (
+          <>
+            <Button
+              type="button"
+              onClick={() => setBatchAllOpen(true)}
+              className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-xs tracking-wide shadow-xs gap-1.5 border-none shrink-0"
+            >
+              <CheckCheck size={15} aria-hidden="true" />
+              全部確認 ({matches.length})
+            </Button>
+
+            <BatchConfirmModal
+              open={batchAllOpen}
+              onOpenChange={setBatchAllOpen}
+              mode="all"
+              groups={groups}
+              currentUserId={currentUserId}
+            />
+          </>
+        )}
       </div>
 
       <div className="p-3 md:p-4 space-y-3">
-        {displayMatches.map((match) => (
-          <ActionMatchCard key={match.id} match={match} />
-        ))}
+        {displayGroups.map((group) =>
+          group.matches.length === 1 ? (
+            <SingleActionMatchCard
+              key={group.key}
+              match={group.matches[0]}
+              group={group}
+              currentUserId={currentUserId}
+            />
+          ) : (
+            <GroupedActionMatchCard
+              key={group.key}
+              group={group}
+              currentUserId={currentUserId}
+            />
+          ),
+        )}
 
         {hasMore && (
           <Button
             type="button"
             variant="ghost"
             onClick={() => setExpanded(!expanded)}
-            className="w-full text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-500/15 text-xs font-black uppercase tracking-widest mt-2"
+            className="w-full text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-500/15 text-xs font-black uppercase tracking-widest mt-1"
           >
-            {expanded ? '折疊顯示' : `查看其餘 ${matches.length - 3} 筆`}
+            {expanded ? '折疊顯示' : `查看其餘 ${groups.length - 3} 組對戰`}
           </Button>
         )}
       </div>
@@ -126,16 +179,23 @@ function ActionRequiredGroup({ matches }: { matches: PendingMatch[] }) {
   );
 }
 
-function ActionMatchCard({ match }: { match: PendingMatch }) {
+// Single-match confirmation card (shown when a matchup group has only 1 match)
+function SingleActionMatchCard({
+  match,
+  group,
+  currentUserId,
+}: {
+  match: PendingMatch;
+  group: MatchupGroup;
+  currentUserId?: string;
+}) {
   const queryClient = useQueryClient();
-  const opponentPlayers = match.opponent;
-  const isLoss = match.score[1] < match.score[0];
-  const lpChange = match.mmrChange[1];
+  const info = getMatchPerspective(match, 'confirm', currentUserId);
 
-  // Confirmation modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
   const confirmResetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -146,23 +206,12 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
     };
   }, []);
 
-  // Dispute modal state
-  const [disputeOpen, setDisputeOpen] = useState(false);
-  const [disputeReason, setDisputeReason] = useState('');
-  const disputeFieldId = useId();
-
   const handleConfirmAction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsConfirming(true);
     try {
       await apiClient.post(`/matches/${match.id}/confirm`, undefined, { skipGlobalErrorToast: true });
-      queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
-      queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
-      queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
-      queryClient.invalidateQueries({ queryKey: ['users', 'me', 'partners'] });
+      invalidateMatchSettlementQueries(queryClient);
 
       setIsConfirming(false);
       setIsSuccess(true);
@@ -190,17 +239,6 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
     }
   };
 
-  const handleDisputeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!disputeReason.trim()) {
-      toast.error('請填寫異議原因');
-      return;
-    }
-    toast.info('線上異議單功能建置中，請先直接聯繫對手修改比分或撤回申報');
-    setDisputeOpen(false);
-    setDisputeReason('');
-  };
-
   const matchupSummaryCard = (
     <div className="bg-surface-subtle/80 border border-border rounded-2xl p-4 sm:p-5 space-y-4 relative overflow-hidden">
       <div className="absolute top-2 right-2 opacity-[0.04] pointer-events-none" aria-hidden="true">
@@ -208,58 +246,58 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
       </div>
 
       <div className="flex items-center justify-between gap-2 relative z-10">
-        {/* Player 1 (Reporter side) */}
+        {/* My Side */}
         <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-          <div className={cn('flex items-center justify-center', match.player1.length > 1 && '-space-x-3')}>
-            {match.player1.map((p, i) => (
+          <div className={cn('flex items-center justify-center', info.myTeam.length > 1 && '-space-x-3')}>
+            {info.myTeam.map((p, i) => (
               <PlayerAvatar
                 key={p.id || i}
                 src={p.avatar}
                 name={p.name}
                 className={cn(
                   'size-12 rounded-xl border-2 text-sm',
-                  isLoss ? 'border-emerald-500' : 'border-card'
+                  info.isWin ? 'border-emerald-500' : 'border-card',
                 )}
               />
             ))}
           </div>
           <span className="text-xs font-black text-foreground truncate max-w-full text-center">
-            {formatTeamNames(match.player1)}
+            {formatTeamNames(info.myTeam)}
           </span>
         </div>
 
         {/* Center Score */}
         <div className="flex flex-col items-center shrink-0 px-2">
           <div className="text-3xl sm:text-4xl font-display font-black text-foreground tabular-nums">
-            {match.score[0]} : {match.score[1]}
+            {info.myScore} : {info.rivalScore}
           </div>
           <span
             className={cn(
               'mt-1 px-2.5 py-0.5 rounded-full text-xs font-black',
-              !isLoss ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+              info.isWin ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white',
             )}
           >
-            {isLoss ? '你敗' : '你勝'}
+            {info.isWin ? '你勝' : '你敗'}
           </span>
         </div>
 
-        {/* My side (Opponent in pending payload) */}
+        {/* Rival Side */}
         <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-          <div className={cn('flex items-center justify-center', opponentPlayers.length > 1 && '-space-x-3')}>
-            {opponentPlayers.map((p, i) => (
+          <div className={cn('flex items-center justify-center', info.rivalTeam.length > 1 && '-space-x-3')}>
+            {info.rivalTeam.map((p, i) => (
               <PlayerAvatar
                 key={p.id || i}
                 src={p.avatar}
                 name={p.name}
                 className={cn(
                   'size-12 rounded-xl border-2 text-sm',
-                  !isLoss ? 'border-emerald-500' : 'border-card'
+                  info.isLoss ? 'border-emerald-500' : 'border-card',
                 )}
               />
             ))}
           </div>
           <span className="text-xs font-black text-foreground truncate max-w-full text-center">
-            {formatTeamNames(opponentPlayers)}
+            {formatTeamNames(info.rivalTeam)}
           </span>
         </div>
       </div>
@@ -271,10 +309,10 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
         <span
           className={cn(
             'text-sm font-display font-black tabular-nums',
-            lpChange < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+            info.myDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400',
           )}
         >
-          {lpChange > 0 ? `+${lpChange}` : lpChange} ELO
+          {formatSignedDelta(info.myDelta)} ELO
         </span>
       </div>
     </div>
@@ -284,10 +322,10 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
     <div className="bg-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 border border-rose-200/70 dark:border-rose-500/30 shadow-xs relative overflow-hidden group">
       <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-400 group-hover:bg-rose-500 transition-colors" />
 
-      {/* Opponent & Score Info */}
+      {/* Rival & Score Info */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className={cn('flex shrink-0', opponentPlayers.length > 1 && '-space-x-3')}>
-          {opponentPlayers.map((p, i) => (
+        <div className={cn('flex shrink-0', group.rivalTeam.length > 1 && '-space-x-3')}>
+          {group.rivalTeam.map((p, i) => (
             <PlayerAvatar
               key={p.id || i}
               src={p.avatar}
@@ -297,24 +335,32 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
           ))}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="font-sans font-black text-foreground truncate text-sm md:text-base tracking-tight">
-              {formatTeamNames(opponentPlayers)}
+              對手：{formatTeamNames(group.rivalTeam)}
+            </span>
+            <span className="text-[11px] font-black px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground shrink-0">
+              {group.type === 'doubles' ? '雙打' : '單打'}
             </span>
             <span
               className={cn(
                 'text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0',
-                isLoss
+                info.isLoss
                   ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-300'
-                  : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300',
               )}
             >
-              {isLoss ? 'LOSS' : 'WIN'}
+              {info.isLoss ? 'LOSS' : 'WIN'}
             </span>
           </div>
+          {group.type === 'doubles' && group.partner && (
+            <p className="text-xs font-bold text-muted-foreground mb-1 truncate">
+              搭檔：{group.partner.name}
+            </p>
+          )}
           <div className="flex items-center gap-3">
             <span className="font-display font-black text-2xl md:text-3xl tracking-tight text-foreground leading-none tabular-nums">
-              {match.score[0]} <span className="text-muted-foreground/45 font-sans mx-0.5">:</span> {match.score[1]}
+              {info.myScore} <span className="text-muted-foreground/45 font-sans mx-0.5">:</span> {info.rivalScore}
             </span>
             <div className="h-6 w-px bg-border" />
             <div className="flex flex-col">
@@ -322,10 +368,10 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
               <span
                 className={cn(
                   'text-xs md:text-sm font-display font-black leading-none tabular-nums',
-                  lpChange < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                  info.myDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400',
                 )}
               >
-                {lpChange > 0 ? `+${lpChange}` : lpChange} 分
+                {formatSignedDelta(info.myDelta)} 分
               </span>
             </div>
           </div>
@@ -342,16 +388,11 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* 提出異議 Modal */}
-          <ResponsiveFormModal
+          <DisputeMatchModal
             open={disputeOpen}
             onOpenChange={setDisputeOpen}
-            size="md"
-            tone="danger"
-            icon={<ShieldAlert size={18} />}
-            title="提出賽果異議"
-            description="若比分有誤或尚未完賽，請說明問題並通知對方更正。"
-            onSubmit={handleDisputeSubmit}
+            match={match}
+            currentUserId={currentUserId}
             trigger={
               <Button
                 type="button"
@@ -364,53 +405,8 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
                 <X size={18} strokeWidth={2.5} aria-hidden="true" className="size-4.5" />
               </Button>
             }
-            footer={
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDisputeOpen(false)}
-                  className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
-                >
-                  取消
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!disputeReason.trim()}
-                  className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
-                >
-                  送出異議
-                </Button>
-              </>
-            }
-          >
-            <div className="space-y-4">
-              <div className="bg-surface-subtle border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-foreground truncate">
-                  {formatTeamNames(opponentPlayers)}
-                </span>
-                <span className="font-display font-black text-lg text-foreground tabular-nums shrink-0">
-                  {match.score[0]} : {match.score[1]}
-                </span>
-              </div>
-              <div>
-                <label htmlFor={disputeFieldId} className="arena-label">
-                  異議原因 <span aria-hidden="true" className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  id={disputeFieldId}
-                  name="disputeReason"
-                  required
-                  placeholder="請簡述異議原因（例如：比分登錄錯誤、實際局數為 2:1 等）..."
-                  value={disputeReason}
-                  onChange={(e) => setDisputeReason(e.target.value)}
-                  className="arena-textarea min-h-28"
-                />
-              </div>
-            </div>
-          </ResponsiveFormModal>
+          />
 
-          {/* 確認賽果 Modal */}
           <ResponsiveFormModal
             open={confirmOpen}
             onOpenChange={handleConfirmOpenChange}
@@ -489,11 +485,589 @@ function ActionMatchCard({ match }: { match: PendingMatch }) {
   );
 }
 
-// Group 2: Waiting on Opponent (Collapsible)
-function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatch[]; currentUserId?: string }) {
+// Grouped multi-match confirmation card (Part A)
+function GroupedActionMatchCard({
+  group,
+  currentUserId,
+}: {
+  group: MatchupGroup;
+  currentUserId?: string;
+}) {
+  const [excludedIds, setExcludedIds] = useState<Record<string, boolean>>({});
+  const [showAllRows, setShowAllRows] = useState(false);
+  const [disputeMatch, setDisputeMatch] = useState<PendingMatch | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const selectedMatches = useMemo(
+    () => group.matches.filter((m) => !excludedIds[m.id]),
+    [group.matches, excludedIds],
+  );
+
+  const selectedGroups = useMemo(
+    () =>
+      selectedMatches.length > 0
+        ? groupPendingMatches(selectedMatches, 'confirm', currentUserId)
+        : [],
+    [selectedMatches, currentUserId],
+  );
+
+  const toggleMatch = (id: string) => {
+    setExcludedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const visibleMatches = showAllRows ? group.matches : group.matches.slice(0, 5);
+  const allSelected = selectedMatches.length === group.matches.length;
+
+  return (
+    <div className="bg-card rounded-2xl border border-rose-200/70 dark:border-rose-500/30 shadow-xs relative overflow-hidden">
+      <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-400" />
+
+      {/* Matchup Header */}
+      <div className="p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className={cn('flex shrink-0', group.rivalTeam.length > 1 && '-space-x-3')}>
+            {group.rivalTeam.map((p, i) => (
+              <PlayerAvatar
+                key={p.id || i}
+                src={p.avatar}
+                name={p.name}
+                className="size-11 md:size-12 rounded-2xl border-2 border-card shadow-xs text-sm"
+              />
+            ))}
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-sans font-black text-foreground truncate text-sm md:text-base tracking-tight">
+                對手：{formatTeamNames(group.rivalTeam)}
+              </span>
+              <span className="text-[11px] font-black px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground shrink-0">
+                {group.type === 'doubles' ? '雙打' : '單打'}
+              </span>
+              {group.type === 'doubles' && group.partner && (
+                <span className="text-xs font-bold text-muted-foreground truncate">
+                  · 搭檔：{group.partner.name}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-xs font-bold">
+              <span className="text-foreground font-black">共 {group.matches.length} 場</span>
+              <span className="text-muted-foreground">
+                你{' '}
+                <span className="text-emerald-600 dark:text-emerald-400 font-black">{group.wins} 勝</span>{' '}
+                <span className="text-rose-600 dark:text-rose-400 font-black">{group.losses} 敗</span>
+              </span>
+              <span className="text-muted-foreground/40">·</span>
+              <span
+                className={cn(
+                  'font-display font-black tabular-nums',
+                  group.estimatedTotalDelta < 0
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-emerald-600 dark:text-emerald-400',
+                )}
+              >
+                預估合計 {formatSignedDelta(group.estimatedTotalDelta)} 分
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 rounded-lg shrink-0 self-start sm:self-center">
+          <Clock size={14} className="text-rose-500 dark:text-rose-400" aria-hidden="true" />
+          <span className="text-xs font-black font-display text-rose-600 dark:text-rose-300 tabular-nums leading-none tracking-wide">
+            最快倒數 {getRemainingTimeStr(group.earliestExpiresAt)}
+          </span>
+        </div>
+      </div>
+
+      {/* Compact Match Rows */}
+      <div className="px-3.5 md:px-4 pb-3 space-y-1.5">
+        {visibleMatches.map((m, idx) => {
+          const info = getMatchPerspective(m, 'confirm', currentUserId);
+          const isSelected = !excludedIds[m.id];
+
+          return (
+            <div
+              key={m.id}
+              className={cn(
+                'flex items-center justify-between gap-2 rounded-xl border px-3 py-2 transition-colors',
+                isSelected
+                  ? 'bg-surface-subtle/70 border-border/80'
+                  : 'bg-background/50 border-border/40 opacity-55',
+              )}
+            >
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={isSelected}
+                onClick={() => toggleMatch(m.id)}
+                className="flex items-center gap-2.5 flex-1 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/30 rounded-lg"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'size-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
+                    isSelected
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'border-border bg-card text-transparent',
+                  )}
+                >
+                  <Check size={13} strokeWidth={3} />
+                </span>
+                <span className="w-6 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
+                  #{idx + 1}
+                </span>
+                <span className="font-display font-black text-base text-foreground tabular-nums shrink-0">
+                  {info.myScore} : {info.rivalScore}
+                </span>
+                <span
+                  className={cn(
+                    'text-[11px] font-black uppercase px-1.5 py-0.5 rounded-md border shrink-0',
+                    info.isLoss
+                      ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-300'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300',
+                  )}
+                >
+                  {info.isLoss ? 'LOSS' : 'WIN'}
+                </span>
+                <span className="hidden sm:inline text-xs font-bold text-muted-foreground tabular-nums">
+                  {formatLocalTime(m.date, 'HH:mm')}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={cn(
+                    'text-xs font-display font-black tabular-nums',
+                    info.myDelta < 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-emerald-600 dark:text-emerald-400',
+                  )}
+                >
+                  {formatSignedDelta(info.myDelta)}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDisputeMatch(m)}
+                  aria-label={`對第 ${idx + 1} 場提出異議`}
+                  title="對此場提出異議"
+                  className="size-7 rounded-lg text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15"
+                >
+                  <Flag size={13} aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+
+        {group.matches.length > 5 && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setShowAllRows(!showAllRows)}
+            className="w-full h-8 text-xs font-black text-muted-foreground hover:text-foreground"
+          >
+            {showAllRows ? '收合部分場次' : `展開其餘 ${group.matches.length - 5} 場`}
+          </Button>
+        )}
+      </div>
+
+      {/* Group Footer */}
+      <div className="px-3.5 md:px-4 py-3 bg-surface-subtle/60 border-t border-border/70 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs font-bold text-muted-foreground">
+          {allSelected ? (
+            <span>已全選 {group.matches.length} 場 · 單場有誤可取消勾選</span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExcludedIds({})}
+              className="font-black text-sapphire-blue hover:underline"
+            >
+              重新全選 ({selectedMatches.length}/{group.matches.length})
+            </button>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          disabled={selectedMatches.length === 0}
+          onClick={() => setConfirmOpen(true)}
+          className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-sm tracking-wide shadow-sm gap-1.5 border-none disabled:opacity-40"
+        >
+          <Check size={16} strokeWidth={3} aria-hidden="true" />
+          {allSelected
+            ? `一鍵確認全部 (${group.matches.length} 場)`
+            : `確認已選 (${selectedMatches.length} 場)`}
+        </Button>
+      </div>
+
+      <DisputeMatchModal
+        open={!!disputeMatch}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDisputeMatch(null);
+        }}
+        match={disputeMatch}
+        currentUserId={currentUserId}
+      />
+
+      <BatchConfirmModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        mode="group"
+        groups={selectedGroups}
+        currentUserId={currentUserId}
+        onSettled={() => setExcludedIds({})}
+      />
+    </div>
+  );
+}
+
+// Batch confirmation modal shared by per-group batch CTA (Part A) and header Confirm All CTA (Part C)
+function BatchConfirmModal({
+  open,
+  onOpenChange,
+  mode,
+  groups,
+  currentUserId,
+  onSettled,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mode: 'group' | 'all';
+  groups: MatchupGroup[];
+  currentUserId?: string;
+  onSettled?: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const summary = useMemo(() => {
+    const allMatches: PendingMatch[] = [];
+    let totalWins = 0;
+    let totalLosses = 0;
+    let estimatedTotalDelta = 0;
+
+    for (const group of groups) {
+      allMatches.push(...group.matches);
+      totalWins += group.wins;
+      totalLosses += group.losses;
+      estimatedTotalDelta += group.estimatedTotalDelta;
+    }
+
+    return {
+      allMatches,
+      totalCount: allMatches.length,
+      totalWins,
+      totalLosses,
+      estimatedTotalDelta: Math.round(estimatedTotalDelta * 10) / 10,
+    };
+  }, [groups]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (isSubmitting && !nextOpen) return;
+    onOpenChange(nextOpen);
+  };
+
+  const handleBatchConfirm = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (summary.totalCount === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await apiClient.post<BatchConfirmResponse>(
+        '/matches/confirm-batch',
+        { match_ids: summary.allMatches.map((m) => m.id) },
+        { skipGlobalErrorToast: true },
+      );
+
+      invalidateMatchSettlementQueries(queryClient);
+      onOpenChange(false);
+      onSettled?.();
+
+      const data = res.data;
+      toast.success(
+        `已完成 ${data.confirmed_count} 場賽果結算（實際 ${formatSignedDelta(data.current_user_total_delta)} ELO，目前積分 ${Math.round(data.current_user_new_mmr)}）`,
+      );
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      const status = axiosErr?.response?.status;
+      const detail = axiosErr?.response?.data?.detail;
+      const errorMessage = detail || (err instanceof Error ? err.message : '網路連線錯誤');
+      toast.error('批次確認失敗：' + errorMessage);
+
+      if (status === 400 || status === 404) {
+        queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ResponsiveFormModal
+      open={open}
+      onOpenChange={handleOpenChange}
+      size="lg"
+      tone="success"
+      icon={<CheckCheck size={18} />}
+      title={mode === 'all' ? '全部批次確認賽果' : '批次確認同組賽果'}
+      description={`共 ${summary.totalCount} 場待結算對戰，確認後將依時間順序逐場即時結算 ELO 積分。`}
+      onSubmit={handleBatchConfirm}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => handleOpenChange(false)}
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+          >
+            取消
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting || summary.totalCount === 0}
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-sm shadow-sm gap-1.5"
+          >
+            <CheckCheck size={16} aria-hidden="true" />
+            {isSubmitting ? '結算中...' : `確認結算 (${summary.totalCount} 場)`}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3.5">
+        {/* Aggregate Summary Strip */}
+        <div className="bg-surface-subtle/90 border border-border rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+            <span className="font-black text-foreground">合計 {summary.totalCount} 場</span>
+            <span>·</span>
+            <span>
+              你 <span className="text-emerald-600 dark:text-emerald-400 font-black">{summary.totalWins} 勝</span>{' '}
+              <span className="text-rose-600 dark:text-rose-400 font-black">{summary.totalLosses} 敗</span>
+            </span>
+          </div>
+          <span
+            className={cn(
+              'text-sm font-display font-black tabular-nums',
+              summary.estimatedTotalDelta < 0
+                ? 'text-rose-600 dark:text-rose-400'
+                : 'text-emerald-600 dark:text-emerald-400',
+            )}
+          >
+            預估約 {formatSignedDelta(summary.estimatedTotalDelta)} ELO
+          </span>
+        </div>
+
+        {/* Scrollable Matchup Groups Breakdown */}
+        <div className="max-h-[44vh] overflow-y-auto space-y-2.5 pr-1">
+          {groups.map((group) => (
+            <div key={group.key} className="bg-card border border-border rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/70">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={cn('flex shrink-0', group.rivalTeam.length > 1 && '-space-x-2.5')}>
+                    {group.rivalTeam.map((p, i) => (
+                      <PlayerAvatar
+                        key={p.id || i}
+                        src={p.avatar}
+                        name={p.name}
+                        className="size-8 rounded-xl border border-border text-xs"
+                      />
+                    ))}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-black text-foreground truncate block">
+                      對手：{formatTeamNames(group.rivalTeam)}
+                    </span>
+                    {group.type === 'doubles' && group.partner && (
+                      <span className="text-[11px] font-bold text-muted-foreground block truncate">
+                        搭檔：{group.partner.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs font-black text-muted-foreground shrink-0">
+                  {group.matches.length} 場
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                {group.matches.map((m, idx) => {
+                  const info = getMatchPerspective(m, 'confirm', currentUserId);
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-surface-subtle/60"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-display font-black text-muted-foreground w-6 tabular-nums">
+                          #{idx + 1}
+                        </span>
+                        <span className="font-display font-black text-sm text-foreground tabular-nums">
+                          {info.myScore} : {info.rivalScore}
+                        </span>
+                        <span
+                          className={cn(
+                            'px-1.5 py-0.5 rounded font-black text-[11px]',
+                            info.isWin
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                              : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+                          )}
+                        >
+                          {info.isWin ? '你勝' : '你敗'}
+                        </span>
+                        <span className="text-muted-foreground font-bold tabular-nums">
+                          {formatLocalTime(m.date, 'HH:mm')}
+                        </span>
+                      </div>
+                      <span
+                        className={cn(
+                          'font-display font-black tabular-nums',
+                          info.myDelta < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-emerald-600 dark:text-emerald-400',
+                        )}
+                      >
+                        {formatSignedDelta(info.myDelta)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground font-medium text-center">
+          連打多場將依建立時間順序逐場結算真實 ELO（實際變動以結算當下為準），確認後無法撤回。
+        </p>
+      </div>
+    </ResponsiveFormModal>
+  );
+}
+
+// Reusable Dispute Modal for both single & grouped match rows
+function DisputeMatchModal({
+  open,
+  onOpenChange,
+  trigger,
+  match,
+  currentUserId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger?: React.ReactElement;
+  match: PendingMatch | null;
+  currentUserId?: string;
+}) {
+  const [disputeReason, setDisputeReason] = useState('');
+  const disputeFieldId = useId();
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+    if (!nextOpen) {
+      setDisputeReason('');
+    }
+  };
+
+  const handleDisputeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!disputeReason.trim()) {
+      toast.error('請填寫異議原因');
+      return;
+    }
+    toast.info('線上異議單功能建置中，請先直接聯繫對手修改比分或撤回申報');
+    handleOpenChange(false);
+  };
+
+  const info = match ? getMatchPerspective(match, 'confirm', currentUserId) : null;
+
+  return (
+    <ResponsiveFormModal
+      open={open}
+      onOpenChange={handleOpenChange}
+      trigger={trigger}
+      size="md"
+      tone="danger"
+      icon={<ShieldAlert size={18} />}
+      title="提出賽果異議"
+      description="若比分有誤或尚未完賽，請說明問題並通知對方更正。"
+      onSubmit={handleDisputeSubmit}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+          >
+            取消
+          </Button>
+          <Button
+            type="submit"
+            disabled={!disputeReason.trim()}
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
+          >
+            送出異議
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {info && (
+          <div className="bg-surface-subtle border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-sm font-bold text-foreground truncate block">
+                對手：{formatTeamNames(info.rivalTeam)}
+              </span>
+              {info.type === 'doubles' && info.partner && (
+                <span className="text-xs font-bold text-muted-foreground truncate block">
+                  搭檔：{info.partner.name}
+                </span>
+              )}
+            </div>
+            <span className="font-display font-black text-lg text-foreground tabular-nums shrink-0">
+              {info.myScore} : {info.rivalScore}
+            </span>
+          </div>
+        )}
+        <div>
+          <label htmlFor={disputeFieldId} className="arena-label">
+            異議原因 <span aria-hidden="true" className="text-rose-500">*</span>
+          </label>
+          <textarea
+            id={disputeFieldId}
+            name="disputeReason"
+            required
+            placeholder="請簡述異議原因（例如：比分登錄錯誤、實際局數為 2:1 等）..."
+            value={disputeReason}
+            onChange={(e) => setDisputeReason(e.target.value)}
+            className="arena-textarea min-h-28"
+          />
+        </div>
+      </div>
+    </ResponsiveFormModal>
+  );
+}
+
+// Group 2: Waiting on Opponent (Collapsible & Matchup-Grouped - Part B)
+function WaitingOnOthersGroup({
+  matches,
+  currentUserId,
+}: {
+  matches: PendingMatch[];
+  currentUserId?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const groups = useMemo(
+    () => groupPendingMatches(matches, 'waiting', currentUserId),
+    [matches, currentUserId],
+  );
 
   const doDelete = async (matchId: string) => {
     setDeletingId(matchId);
@@ -525,91 +1099,210 @@ function WaitingOnOthersGroup({ matches, currentUserId }: { matches: PendingMatc
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25"
       >
-        <div className="flex items-center gap-3">
-          <Zap className="text-muted-foreground" size={18} aria-hidden="true" />
+        <div className="flex items-center gap-3 flex-wrap">
+          <Zap className="text-muted-foreground shrink-0" size={18} aria-hidden="true" />
           <span className="text-sm font-black text-foreground tracking-wide">
             {matches.length} 筆賽果等待對方確認中{' '}
-            <span className="hidden md:inline text-xs font-bold text-muted-foreground ml-2">(時限後將自動生效)</span>
+            <span className="hidden md:inline text-xs font-bold text-muted-foreground ml-2">
+              (時限後將自動生效)
+            </span>
           </span>
+          {groups.length < matches.length && (
+            <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground">
+              {groups.length} 組對戰
+            </span>
+          )}
         </div>
         <ChevronDown
           size={20}
           aria-hidden="true"
-          className={cn('text-muted-foreground transition-transform duration-300', isOpen && 'rotate-180')}
+          className={cn('text-muted-foreground transition-transform duration-300 shrink-0', isOpen && 'rotate-180')}
         />
       </button>
 
       <div
         className={cn(
           'grid transition-all duration-300 ease-in-out',
-          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-3 pb-3 pt-0 space-y-2">
-            {matches.map((match) => {
-              const isLoss = match.score[0] < match.score[1];
-              const isDeleting = deletingId === match.id;
-              const canManage = !currentUserId || match.submittedBy === currentUserId;
+          <div className="px-3 pb-3 pt-0 space-y-2.5">
+            {groups.map((group) => {
+              if (group.matches.length === 1) {
+                const match = group.matches[0];
+                const info = getMatchPerspective(match, 'waiting', currentUserId);
+                const isDeleting = deletingId === match.id;
+                const canManage = !currentUserId || match.submittedBy === currentUserId;
+
+                return (
+                  <div
+                    key={group.key}
+                    className={cn(
+                      'bg-card rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border border-border gap-3 transition-all',
+                      isDeleting && 'opacity-40 pointer-events-none',
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn('flex shrink-0', group.rivalTeam.length > 1 && '-space-x-2.5')}>
+                        {group.rivalTeam.map((p, i) => (
+                          <PlayerAvatar
+                            key={p.id || i}
+                            src={p.avatar}
+                            name={p.name}
+                            className="size-8 rounded-lg border border-border text-xs grayscale opacity-75"
+                          />
+                        ))}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs md:text-sm font-bold text-foreground truncate">
+                            {formatTeamNames(group.rivalTeam)}
+                          </span>
+                          <span
+                            className={cn(
+                              'text-xs font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
+                              info.isLoss
+                                ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
+                                : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
+                            )}
+                          >
+                            {info.isLoss ? 'LOSS' : 'WIN'}
+                          </span>
+                          <span className="text-sm font-display font-black text-foreground tabular-nums ml-1 shrink-0">
+                            {info.myScore} : {info.rivalScore}
+                          </span>
+                        </div>
+                        {group.type === 'doubles' && group.partner && (
+                          <span className="text-[11px] font-bold text-muted-foreground block truncate">
+                            搭檔：{group.partner.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                      <div className="text-xs font-bold text-muted-foreground tabular-nums flex items-center gap-1 bg-secondary px-2.5 py-1 rounded-lg shrink-0">
+                        <Clock size={12} aria-hidden="true" />
+                        生效剩餘 {getRemainingTimeStr(match.expiresAt)}
+                      </div>
+                      {canManage ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <EditScoreButton match={match} onSuccess={handleEditSuccess} />
+                          <DeleteConfirmButton
+                            match={match}
+                            isDeleting={isDeleting}
+                            onConfirm={() => doDelete(match.id)}
+                          />
+                        </div>
+                      ) : (
+                        <span className="px-2 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-bold shrink-0">
+                          隊友已申報
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div
-                  key={match.id}
-                  className={cn(
-                    'bg-card rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border border-border gap-3 transition-all',
-                    isDeleting && 'opacity-40 pointer-events-none'
-                  )}
+                  key={group.key}
+                  className="bg-card rounded-2xl p-3 shadow-xs border border-border space-y-2.5"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn('flex shrink-0', match.opponent.length > 1 && '-space-x-2.5')}>
-                      {match.opponent.map((p, i) => (
-                        <PlayerAvatar
-                          key={p.id || i}
-                          src={p.avatar}
-                          name={p.name}
-                          className="size-8 rounded-lg border border-border text-xs grayscale opacity-75"
-                        />
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs md:text-sm font-bold text-foreground truncate">
-                        {formatTeamNames(match.opponent)}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-xs font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
-                          isLoss
-                            ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
-                            : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                  {/* Group Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn('flex shrink-0', group.rivalTeam.length > 1 && '-space-x-2.5')}>
+                        {group.rivalTeam.map((p, i) => (
+                          <PlayerAvatar
+                            key={p.id || i}
+                            src={p.avatar}
+                            name={p.name}
+                            className="size-8 rounded-lg border border-border text-xs grayscale opacity-75"
+                          />
+                        ))}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs md:text-sm font-black text-foreground truncate">
+                            {formatTeamNames(group.rivalTeam)}
+                          </span>
+                          <span className="text-[11px] font-black px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground shrink-0">
+                            {group.type === 'doubles' ? '雙打' : '單打'}
+                          </span>
+                          <span className="text-xs font-bold text-muted-foreground">
+                            共 {group.matches.length} 場 · {group.wins}勝 {group.losses}敗
+                          </span>
+                        </div>
+                        {group.type === 'doubles' && group.partner && (
+                          <span className="text-[11px] font-bold text-muted-foreground block truncate">
+                            搭檔：{group.partner.name}
+                          </span>
                         )}
-                      >
-                        {isLoss ? 'LOSS' : 'WIN'}
-                      </span>
+                      </div>
                     </div>
-                    <span className="text-sm font-display font-black text-foreground tabular-nums ml-1 shrink-0">
-                      {match.score[0]} : {match.score[1]}
-                    </span>
+
+                    <div className="text-xs font-bold text-muted-foreground tabular-nums flex items-center gap-1 bg-secondary px-2.5 py-1 rounded-lg shrink-0 self-start sm:self-center">
+                      <Clock size={12} aria-hidden="true" />
+                      最快生效剩餘 {getRemainingTimeStr(group.earliestExpiresAt)}
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-                    <div className="text-xs font-bold text-muted-foreground tabular-nums flex items-center gap-1 bg-secondary px-2.5 py-1 rounded-lg shrink-0">
-                      <Clock size={12} aria-hidden="true" />
-                      生效剩餘 {getRemainingTimeStr(match.expiresAt)}
-                    </div>
-                    {canManage ? (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <EditScoreButton match={match} onSuccess={handleEditSuccess} />
-                        <DeleteConfirmButton
-                          match={match}
-                          isDeleting={isDeleting}
-                          onConfirm={() => doDelete(match.id)}
-                        />
-                      </div>
-                    ) : (
-                      <span className="px-2 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-bold shrink-0">
-                        隊友已申報
-                      </span>
-                    )}
+                  {/* Compact Per-Match Rows */}
+                  <div className="divide-y divide-border/60">
+                    {group.matches.map((match, idx) => {
+                      const info = getMatchPerspective(match, 'waiting', currentUserId);
+                      const isDeleting = deletingId === match.id;
+                      const canManage = !currentUserId || match.submittedBy === currentUserId;
+
+                      return (
+                        <div
+                          key={match.id}
+                          className={cn(
+                            'py-1.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 transition-opacity',
+                            isDeleting && 'opacity-40 pointer-events-none',
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-6 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
+                              #{idx + 1}
+                            </span>
+                            <span className="text-sm font-display font-black text-foreground tabular-nums shrink-0">
+                              {info.myScore} : {info.rivalScore}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-[11px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
+                                info.isLoss
+                                  ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
+                                  : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
+                              )}
+                            >
+                              {info.isLoss ? 'LOSS' : 'WIN'}
+                            </span>
+                            <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                              {formatLocalTime(match.date, 'HH:mm')}
+                            </span>
+                          </div>
+
+                          {canManage ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <EditScoreButton match={match} onSuccess={handleEditSuccess} />
+                              <DeleteConfirmButton
+                                match={match}
+                                isDeleting={isDeleting}
+                                onConfirm={() => doDelete(match.id)}
+                              />
+                            </div>
+                          ) : (
+                            <span className="px-2 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-bold shrink-0">
+                              隊友已申報
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -720,7 +1413,7 @@ function DeleteConfirmButton({
                   'text-xs font-black uppercase px-1.5 py-0.5 rounded-md shrink-0',
                   isLoss
                     ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300'
-                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
                 )}
               >
                 {isLoss ? 'LOSS' : 'WIN'}
@@ -781,7 +1474,7 @@ function EditScoreButton({
       await apiClient.patch(
         `/matches/${match.id}`,
         { score_a: scoreA, score_b: scoreB },
-        { skipGlobalErrorToast: true }
+        { skipGlobalErrorToast: true },
       );
       onSuccess();
       toast.success(`已更新比分為 ${scoreA} : ${scoreB}`);
@@ -887,7 +1580,7 @@ function EditScoreButton({
               ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
               : validation.tone === 'error'
                 ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300'
-                : 'bg-surface-subtle border-border text-muted-foreground'
+                : 'bg-surface-subtle border-border text-muted-foreground',
           )}
         >
           {validation.message}
