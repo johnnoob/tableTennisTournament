@@ -1,14 +1,12 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Scale, CalendarDays, RotateCcw } from 'lucide-react';
-import { cn, formatLocalTime } from '@/lib/utils';
+import { RotateCcw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button } from './ui/button';
 import { PlayerAvatar } from './PlayerAvatar';
 import { ReportScore } from './ReportScore';
 import { useAuth } from '@/hooks/useAuth';
 import { inferMatchFormat } from '@/lib/matchScore';
+import { formatMatchClock, formatSmartMatchTime } from '@/lib/matchDate';
 
 interface MatchPlayer {
   id?: string;
@@ -32,9 +30,122 @@ interface MatchData {
 
 interface MatchItemProps {
   match: MatchData;
+  variant?: 'feed' | 'personal';
+  timeDisplay?: 'smart' | 'clock';
 }
 
-export function MatchItem({ match }: Readonly<MatchItemProps>) {
+function formatDelta(val: number): string {
+  const rounded = Math.round(val * 10) / 10;
+  return rounded > 0 ? `+${rounded}` : `${rounded}`;
+}
+
+function TeamAvatars({
+  players,
+  onInspect,
+  avatarClassName,
+  overlapClassName,
+  placeholderClassName,
+  wonRing,
+}: {
+  players: MatchPlayer[];
+  onInspect: (id?: string) => void;
+  avatarClassName: string;
+  overlapClassName: string;
+  placeholderClassName: string;
+  wonRing?: boolean;
+}) {
+  if (players.length === 0) {
+    return <div className={cn('rounded-xl bg-secondary animate-pulse shrink-0', placeholderClassName)} />;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onInspect(players[0]?.id)}
+      disabled={!players[0]?.id}
+      aria-label={`檢視 ${players[0]?.name || '選手'} 戰情檔案`}
+      className={cn(
+        'flex shrink-0 group/team rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue',
+        players.length > 1 && overlapClassName,
+      )}
+    >
+      {players.map((p, i) => (
+        <PlayerAvatar
+          key={p.id || i}
+          src={p.avatar}
+          name={p.name}
+          className={cn(
+            avatarClassName,
+            'border border-border group-hover/team:ring-2 group-hover/team:ring-sapphire-blue/60 transition-all',
+            wonRing && 'ring-2 ring-emerald-500/40',
+          )}
+        />
+      ))}
+    </button>
+  );
+}
+
+function TeamNames({
+  players,
+  onInspect,
+  className,
+  align = 'left',
+}: {
+  players: MatchPlayer[];
+  onInspect: (id?: string) => void;
+  className?: string;
+  align?: 'left' | 'right';
+}) {
+  if (players.length === 0) {
+    return <span className="font-display font-bold text-muted-foreground text-xs">載入中...</span>;
+  }
+
+  if (players.length === 1) {
+    return (
+      <button
+        type="button"
+        onClick={() => onInspect(players[0]?.id)}
+        disabled={!players[0]?.id}
+        className={cn(
+          'truncate leading-tight transition-colors hover:text-sapphire-blue max-w-full',
+          align === 'right' ? 'text-right' : 'text-left',
+          className,
+        )}
+      >
+        {players[0].name}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex items-center min-w-0 max-w-full overflow-hidden',
+        align === 'right' && 'justify-end',
+      )}
+    >
+      {players.map((p, idx) => (
+        <span key={p.id || idx} className="inline-flex items-center min-w-0">
+          {idx > 0 && <span className="text-muted-foreground/45 mx-1 shrink-0">/</span>}
+          <button
+            type="button"
+            onClick={() => onInspect(p.id)}
+            disabled={!p.id}
+            className={cn('truncate leading-tight transition-colors hover:text-sapphire-blue', className)}
+          >
+            {p.name?.split(' ')[0] || '?'}
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function MatchItem({
+  match,
+  variant = 'feed',
+  timeDisplay = 'smart',
+}: Readonly<MatchItemProps>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
 
@@ -45,248 +156,579 @@ export function MatchItem({ match }: Readonly<MatchItemProps>) {
     setSearchParams(newParams);
   };
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'confirmed':
-        return { label: '已確認', color: 'bg-secondary text-muted-foreground border-border' };
-      case 'pending':
-        return { label: '待確認', color: 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' };
-      case 'disputed':
-        return { label: '申訴中', color: 'bg-rose-50 text-rose-600 border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/25' };
-      default:
-        return { label: '未知', color: 'bg-secondary text-muted-foreground border-border' };
-    }
-  };
-
-  const status = getStatusConfig(match?.status || 'unknown');
   const score = match?.score || [0, 0];
   const player1 = match?.player1 || [];
   const opponent = match?.opponent || [];
-  const p1Change = match?.mmrChange?.[0] || 0;
-  const p2Change = match?.mmrChange?.[1] || 0;
+  const p1Change = match?.mmrChange?.[0] ?? 0;
+  const p2Change = match?.mmrChange?.[1] ?? 0;
+
+  const isDoubles = match?.type === 'doubles';
+  const matchFormat = inferMatchFormat(score[0], score[1]);
+  const isPending = match?.status === 'pending';
+  const isDisputed = match?.status === 'disputed';
+  const isSettled = match?.status === 'confirmed' || match?.status === 'completed';
+
+  const p1Won = score[0] > score[1];
+  const p2Won = score[1] > score[0];
 
   const rawDate = match?.date || match?.created_at;
-  const displayDate = rawDate ? (formatLocalTime(rawDate) || rawDate) : '-';
+  const displayTime =
+    timeDisplay === 'clock' ? formatMatchClock(rawDate) : formatSmartMatchTime(rawDate);
 
-  // 若本人有參與此場比賽，計算「一鍵再戰」的預填陣容
   const myId = currentUser?.id ? String(currentUser.id) : null;
   const iAmInP1 = myId ? player1.some((p) => String(p.id) === myId) : false;
   const iAmInOpp = myId ? opponent.some((p) => String(p.id) === myId) : false;
   const canRematch = Boolean(myId && (iAmInP1 || iAmInOpp));
 
-  const myTeamPlayers = iAmInP1 ? player1 : opponent;
-  const theirTeamPlayers = iAmInP1 ? opponent : player1;
-  const rematchType: 'singles' | 'doubles' = match?.type === 'doubles' ? 'doubles' : 'singles';
-  const rematchPartnerId =
-    rematchType === 'doubles'
-      ? myTeamPlayers.find((p) => p.id && String(p.id) !== myId)?.id || null
-      : null;
-  const rematchOpp1Id = theirTeamPlayers[0]?.id || null;
-  const rematchOpp2Id = rematchType === 'doubles' ? theirTeamPlayers[1]?.id || null : null;
-  const rematchFormat = inferMatchFormat(score[0], score[1]);
+  const useMyAsP1 = iAmInP1 || !iAmInOpp;
+  const myTeam = useMyAsP1 ? player1 : opponent;
+  const rivalTeam = useMyAsP1 ? opponent : player1;
+  const myScore = useMyAsP1 ? score[0] : score[1];
+  const rivalScore = useMyAsP1 ? score[1] : score[0];
+  const myDelta = useMyAsP1 ? p1Change : p2Change;
+  const iWon = myScore > rivalScore;
 
-  return (
-    <Card className="arena-card p-4 sm:p-5 md:p-6 hover:shadow-md transition-all">
-      <CardContent className="p-0 space-y-4">
-        {/* Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-border">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
-            <span className="text-sapphire-blue">{match?.tournament || '例行積分賽'}</span>
-            <span className="text-muted-foreground/40" aria-hidden="true">•</span>
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground font-bold tabular-nums">
-              <CalendarDays size={12} aria-hidden="true" />
-              {displayDate}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {canRematch && rematchOpp1Id && (
-              <ReportScore
-                initialMatchType={rematchType}
-                initialFormat={rematchFormat}
-                initialPartnerId={rematchPartnerId}
-                initialOpponentId={rematchOpp1Id}
-                initialOpponent2Id={rematchOpp2Id}
-                trigger={
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white text-xs font-black transition-colors"
-                  >
-                    <RotateCcw size={11} aria-hidden="true" />
-                    再戰
-                  </button>
-                }
-              />
+  const myPartner = isDoubles
+    ? myTeam.find((p) => p.id && String(p.id) !== myId) ?? null
+    : null;
+  const rematchType: 'singles' | 'doubles' = isDoubles ? 'doubles' : 'singles';
+  const rematchPartnerId = myPartner?.id || null;
+  const rematchOpp1Id = rivalTeam[0]?.id || null;
+  const rematchOpp2Id = isDoubles ? rivalTeam[1]?.id || null : null;
+
+  const handleShowDisputeInfo = () => {
+    toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理');
+  };
+
+  const renderRematchAction = ({
+    iconOnly = false,
+    className,
+  }: {
+    iconOnly?: boolean;
+    className?: string;
+  }) => {
+    if (!canRematch || !rematchOpp1Id) return null;
+
+    return (
+      <ReportScore
+        initialMatchType={rematchType}
+        initialFormat={matchFormat}
+        initialPartnerId={rematchPartnerId}
+        initialOpponentId={rematchOpp1Id}
+        initialOpponent2Id={rematchOpp2Id}
+        trigger={
+          <button
+            type="button"
+            aria-label="發起再戰"
+            title="再戰"
+            className={cn(
+              'inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0',
+              iconOnly ? 'size-7' : 'gap-1 h-7 px-2.5 text-xs',
+              className,
             )}
-            <Badge
-              variant="secondary"
-              className={cn('px-2.5 py-0.5 rounded-full text-xs font-black border tracking-wider shadow-none', status.color)}
-            >
-              {status.label}
-            </Badge>
-          </div>
-        </div>
+          >
+            <RotateCcw size={iconOnly ? 13 : 11} aria-hidden="true" />
+            {!iconOnly && <span>再戰</span>}
+          </button>
+        }
+      />
+    );
+  };
 
-        {/* Scoreboard Row */}
-        <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Team 1 */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
-            <button
-              type="button"
-              onClick={() => openInspect(player1[0]?.id)}
-              disabled={!player1[0]?.id}
-              aria-label={`檢視 ${player1[0]?.name || '選手'} 戰情檔案`}
-              className={cn('flex shrink-0 group/p1 rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue', player1.length > 1 ? '-space-x-2.5 sm:-space-x-4' : '')}
-            >
-              {player1.map((p, i) => (
-                <PlayerAvatar
-                  key={p.id || i}
-                  src={p.avatar}
-                  name={p.name}
-                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-card shadow-xs ring-1 ring-border text-xs sm:text-sm group-hover/p1:ring-sapphire-blue transition-all"
-                />
-              ))}
-              {player1.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-secondary animate-pulse" />}
-            </button>
-            <div className="flex flex-col min-w-0">
-              {player1.length === 1 && player1[0]?.id ? (
-                <button
-                  type="button"
-                  onClick={() => openInspect(player1[0].id)}
-                  className="text-left font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors"
-                >
-                  {player1[0].name}
-                </button>
-              ) : (
-                <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                  {player1.length > 0 ? (
-                    player1.map((p, idx) => (
-                      <span key={p.id || idx} className="inline-flex items-center">
-                        {idx > 0 && <span className="text-muted-foreground/50 mx-1">/</span>}
-                        <button
-                          type="button"
-                          onClick={() => openInspect(p.id)}
-                          disabled={!p.id}
-                          className="font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
-                        >
-                          {p.name?.split(' ')[0] || '?'}
-                        </button>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="font-display font-black text-muted-foreground text-xs">載入中...</span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className={cn('text-xs font-black font-display tabular-nums', p1Change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400')}>
-                  {p1Change > 0 ? `+${p1Change}` : p1Change} 分
+  if (variant === 'feed') {
+    const typePillDesktop = isDoubles ? (
+      <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+        雙打
+      </span>
+    ) : (
+      <span className="text-[11px] font-bold text-muted-foreground/80 leading-none">單打</span>
+    );
+
+    const statusBadge = isPending ? (
+      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 shrink-0">
+        待確認
+      </span>
+    ) : isDisputed ? (
+      <button
+        type="button"
+        onClick={handleShowDisputeInfo}
+        className="px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors shrink-0"
+      >
+        申訴中
+      </button>
+    ) : null;
+
+    return (
+      <div className="transition-colors hover:bg-surface-subtle/60 group">
+        {/* Desktop: Compact Single-Row Scoreboard */}
+        <div className="hidden md:grid md:grid-cols-[112px_minmax(0,1fr)_108px] items-center gap-3 px-4 py-3">
+          {/* Left Meta */}
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-muted-foreground tabular-nums truncate">
+              {displayTime}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              {typePillDesktop}
+              {matchFormat === 'BO5' && (
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                  BO5
                 </span>
-                <TrendingUp
-                  size={11}
-                  strokeWidth={3}
-                  aria-hidden="true"
-                  className={cn(p1Change >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-400 rotate-180')}
-                />
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Central Score */}
-          <div className="flex flex-col items-center justify-center px-1.5 sm:px-3 shrink-0">
-            <div className="flex items-center gap-1 sm:gap-2 tabular-nums">
-              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-foreground tracking-tight leading-none">
+          {/* Center Tight Matchup Stage */}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 min-w-0">
+            {/* Team 1 (Right-Aligned toward Center Score) */}
+            <div className="flex items-center justify-end gap-2.5 min-w-0">
+              {isSettled && p1Change !== 0 && (
+                <span
+                  className={cn(
+                    'text-[11px] font-display font-black tabular-nums shrink-0',
+                    p1Change > 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-500 dark:text-rose-400',
+                  )}
+                >
+                  {formatDelta(p1Change)}
+                </span>
+              )}
+              <TeamNames
+                players={player1}
+                onInspect={openInspect}
+                align="right"
+                className={cn(
+                  'font-display text-sm',
+                  p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+                )}
+              />
+              <TeamAvatars
+                players={player1}
+                onInspect={openInspect}
+                avatarClassName="size-8 rounded-xl text-xs"
+                overlapClassName="-space-x-2.5"
+                placeholderClassName="size-8"
+                wonRing={p1Won && isSettled}
+              />
+            </div>
+
+            {/* Center Score Pill */}
+            <div className="px-2.5 py-1 rounded-xl bg-surface-subtle border border-border/80 flex items-center gap-1.5 font-display font-black text-base tabular-nums shrink-0">
+              <span className={p1Won ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {score[0]}
               </span>
-              <span className="text-muted-foreground/45 text-sm sm:text-xl font-black">:</span>
-              <span className="text-xl sm:text-3xl md:text-4xl font-display font-black text-foreground tracking-tight leading-none">
+              <span className="text-muted-foreground/40 text-xs">:</span>
+              <span className={p2Won ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {score[1]}
               </span>
             </div>
-            <span className="mt-1 px-2 py-0.5 bg-secondary rounded-md text-xs font-black text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-              {match?.type === 'doubles' ? '2V2' : score[0] + score[1] >= 5 ? 'BO5' : 'BO3'}
-            </span>
+
+            {/* Team 2 (Left-Aligned from Center Score) */}
+            <div className="flex items-center justify-start gap-2.5 min-w-0">
+              <TeamAvatars
+                players={opponent}
+                onInspect={openInspect}
+                avatarClassName="size-8 rounded-xl text-xs"
+                overlapClassName="-space-x-2.5"
+                placeholderClassName="size-8"
+                wonRing={p2Won && isSettled}
+              />
+              <TeamNames
+                players={opponent}
+                onInspect={openInspect}
+                align="left"
+                className={cn(
+                  'font-display text-sm',
+                  p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+                )}
+              />
+              {isSettled && p2Change !== 0 && (
+                <span
+                  className={cn(
+                    'text-[11px] font-display font-black tabular-nums shrink-0',
+                    p2Change > 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-500 dark:text-rose-400',
+                  )}
+                >
+                  {formatDelta(p2Change)}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Team 2 */}
-          <div className="flex items-center justify-end gap-2.5 sm:gap-3.5 flex-1 min-w-0 text-right">
-            <div className="flex flex-col min-w-0 items-end">
-              {opponent.length === 1 && opponent[0]?.id ? (
-                <button
-                  type="button"
-                  onClick={() => openInspect(opponent[0].id)}
-                  className="text-right font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-base md:text-lg truncate leading-tight transition-colors max-w-full"
-                >
-                  {opponent[0].name}
-                </button>
-              ) : (
-                <div className="flex items-center justify-end gap-1 min-w-0 flex-wrap">
-                  {opponent.length > 0 ? (
-                    opponent.map((p, idx) => (
-                      <span key={p.id || idx} className="inline-flex items-center">
-                        {idx > 0 && <span className="text-muted-foreground/50 mx-1">/</span>}
-                        <button
-                          type="button"
-                          onClick={() => openInspect(p.id)}
-                          disabled={!p.id}
-                          className="font-display font-black text-foreground hover:text-sapphire-blue text-xs sm:text-sm md:text-base truncate leading-tight transition-colors"
-                        >
-                          {p.name?.split(' ')[0] || '?'}
-                        </button>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="font-display font-black text-muted-foreground text-xs">載入中...</span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-center justify-end gap-1 mt-0.5">
-                <span className={cn('text-xs font-black font-display tabular-nums', p2Change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400')}>
-                  {p2Change > 0 ? `+${p2Change}` : p2Change} 分
-                </span>
-                <TrendingDown
-                  size={11}
-                  strokeWidth={3}
-                  aria-hidden="true"
-                  className={cn(p2Change <= 0 ? 'text-rose-400' : 'text-emerald-500 dark:text-emerald-400 rotate-180')}
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => openInspect(opponent[0]?.id)}
-              disabled={!opponent[0]?.id}
-              aria-label={`檢視 ${opponent[0]?.name || '選手'} 戰情檔案`}
-              className={cn('flex shrink-0 group/p2 rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue', opponent.length > 1 ? '-space-x-2.5 sm:-space-x-4' : '')}
-            >
-              {opponent.map((p, i) => (
-                <PlayerAvatar
-                  key={p.id || i}
-                  src={p.avatar}
-                  name={p.name}
-                  className="size-10 sm:size-13 md:size-14 rounded-xl md:rounded-2xl border-2 border-card shadow-xs ring-1 ring-border text-xs sm:text-sm group-hover/p2:ring-sapphire-blue transition-all"
-                />
-              ))}
-              {opponent.length === 0 && <div className="size-10 sm:size-14 rounded-xl bg-secondary animate-pulse" />}
-            </button>
+          {/* Right Status / Rematch */}
+          <div className="flex items-center justify-end gap-1.5 shrink-0">
+            {statusBadge}
+            {renderRematchAction({
+              iconOnly: isPending || isDisputed,
+              className: isSettled
+                ? 'opacity-85 group-hover:opacity-100 rounded-xl'
+                : undefined,
+            })}
           </div>
         </div>
 
-        {/* Dispute Action */}
-        {match.status === 'disputed' && (
-          <div className="pt-2 flex justify-center">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理')}
-              className="w-full max-w-sm bg-rose-50/40 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-200 rounded-xl h-11 font-sans font-black text-xs uppercase tracking-wider gap-2 shadow-none"
-            >
-              <Scale size={15} aria-hidden="true" />
-              檢視申訴細節
-            </Button>
+        {/* Mobile: Apple Sports Stacked 2-Row Scoreboard */}
+        <div className="md:hidden px-3.5 py-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground min-w-0">
+              {typePillDesktop}
+              {matchFormat === 'BO5' && (
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                  BO5
+                </span>
+              )}
+              <span className="text-muted-foreground/40" aria-hidden="true">·</span>
+              <span className="tabular-nums truncate">{displayTime}</span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {statusBadge}
+              {renderRematchAction({ className: 'h-6 px-2 text-[11px]' })}
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <div className="space-y-1.5">
+            {/* Team 1 Row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <TeamAvatars
+                  players={player1}
+                  onInspect={openInspect}
+                  avatarClassName="size-7 rounded-lg text-[11px]"
+                  overlapClassName="-space-x-2"
+                  placeholderClassName="size-7"
+                />
+                <TeamNames
+                  players={player1}
+                  onInspect={openInspect}
+                  align="left"
+                  className={cn(
+                    'font-display text-sm',
+                    p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+                  )}
+                />
+                {isSettled && p1Change !== 0 && (
+                  <span
+                    className={cn(
+                      'text-xs font-display font-black tabular-nums shrink-0',
+                      p1Change > 0
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-500 dark:text-rose-400',
+                    )}
+                  >
+                    {formatDelta(p1Change)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span
+                  aria-hidden="true"
+                  className={cn('size-1.5 rounded-full', p1Won ? 'bg-emerald-500' : 'bg-transparent')}
+                />
+                <span
+                  className={cn(
+                    'font-display font-black text-lg tabular-nums w-5 text-right leading-none',
+                    p1Won ? 'text-foreground' : 'text-muted-foreground/55',
+                  )}
+                >
+                  {score[0]}
+                </span>
+              </div>
+            </div>
+
+            {/* Team 2 Row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <TeamAvatars
+                  players={opponent}
+                  onInspect={openInspect}
+                  avatarClassName="size-7 rounded-lg text-[11px]"
+                  overlapClassName="-space-x-2"
+                  placeholderClassName="size-7"
+                />
+                <TeamNames
+                  players={opponent}
+                  onInspect={openInspect}
+                  align="left"
+                  className={cn(
+                    'font-display text-sm',
+                    p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+                  )}
+                />
+                {isSettled && p2Change !== 0 && (
+                  <span
+                    className={cn(
+                      'text-xs font-display font-black tabular-nums shrink-0',
+                      p2Change > 0
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-500 dark:text-rose-400',
+                    )}
+                  >
+                    {formatDelta(p2Change)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span
+                  aria-hidden="true"
+                  className={cn('size-1.5 rounded-full', p2Won ? 'bg-emerald-500' : 'bg-transparent')}
+                />
+                <span
+                  className={cn(
+                    'font-display font-black text-lg tabular-nums w-5 text-right leading-none',
+                    p2Won ? 'text-foreground' : 'text-muted-foreground/55',
+                  )}
+                >
+                  {score[1]}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Scheme B: OP.GG / Personal-Perspective History Card
+  const railClass = isPending
+    ? 'bg-amber-400'
+    : isDisputed
+      ? 'bg-rose-500'
+      : iWon
+        ? 'bg-emerald-500'
+        : 'bg-rose-500';
+
+  const surfaceWashClass = isPending
+    ? 'bg-amber-50/30 dark:bg-amber-500/[0.05]'
+    : isDisputed
+      ? 'bg-rose-50/35 dark:bg-rose-500/[0.06]'
+      : iWon
+        ? 'bg-emerald-50/30 dark:bg-emerald-500/[0.05]'
+        : 'bg-rose-50/25 dark:bg-rose-500/[0.04]';
+
+  const resultLabel = isPending
+    ? '待確認'
+    : isDisputed
+      ? '申訴中'
+      : iWon
+        ? 'WIN'
+        : 'LOSS';
+
+  const resultColorClass = isPending
+    ? 'text-amber-600 dark:text-amber-400'
+    : isDisputed
+      ? 'text-rose-600 dark:text-rose-400'
+      : iWon
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : 'text-rose-600 dark:text-rose-400';
+
+  const deltaNode = isPending ? (
+    <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80">待結算</span>
+  ) : isDisputed ? (
+    <span className="text-[11px] font-bold text-rose-500/80">審核中</span>
+  ) : myDelta !== 0 ? (
+    <span
+      className={cn(
+        'text-xs font-display font-black tabular-nums',
+        myDelta > 0
+          ? 'text-emerald-600 dark:text-emerald-400'
+          : 'text-rose-600 dark:text-rose-400',
+      )}
+    >
+      {formatDelta(myDelta)} 分
+    </span>
+  ) : (
+    <span className="text-xs font-bold text-muted-foreground tabular-nums">0 分</span>
+  );
+
+  return (
+    <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch">
+      <div className={cn('w-1.5 shrink-0', railClass)} aria-hidden="true" />
+
+      <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
+        {/* Desktop / Tablet Single Row */}
+        <div className="hidden sm:flex items-center justify-between gap-3 md:gap-4 px-4 py-3">
+          {/* 1. Result + ELO Column */}
+          <div className="w-[76px] shrink-0 flex flex-col">
+            <span className={cn('text-xs font-display font-black tracking-wider leading-tight', resultColorClass)}>
+              {resultLabel}
+            </span>
+            <div className="mt-0.5 leading-tight">{deltaNode}</div>
+          </div>
+
+          {/* 2. Score Pill (My Score : Rival Score) */}
+          <div className="w-[68px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
+            <div className="font-display font-black text-lg leading-none tabular-nums flex items-center gap-1">
+              <span className={iWon ? 'text-foreground' : 'text-muted-foreground/70'}>
+                {myScore}
+              </span>
+              <span className="text-muted-foreground/40 text-xs">:</span>
+              <span className={!iWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+                {rivalScore}
+              </span>
+            </div>
+            {matchFormat === 'BO5' && (
+              <span className="text-[10px] font-black text-muted-foreground leading-none mt-1">
+                BO5
+              </span>
+            )}
+          </div>
+
+          {/* 3. VS Rival Info */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <TeamAvatars
+              players={rivalTeam}
+              onInspect={openInspect}
+              avatarClassName="size-9 md:size-10 rounded-xl text-xs"
+              overlapClassName="-space-x-2.5"
+              placeholderClassName="size-9 md:size-10"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[11px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                  VS
+                </span>
+                <TeamNames
+                  players={rivalTeam}
+                  onInspect={openInspect}
+                  align="left"
+                  className="text-sm md:text-base font-display font-black text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                {isDoubles ? (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                    雙打
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
+                    單打
+                  </span>
+                )}
+                {isDoubles && myPartner && (
+                  <button
+                    type="button"
+                    onClick={() => openInspect(myPartner.id)}
+                    disabled={!myPartner.id}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[170px] transition-colors leading-none"
+                  >
+                    · 搭檔：{myPartner.name}
+                  </button>
+                )}
+                {isPending && (
+                  <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80 leading-none">
+                    (暫定{iWon ? '勝' : '敗'})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Time & Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-muted-foreground tabular-nums">
+              {displayTime}
+            </span>
+            {isDisputed && (
+              <button
+                type="button"
+                onClick={handleShowDisputeInfo}
+                className="h-8 px-2.5 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors"
+              >
+                申訴細節
+              </button>
+            )}
+            {renderRematchAction({ className: 'h-8 px-2.5 rounded-xl text-xs' })}
+          </div>
+        </div>
+
+        {/* Mobile Compact Personal Card */}
+        <div className="sm:hidden px-3 py-2.5 space-y-2">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span className={cn('text-xs font-display font-black tracking-wider', resultColorClass)}>
+                {resultLabel}
+              </span>
+              {deltaNode}
+              {isDoubles ? (
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                  雙打
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-muted-foreground leading-none">單打</span>
+              )}
+              {matchFormat === 'BO5' && (
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                  BO5
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                {displayTime}
+              </span>
+              {renderRematchAction({ className: 'h-6 px-2 text-[11px]' })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <TeamAvatars
+                players={rivalTeam}
+                onInspect={openInspect}
+                avatarClassName="size-9 rounded-xl text-xs"
+                overlapClassName="-space-x-2"
+                placeholderClassName="size-9"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="text-[10px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                    VS
+                  </span>
+                  <TeamNames
+                    players={rivalTeam}
+                    onInspect={openInspect}
+                    align="left"
+                    className="text-sm font-display font-black text-foreground"
+                  />
+                </div>
+                {isDoubles && myPartner && (
+                  <button
+                    type="button"
+                    onClick={() => openInspect(myPartner.id)}
+                    disabled={!myPartner.id}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
+                  >
+                    搭檔：{myPartner.name}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 px-2.5 py-1 rounded-xl bg-card border border-border/80 font-display font-black text-lg leading-none tabular-nums">
+              <span className={iWon ? 'text-foreground' : 'text-muted-foreground/65'}>
+                {myScore}
+              </span>
+              <span className="text-muted-foreground/40 text-xs mx-0.5">:</span>
+              <span className={!iWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+                {rivalScore}
+              </span>
+            </div>
+          </div>
+
+          {isDisputed && (
+            <button
+              type="button"
+              onClick={handleShowDisputeInfo}
+              className="w-full h-9 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors"
+            >
+              檢視申訴細節
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

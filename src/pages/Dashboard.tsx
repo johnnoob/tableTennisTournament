@@ -892,18 +892,18 @@ export function Dashboard() {
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    {recentFeed.length > 0 ? (
-                      recentFeed.map((match) => (
-                        <MatchItem key={match.id} match={match} />
-                      ))
-                    ) : (
-                      <div className="text-center py-14 arena-surface border-dashed">
-                        <History size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
-                        <p className="text-muted-foreground font-bold text-xs">目前還沒有對戰紀錄</p>
-                      </div>
-                    )}
-                  </div>
+                  {recentFeed.length > 0 ? (
+                    <div className="bg-card border border-border rounded-2xl md:rounded-3xl overflow-hidden shadow-xs divide-y divide-border/70">
+                      {recentFeed.map((match) => (
+                        <MatchItem key={match.id} match={match} variant="feed" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-14 arena-surface border-dashed">
+                      <History size={28} className="mx-auto text-muted-foreground/50 mb-3" aria-hidden="true" />
+                      <p className="text-muted-foreground font-bold text-xs">目前還沒有對戰紀錄</p>
+                    </div>
+                  )}
                 </motion.section>
               </motion.div>
             </div>

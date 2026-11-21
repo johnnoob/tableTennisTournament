@@ -22,9 +22,9 @@ export function MatchHistorySkeleton() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-2xl" />
             ))}
           </div>
         </div>

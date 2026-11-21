@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Trophy, XCircle, LayoutGrid, Activity, TrendingUp, TrendingDown, LogIn, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
+import { fadeInUp, pageVariants } from '@/lib/animations';
 import { MatchHistorySkeleton } from '@/components/MatchHistorySkeleton';
 import { useAuth } from '@/hooks/useAuth';
+import { groupMatchesByDate } from '@/lib/matchDate';
 import type { MatchFeedItem, MatchHistoryResponse } from '@/types/api.types';
 
 const PAGE_SIZE = 15;
@@ -67,7 +68,11 @@ export function MatchHistory() {
     enabled: !!user,
   });
 
-  const matches = data ? data.pages.flatMap((page) => page.matches) : [];
+  const matches = useMemo(
+    () => (data ? data.pages.flatMap((page) => page.matches) : []),
+    [data],
+  );
+  const groupedMatches = useMemo(() => groupMatchesByDate(matches), [matches]);
   const total = data?.pages[0]?.total || 0;
   const loading = isAuthLoading || (!!user && isPending);
 
@@ -246,38 +251,50 @@ export function MatchHistory() {
                 </div>
               </motion.div>
 
-              <section className="space-y-4">
-                <div className="flex items-center gap-4 px-1">
-                  <span className="text-xs uppercase font-sans font-black tracking-[0.18em] text-muted-foreground shrink-0">
-                    時間軸紀錄
-                  </span>
-                  <div className="h-px bg-border flex-1" />
-                </div>
-
+              <section className="space-y-5">
                 {matches.length === 0 ? (
-                  <div className="text-center py-16 arena-surface border-dashed">
-                    <Trophy size={32} className="mx-auto text-muted-foreground/40 mb-3" aria-hidden="true" />
-                    <p className="text-muted-foreground font-bold text-sm">
-                      {debouncedSearch
-                        ? `找不到符合「${debouncedSearch}」的比賽`
-                        : filter !== 'all' || matchTypeFilter !== 'all'
-                          ? '此篩選條件下尚無對戰紀錄'
-                          : '尚無任何對戰紀錄'}
-                    </p>
-                  </div>
+                  <>
+                    <div className="flex items-center gap-4 px-1">
+                      <span className="text-xs uppercase font-sans font-black tracking-[0.18em] text-muted-foreground shrink-0">
+                        時間軸紀錄
+                      </span>
+                      <div className="h-px bg-border flex-1" />
+                    </div>
+                    <div className="text-center py-16 arena-surface border-dashed">
+                      <Trophy size={32} className="mx-auto text-muted-foreground/40 mb-3" aria-hidden="true" />
+                      <p className="text-muted-foreground font-bold text-sm">
+                        {debouncedSearch
+                          ? `找不到符合「${debouncedSearch}」的比賽`
+                          : filter !== 'all' || matchTypeFilter !== 'all'
+                            ? '此篩選條件下尚無對戰紀錄'
+                            : '尚無任何對戰紀錄'}
+                      </p>
+                    </div>
+                  </>
                 ) : (
-                  <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="space-y-3"
-                  >
-                    {matches.map((match: MatchFeedItem) => (
-                      <motion.div key={match.id} variants={itemVariants}>
-                        <MatchItem match={match} />
-                      </motion.div>
-                    ))}
-                  </motion.div>
+                  groupedMatches.map((dateGroup) => (
+                    <div key={dateGroup.key} className="space-y-2.5">
+                      <div className="flex items-center gap-3 px-1">
+                        <span className="text-xs font-display font-black tracking-wide text-foreground shrink-0">
+                          {dateGroup.label}
+                        </span>
+                        <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                          {dateGroup.items.length} 場
+                        </span>
+                        <div className="h-px bg-border flex-1" />
+                      </div>
+                      <div className="space-y-2">
+                        {dateGroup.items.map((match: MatchFeedItem) => (
+                          <MatchItem
+                            key={match.id}
+                            match={match}
+                            variant="personal"
+                            timeDisplay="clock"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))
                 )}
               </section>
 
