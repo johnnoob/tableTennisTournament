@@ -286,7 +286,7 @@ export function Dashboard() {
   const { data: recentFeed = [], isPending: isFeedLoading } = useQuery({
     queryKey: ['matches', 'recent'],
     queryFn: async () => {
-      const res = await apiClient.get<MatchFeedItem[]>('/matches/recent');
+      const res = await apiClient.get<MatchFeedItem[]>('/matches/recent?limit=8');
       return res.data;
     },
     refetchInterval: 10000,
@@ -871,25 +871,28 @@ export function Dashboard() {
                 )}
 
                 <motion.section variants={itemVariants} className="space-y-4">
-                  <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center justify-between gap-2 px-1">
                     <div>
-                      <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
-                        近期戰報動態
-                      </h2>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
+                          近期戰報動態
+                        </h2>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 border border-sapphire-blue/20">
+                          全部戰報
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
-                        Recent Feed · Live Updates
+                        All-Club Live Feed · 所有同仁最新對戰
                       </p>
                     </div>
-                    {isLoggedIn && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="text-xs font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3"
-                        onClick={() => navigate('/history')}
-                      >
-                        查看全部
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-xs font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3 shrink-0"
+                      onClick={() => navigate('/history?scope=all')}
+                    >
+                      查看全部
+                    </Button>
                   </div>
 
                   {recentFeed.length > 0 ? (

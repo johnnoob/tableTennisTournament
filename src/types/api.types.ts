@@ -21,6 +21,7 @@ export interface MatchPlayer {
   id: string;
   name: string;
   avatar?: string | null;
+  department?: string | null;
 }
 
 export interface MatchFeedItem {

@@ -245,11 +245,35 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
         
     return result
 
+def _serialize_player(user: User) -> dict:
+    return {
+        "id": str(user.id),
+        "name": user.name,
+        "avatar": user.avatar_url,
+        "department": user.department,
+    }
+
+
+def _load_users_for_matches(session: Session, matches: list[Match]) -> dict[UUID, User]:
+    uids: set[UUID] = set()
+    for m in matches:
+        uids.add(m.team_a_p1_id)
+        uids.add(m.team_b_p1_id)
+        if m.team_a_p2_id:
+            uids.add(m.team_a_p2_id)
+        if m.team_b_p2_id:
+            uids.add(m.team_b_p2_id)
+    if not uids:
+        return {}
+    users = session.exec(select(User).where(User.id.in_(list(uids)))).all()
+    return {u.id: u for u in users}
+
+
 @router.get("/api/users/me/matches", summary="取得我的個人完整對戰紀錄")
 def get_my_matches(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-    limit: int = 20,
+    limit: int = 50,
     offset: int = 0,
     result_filter: str = "all",
     match_type: str = "all",
@@ -265,6 +289,7 @@ def get_my_matches(
     ).order_by(Match.created_at.desc())
 
     all_matches = session.exec(statement).all()
+    user_map = _load_users_for_matches(session, all_matches)
     q = search.strip().lower()
 
     result = []
@@ -273,8 +298,8 @@ def get_my_matches(
         if match_type in ("singles", "doubles") and m_type != match_type:
             continue
 
-        team_a_p1 = session.get(User, m.team_a_p1_id)
-        team_b_p1 = session.get(User, m.team_b_p1_id)
+        team_a_p1 = user_map.get(m.team_a_p1_id)
+        team_b_p1 = user_map.get(m.team_b_p1_id)
         if not team_a_p1 or not team_b_p1:
             continue
 
@@ -286,22 +311,20 @@ def get_my_matches(
         if result_filter == "win" and not i_won: continue
         if result_filter == "loss" and i_won: continue
 
-        player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
-        opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
+        player1_data = [_serialize_player(team_a_p1)]
+        opponent_data = [_serialize_player(team_b_p1)]
         involved_users = [team_a_p1, team_b_p1]
 
-        team_a_p2 = None
-        team_b_p2 = None
         if m.match_type == "doubles":
             if m.team_a_p2_id:
-                team_a_p2 = session.get(User, m.team_a_p2_id)
+                team_a_p2 = user_map.get(m.team_a_p2_id)
                 if team_a_p2:
-                    player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+                    player1_data.append(_serialize_player(team_a_p2))
                     involved_users.append(team_a_p2)
             if m.team_b_p2_id:
-                team_b_p2 = session.get(User, m.team_b_p2_id)
+                team_b_p2 = user_map.get(m.team_b_p2_id)
                 if team_b_p2:
-                    opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+                    opponent_data.append(_serialize_player(team_b_p2))
                     involved_users.append(team_b_p2)
 
         if q and not any(
@@ -332,11 +355,89 @@ def get_my_matches(
     paginated = result[offset: offset + limit]
     return {"total": total, "matches": paginated, "hasMore": (offset + limit) < total}
 
+
+@router.get("/api/matches/history", summary="取得全部完整對戰紀錄")
+def get_all_matches_history(
+    session: Session = Depends(get_session),
+    limit: int = 50,
+    offset: int = 0,
+    status_filter: str = "all",
+    match_type: str = "all",
+    search: str = ""
+):
+    statement = select(Match).order_by(Match.created_at.desc())
+    all_matches = session.exec(statement).all()
+    user_map = _load_users_for_matches(session, all_matches)
+    q = search.strip().lower()
+
+    result = []
+    for m in all_matches:
+        m_type = m.match_type if m.match_type else "singles"
+        if match_type in ("singles", "doubles") and m_type != match_type:
+            continue
+
+        if status_filter == "confirmed" and m.status not in ("confirmed", "completed"):
+            continue
+        if status_filter == "pending" and m.status != "pending":
+            continue
+
+        team_a_p1 = user_map.get(m.team_a_p1_id)
+        team_b_p1 = user_map.get(m.team_b_p1_id)
+        if not team_a_p1 or not team_b_p1:
+            continue
+
+        player1_data = [_serialize_player(team_a_p1)]
+        opponent_data = [_serialize_player(team_b_p1)]
+        involved_users = [team_a_p1, team_b_p1]
+
+        if m.match_type == "doubles":
+            if m.team_a_p2_id:
+                team_a_p2 = user_map.get(m.team_a_p2_id)
+                if team_a_p2:
+                    player1_data.append(_serialize_player(team_a_p2))
+                    involved_users.append(team_a_p2)
+            if m.team_b_p2_id:
+                team_b_p2 = user_map.get(m.team_b_p2_id)
+                if team_b_p2:
+                    opponent_data.append(_serialize_player(team_b_p2))
+                    involved_users.append(team_b_p2)
+
+        if q and not any(
+            q in (u.name or "").lower() or q in (u.department or "").lower()
+            for u in involved_users
+        ):
+            continue
+
+        a_won = m.score_a > m.score_b
+        delta = m.mmr_exchanged if m.mmr_exchanged else 0
+        a_change = round(delta) if a_won else -round(delta)
+        b_change = -round(delta) if a_won else round(delta)
+
+        result.append({
+            "id": str(m.id),
+            "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "score": [m.score_a, m.score_b],
+            "result": "win" if a_won else "loss",
+            "status": m.status,
+            "type": m_type,
+            "tournament": "雙打積分賽" if m.match_type == "doubles" else "單打積分賽",
+            "mmrChange": [a_change, b_change],
+            "player1": player1_data,
+            "opponent": opponent_data,
+        })
+
+    total = len(result)
+    paginated = result[offset: offset + limit]
+    return {"total": total, "matches": paginated, "hasMore": (offset + limit) < total}
+
+
 @router.get("/api/matches/recent", summary="取得最近的比賽紀錄 (Recent Feed)")
-def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
+def get_recent_matches(limit: int = 8, session: Session = Depends(get_session)):
     statement = select(Match).order_by(Match.created_at.desc()).limit(limit)
     recent_matches = session.exec(statement).all()
-    
+    user_map = _load_users_for_matches(session, recent_matches)
+
     # 批次計算 Career Matches 以供 Pending 預覽用
     involved_uids = set()
     for m in recent_matches:
@@ -349,23 +450,23 @@ def get_recent_matches(limit: int = 5, session: Session = Depends(get_session)):
 
     result = []
     for m in recent_matches:
-        team_a_p1 = session.get(User, m.team_a_p1_id)
-        team_b_p1 = session.get(User, m.team_b_p1_id)
-        
+        team_a_p1 = user_map.get(m.team_a_p1_id)
+        team_b_p1 = user_map.get(m.team_b_p1_id)
+
         if not team_a_p1 or not team_b_p1: continue
 
-        player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
-        opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
+        player1_data = [_serialize_player(team_a_p1)]
+        opponent_data = [_serialize_player(team_b_p1)]
 
         team_a_p2 = None
         team_b_p2 = None
         if m.match_type == "doubles":
             if m.team_a_p2_id:
-                team_a_p2 = session.get(User, m.team_a_p2_id)
-                if team_a_p2: player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
+                team_a_p2 = user_map.get(m.team_a_p2_id)
+                if team_a_p2: player1_data.append(_serialize_player(team_a_p2))
             if m.team_b_p2_id:
-                team_b_p2 = session.get(User, m.team_b_p2_id)
-                if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
+                team_b_p2 = user_map.get(m.team_b_p2_id)
+                if team_b_p2: opponent_data.append(_serialize_player(team_b_p2))
 
         is_a_win = m.score_a > m.score_b
         
