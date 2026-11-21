@@ -180,6 +180,7 @@ export function ReportScore({
   const [activeSlot, setActiveSlot] = React.useState<ActiveSlot | null>(() =>
     findInitialSlot(initialMatchType, initialPartnerId, initialOpponentId, initialOpponent2Id)
   );
+  const [showAllQuickItems, setShowAllQuickItems] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const resetTimerRef = React.useRef<number | null>(null);
 
@@ -209,6 +210,7 @@ export function ReportScore({
           nextType === 'doubles' ? initialOpponent2Id : null
         )
       );
+      setShowAllQuickItems(false);
       setIsSuccess(false);
     },
     [initialFormat, initialMatchType, initialOpponent2Id, initialOpponentId, initialPartnerId, initialScoreA, initialScoreB]
@@ -373,6 +375,11 @@ export function ReportScore({
     () => quickItems.filter((item) => item.matchType === matchType),
     [quickItems, matchType]
   );
+  const defaultQuickLimit = matchType === 'doubles' ? 4 : 6;
+  const hasMoreQuickItems = filteredQuickItems.length > defaultQuickLimit;
+  const visibleQuickItems = showAllQuickItems
+    ? filteredQuickItems
+    : filteredQuickItems.slice(0, defaultQuickLimit);
 
   const findNextEmptySlot = (
     nextPartner: string | null,
@@ -674,6 +681,7 @@ export function ReportScore({
                 setOpponent1Id(null);
                 setOpponent2Id(null);
                 setActiveSlot(nextType === 'doubles' ? 'partner' : 'opp1');
+                setShowAllQuickItems(false);
               }}
               className="w-full"
             >
@@ -694,15 +702,26 @@ export function ReportScore({
             </Tabs>
           )}
 
-          {/* ⚡ 快速帶入常用組合（依目前賽制過濾，精簡單排） */}
+          {/* ⚡ 快速帶入常用組合（依目前賽制過濾，自動換行不截斷） */}
           {!editMode && filteredQuickItems.length > 0 && (
             <div className="space-y-1.5 min-w-0">
-              <p className="text-xs font-black text-muted-foreground flex items-center gap-1">
-                <Zap size={12} className="text-smash-orange" aria-hidden="true" />
-                快速帶入
-              </p>
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                {filteredQuickItems.slice(0, 8).map((item) => {
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-black text-muted-foreground flex items-center gap-1">
+                  <Zap size={12} className="text-smash-orange" aria-hidden="true" />
+                  快速帶入
+                </p>
+                {hasMoreQuickItems && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllQuickItems((prev) => !prev)}
+                    className="text-xs font-black text-sapphire-blue hover:underline shrink-0"
+                  >
+                    {showAllQuickItems ? '收合' : `顯示全部 (${filteredQuickItems.length})`}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {visibleQuickItems.map((item) => {
                   const isActive = currentLineupSignature === item.signature;
                   const avatarPlayer =
                     item.matchType === 'doubles' ? item.partner : item.opponent1;
@@ -718,9 +737,10 @@ export function ReportScore({
                     <button
                       key={item.key}
                       type="button"
+                      title={chipLabel}
                       onClick={() => handleApplyQuickItem(item)}
                       className={cn(
-                        'shrink-0 h-9 px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 transition-all',
+                        'max-w-full min-w-0 min-h-9 px-2.5 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 transition-all text-left',
                         isActive
                           ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:bg-blue-500/20 dark:border-blue-400 dark:text-blue-300'
                           : item.isCustom
@@ -731,7 +751,7 @@ export function ReportScore({
                       <PlayerAvatar
                         src={avatarPlayer?.avatar}
                         name={avatarPlayer?.name || '球'}
-                        className="size-5 rounded-md text-[10px]"
+                        className="size-5 rounded-md text-[10px] shrink-0"
                       />
                       {item.isCustom && (
                         <Star
@@ -741,7 +761,7 @@ export function ReportScore({
                           aria-hidden="true"
                         />
                       )}
-                      <span className="truncate max-w-[180px]">{chipLabel}</span>
+                      <span className="truncate">{chipLabel}</span>
                     </button>
                   );
                 })}

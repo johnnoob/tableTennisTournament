@@ -170,12 +170,12 @@ export function ResponsiveFormModal({
               <form
                 onSubmit={onSubmit}
                 aria-labelledby={titleId}
-                className="flex flex-col flex-1 min-h-0 overflow-hidden"
+                className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden"
               >
                 {contentNodes}
               </form>
             ) : (
-              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
                 {contentNodes}
               </div>
             )}
