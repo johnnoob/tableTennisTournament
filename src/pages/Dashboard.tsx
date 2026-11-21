@@ -924,13 +924,13 @@ export function Dashboard() {
                               setIsFeedSectionCollapsed(false);
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                              'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all whitespace-nowrap',
                               feedScope === 'all'
                                 ? 'bg-card text-foreground shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
-                            <Globe size={12} aria-hidden="true" />
+                            <Globe size={13} aria-hidden="true" />
                             <span>全部</span>
                           </button>
                           <button
@@ -946,18 +946,18 @@ export function Dashboard() {
                               setIsFeedSectionCollapsed(false);
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                              'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all whitespace-nowrap',
                               feedScope === 'mine'
                                 ? 'bg-card text-foreground shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
-                            <UserCheck size={12} aria-hidden="true" />
+                            <UserCheck size={13} aria-hidden="true" />
                             <span>個人</span>
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground font-sans font-bold mt-0.5">
+                      <p className="text-xs text-muted-foreground font-sans font-bold mt-1">
                         {feedScope === 'all' ? 'All-Club Live Feed' : 'My Recent Matches'}
                         {activeFeedMatches.length > 0 && (
                           <>
@@ -974,7 +974,7 @@ export function Dashboard() {
                         type="button"
                         aria-expanded={!isFeedSectionCollapsed}
                         onClick={() => setIsFeedSectionCollapsed((prev) => !prev)}
-                        className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                       >
                         <span>{isFeedSectionCollapsed ? '展開' : '收合'}</span>
                         {isFeedSectionCollapsed ? (
@@ -986,7 +986,7 @@ export function Dashboard() {
                       <Button
                         type="button"
                         variant="ghost"
-                        className="h-8 text-xs font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3"
+                        className="h-8 text-xs sm:text-sm font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3 whitespace-nowrap"
                         onClick={() =>
                           navigate(feedScope === 'mine' ? '/history?scope=mine' : '/history?scope=all')
                         }

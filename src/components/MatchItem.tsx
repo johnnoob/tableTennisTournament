@@ -102,7 +102,7 @@ function TeamNames({
   align?: 'left' | 'right';
 }) {
   if (players.length === 0) {
-    return <span className="font-display font-bold text-muted-foreground text-xs">載入中...</span>;
+    return <span className="font-display font-bold text-muted-foreground text-xs sm:text-sm">載入中...</span>;
   }
 
   if (players.length === 1) {
@@ -227,12 +227,12 @@ export function MatchItem({
             aria-label="發起再戰"
             title="再戰"
             className={cn(
-              'inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0',
-              iconOnly ? 'size-7' : 'gap-1 h-7 px-2.5 text-xs',
+              'inline-flex items-center justify-center rounded-xl bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0 whitespace-nowrap',
+              iconOnly ? 'size-8' : 'gap-1.5 h-8 px-3 text-xs',
               className,
             )}
           >
-            <RotateCcw size={iconOnly ? 13 : 11} aria-hidden="true" />
+            <RotateCcw size={iconOnly ? 14 : 12} aria-hidden="true" />
             {!iconOnly && <span>再戰</span>}
           </button>
         }
@@ -241,23 +241,25 @@ export function MatchItem({
   };
 
   if (variant === 'feed') {
-    const typePillDesktop = isDoubles ? (
-      <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+    const typePill = isDoubles ? (
+      <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap shrink-0">
         雙打
       </span>
     ) : (
-      <span className="text-[11px] font-bold text-muted-foreground/80 leading-none">單打</span>
+      <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap shrink-0">
+        單打
+      </span>
     );
 
     const statusBadge = isPending ? (
-      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 shrink-0">
+      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
         待確認
       </span>
     ) : isDisputed ? (
       <button
         type="button"
         onClick={handleShowDisputeInfo}
-        className="px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors shrink-0"
+        className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors whitespace-nowrap shrink-0 leading-none"
       >
         申訴中
       </button>
@@ -265,31 +267,31 @@ export function MatchItem({
 
     return (
       <div className="transition-colors hover:bg-surface-subtle/60 group">
-        {/* Desktop: Compact Single-Row Scoreboard */}
-        <div className="hidden md:grid md:grid-cols-[112px_minmax(0,1fr)_108px] items-center gap-3 px-4 py-3">
+        {/* Desktop: Unified 3-Column Alignment matching MatchSeriesItem */}
+        <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_176px] items-center gap-4 px-5 py-3.5">
           {/* Left Meta */}
           <div className="min-w-0">
-            <p className="text-xs font-bold text-muted-foreground tabular-nums truncate">
+            <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
               {displayTime}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
-              {typePillDesktop}
+              {typePill}
               {matchFormat === 'BO5' && (
-                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                <span className="px-2 py-0.5 rounded-md bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap shrink-0">
                   BO5
                 </span>
               )}
             </div>
           </div>
 
-          {/* Center Tight Matchup Stage */}
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 min-w-0">
-            {/* Team 1 (Right-Aligned toward Center Score) */}
+          {/* Center Tight Matchup Stage (Fixed w-[96px] score axis) */}
+          <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
+            {/* Team 1 */}
             <div className="flex items-center justify-end gap-2.5 min-w-0">
               {isSettled && p1Change !== 0 && (
                 <span
                   className={cn(
-                    'text-[11px] font-display font-black tabular-nums shrink-0',
+                    'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap shrink-0',
                     p1Change > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-rose-500 dark:text-rose-400',
@@ -303,39 +305,39 @@ export function MatchItem({
                 onInspect={openInspect}
                 align="right"
                 className={cn(
-                  'font-display text-sm',
+                  'font-display text-sm sm:text-base',
                   p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
                 )}
               />
               <TeamAvatars
                 players={player1}
                 onInspect={openInspect}
-                avatarClassName="size-8 rounded-xl text-xs"
+                avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
                 overlapClassName="-space-x-2.5"
-                placeholderClassName="size-8"
+                placeholderClassName="size-9 sm:size-10"
                 wonRing={p1Won && isSettled}
               />
             </div>
 
             {/* Center Score Pill */}
-            <div className="px-2.5 py-1 rounded-xl bg-surface-subtle border border-border/80 flex items-center gap-1.5 font-display font-black text-base tabular-nums shrink-0">
+            <div className="w-[96px] py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1.5 font-display font-black text-xl sm:text-2xl tabular-nums shrink-0 leading-none">
               <span className={p1Won ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {score[0]}
               </span>
-              <span className="text-muted-foreground/40 text-xs">:</span>
+              <span className="text-muted-foreground/40 text-sm">:</span>
               <span className={p2Won ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {score[1]}
               </span>
             </div>
 
-            {/* Team 2 (Left-Aligned from Center Score) */}
+            {/* Team 2 */}
             <div className="flex items-center justify-start gap-2.5 min-w-0">
               <TeamAvatars
                 players={opponent}
                 onInspect={openInspect}
-                avatarClassName="size-8 rounded-xl text-xs"
+                avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
                 overlapClassName="-space-x-2.5"
-                placeholderClassName="size-8"
+                placeholderClassName="size-9 sm:size-10"
                 wonRing={p2Won && isSettled}
               />
               <TeamNames
@@ -343,14 +345,14 @@ export function MatchItem({
                 onInspect={openInspect}
                 align="left"
                 className={cn(
-                  'font-display text-sm',
+                  'font-display text-sm sm:text-base',
                   p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
                 )}
               />
               {isSettled && p2Change !== 0 && (
                 <span
                   className={cn(
-                    'text-[11px] font-display font-black tabular-nums shrink-0',
+                    'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap shrink-0',
                     p2Change > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-rose-500 dark:text-rose-400',
@@ -363,24 +365,22 @@ export function MatchItem({
           </div>
 
           {/* Right Status / Rematch */}
-          <div className="flex items-center justify-end gap-1.5 shrink-0">
+          <div className="flex items-center justify-end gap-2 shrink-0">
             {statusBadge}
             {renderRematchAction({
               iconOnly: isPending || isDisputed,
-              className: isSettled
-                ? 'opacity-85 group-hover:opacity-100 rounded-xl'
-                : undefined,
+              className: isSettled ? 'opacity-90 group-hover:opacity-100' : undefined,
             })}
           </div>
         </div>
 
         {/* Mobile: Apple Sports Stacked 2-Row Scoreboard */}
-        <div className="md:hidden px-3.5 py-3 space-y-2">
+        <div className="md:hidden px-3.5 py-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground min-w-0">
-              {typePillDesktop}
+            <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground min-w-0">
+              {typePill}
               {matchFormat === 'BO5' && (
-                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap">
                   BO5
                 </span>
               )}
@@ -389,34 +389,34 @@ export function MatchItem({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {statusBadge}
-              {renderRematchAction({ className: 'h-6 px-2 text-[11px]' })}
+              {renderRematchAction({ className: 'h-7 px-2.5 text-xs rounded-lg' })}
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {/* Team 1 Row */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <TeamAvatars
                   players={player1}
                   onInspect={openInspect}
-                  avatarClassName="size-7 rounded-lg text-[11px]"
+                  avatarClassName="size-8 rounded-lg text-xs"
                   overlapClassName="-space-x-2"
-                  placeholderClassName="size-7"
+                  placeholderClassName="size-8"
                 />
                 <TeamNames
                   players={player1}
                   onInspect={openInspect}
                   align="left"
                   className={cn(
-                    'font-display text-sm',
+                    'font-display text-sm sm:text-base',
                     p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
                   )}
                 />
                 {isSettled && p1Change !== 0 && (
                   <span
                     className={cn(
-                      'text-xs font-display font-black tabular-nums shrink-0',
+                      'text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0',
                       p1Change > 0
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-rose-500 dark:text-rose-400',
@@ -429,11 +429,11 @@ export function MatchItem({
               <div className="flex items-center gap-1.5 shrink-0">
                 <span
                   aria-hidden="true"
-                  className={cn('size-1.5 rounded-full', p1Won ? 'bg-emerald-500' : 'bg-transparent')}
+                  className={cn('size-2 rounded-full', p1Won ? 'bg-emerald-500' : 'bg-transparent')}
                 />
                 <span
                   className={cn(
-                    'font-display font-black text-lg tabular-nums w-5 text-right leading-none',
+                    'font-display font-black text-xl tabular-nums w-6 text-right leading-none',
                     p1Won ? 'text-foreground' : 'text-muted-foreground/55',
                   )}
                 >
@@ -448,23 +448,23 @@ export function MatchItem({
                 <TeamAvatars
                   players={opponent}
                   onInspect={openInspect}
-                  avatarClassName="size-7 rounded-lg text-[11px]"
+                  avatarClassName="size-8 rounded-lg text-xs"
                   overlapClassName="-space-x-2"
-                  placeholderClassName="size-7"
+                  placeholderClassName="size-8"
                 />
                 <TeamNames
                   players={opponent}
                   onInspect={openInspect}
                   align="left"
                   className={cn(
-                    'font-display text-sm',
+                    'font-display text-sm sm:text-base',
                     p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
                   )}
                 />
                 {isSettled && p2Change !== 0 && (
                   <span
                     className={cn(
-                      'text-xs font-display font-black tabular-nums shrink-0',
+                      'text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0',
                       p2Change > 0
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-rose-500 dark:text-rose-400',
@@ -477,11 +477,11 @@ export function MatchItem({
               <div className="flex items-center gap-1.5 shrink-0">
                 <span
                   aria-hidden="true"
-                  className={cn('size-1.5 rounded-full', p2Won ? 'bg-emerald-500' : 'bg-transparent')}
+                  className={cn('size-2 rounded-full', p2Won ? 'bg-emerald-500' : 'bg-transparent')}
                 />
                 <span
                   className={cn(
-                    'font-display font-black text-lg tabular-nums w-5 text-right leading-none',
+                    'font-display font-black text-xl tabular-nums w-6 text-right leading-none',
                     p2Won ? 'text-foreground' : 'text-muted-foreground/55',
                   )}
                 >
@@ -529,13 +529,15 @@ export function MatchItem({
         : 'text-rose-600 dark:text-rose-400';
 
   const deltaNode = isPending ? (
-    <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80">待結算</span>
+    <span className="text-xs font-bold text-amber-600/85 dark:text-amber-300/85 whitespace-nowrap">
+      待結算
+    </span>
   ) : isDisputed ? (
-    <span className="text-[11px] font-bold text-rose-500/80">審核中</span>
+    <span className="text-xs font-bold text-rose-500/85 whitespace-nowrap">審核中</span>
   ) : myDelta !== 0 ? (
     <span
       className={cn(
-        'text-xs font-display font-black tabular-nums',
+        'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap',
         myDelta > 0
           ? 'text-emerald-600 dark:text-emerald-400'
           : 'text-rose-600 dark:text-rose-400',
@@ -544,7 +546,9 @@ export function MatchItem({
       {formatDelta(myDelta)} 分
     </span>
   ) : (
-    <span className="text-xs font-bold text-muted-foreground tabular-nums">0 分</span>
+    <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+      0 分
+    </span>
   );
 
   return (
@@ -553,28 +557,28 @@ export function MatchItem({
 
       <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
         {/* Desktop / Tablet Single Row */}
-        <div className="hidden sm:flex items-center justify-between gap-3 md:gap-4 px-4 py-3">
+        <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
           {/* 1. Result + ELO Column */}
-          <div className="w-[76px] shrink-0 flex flex-col">
-            <span className={cn('text-xs font-display font-black tracking-wider leading-tight', resultColorClass)}>
+          <div className="w-[88px] shrink-0 flex flex-col">
+            <span className={cn('text-sm sm:text-base font-display font-black tracking-wider leading-tight whitespace-nowrap', resultColorClass)}>
               {resultLabel}
             </span>
             <div className="mt-0.5 leading-tight">{deltaNode}</div>
           </div>
 
           {/* 2. Score Pill (My Score : Rival Score) */}
-          <div className="w-[68px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
-            <div className="font-display font-black text-lg leading-none tabular-nums flex items-center gap-1">
+          <div className="w-[84px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
+            <div className="font-display font-black text-xl sm:text-2xl leading-none tabular-nums flex items-center gap-1">
               <span className={iWon ? 'text-foreground' : 'text-muted-foreground/70'}>
                 {myScore}
               </span>
-              <span className="text-muted-foreground/40 text-xs">:</span>
+              <span className="text-muted-foreground/40 text-sm">:</span>
               <span className={!iWon ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {rivalScore}
               </span>
             </div>
             {matchFormat === 'BO5' && (
-              <span className="text-[10px] font-black text-muted-foreground leading-none mt-1">
+              <span className="text-xs font-black text-muted-foreground leading-none mt-1 whitespace-nowrap">
                 BO5
               </span>
             )}
@@ -585,29 +589,29 @@ export function MatchItem({
             <TeamAvatars
               players={rivalTeam}
               onInspect={openInspect}
-              avatarClassName="size-9 md:size-10 rounded-xl text-xs"
+              avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
               overlapClassName="-space-x-2.5"
-              placeholderClassName="size-9 md:size-10"
+              placeholderClassName="size-10 sm:size-11"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[11px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
                   VS
                 </span>
                 <TeamNames
                   players={rivalTeam}
                   onInspect={openInspect}
                   align="left"
-                  className="text-sm md:text-base font-display font-black text-foreground"
+                  className="text-base sm:text-lg font-display font-black text-foreground"
                 />
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <div className="flex items-center gap-2 flex-wrap mt-1">
                 {isDoubles ? (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
                     雙打
                   </span>
                 ) : (
-                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
+                  <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
                     單打
                   </span>
                 )}
@@ -616,13 +620,13 @@ export function MatchItem({
                     type="button"
                     onClick={() => openInspect(myPartner.id)}
                     disabled={!myPartner.id}
-                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[170px] transition-colors leading-none"
+                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[180px] transition-colors leading-none"
                   >
                     · 搭檔：{myPartner.name}
                   </button>
                 )}
                 {isPending && (
-                  <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80 leading-none">
+                  <span className="text-xs font-bold text-amber-600/85 dark:text-amber-300/85 leading-none whitespace-nowrap">
                     (暫定{iWon ? '勝' : '敗'})
                   </span>
                 )}
@@ -631,50 +635,52 @@ export function MatchItem({
           </div>
 
           {/* 4. Time & Actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-muted-foreground tabular-nums">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
               {displayTime}
             </span>
             {isDisputed && (
               <button
                 type="button"
                 onClick={handleShowDisputeInfo}
-                className="h-8 px-2.5 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors"
+                className="h-8 px-3 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors whitespace-nowrap"
               >
                 申訴細節
               </button>
             )}
-            {renderRematchAction({ className: 'h-8 px-2.5 rounded-xl text-xs' })}
+            {renderRematchAction({})}
           </div>
         </div>
 
         {/* Mobile Compact Personal Card */}
-        <div className="sm:hidden px-3 py-2.5 space-y-2">
+        <div className="sm:hidden px-3.5 py-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <span className={cn('text-xs font-display font-black tracking-wider', resultColorClass)}>
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <span className={cn('text-sm font-display font-black tracking-wider whitespace-nowrap', resultColorClass)}>
                 {resultLabel}
               </span>
               {deltaNode}
               {isDoubles ? (
-                <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
                   雙打
                 </span>
               ) : (
-                <span className="text-[11px] font-bold text-muted-foreground leading-none">單打</span>
+                <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
+                  單打
+                </span>
               )}
               {matchFormat === 'BO5' && (
-                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap">
                   BO5
                 </span>
               )}
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+              <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                 {displayTime}
               </span>
-              {renderRematchAction({ className: 'h-6 px-2 text-[11px]' })}
+              {renderRematchAction({ className: 'h-7 px-2.5 text-xs rounded-lg' })}
             </div>
           </div>
 
@@ -683,20 +689,20 @@ export function MatchItem({
               <TeamAvatars
                 players={rivalTeam}
                 onInspect={openInspect}
-                avatarClassName="size-9 rounded-xl text-xs"
+                avatarClassName="size-10 rounded-xl text-xs"
                 overlapClassName="-space-x-2"
-                placeholderClassName="size-9"
+                placeholderClassName="size-10"
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 min-w-0">
-                  <span className="text-[10px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
                     VS
                   </span>
                   <TeamNames
                     players={rivalTeam}
                     onInspect={openInspect}
                     align="left"
-                    className="text-sm font-display font-black text-foreground"
+                    className="text-base font-display font-black text-foreground"
                   />
                 </div>
                 {isDoubles && myPartner && (
@@ -704,7 +710,7 @@ export function MatchItem({
                     type="button"
                     onClick={() => openInspect(myPartner.id)}
                     disabled={!myPartner.id}
-                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
+                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
                   >
                     搭檔：{myPartner.name}
                   </button>
@@ -712,11 +718,11 @@ export function MatchItem({
               </div>
             </div>
 
-            <div className="shrink-0 px-2.5 py-1 rounded-xl bg-card border border-border/80 font-display font-black text-lg leading-none tabular-nums">
+            <div className="shrink-0 px-3 py-1.5 rounded-xl bg-card border border-border/80 font-display font-black text-xl leading-none tabular-nums">
               <span className={iWon ? 'text-foreground' : 'text-muted-foreground/65'}>
                 {myScore}
               </span>
-              <span className="text-muted-foreground/40 text-xs mx-0.5">:</span>
+              <span className="text-muted-foreground/40 text-sm mx-0.5">:</span>
               <span className={!iWon ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {rivalScore}
               </span>
@@ -727,7 +733,7 @@ export function MatchItem({
             <button
               type="button"
               onClick={handleShowDisputeInfo}
-              className="w-full h-9 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors"
+              className="w-full h-9 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors whitespace-nowrap"
             >
               檢視申訴細節
             </button>
@@ -814,11 +820,11 @@ export function MatchSeriesItem({
             aria-label="發起再戰"
             title="再戰"
             className={cn(
-              'inline-flex items-center justify-center gap-1 rounded-lg bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0',
-              compact ? 'h-6 px-2 text-[11px]' : 'h-7 px-2.5 text-xs rounded-xl',
+              'inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0 whitespace-nowrap',
+              compact ? 'h-7 px-2.5 text-xs rounded-lg' : 'h-8 px-3 text-xs',
             )}
           >
-            <RotateCcw size={11} aria-hidden="true" />
+            <RotateCcw size={12} aria-hidden="true" />
             <span>再戰</span>
           </button>
         }
@@ -832,37 +838,39 @@ export function MatchSeriesItem({
 
     return (
       <div className="transition-colors">
-        <div className="px-3.5 md:px-4 py-3 hover:bg-surface-subtle/60 space-y-2">
-          {/* Desktop Series Row */}
-          <div className="hidden md:grid md:grid-cols-[120px_minmax(0,1fr)_124px] items-center gap-3">
+        <div className="hover:bg-surface-subtle/60">
+          {/* Desktop: Exact same 3-column grid widths as MatchItem! */}
+          <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_176px] items-center gap-4 px-5 py-3.5">
+            {/* Left Meta */}
             <div className="min-w-0">
-              <p className="text-xs font-bold text-muted-foreground tabular-nums truncate">
+              <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
                 {displayTime}
               </p>
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {isDoubles ? (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
                     雙打
                   </span>
                 ) : (
-                  <span className="text-[11px] font-bold text-muted-foreground/80 leading-none">
+                  <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
                     單打
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
-                  <Layers size={10} aria-hidden="true" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black leading-none whitespace-nowrap">
+                  <Layers size={11} aria-hidden="true" />
                   連打 {cluster.matches.length} 場
                 </span>
               </div>
             </div>
 
-            <div className="space-y-1.5 min-w-0">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 min-w-0">
+            {/* Center Alignment Axis (Exact same [minmax(0,1fr)_96px_minmax(0,1fr)]!) */}
+            <div className="space-y-2 min-w-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
                 <div className="flex items-center justify-end gap-2.5 min-w-0">
                   {cluster.team1NetDelta !== 0 && (
                     <span
                       className={cn(
-                        'text-[11px] font-display font-black tabular-nums shrink-0',
+                        'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap shrink-0',
                         cluster.team1NetDelta > 0
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-500 dark:text-rose-400',
@@ -876,7 +884,7 @@ export function MatchSeriesItem({
                     onInspect={openInspect}
                     align="right"
                     className={cn(
-                      'font-display text-sm',
+                      'font-display text-sm sm:text-base',
                       t1Lead || !t2Lead
                         ? 'font-black text-foreground'
                         : 'font-bold text-muted-foreground',
@@ -885,14 +893,14 @@ export function MatchSeriesItem({
                   <TeamAvatars
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
-                    avatarClassName="size-8 rounded-xl text-xs"
+                    avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
                     overlapClassName="-space-x-2.5"
-                    placeholderClassName="size-8"
+                    placeholderClassName="size-9 sm:size-10"
                     wonRing={t1Lead && cluster.allSettled}
                   />
                 </div>
 
-                <div className="px-2.5 py-1 rounded-xl bg-surface-subtle border border-border/80 flex items-center gap-1.5 font-display font-black text-sm tabular-nums shrink-0">
+                <div className="w-[96px] py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1 font-display font-black text-sm sm:text-base tabular-nums whitespace-nowrap shrink-0 leading-none">
                   <span className={t1Lead ? 'text-foreground' : 'text-muted-foreground/70'}>
                     {cluster.team1Wins}勝
                   </span>
@@ -906,9 +914,9 @@ export function MatchSeriesItem({
                   <TeamAvatars
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
-                    avatarClassName="size-8 rounded-xl text-xs"
+                    avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
                     overlapClassName="-space-x-2.5"
-                    placeholderClassName="size-8"
+                    placeholderClassName="size-9 sm:size-10"
                     wonRing={t2Lead && cluster.allSettled}
                   />
                   <TeamNames
@@ -916,7 +924,7 @@ export function MatchSeriesItem({
                     onInspect={openInspect}
                     align="left"
                     className={cn(
-                      'font-display text-sm',
+                      'font-display text-sm sm:text-base',
                       t2Lead || !t1Lead
                         ? 'font-black text-foreground'
                         : 'font-bold text-muted-foreground',
@@ -925,7 +933,7 @@ export function MatchSeriesItem({
                   {cluster.team2NetDelta !== 0 && (
                     <span
                       className={cn(
-                        'text-[11px] font-display font-black tabular-nums shrink-0',
+                        'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap shrink-0',
                         cluster.team2NetDelta > 0
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-500 dark:text-rose-400',
@@ -943,7 +951,7 @@ export function MatchSeriesItem({
                   <span
                     key={g.match.id}
                     className={cn(
-                      'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                      'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
                       g.isPending
                         ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
                         : 'bg-surface-subtle border-border/70 text-foreground/85',
@@ -956,17 +964,56 @@ export function MatchSeriesItem({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-1.5 shrink-0">
+            {/* Right Status + Expand Button (Guaranteed no text wrapping) */}
+            <div className="flex items-center justify-end gap-2 shrink-0">
               {cluster.hasPending && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30">
-                  含待確認
+                <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
+                  待確認
                 </span>
               )}
               <button
                 type="button"
                 aria-expanded={expanded}
                 onClick={() => setExpanded((prev) => !prev)}
-                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
+              >
+                <span>{expanded ? '收合' : '明細'}</span>
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Stacked Series Summary */}
+          <div className="md:hidden px-3.5 py-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                {isDoubles ? (
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
+                    雙打
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
+                    單打
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black leading-none whitespace-nowrap">
+                  <Layers size={11} aria-hidden="true" />
+                  連打 {cluster.matches.length} 場
+                </span>
+                <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+                  · {displayTime}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setExpanded((prev) => !prev)}
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
               >
                 <span>{expanded ? '收合' : '明細'}</span>
                 <ChevronDown
@@ -976,61 +1023,23 @@ export function MatchSeriesItem({
                 />
               </button>
             </div>
-          </div>
 
-          {/* Mobile Stacked Series Summary */}
-          <div className="md:hidden space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                {isDoubles ? (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
-                    雙打
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
-                    單打
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
-                  <Layers size={10} aria-hidden="true" />
-                  連打 {cluster.matches.length} 場
-                </span>
-                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
-                  · {displayTime}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                aria-expanded={expanded}
-                onClick={() => setExpanded((prev) => !prev)}
-                className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-foreground shrink-0"
-              >
-                <span>{expanded ? '收合' : '明細'}</span>
-                <ChevronDown
-                  size={12}
-                  aria-hidden="true"
-                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
-                />
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <TeamAvatars
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
-                    avatarClassName="size-7 rounded-lg text-[11px]"
+                    avatarClassName="size-8 rounded-lg text-xs"
                     overlapClassName="-space-x-2"
-                    placeholderClassName="size-7"
+                    placeholderClassName="size-8"
                   />
                   <TeamNames
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
                     align="left"
                     className={cn(
-                      'font-display text-sm',
+                      'font-display text-sm sm:text-base',
                       t1Lead || !t2Lead
                         ? 'font-black text-foreground'
                         : 'font-bold text-muted-foreground',
@@ -1039,7 +1048,7 @@ export function MatchSeriesItem({
                   {cluster.team1NetDelta !== 0 && (
                     <span
                       className={cn(
-                        'text-xs font-display font-black tabular-nums shrink-0',
+                        'text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0',
                         cluster.team1NetDelta > 0
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-500 dark:text-rose-400',
@@ -1051,7 +1060,7 @@ export function MatchSeriesItem({
                 </div>
                 <span
                   className={cn(
-                    'font-display font-black text-base tabular-nums shrink-0',
+                    'font-display font-black text-base tabular-nums shrink-0 whitespace-nowrap',
                     t1Lead ? 'text-foreground' : 'text-muted-foreground/70',
                   )}
                 >
@@ -1060,20 +1069,20 @@ export function MatchSeriesItem({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <TeamAvatars
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
-                    avatarClassName="size-7 rounded-lg text-[11px]"
+                    avatarClassName="size-8 rounded-lg text-xs"
                     overlapClassName="-space-x-2"
-                    placeholderClassName="size-7"
+                    placeholderClassName="size-8"
                   />
                   <TeamNames
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
                     align="left"
                     className={cn(
-                      'font-display text-sm',
+                      'font-display text-sm sm:text-base',
                       t2Lead || !t1Lead
                         ? 'font-black text-foreground'
                         : 'font-bold text-muted-foreground',
@@ -1082,7 +1091,7 @@ export function MatchSeriesItem({
                   {cluster.team2NetDelta !== 0 && (
                     <span
                       className={cn(
-                        'text-xs font-display font-black tabular-nums shrink-0',
+                        'text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0',
                         cluster.team2NetDelta > 0
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-500 dark:text-rose-400',
@@ -1094,7 +1103,7 @@ export function MatchSeriesItem({
                 </div>
                 <span
                   className={cn(
-                    'font-display font-black text-base tabular-nums shrink-0',
+                    'font-display font-black text-base tabular-nums shrink-0 whitespace-nowrap',
                     t2Lead ? 'text-foreground' : 'text-muted-foreground/70',
                   )}
                 >
@@ -1108,7 +1117,7 @@ export function MatchSeriesItem({
                 <span
                   key={g.match.id}
                   className={cn(
-                    'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                    'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
                     g.isPending
                       ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
                       : 'bg-surface-subtle border-border/70 text-foreground/85',
@@ -1163,11 +1172,13 @@ export function MatchSeriesItem({
         : 'text-sapphire-blue dark:text-blue-400';
 
   const netDeltaNode = allPending ? (
-    <span className="text-[11px] font-bold text-amber-600/80 dark:text-amber-300/80">待結算</span>
+    <span className="text-xs font-bold text-amber-600/85 dark:text-amber-300/85 whitespace-nowrap">
+      待結算
+    </span>
   ) : myNetDelta !== 0 ? (
     <span
       className={cn(
-        'text-xs font-display font-black tabular-nums',
+        'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap',
         myNetDelta > 0
           ? 'text-emerald-600 dark:text-emerald-400'
           : 'text-rose-600 dark:text-rose-400',
@@ -1176,7 +1187,9 @@ export function MatchSeriesItem({
       {formatDelta(myNetDelta)} 分
     </span>
   ) : (
-    <span className="text-xs font-bold text-muted-foreground tabular-nums">0 分</span>
+    <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+      0 分
+    </span>
   );
 
   return (
@@ -1185,17 +1198,19 @@ export function MatchSeriesItem({
 
       <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
         {/* Desktop Personal Series Header */}
-        <div className="hidden sm:flex items-center justify-between gap-3 md:gap-4 px-4 py-3">
-          <div className="w-[76px] shrink-0 flex flex-col">
-            <span className={cn('text-xs font-display font-black tracking-wide leading-tight', summaryColorClass)}>
+        <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
+          <div className="w-[88px] shrink-0 flex flex-col">
+            <span className={cn('text-sm sm:text-base font-display font-black tracking-wide leading-tight whitespace-nowrap', summaryColorClass)}>
               {myWins}勝 {myLosses}敗
             </span>
             <div className="mt-0.5 leading-tight">{netDeltaNode}</div>
           </div>
 
-          <div className="w-[68px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
-            <span className="text-[10px] font-black text-sapphire-blue leading-none">連打</span>
-            <span className="font-display font-black text-base leading-tight text-foreground tabular-nums mt-0.5">
+          <div className="w-[84px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
+            <span className="text-xs font-black text-sapphire-blue leading-none whitespace-nowrap">
+              連打
+            </span>
+            <span className="font-display font-black text-sm sm:text-base leading-tight text-foreground tabular-nums mt-0.5 whitespace-nowrap">
               {cluster.matches.length} 場
             </span>
           </div>
@@ -1204,27 +1219,27 @@ export function MatchSeriesItem({
             <TeamAvatars
               players={rivalTeam}
               onInspect={openInspect}
-              avatarClassName="size-9 md:size-10 rounded-xl text-xs"
+              avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
               overlapClassName="-space-x-2.5"
-              placeholderClassName="size-9 md:size-10"
+              placeholderClassName="size-10 sm:size-11"
             />
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                <span className="text-[11px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
                   VS
                 </span>
                 <TeamNames
                   players={rivalTeam}
                   onInspect={openInspect}
                   align="left"
-                  className="text-sm md:text-base font-display font-black text-foreground"
+                  className="text-base sm:text-lg font-display font-black text-foreground"
                 />
                 {isDoubles ? (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-black leading-none">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
                     雙打
                   </span>
                 ) : (
-                  <span className="text-[11px] font-bold text-muted-foreground leading-none">
+                  <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
                     單打
                   </span>
                 )}
@@ -1233,7 +1248,7 @@ export function MatchSeriesItem({
                     type="button"
                     onClick={() => openInspect(myPartner.id)}
                     disabled={!myPartner.id}
-                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[160px] transition-colors leading-none"
+                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[180px] transition-colors leading-none"
                   >
                     · 搭檔：{myPartner.name}
                   </button>
@@ -1250,7 +1265,7 @@ export function MatchSeriesItem({
                     <span
                       key={g.match.id}
                       className={cn(
-                        'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                        'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
                         g.isPending
                           ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
                           : won
@@ -1268,7 +1283,7 @@ export function MatchSeriesItem({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-muted-foreground tabular-nums">
+            <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
               {displayTime}
             </span>
             {renderRematchButton(false)}
@@ -1276,11 +1291,11 @@ export function MatchSeriesItem({
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
             >
               <span>{expanded ? '收合' : '明細'}</span>
               <ChevronDown
-                size={13}
+                size={14}
                 aria-hidden="true"
                 className={cn('transition-transform duration-200', expanded && 'rotate-180')}
               />
@@ -1289,21 +1304,21 @@ export function MatchSeriesItem({
         </div>
 
         {/* Mobile Personal Series Header */}
-        <div className="sm:hidden px-3 py-2.5 space-y-2">
+        <div className="sm:hidden px-3.5 py-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <span className={cn('text-xs font-display font-black', summaryColorClass)}>
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <span className={cn('text-sm font-display font-black whitespace-nowrap', summaryColorClass)}>
                 {myWins}勝 {myLosses}敗
               </span>
               {netDeltaNode}
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-[10px] font-black leading-none">
-                <Layers size={10} aria-hidden="true" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black leading-none whitespace-nowrap">
+                <Layers size={11} aria-hidden="true" />
                 連打 {cluster.matches.length} 場
               </span>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+              <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                 {displayTime}
               </span>
               {renderRematchButton(true)}
@@ -1315,20 +1330,20 @@ export function MatchSeriesItem({
               <TeamAvatars
                 players={rivalTeam}
                 onInspect={openInspect}
-                avatarClassName="size-9 rounded-xl text-xs"
+                avatarClassName="size-10 rounded-xl text-xs"
                 overlapClassName="-space-x-2"
-                placeholderClassName="size-9"
+                placeholderClassName="size-10"
               />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 min-w-0">
-                  <span className="text-[10px] font-display font-black text-muted-foreground/75 uppercase shrink-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
                     VS
                   </span>
                   <TeamNames
                     players={rivalTeam}
                     onInspect={openInspect}
                     align="left"
-                    className="text-sm font-display font-black text-foreground"
+                    className="text-base font-display font-black text-foreground"
                   />
                 </div>
                 {isDoubles && myPartner && (
@@ -1336,7 +1351,7 @@ export function MatchSeriesItem({
                     type="button"
                     onClick={() => openInspect(myPartner.id)}
                     disabled={!myPartner.id}
-                    className="text-[11px] font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
+                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
                   >
                     搭檔：{myPartner.name}
                   </button>
@@ -1348,11 +1363,11 @@ export function MatchSeriesItem({
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-foreground shrink-0"
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
             >
               <span>{expanded ? '收合' : '明細'}</span>
               <ChevronDown
-                size={12}
+                size={13}
                 aria-hidden="true"
                 className={cn('transition-transform duration-200', expanded && 'rotate-180')}
               />
@@ -1369,7 +1384,7 @@ export function MatchSeriesItem({
                 <span
                   key={g.match.id}
                   className={cn(
-                    'px-2 py-0.5 rounded-md border text-[11px] font-display font-black tabular-nums',
+                    'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
                     g.isPending
                       ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
                       : won

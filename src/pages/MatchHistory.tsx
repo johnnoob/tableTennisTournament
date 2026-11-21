@@ -343,7 +343,7 @@ export function MatchHistory() {
                   aria-selected={scope === 'mine'}
                   onClick={() => setScope('mine')}
                   className={cn(
-                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all',
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap',
                     scope === 'mine'
                       ? 'bg-card text-foreground shadow-xs border border-border/60'
                       : 'text-muted-foreground hover:text-foreground',
@@ -352,7 +352,7 @@ export function MatchHistory() {
                   <UserCheck size={14} aria-hidden="true" />
                   <span>個人戰績</span>
                   {typeof myTotal === 'number' && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-black tabular-nums text-muted-foreground whitespace-nowrap">
                       {myTotal}
                     </span>
                   )}
@@ -363,7 +363,7 @@ export function MatchHistory() {
                   aria-selected={scope === 'all'}
                   onClick={() => setScope('all')}
                   className={cn(
-                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all',
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap',
                     scope === 'all'
                       ? 'bg-card text-foreground shadow-xs border border-border/60'
                       : 'text-muted-foreground hover:text-foreground',
@@ -372,20 +372,20 @@ export function MatchHistory() {
                   <Globe size={14} aria-hidden="true" />
                   <span>全部戰報</span>
                   {typeof allTotal === 'number' && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-display font-black tabular-nums text-muted-foreground">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-black tabular-nums text-muted-foreground whitespace-nowrap">
                       {allTotal}
                     </span>
                   )}
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="flex items-center gap-1.5 ml-auto flex-wrap">
                 <button
                   type="button"
                   aria-pressed={clusterSeriesEnabled}
                   onClick={() => setClusterSeriesEnabled((prev) => !prev)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border text-xs font-black transition-colors',
+                    'inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs sm:text-sm font-black transition-colors whitespace-nowrap',
                     clusterSeriesEnabled
                       ? 'bg-sapphire-blue/10 border-sapphire-blue/30 text-sapphire-blue dark:bg-blue-500/15 dark:border-blue-400/30 dark:text-blue-300'
                       : 'bg-card border-border text-muted-foreground hover:text-foreground',
@@ -399,16 +399,16 @@ export function MatchHistory() {
                   <button
                     type="button"
                     onClick={toggleAllDates}
-                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-flex items-center gap-1 h-9 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs sm:text-sm font-black text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                   >
                     {allDatesCollapsed ? (
                       <>
-                        <ChevronDown size={13} aria-hidden="true" />
+                        <ChevronDown size={14} aria-hidden="true" />
                         <span>展開全部日期</span>
                       </>
                     ) : (
                       <>
-                        <ChevronUp size={13} aria-hidden="true" />
+                        <ChevronUp size={14} aria-hidden="true" />
                         <span>收合全部日期</span>
                       </>
                     )}
@@ -588,7 +588,7 @@ export function MatchHistory() {
             ) : (
               <div className={cn('space-y-3.5 transition-opacity duration-200', isSyncingOlderMatches && 'opacity-70')}>
                 {clusterSeriesEnabled && totalClusterCount < filteredMatches.length && (
-                  <p className="text-[11px] font-bold text-muted-foreground px-1">
+                  <p className="text-xs font-bold text-muted-foreground px-1">
                     已為您將同日同組連打收疊為 {totalClusterCount} 組（原 {filteredMatches.length} 場），點擊任一日期標題亦可折疊。
                   </p>
                 )}
@@ -603,32 +603,32 @@ export function MatchHistory() {
                         type="button"
                         aria-expanded={!isCollapsed}
                         onClick={() => toggleDateCollapsed(dateSection.key)}
-                        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 transition-colors text-left"
+                        className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 transition-colors text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <ChevronDown
-                            size={15}
+                            size={16}
                             aria-hidden="true"
                             className={cn(
                               'text-muted-foreground transition-transform duration-200 shrink-0',
                               isCollapsed && '-rotate-90',
                             )}
                           />
-                          <span className="text-xs sm:text-sm font-display font-black tracking-wide text-foreground">
+                          <span className="text-sm sm:text-base font-display font-black tracking-wide text-foreground whitespace-nowrap">
                             {dateSection.label}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-card border border-border text-[11px] font-bold text-muted-foreground tabular-nums">
+                          <span className="px-2 py-0.5 rounded-full bg-card border border-border text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                             {dateSection.items.length} 場
                           </span>
                           {clusterSeriesEnabled &&
                             dateSection.clusters.length < dateSection.items.length && (
-                              <span className="text-[11px] font-bold text-sapphire-blue dark:text-blue-300">
+                              <span className="text-xs font-bold text-sapphire-blue dark:text-blue-300 whitespace-nowrap">
                                 收疊為 {dateSection.clusters.length} 組
                               </span>
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2.5 shrink-0 text-xs font-black tabular-nums">
+                        <div className="flex items-center gap-2.5 shrink-0 text-xs sm:text-sm font-black tabular-nums whitespace-nowrap">
                           {scope === 'mine' && (
                             <div className="flex items-center gap-1.5">
                               <span>
@@ -642,7 +642,7 @@ export function MatchHistory() {
                               {dateSection.netDelta !== 0 && (
                                 <span
                                   className={cn(
-                                    'px-1.5 py-0.5 rounded-md text-[11px] font-display font-black',
+                                    'px-2 py-0.5 rounded-md text-xs font-display font-black whitespace-nowrap',
                                     dateSection.netDelta > 0
                                       ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                                       : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
@@ -656,7 +656,7 @@ export function MatchHistory() {
                               )}
                             </div>
                           )}
-                          <span className="text-[11px] font-bold text-muted-foreground">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             {isCollapsed ? '展開' : '收合'}
                           </span>
                         </div>
