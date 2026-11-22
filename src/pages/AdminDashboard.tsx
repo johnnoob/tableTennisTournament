@@ -33,6 +33,7 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import { toast } from 'sonner';
 
 const tabs = [
@@ -767,7 +768,6 @@ function ResponsiveAnnouncementModal({
 }
 
 function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdate: () => void }) {
-    const seasonSelectId = useId();
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]?.id || '');
     const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
     const [deletingPrizeId, setDeletingPrizeId] = useState<string | null>(null);
@@ -821,22 +821,25 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
                     <h3 className="text-xl font-black text-foreground">賽季獎勵設置</h3>
                     <p className="text-sm text-muted-foreground mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <div>
-                        <label htmlFor={seasonSelectId} className="sr-only">選擇賽季</label>
-                        <select
-                            id={seasonSelectId}
-                            name="selectedSeason"
-                            value={selectedSeason}
-                            onChange={e => {
-                                setSelectedSeason(e.target.value);
-                                setExtraPrizes([]);
-                            }}
-                            className="arena-select min-w-[200px]"
-                        >
-                            {seasons.map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
-                        </select>
-                    </div>
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <ResponsiveSelect
+                        value={selectedSeason}
+                        onValueChange={(val) => {
+                            setSelectedSeason(val);
+                            setExtraPrizes([]);
+                        }}
+                        title="選擇要設置獎勵的賽季"
+                        description="選定賽季以設定或修改名次與特別獎項"
+                        placeholder="選擇賽季"
+                        icon={<Trophy size={15} className="text-olympic-gold shrink-0" aria-hidden="true" />}
+                        triggerClassName="w-full sm:w-60"
+                        options={seasons.map((s) => ({
+                            value: s.id,
+                            label: s.name || s.id,
+                            prefix: s.status === 'active' ? '🟢' : '🏆',
+                            badge: s.status === 'active' ? '進行中' : '已結算',
+                        }))}
+                    />
                     <Button
                         type="button"
                         onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}

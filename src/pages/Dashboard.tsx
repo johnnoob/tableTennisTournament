@@ -536,19 +536,6 @@ export function Dashboard() {
                           },
                         }}
                         variant="featured"
-                        actionSlot={
-                          <ReportScore
-                            trigger={
-                              <Button
-                                type="button"
-                                className="w-full sm:w-auto h-11 sm:h-10 px-4 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm sm:text-xs tracking-wider shadow-md shadow-smash-orange/25 border-none gap-1.5"
-                              >
-                                <Zap size={14} aria-hidden="true" />
-                                立即報分
-                              </Button>
-                            }
-                          />
-                        }
                       />
                     </motion.section>
 

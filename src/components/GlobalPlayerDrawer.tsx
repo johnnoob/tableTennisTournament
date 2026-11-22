@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Trophy, TrendingUp, Swords, Zap, X, Plus } from 'lucide-react';
+import { TrendingUp, Swords, Zap, X, Plus } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { getTierBadge } from '@/lib/ranking';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -113,9 +113,6 @@ export function GlobalPlayerDrawer() {
               <X className="size-5 text-foreground" aria-hidden="true" />
             </button>
           )}
-          <div className="absolute top-0 right-0 p-6 opacity-[0.06] dark:opacity-10 rotate-12 pointer-events-none text-sapphire-blue dark:text-white">
-            <Trophy size={96} aria-hidden="true" />
-          </div>
           <div className="relative z-10 text-left">
             <div className="flex items-center gap-4">
               <PlayerAvatar

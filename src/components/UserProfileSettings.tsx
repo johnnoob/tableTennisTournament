@@ -6,7 +6,6 @@ import {
 } from "lucide-react"
 import { ResponsiveFormModal } from "@/components/ResponsiveFormModal"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { getTierBadge } from "@/lib/ranking"
@@ -71,8 +70,6 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const nameId = React.useId()
   const nameErrId = React.useId()
   const deptId = React.useId()
-  const forehandId = React.useId()
-  const backhandId = React.useId()
 
   // 表單狀態
   const [name, setName] = React.useState("")
@@ -354,51 +351,77 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
         </div>
 
         {/* 球拍膠皮 */}
-        <fieldset>
-          <legend className="arena-label flex items-center gap-1.5 text-muted-foreground mb-2">
+        <fieldset className="space-y-3.5">
+          <legend className="arena-label flex items-center gap-1.5 text-muted-foreground">
             <Target size={13} aria-hidden="true" />
-            <span>球拍 · 膠皮配置</span>
+            <span>球拍 · 膠皮配置（點擊直接選取）</span>
           </legend>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor={forehandId} className="arena-label flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+
+          {/* 正手 (紅面) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="arena-label mb-0 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
                 <span className="size-2.5 rounded-full bg-rose-500 inline-block" aria-hidden="true" />
-                <span>正手</span>
-              </label>
-              <Select value={forehand} onValueChange={(v) => setForehand(v === "__none__" ? "" : (v ?? ""))}>
-                <SelectTrigger
-                  id={forehandId}
-                  className="min-h-11 h-11 w-full bg-card border-input focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-foreground rounded-xl text-base sm:text-sm"
-                >
-                  <SelectValue placeholder="選擇膠皮" />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  <SelectItem value="__none__">未設定</SelectItem>
-                  {RUBBER_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <span>正手膠皮</span>
+              </span>
+              <span className="text-[11px] font-bold text-muted-foreground">
+                {forehand || "未設定"}
+              </span>
             </div>
-            <div>
-              <label htmlFor={backhandId} className="arena-label flex items-center gap-1.5 text-muted-foreground">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" role="group" aria-label="正手膠皮選擇">
+              {[...RUBBER_OPTIONS, { value: "", label: "未設定" }].map((opt) => {
+                const selected = forehand === opt.value
+                return (
+                  <button
+                    key={`fh-${opt.value || "none"}`}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setForehand(selected && opt.value !== "" ? "" : opt.value)}
+                    className={cn(
+                      "min-h-10 px-2.5 py-2 rounded-xl border text-xs font-black transition-all truncate",
+                      selected
+                        ? "bg-rose-600 text-white border-rose-600 shadow-xs dark:bg-rose-500 dark:border-rose-500"
+                        : "bg-card text-muted-foreground border-input hover:border-slate-400 hover:bg-secondary/60 hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 反手 (黑面) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="arena-label mb-0 flex items-center gap-1.5 text-muted-foreground">
                 <span className="size-2.5 rounded-full bg-primary-navy dark:bg-slate-300 inline-block" aria-hidden="true" />
-                <span>反手</span>
-              </label>
-              <Select value={backhand} onValueChange={(v) => setBackhand(v === "__none__" ? "" : (v ?? ""))}>
-                <SelectTrigger
-                  id={backhandId}
-                  className="min-h-11 h-11 w-full bg-card border-input focus:ring-2 focus:ring-sapphire-blue/25 font-bold text-foreground rounded-xl text-base sm:text-sm"
-                >
-                  <SelectValue placeholder="選擇膠皮" />
-                </SelectTrigger>
-                <SelectContent className="z-[9999]">
-                  <SelectItem value="__none__">未設定</SelectItem>
-                  {RUBBER_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <span>反手膠皮</span>
+              </span>
+              <span className="text-[11px] font-bold text-muted-foreground">
+                {backhand || "未設定"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" role="group" aria-label="反手膠皮選擇">
+              {[...RUBBER_OPTIONS, { value: "", label: "未設定" }].map((opt) => {
+                const selected = backhand === opt.value
+                return (
+                  <button
+                    key={`bh-${opt.value || "none"}`}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setBackhand(selected && opt.value !== "" ? "" : opt.value)}
+                    className={cn(
+                      "min-h-10 px-2.5 py-2 rounded-xl border text-xs font-black transition-all truncate",
+                      selected
+                        ? "bg-sapphire-blue text-white border-sapphire-blue shadow-xs"
+                        : "bg-card text-muted-foreground border-input hover:border-slate-400 hover:bg-secondary/60 hover:text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </fieldset>

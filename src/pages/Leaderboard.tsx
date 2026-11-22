@@ -29,12 +29,9 @@ import {
 } from '@/lib/ranking';
 import { cn } from '@/lib/utils';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  ResponsiveSelect,
+  type ResponsiveSelectOption,
+} from '@/components/ui/responsive-select';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, pageVariants } from '@/lib/animations';
 import { LeaderboardSkeleton } from '@/components/LeaderboardSkeleton';
@@ -317,6 +314,33 @@ export function Leaderboard() {
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   }, [realLeaderboard]);
 
+  const seasonOptions = useMemo<ResponsiveSelectOption[]>(() => {
+    const opts: ResponsiveSelectOption[] = seasons.map((s) => ({
+      value: s.id,
+      label: s.name,
+      prefix: s.status === 'active' ? '🟢' : '🏆',
+      badge: s.status === 'active' ? '進行中' : '已結算',
+    }));
+    opts.push({
+      value: 'all-time',
+      label: 'All-Time 歷史總榜',
+      prefix: '👑',
+      badge: '生涯',
+    });
+    return opts;
+  }, [seasons]);
+
+  const departmentOptions = useMemo<ResponsiveSelectOption[]>(() => {
+    return [
+      { value: 'all', label: '全部處室', badge: realLeaderboard.length },
+      ...departments.map(([dept, count]) => ({
+        value: dept,
+        label: dept,
+        badge: count,
+      })),
+    ];
+  }, [departments, realLeaderboard.length]);
+
   const realIndexMap = useMemo(() => {
     const map = new Map<string, number>();
     realLeaderboard.forEach((p, i) => {
@@ -508,63 +532,48 @@ export function Leaderboard() {
           >
             {/* Row 1: Season Select, Department Select, Search Input */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <Select value={activeSeasonId} onValueChange={handleSeasonChange}>
-                <SelectTrigger className="w-full sm:w-60 h-11 bg-card border-input rounded-xl font-bold text-foreground shadow-xs">
-                  <div className="flex items-center gap-2 truncate min-w-0">
-                    {isLeaderboardFetching ? (
-                      <Loader2
-                        size={15}
-                        className="text-sapphire-blue animate-spin shrink-0"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <History
-                        size={15}
-                        className="text-muted-foreground shrink-0"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <SelectValue placeholder="選擇賽季" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {seasons.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="font-bold">
-                      {s.status === 'active' ? '🟢 ' : '🏆 '} {s.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="all-time" className="font-bold">
-                    👑 All-Time 歷史總榜
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <ResponsiveSelect
+                value={activeSeasonId}
+                onValueChange={handleSeasonChange}
+                options={seasonOptions}
+                title="選擇檢視賽季"
+                description="切換不同賽季排行榜或 All-Time 歷史總榜"
+                placeholder="選擇賽季"
+                triggerClassName="w-full sm:w-56 shrink-0"
+                icon={
+                  isLeaderboardFetching ? (
+                    <Loader2
+                      size={15}
+                      className="text-sapphire-blue animate-spin shrink-0"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <History
+                      size={15}
+                      className="text-muted-foreground shrink-0"
+                      aria-hidden="true"
+                    />
+                  )
+                }
+              />
 
               {departments.length > 1 && (
-                <Select
+                <ResponsiveSelect
                   value={selectedDept}
                   onValueChange={(val) => setSelectedDept(val || 'all')}
-                >
-                  <SelectTrigger className="w-full sm:w-44 h-11 bg-card border-input rounded-xl font-bold text-foreground shadow-xs">
-                    <div className="flex items-center gap-2 truncate min-w-0">
-                      <Building2
-                        size={15}
-                        className="text-sapphire-blue shrink-0"
-                        aria-hidden="true"
-                      />
-                      <SelectValue placeholder="篩選處室" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-bold">
-                      全部處室 ({realLeaderboard.length})
-                    </SelectItem>
-                    {departments.map(([dept, count]) => (
-                      <SelectItem key={dept} value={dept} className="font-bold">
-                        {dept} ({count})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={departmentOptions}
+                  title="篩選處室 / 單位"
+                  description="檢視特定處室或單位的積分排行"
+                  placeholder="篩選處室"
+                  triggerClassName="w-full sm:w-48 shrink-0"
+                  icon={
+                    <Building2
+                      size={15}
+                      className="text-sapphire-blue shrink-0"
+                      aria-hidden="true"
+                    />
+                  }
+                />
               )}
 
               <div className="relative flex-1 min-w-0">
