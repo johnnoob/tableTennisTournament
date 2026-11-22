@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, Layers, RotateCcw } from 'lucide-react';
+import { ChevronDown, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PlayerAvatar } from './PlayerAvatar';
-import { ReportScore } from './ReportScore';
 import { useAuth } from '@/hooks/useAuth';
 import { inferMatchFormat } from '@/lib/matchScore';
 import {
@@ -60,13 +59,23 @@ function TeamAvatars({
   wonRing?: boolean;
 }) {
   if (players.length === 0) {
-    return <div className={cn('rounded-xl bg-secondary animate-pulse shrink-0', placeholderClassName)} />;
+    return (
+      <div
+        className={cn(
+          'rounded-xl bg-secondary animate-pulse shrink-0',
+          placeholderClassName,
+        )}
+      />
+    );
   }
 
   return (
     <button
       type="button"
-      onClick={() => onInspect(players[0]?.id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onInspect(players[0]?.id);
+      }}
       disabled={!players[0]?.id}
       aria-label={`檢視 ${players[0]?.name || '選手'} 戰情檔案`}
       className={cn(
@@ -102,14 +111,21 @@ function TeamNames({
   align?: 'left' | 'right';
 }) {
   if (players.length === 0) {
-    return <span className="font-display font-bold text-muted-foreground text-xs sm:text-sm">載入中...</span>;
+    return (
+      <span className="font-display font-bold text-muted-foreground text-xs sm:text-sm">
+        載入中...
+      </span>
+    );
   }
 
   if (players.length === 1) {
     return (
       <button
         type="button"
-        onClick={() => onInspect(players[0]?.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onInspect(players[0]?.id);
+        }}
         disabled={!players[0]?.id}
         className={cn(
           'truncate leading-tight transition-colors hover:text-sapphire-blue max-w-full',
@@ -134,9 +150,15 @@ function TeamNames({
           {idx > 0 && <span className="text-muted-foreground/45 mx-1 shrink-0">/</span>}
           <button
             type="button"
-            onClick={() => onInspect(p.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspect(p.id);
+            }}
             disabled={!p.id}
-            className={cn('truncate leading-tight transition-colors hover:text-sapphire-blue', className)}
+            className={cn(
+              'truncate leading-tight transition-colors hover:text-sapphire-blue',
+              className,
+            )}
           >
             {p.name?.split(' ')[0] || '?'}
           </button>
@@ -183,7 +205,6 @@ export function MatchItem({
   const myId = currentUser?.id ? String(currentUser.id) : null;
   const iAmInP1 = myId ? player1.some((p) => String(p.id) === myId) : false;
   const iAmInOpp = myId ? opponent.some((p) => String(p.id) === myId) : false;
-  const canRematch = Boolean(myId && (iAmInP1 || iAmInOpp));
 
   const useMyAsP1 = iAmInP1 || !iAmInOpp;
   const myTeam = useMyAsP1 ? player1 : opponent;
@@ -196,48 +217,9 @@ export function MatchItem({
   const myPartner = isDoubles
     ? myTeam.find((p) => p.id && String(p.id) !== myId) ?? null
     : null;
-  const rematchType: 'singles' | 'doubles' = isDoubles ? 'doubles' : 'singles';
-  const rematchPartnerId = myPartner?.id || null;
-  const rematchOpp1Id = rivalTeam[0]?.id || null;
-  const rematchOpp2Id = isDoubles ? rivalTeam[1]?.id || null : null;
 
   const handleShowDisputeInfo = () => {
     toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理');
-  };
-
-  const renderRematchAction = ({
-    iconOnly = false,
-    className,
-  }: {
-    iconOnly?: boolean;
-    className?: string;
-  }) => {
-    if (!canRematch || !rematchOpp1Id) return null;
-
-    return (
-      <ReportScore
-        initialMatchType={rematchType}
-        initialFormat={matchFormat}
-        initialPartnerId={rematchPartnerId}
-        initialOpponentId={rematchOpp1Id}
-        initialOpponent2Id={rematchOpp2Id}
-        trigger={
-          <button
-            type="button"
-            aria-label="發起再戰"
-            title="再戰"
-            className={cn(
-              'inline-flex items-center justify-center rounded-xl bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0 whitespace-nowrap',
-              iconOnly ? 'size-8' : 'gap-1.5 h-8 px-3 text-xs',
-              className,
-            )}
-          >
-            <RotateCcw size={iconOnly ? 14 : 12} aria-hidden="true" />
-            {!iconOnly && <span>再戰</span>}
-          </button>
-        }
-      />
-    );
   };
 
   if (variant === 'feed') {
@@ -268,7 +250,7 @@ export function MatchItem({
     return (
       <div className="transition-colors hover:bg-surface-subtle/60 group">
         {/* Desktop: Unified 3-Column Alignment matching MatchSeriesItem */}
-        <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_176px] items-center gap-4 px-5 py-3.5">
+        <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-3.5">
           {/* Left Meta */}
           <div className="min-w-0">
             <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
@@ -364,13 +346,9 @@ export function MatchItem({
             </div>
           </div>
 
-          {/* Right Status / Rematch */}
+          {/* Right Status */}
           <div className="flex items-center justify-end gap-2 shrink-0">
             {statusBadge}
-            {renderRematchAction({
-              iconOnly: isPending || isDisputed,
-              className: isSettled ? 'opacity-90 group-hover:opacity-100' : undefined,
-            })}
           </div>
         </div>
 
@@ -384,13 +362,12 @@ export function MatchItem({
                   BO5
                 </span>
               )}
-              <span className="text-muted-foreground/40" aria-hidden="true">·</span>
+              <span className="text-muted-foreground/40" aria-hidden="true">
+                ·
+              </span>
               <span className="tabular-nums truncate">{displayTime}</span>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {statusBadge}
-              {renderRematchAction({ className: 'h-7 px-2.5 text-xs rounded-lg' })}
-            </div>
+            {statusBadge && <div className="shrink-0">{statusBadge}</div>}
           </div>
 
           <div className="space-y-2">
@@ -429,7 +406,10 @@ export function MatchItem({
               <div className="flex items-center gap-1.5 shrink-0">
                 <span
                   aria-hidden="true"
-                  className={cn('size-2 rounded-full', p1Won ? 'bg-emerald-500' : 'bg-transparent')}
+                  className={cn(
+                    'size-2 rounded-full',
+                    p1Won ? 'bg-emerald-500' : 'bg-transparent',
+                  )}
                 />
                 <span
                   className={cn(
@@ -477,7 +457,10 @@ export function MatchItem({
               <div className="flex items-center gap-1.5 shrink-0">
                 <span
                   aria-hidden="true"
-                  className={cn('size-2 rounded-full', p2Won ? 'bg-emerald-500' : 'bg-transparent')}
+                  className={cn(
+                    'size-2 rounded-full',
+                    p2Won ? 'bg-emerald-500' : 'bg-transparent',
+                  )}
                 />
                 <span
                   className={cn(
@@ -560,7 +543,12 @@ export function MatchItem({
         <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
           {/* 1. Result + ELO Column */}
           <div className="w-[88px] shrink-0 flex flex-col">
-            <span className={cn('text-sm sm:text-base font-display font-black tracking-wider leading-tight whitespace-nowrap', resultColorClass)}>
+            <span
+              className={cn(
+                'text-sm sm:text-base font-display font-black tracking-wider leading-tight whitespace-nowrap',
+                resultColorClass,
+              )}
+            >
               {resultLabel}
             </span>
             <div className="mt-0.5 leading-tight">{deltaNode}</div>
@@ -634,7 +622,7 @@ export function MatchItem({
             </div>
           </div>
 
-          {/* 4. Time & Actions */}
+          {/* 4. Time & Dispute Action */}
           <div className="flex items-center gap-2.5 shrink-0">
             <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
               {displayTime}
@@ -648,7 +636,6 @@ export function MatchItem({
                 申訴細節
               </button>
             )}
-            {renderRematchAction({})}
           </div>
         </div>
 
@@ -656,7 +643,12 @@ export function MatchItem({
         <div className="sm:hidden px-3.5 py-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <span className={cn('text-sm font-display font-black tracking-wider whitespace-nowrap', resultColorClass)}>
+              <span
+                className={cn(
+                  'text-sm font-display font-black tracking-wider whitespace-nowrap',
+                  resultColorClass,
+                )}
+              >
                 {resultLabel}
               </span>
               {deltaNode}
@@ -676,12 +668,9 @@ export function MatchItem({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
-                {displayTime}
-              </span>
-              {renderRematchAction({ className: 'h-7 px-2.5 text-xs rounded-lg' })}
-            </div>
+            <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap shrink-0">
+              {displayTime}
+            </span>
           </div>
 
           <div className="flex items-center justify-between gap-2.5">
@@ -775,9 +764,12 @@ export function MatchSeriesItem({
     setSearchParams(newParams);
   };
 
+  const handleShowDisputeInfo = () => {
+    toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理');
+  };
+
   const isDoubles = cluster.type === 'doubles';
-  const latest = cluster.latestMatch;
-  const rawDate = latest?.date || latest?.created_at;
+  const rawDate = cluster.latestMatch?.date || cluster.latestMatch?.created_at;
   const displayTime =
     timeDisplay === 'clock' ? formatMatchClock(rawDate) : formatSmartMatchTime(rawDate);
 
@@ -788,7 +780,6 @@ export function MatchSeriesItem({
   const iAmInT2 = myId
     ? cluster.anchorTeam2.some((p) => String(p.id) === myId)
     : false;
-  const canRematch = Boolean(myId && (iAmInT1 || iAmInT2));
 
   const useT1AsMe = iAmInT1 || !iAmInT2;
   const myTeam = useT1AsMe ? cluster.anchorTeam1 : cluster.anchorTeam2;
@@ -799,38 +790,6 @@ export function MatchSeriesItem({
   const myPartner = isDoubles
     ? myTeam.find((p) => p.id && String(p.id) !== myId) ?? null
     : null;
-  const latestScore = latest?.score || [0, 0];
-  const latestFormat = inferMatchFormat(latestScore[0], latestScore[1]);
-
-  const rematchOpp1Id = rivalTeam[0]?.id || null;
-  const rematchOpp2Id = isDoubles ? rivalTeam[1]?.id || null : null;
-
-  const renderRematchButton = (compact = false) => {
-    if (!canRematch || !rematchOpp1Id) return null;
-    return (
-      <ReportScore
-        initialMatchType={cluster.type}
-        initialFormat={latestFormat}
-        initialPartnerId={myPartner?.id || null}
-        initialOpponentId={rematchOpp1Id}
-        initialOpponent2Id={rematchOpp2Id}
-        trigger={
-          <button
-            type="button"
-            aria-label="發起再戰"
-            title="再戰"
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 hover:bg-sapphire-blue text-sapphire-blue hover:text-white border border-blue-200/80 dark:bg-blue-500/12 dark:border-blue-500/30 dark:text-blue-300 dark:hover:bg-sapphire-blue dark:hover:text-white font-black transition-colors shrink-0 whitespace-nowrap',
-              compact ? 'h-7 px-2.5 text-xs rounded-lg' : 'h-8 px-3 text-xs',
-            )}
-          >
-            <RotateCcw size={12} aria-hidden="true" />
-            <span>再戰</span>
-          </button>
-        }
-      />
-    );
-  };
 
   if (variant === 'feed') {
     const t1Lead = cluster.team1Wins > cluster.team2Wins;
@@ -838,9 +797,12 @@ export function MatchSeriesItem({
 
     return (
       <div className="transition-colors">
-        <div className="hover:bg-surface-subtle/60">
-          {/* Desktop: Exact same 3-column grid widths as MatchItem! */}
-          <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_176px] items-center gap-4 px-5 py-3.5">
+        <div
+          onClick={() => setExpanded((prev) => !prev)}
+          className="hover:bg-surface-subtle/60 cursor-pointer"
+        >
+          {/* Desktop: Unified 3-column grid matching MatchItem and expanded game rows */}
+          <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-3.5">
             {/* Left Meta */}
             <div className="min-w-0">
               <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
@@ -863,7 +825,7 @@ export function MatchSeriesItem({
               </div>
             </div>
 
-            {/* Center Alignment Axis (Exact same [minmax(0,1fr)_96px_minmax(0,1fr)]!) */}
+            {/* Center Alignment Axis (Exact [minmax(0,1fr)_96px_minmax(0,1fr)]) */}
             <div className="space-y-2 min-w-0">
               <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
                 <div className="flex items-center justify-end gap-2.5 min-w-0">
@@ -945,26 +907,28 @@ export function MatchSeriesItem({
                 </div>
               </div>
 
-              {/* Chronological Mini Score Pills */}
-              <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                {cluster.games.map((g) => (
-                  <span
-                    key={g.match.id}
-                    className={cn(
-                      'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                      g.isPending
-                        ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                        : 'bg-surface-subtle border-border/70 text-foreground/85',
-                    )}
-                  >
-                    <span className="text-muted-foreground mr-1">#{g.index}</span>
-                    {g.team1Score}:{g.team2Score}
-                  </span>
-                ))}
-              </div>
+              {/* Chronological Mini Score Pills (hidden when expanded to avoid duplicate scores) */}
+              {!expanded && (
+                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                  {cluster.games.map((g) => (
+                    <span
+                      key={g.match.id}
+                      className={cn(
+                        'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
+                        g.isPending
+                          ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                          : 'bg-surface-subtle border-border/70 text-foreground/85',
+                      )}
+                    >
+                      <span className="text-muted-foreground mr-1">#{g.index}</span>
+                      {g.team1Score}:{g.team2Score}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Right Status + Expand Button (Guaranteed no text wrapping) */}
+            {/* Right Status + Expand Button */}
             <div className="flex items-center justify-end gap-2 shrink-0">
               {cluster.hasPending && (
                 <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
@@ -974,7 +938,10 @@ export function MatchSeriesItem({
               <button
                 type="button"
                 aria-expanded={expanded}
-                onClick={() => setExpanded((prev) => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((prev) => !prev);
+                }}
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
               >
                 <span>{expanded ? '收合' : '明細'}</span>
@@ -1012,7 +979,10 @@ export function MatchSeriesItem({
               <button
                 type="button"
                 aria-expanded={expanded}
-                onClick={() => setExpanded((prev) => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((prev) => !prev);
+                }}
                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
               >
                 <span>{expanded ? '收合' : '明細'}</span>
@@ -1112,37 +1082,193 @@ export function MatchSeriesItem({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-              {cluster.games.map((g) => (
-                <span
-                  key={g.match.id}
-                  className={cn(
-                    'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                    g.isPending
-                      ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                      : 'bg-surface-subtle border-border/70 text-foreground/85',
-                  )}
-                >
-                  <span className="text-muted-foreground mr-1">#{g.index}</span>
-                  {g.team1Score}:{g.team2Score}
-                </span>
-              ))}
-            </div>
+            {!expanded && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                {cluster.games.map((g) => (
+                  <span
+                    key={g.match.id}
+                    className={cn(
+                      'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
+                      g.isPending
+                        ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                        : 'bg-surface-subtle border-border/70 text-foreground/85',
+                    )}
+                  >
+                    <span className="text-muted-foreground mr-1">#{g.index}</span>
+                    {g.team1Score}:{g.team2Score}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Minimalist Chronological Per-Game Breakdown (Zero Repeated Avatars/Names) */}
         {expanded && (
-          <div className="bg-surface-subtle/50 border-t border-border/60 divide-y divide-border/50 pl-2 sm:pl-4">
-            {cluster.matches.map((m) => (
-              <MatchItem key={m.id} match={m} variant="feed" timeDisplay="clock" />
-            ))}
+          <div className="border-t border-border/70 bg-surface-subtle/55 divide-y divide-border/50">
+            {cluster.games.map((g) => {
+              const gameClock = formatMatchClock(g.match.date || g.match.created_at);
+              const gameFormat = inferMatchFormat(g.team1Score, g.team2Score);
+              const winPlayers = g.team1Won ? cluster.anchorTeam1 : cluster.anchorTeam2;
+              const leadName = winPlayers[0]?.name?.split(' ')[0] || (g.team1Won ? '左隊' : '右隊');
+              const winnerLabel = winPlayers.length > 1 ? `${leadName} 等` : leadName;
+              const winnerDelta = g.team1Won ? g.team1Delta : g.team2Delta;
+
+              return (
+                <div key={g.match.id}>
+                  {/* Desktop: Score strictly aligned under center matchup column */}
+                  <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="px-2 py-0.5 rounded-md bg-card border border-border/80 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
+                        #{g.index}
+                      </span>
+                      <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+                        {gameClock}
+                      </span>
+                      {gameFormat === 'BO5' && (
+                        <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none shrink-0">
+                          BO5
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
+                      <div className="flex items-center justify-end gap-2 min-w-0">
+                        {g.isSettled && g.team1Delta !== 0 && (
+                          <span
+                            className={cn(
+                              'text-xs font-display font-black tabular-nums whitespace-nowrap',
+                              g.team1Delta > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-500 dark:text-rose-400',
+                            )}
+                          >
+                            {formatDelta(g.team1Delta)}
+                          </span>
+                        )}
+                        {g.team1Won && (
+                          <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                            勝
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="w-[96px] py-1 rounded-lg bg-card border border-border/70 flex items-center justify-center gap-1.5 font-display font-black text-base tabular-nums leading-none shrink-0">
+                        <span className={g.team1Won ? 'text-foreground' : 'text-muted-foreground/55'}>
+                          {g.team1Score}
+                        </span>
+                        <span className="text-muted-foreground/40 text-xs">:</span>
+                        <span className={!g.team1Won ? 'text-foreground' : 'text-muted-foreground/55'}>
+                          {g.team2Score}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-start gap-2 min-w-0">
+                        {!g.team1Won && (
+                          <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                            勝
+                          </span>
+                        )}
+                        {g.isSettled && g.team2Delta !== 0 && (
+                          <span
+                            className={cn(
+                              'text-xs font-display font-black tabular-nums whitespace-nowrap',
+                              g.team2Delta > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-500 dark:text-rose-400',
+                            )}
+                          >
+                            {formatDelta(g.team2Delta)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 shrink-0">
+                      {g.isPending && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap">
+                          待確認
+                        </span>
+                      )}
+                      {g.isDisputed && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowDisputeInfo();
+                          }}
+                          className="px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 hover:bg-rose-100 transition-colors whitespace-nowrap"
+                        >
+                          申訴中
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile: Ultra-clean single-line breakdown */}
+                  <div className="md:hidden px-3.5 py-2.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-0.5 rounded-md bg-card border border-border/80 text-xs font-display font-black text-muted-foreground tabular-nums">
+                        #{g.index}
+                      </span>
+                      <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                        {gameClock}
+                      </span>
+                      {gameFormat === 'BO5' && (
+                        <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                          BO5
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="px-2.5 py-1 rounded-lg bg-card border border-border/70 font-display font-black text-sm tabular-nums leading-none shrink-0 flex items-center gap-1">
+                      <span className={g.team1Won ? 'text-foreground' : 'text-muted-foreground/55'}>
+                        {g.team1Score}
+                      </span>
+                      <span className="text-muted-foreground/40 text-xs">:</span>
+                      <span className={!g.team1Won ? 'text-foreground' : 'text-muted-foreground/55'}>
+                        {g.team2Score}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1.5 min-w-0">
+                      <span className="text-xs font-black text-foreground/85 truncate">
+                        {winnerLabel} 勝
+                      </span>
+                      {g.isPending ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0">
+                          待確認
+                        </span>
+                      ) : g.isDisputed ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowDisputeInfo();
+                          }}
+                          className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30 whitespace-nowrap shrink-0"
+                        >
+                          申訴中
+                        </button>
+                      ) : winnerDelta !== 0 ? (
+                        <span className="text-xs font-display font-black text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap shrink-0">
+                          {formatDelta(winnerDelta)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
     );
   }
 
-  // Personal Perspective Series Card (Scheme B + Folding)
+  // Personal Perspective Series Card (Scheme B + Minimalist Expanded Box Score)
   const netWon = myWins > myLosses;
   const netLost = myLosses > myWins;
   const allPending = cluster.games.every((g) => g.isPending);
@@ -1197,64 +1323,208 @@ export function MatchSeriesItem({
       <div className={cn('w-1.5 shrink-0', railClass)} aria-hidden="true" />
 
       <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
-        {/* Desktop Personal Series Header */}
-        <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
-          <div className="w-[88px] shrink-0 flex flex-col">
-            <span className={cn('text-sm sm:text-base font-display font-black tracking-wide leading-tight whitespace-nowrap', summaryColorClass)}>
-              {myWins}勝 {myLosses}敗
-            </span>
-            <div className="mt-0.5 leading-tight">{netDeltaNode}</div>
-          </div>
-
-          <div className="w-[84px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
-            <span className="text-xs font-black text-sapphire-blue leading-none whitespace-nowrap">
-              連打
-            </span>
-            <span className="font-display font-black text-sm sm:text-base leading-tight text-foreground tabular-nums mt-0.5 whitespace-nowrap">
-              {cluster.matches.length} 場
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <TeamAvatars
-              players={rivalTeam}
-              onInspect={openInspect}
-              avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
-              overlapClassName="-space-x-2.5"
-              placeholderClassName="size-10 sm:size-11"
-            />
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
-                  VS
-                </span>
-                <TeamNames
-                  players={rivalTeam}
-                  onInspect={openInspect}
-                  align="left"
-                  className="text-base sm:text-lg font-display font-black text-foreground"
-                />
-                {isDoubles ? (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
-                    雙打
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
-                    單打
-                  </span>
+        <div
+          onClick={() => setExpanded((prev) => !prev)}
+          className="cursor-pointer"
+        >
+          {/* Desktop Personal Series Header */}
+          <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
+            <div className="w-[88px] shrink-0 flex flex-col">
+              <span
+                className={cn(
+                  'text-sm sm:text-base font-display font-black tracking-wide leading-tight whitespace-nowrap',
+                  summaryColorClass,
                 )}
-                {isDoubles && myPartner && (
-                  <button
-                    type="button"
-                    onClick={() => openInspect(myPartner.id)}
-                    disabled={!myPartner.id}
-                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[180px] transition-colors leading-none"
-                  >
-                    · 搭檔：{myPartner.name}
-                  </button>
+              >
+                {myWins}勝 {myLosses}敗
+              </span>
+              <div className="mt-0.5 leading-tight">{netDeltaNode}</div>
+            </div>
+
+            <div className="w-[84px] shrink-0 py-1.5 rounded-xl bg-card/90 border border-border/80 flex flex-col items-center justify-center">
+              <span className="text-xs font-black text-sapphire-blue leading-none whitespace-nowrap">
+                連打
+              </span>
+              <span className="font-display font-black text-sm sm:text-base leading-tight text-foreground tabular-nums mt-0.5 whitespace-nowrap">
+                {cluster.matches.length} 場
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <TeamAvatars
+                players={rivalTeam}
+                onInspect={openInspect}
+                avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
+                overlapClassName="-space-x-2.5"
+                placeholderClassName="size-10 sm:size-11"
+              />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                  <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
+                    VS
+                  </span>
+                  <TeamNames
+                    players={rivalTeam}
+                    onInspect={openInspect}
+                    align="left"
+                    className="text-base sm:text-lg font-display font-black text-foreground"
+                  />
+                  {isDoubles ? (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
+                      雙打
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-muted-foreground leading-none whitespace-nowrap">
+                      單打
+                    </span>
+                  )}
+                  {isDoubles && myPartner && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openInspect(myPartner.id);
+                      }}
+                      disabled={!myPartner.id}
+                      className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate max-w-[180px] transition-colors leading-none"
+                    >
+                      · 搭檔：{myPartner.name}
+                    </button>
+                  )}
+                </div>
+
+                {!expanded && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {cluster.games.map((g) => {
+                      const myScore = useT1AsMe ? g.team1Score : g.team2Score;
+                      const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
+                      const won = myScore > oppScore;
+
+                      return (
+                        <span
+                          key={g.match.id}
+                          className={cn(
+                            'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
+                            g.isPending
+                              ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                              : won
+                                ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
+                                : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
+                          )}
+                        >
+                          <span className="opacity-65 mr-1">#{g.index}</span>
+                          {myScore}:{oppScore}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
+            </div>
 
+            <div className="flex items-center gap-2.5 shrink-0">
+              <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+                {displayTime}
+              </span>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
+              >
+                <span>{expanded ? '收合' : '明細'}</span>
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Personal Series Header */}
+          <div className="sm:hidden px-3.5 py-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <span
+                  className={cn(
+                    'text-sm font-display font-black whitespace-nowrap',
+                    summaryColorClass,
+                  )}
+                >
+                  {myWins}勝 {myLosses}敗
+                </span>
+                {netDeltaNode}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black leading-none whitespace-nowrap">
+                  <Layers size={11} aria-hidden="true" />
+                  連打 {cluster.matches.length} 場
+                </span>
+              </div>
+
+              <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap shrink-0">
+                {displayTime}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <TeamAvatars
+                  players={rivalTeam}
+                  onInspect={openInspect}
+                  avatarClassName="size-10 rounded-xl text-xs"
+                  overlapClassName="-space-x-2"
+                  placeholderClassName="size-10"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
+                      VS
+                    </span>
+                    <TeamNames
+                      players={rivalTeam}
+                      onInspect={openInspect}
+                      align="left"
+                      className="text-base font-display font-black text-foreground"
+                    />
+                  </div>
+                  {isDoubles && myPartner && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openInspect(myPartner.id);
+                      }}
+                      disabled={!myPartner.id}
+                      className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
+                    >
+                      搭檔：{myPartner.name}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
+              >
+                <span>{expanded ? '收合' : '明細'}</span>
+                <ChevronDown
+                  size={13}
+                  aria-hidden="true"
+                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                />
+              </button>
+            </div>
+
+            {!expanded && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 {cluster.games.map((g) => {
                   const myScore = useT1AsMe ? g.team1Score : g.team2Score;
@@ -1279,132 +1549,118 @@ export function MatchSeriesItem({
                   );
                 })}
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs sm:text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
-              {displayTime}
-            </span>
-            {renderRematchButton(false)}
-            <button
-              type="button"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
-            >
-              <span>{expanded ? '收合' : '明細'}</span>
-              <ChevronDown
-                size={14}
-                aria-hidden="true"
-                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
-              />
-            </button>
+            )}
           </div>
         </div>
 
-        {/* Mobile Personal Series Header */}
-        <div className="sm:hidden px-3.5 py-3 space-y-2.5">
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/60">
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <span className={cn('text-sm font-display font-black whitespace-nowrap', summaryColorClass)}>
-                {myWins}勝 {myLosses}敗
-              </span>
-              {netDeltaNode}
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black leading-none whitespace-nowrap">
-                <Layers size={11} aria-hidden="true" />
-                連打 {cluster.matches.length} 場
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
-                {displayTime}
-              </span>
-              {renderRematchButton(true)}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <TeamAvatars
-                players={rivalTeam}
-                onInspect={openInspect}
-                avatarClassName="size-10 rounded-xl text-xs"
-                overlapClassName="-space-x-2"
-                placeholderClassName="size-10"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-xs font-display font-black text-muted-foreground/80 uppercase shrink-0">
-                    VS
-                  </span>
-                  <TeamNames
-                    players={rivalTeam}
-                    onInspect={openInspect}
-                    align="left"
-                    className="text-base font-display font-black text-foreground"
-                  />
-                </div>
-                {isDoubles && myPartner && (
-                  <button
-                    type="button"
-                    onClick={() => openInspect(myPartner.id)}
-                    disabled={!myPartner.id}
-                    className="text-xs font-bold text-muted-foreground hover:text-sapphire-blue truncate block max-w-full text-left mt-0.5"
-                  >
-                    搭檔：{myPartner.name}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
-            >
-              <span>{expanded ? '收合' : '明細'}</span>
-              <ChevronDown
-                size={13}
-                aria-hidden="true"
-                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Minimalist Expanded Per-Game Table Inside Single Card Rail */}
+        {expanded && (
+          <div className="border-t border-border/60 bg-card/75 dark:bg-background/40 divide-y divide-border/50">
             {cluster.games.map((g) => {
-              const myScore = useT1AsMe ? g.team1Score : g.team2Score;
-              const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
-              const won = myScore > oppScore;
+              const myGameScore = useT1AsMe ? g.team1Score : g.team2Score;
+              const oppGameScore = useT1AsMe ? g.team2Score : g.team1Score;
+              const won = myGameScore > oppGameScore;
+              const gameDelta = useT1AsMe ? g.team1Delta : g.team2Delta;
+              const gameClock = formatMatchClock(g.match.date || g.match.created_at);
+              const gameFormat = inferMatchFormat(myGameScore, oppGameScore);
+
+              const dotColor = g.isPending
+                ? 'bg-amber-400'
+                : g.isDisputed
+                  ? 'bg-rose-500'
+                  : won
+                    ? 'bg-emerald-500'
+                    : 'bg-rose-500';
 
               return (
-                <span
+                <div
                   key={g.match.id}
-                  className={cn(
-                    'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                    g.isPending
-                      ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                      : won
-                        ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
-                        : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
-                  )}
+                  className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4"
                 >
-                  <span className="opacity-65 mr-1">#{g.index}</span>
-                  {myScore}:{oppScore}
-                </span>
+                  <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
+                    <span className="w-8 text-center py-0.5 rounded-md bg-surface-subtle border border-border/70 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
+                      #{g.index}
+                    </span>
+
+                    <span className="text-xs font-bold text-muted-foreground tabular-nums shrink-0">
+                      {gameClock}
+                    </span>
+
+                    <div className="w-[66px] sm:w-[76px] py-1 rounded-lg bg-surface-subtle border border-border/70 flex items-center justify-center gap-1 font-display font-black text-sm sm:text-base tabular-nums shrink-0 leading-none">
+                      <span className={won ? 'text-foreground' : 'text-muted-foreground/60'}>
+                        {myGameScore}
+                      </span>
+                      <span className="text-muted-foreground/40 text-xs">:</span>
+                      <span className={!won ? 'text-foreground' : 'text-muted-foreground/60'}>
+                        {oppGameScore}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={cn('size-2 rounded-full shrink-0', dotColor)} aria-hidden="true" />
+                      {g.isPending ? (
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-300 truncate">
+                          暫定{won ? '勝' : '敗'}
+                          <span className="hidden sm:inline font-bold text-muted-foreground ml-1">
+                            · 待確認
+                          </span>
+                        </span>
+                      ) : g.isDisputed ? (
+                        <span className="text-xs font-black text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                          申訴中
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'text-xs font-black whitespace-nowrap',
+                            won
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400',
+                          )}
+                        >
+                          {won ? '勝' : '敗'}
+                        </span>
+                      )}
+
+                      {gameFormat === 'BO5' && (
+                        <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none shrink-0">
+                          BO5
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {g.isPending ? (
+                      <span className="text-xs font-bold text-amber-600/85 dark:text-amber-300/85 whitespace-nowrap">
+                        待結算
+                      </span>
+                    ) : g.isDisputed ? (
+                      <button
+                        type="button"
+                        onClick={handleShowDisputeInfo}
+                        className="h-7 px-2.5 rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-500/12 text-rose-600 dark:text-rose-300 text-xs font-black hover:bg-rose-100 transition-colors whitespace-nowrap"
+                      >
+                        申訴細節
+                      </button>
+                    ) : (
+                      <span
+                        className={cn(
+                          'text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap',
+                          gameDelta > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : gameDelta < 0
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : 'text-muted-foreground',
+                        )}
+                      >
+                        {gameDelta !== 0 ? `${formatDelta(gameDelta)} 分` : '0 分'}
+                      </span>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </div>
-        </div>
-
-        {expanded && (
-          <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background/40 space-y-2">
-            {cluster.matches.map((m) => (
-              <MatchItem key={m.id} match={m} variant="personal" timeDisplay="clock" />
-            ))}
           </div>
         )}
       </div>
