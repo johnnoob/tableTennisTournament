@@ -7,6 +7,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   mismatching_state: '登入驗證狀態已失效，請重新點擊 Google 登入。',
   access_denied: '您已取消 Google 帳號授權，請再試一次。',
   missing_userinfo: '無法取得 Google 帳號資料，請稍後再試。',
+  account_disabled: '此帳號已被管理員停用，如有疑問請聯繫社團管理員。',
 };
 
 const handleGoogleLogin = () => {

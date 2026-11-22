@@ -165,6 +165,14 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
         session.commit()
         session.refresh(user)
 
+    if not user.is_active:
+        disabled_redirect = RedirectResponse(
+            url=f"{settings.effective_frontend_url}/login?error=account_disabled",
+            status_code=302,
+        )
+        disabled_redirect.headers["Cache-Control"] = "no-store"
+        return disabled_redirect
+
     # 🔐 3. 發行 Access Token 與 Refresh Token
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
@@ -247,6 +255,8 @@ async def refresh_token(
         user = session.get(User, UUID(user_id))
         if user is None:
             raise HTTPException(status_code=401, detail="使用者不存在或已被刪除，拒絕刷新")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="此帳號已被管理員停用")
 
         # 簽發新的短效 Access Token
         new_access_token = create_access_token(user.id)

@@ -243,7 +243,8 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
     now_utc = datetime.now(timezone.utc)
     cutoff_7d = now_utc - timedelta(days=7)
 
-    users = session.exec(select(User).where(User.role != "guest")).all()
+    all_users = session.exec(select(User).where(User.role != "guest")).all()
+    active_users = [u for u in all_users if u.is_active]
     all_settled_matches = session.exec(
         select(Match)
         .where(Match.status.in_(["confirmed", "completed"]))
@@ -274,13 +275,13 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
     season_pulse = _compute_season_pulse(
         active_season=active_season,
         all_settled_matches=all_settled_matches,
-        users=users,
+        users=active_users,
         season_records_map=active_season_records_map,
         season_outcomes=active_season_outcomes,
         now_utc=now_utc,
     )
     spotlights = _compute_spotlights(
-        users=users,
+        users=active_users,
         all_outcomes=all_outcomes,
         season_outcomes=active_season_outcomes,
         now_utc=now_utc,
@@ -288,8 +289,11 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
 
     # 🌟 0. All-Time 歷史生涯總榜
     if season_id == "all-time":
+        all_time_users = [
+            u for u in all_users if u.is_active or len(all_outcomes.get(u.id, [])) > 0
+        ]
         combined_data = []
-        for user in users:
+        for user in all_time_users:
             outs = all_outcomes.get(user.id, [])
             matches_played = len(outs)
             wins = sum(1 for o in outs if o["won"])
@@ -378,8 +382,9 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
         target_season_outcomes = _extract_user_outcomes(season_matches, part_delta_map)
 
     # 🌟 2. 撈取所有玩家與他們在本季的戰績（含 MatchParticipation/Match 保底補齊）
+    season_users = active_users if season.status == "active" else all_users
     combined_data = []
-    for user in users:
+    for user in season_users:
         record = record_map.get(user.id)
         user_season_outs = target_season_outcomes.get(user.id, [])
 
@@ -395,6 +400,9 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             matches_played = 0
             wins = 0
             previous_rank = None
+
+        if season.status != "active" and not user.is_active and matches_played == 0:
+            continue
 
         display_mmr = (
             record.final_mmr

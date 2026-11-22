@@ -28,6 +28,8 @@ interface ScoreInputSectionProps {
   onScoreBChange: (val: number) => void;
   sideALabel?: string;
   sideBLabel?: string;
+  winBadgeLabel?: string;
+  lossBadgeLabel?: string;
 }
 
 export function ScoreInputSection({
@@ -39,6 +41,8 @@ export function ScoreInputSection({
   onScoreBChange,
   sideALabel = '我方',
   sideBLabel = '對手',
+  winBadgeLabel = '我勝',
+  lossBadgeLabel = '我敗',
 }: ScoreInputSectionProps) {
   const maxStepScore = format === 'BO3' ? 2 : 3;
 
@@ -109,7 +113,7 @@ export function ScoreInputSection({
                 {preset.label}
               </span>
               <span className={cn('text-xs font-bold leading-tight', isSelected ? 'text-white/90' : 'opacity-75')}>
-                {preset.win ? '我勝' : '我敗'}
+                {preset.win ? winBadgeLabel : lossBadgeLabel}
               </span>
             </button>
           );

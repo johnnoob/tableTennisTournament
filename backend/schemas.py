@@ -119,3 +119,35 @@ class MatchPresetUpdate(BaseModel):
     opponent1_id: Optional[UUID] = None
     opponent2_id: Optional[UUID] = None
     sort_order: Optional[int] = None
+
+
+class MatchDisputeReq(BaseModel):
+    """選手對待確認賽果提出異議"""
+    reason: str = Field(..., min_length=2, max_length=300)
+
+
+class AdminUserUpdateReq(BaseModel):
+    """管理員更新成員資料、權限或帳號狀態"""
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    department: Optional[str] = None
+    name: Optional[str] = None
+
+
+class AdminMmrAdjustReq(BaseModel):
+    """管理員手動校準成員 ELO 積分"""
+    target_mmr: Optional[float] = None
+    delta: Optional[float] = None
+    reason: str = Field(..., min_length=2, max_length=200)
+
+
+class AdminForceConfirmReq(BaseModel):
+    """管理員強制裁決並結算對戰（可選修正比分）"""
+    score_a: Optional[int] = None
+    score_b: Optional[int] = None
+    reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class AdminVoidMatchReq(BaseModel):
+    """管理員駁回待確認比賽或撤銷回滾已結算比賽"""
+    reason: Optional[str] = Field(default=None, max_length=200)

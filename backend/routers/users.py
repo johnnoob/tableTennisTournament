@@ -14,8 +14,8 @@ router = APIRouter(tags=["Users"])
 
 @router.get("/api/users", summary="取得機關所有同仁名單")
 def get_all_users(session: Session = Depends(get_session)):
-    # 📝 從資料庫撈出所有的 User
-    statement = select(User)
+    # 📝 從資料庫撈出所有活躍非訪客的 User
+    statement = select(User).where(User.is_active == True, User.role != "guest")
     users = session.exec(statement).all()
     
     # 為了版面乾淨，我們只回傳 ID、姓名和處室

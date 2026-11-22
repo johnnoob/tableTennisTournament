@@ -28,8 +28,10 @@ import {
     Sparkles,
     Activity,
     ArrowRight,
+    Scale,
+    UserCog,
 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { adminApi, type AnnouncementPayload, type TournamentCreatePayload } from '@/lib/admin';
 import apiClient from '@/utils/apiClient';
@@ -50,19 +52,44 @@ import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { AdminUsersManager } from '@/components/admin/AdminUsersManager';
+import { AdminMatchesManager } from '@/components/admin/AdminMatchesManager';
 import { toast } from 'sonner';
+
+const VALID_ADMIN_TABS = ['general', 'seasons', 'matches', 'users', 'announcements', 'tournaments'] as const;
 
 const tabs = [
     { id: 'general', label: '系統與排程', icon: Settings },
     { id: 'seasons', label: '賽季與獎品', icon: Calendar },
+    { id: 'matches', label: '賽事裁決', icon: Scale },
+    { id: 'users', label: '成員與權限', icon: UserCog },
     { id: 'announcements', label: '公告管理', icon: Megaphone },
-    { id: 'tournaments', label: '錦標賽', icon: Users },
+    { id: 'tournaments', label: '錦標賽', icon: Trophy },
 ];
 
 export function AdminDashboard() {
     const { data: user } = useAuth();
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState('general');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const rawTab = searchParams.get('tab');
+    const activeTab =
+        rawTab && (VALID_ADMIN_TABS as ReadonlyArray<string>).includes(rawTab)
+            ? rawTab
+            : 'general';
+    const initialMatchStatus = searchParams.get('status') ?? undefined;
+
+    const handleSelectTab = (tabId: string) => {
+        const next = new URLSearchParams(searchParams);
+        if (tabId === 'general') {
+            next.delete('tab');
+        } else {
+            next.set('tab', tabId);
+        }
+        if (tabId !== 'matches') {
+            next.delete('status');
+        }
+        setSearchParams(next, { replace: true });
+    };
 
     // Fetch configs & cron status
     const { data: configs = [], isLoading: isConfigsLoading } = useQuery({
@@ -110,9 +137,14 @@ export function AdminDashboard() {
         queryClient.invalidateQueries({ queryKey: ['seasons'] });
         queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
         queryClient.invalidateQueries({ queryKey: ['matches'] });
+        queryClient.invalidateQueries({ queryKey: ['users'] });
+        queryClient.invalidateQueries({ queryKey: ['authUser'] });
     };
 
     const isSeasonPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
+    const disputedCount = cronStatus?.disputed_count ?? 0;
+    const pendingCount = cronStatus?.pending_total_count ?? 0;
+    const matchesAttentionCount = disputedCount + pendingCount;
 
     const statusCard = (
         <Card className={cn(
@@ -149,12 +181,12 @@ export function AdminDashboard() {
             />
 
             {/* Tab Navigation */}
-            <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-secondary rounded-2xl border border-border w-full md:w-fit">
+            <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-secondary rounded-2xl border border-border w-full lg:w-fit">
                 {tabs.map((tab) => (
                     <button
                         type="button"
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => handleSelectTab(tab.id)}
                         className={cn(
                             "flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 relative overflow-hidden shrink-0 whitespace-nowrap",
                             activeTab === tab.id
@@ -163,7 +195,19 @@ export function AdminDashboard() {
                         )}
                     >
                         <tab.icon size={16} aria-hidden="true" />
-                        {tab.label}
+                        <span>{tab.label}</span>
+                        {tab.id === 'matches' && matchesAttentionCount > 0 && (
+                            <span
+                                className={cn(
+                                    'px-1.5 py-0.5 rounded-full text-[11px] font-display font-black tabular-nums leading-none',
+                                    disputedCount > 0
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-amber-500 text-white'
+                                )}
+                            >
+                                {matchesAttentionCount}
+                            </span>
+                        )}
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="tab-active"
@@ -195,6 +239,19 @@ export function AdminDashboard() {
                         >
                             {activeTab === 'general' && <GeneralConfig configs={configs} cronStatus={cronStatus} onUpdate={handleUpdate} />}
                             {activeTab === 'seasons' && <SeasonAndPrizeManager seasons={adminSeasons} onUpdate={handleUpdate} />}
+                            {activeTab === 'matches' && (
+                                <AdminMatchesManager
+                                    key={initialMatchStatus || 'default'}
+                                    initialStatus={initialMatchStatus}
+                                    onUpdate={handleUpdate}
+                                />
+                            )}
+                            {activeTab === 'users' && (
+                                <AdminUsersManager
+                                    currentUserId={user?.id}
+                                    onUpdate={handleUpdate}
+                                />
+                            )}
                             {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={handleUpdate} />}
                             {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={handleUpdate} />}
                         </motion.div>

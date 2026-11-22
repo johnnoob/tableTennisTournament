@@ -1,8 +1,14 @@
 import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import type {
+  AdminForceConfirmPayload,
+  AdminMatchesResponse,
+  AdminMmrAdjustPayload,
   AdminParticipantResponse,
   AdminSeasonItem,
+  AdminUserItem,
+  AdminUserUpdatePayload,
+  AdminVoidMatchPayload,
   Announcement,
   CronRunSummary,
   CronStatusResponse,
@@ -124,6 +130,61 @@ export const adminApi = {
     adminFetch<SeasonPrize>(`/season-prizes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteSeasonPrize: (id: string) =>
     adminFetch<{ message: string }>(`/season-prizes/${id}`, { method: "DELETE" }),
+
+  // Phase 3: Members & Permissions
+  getUsers: () => adminFetch<AdminUserItem[]>("/users"),
+  updateUser: (userId: string, data: AdminUserUpdatePayload) =>
+    adminFetch<{
+      message: string;
+      id: string;
+      name: string;
+      department?: string | null;
+      role: string;
+      is_active: boolean;
+    }>(`/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  adjustUserMmr: (userId: string, data: AdminMmrAdjustPayload) =>
+    adminFetch<{
+      message: string;
+      user_id: string;
+      old_mmr: number;
+      new_mmr: number;
+      delta: number;
+    }>(`/users/${userId}/adjust-mmr`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Phase 4: Match Arbitration & Rollback
+  getMatches: (statusFilter = "attention", limit = 80) =>
+    adminFetch<AdminMatchesResponse>(
+      `/matches?status_filter=${encodeURIComponent(statusFilter)}&limit=${limit}`
+    ),
+  forceConfirmMatch: (matchId: string, data: AdminForceConfirmPayload = {}) =>
+    adminFetch<{
+      message: string;
+      match_id: string;
+      status: string;
+      score_a: number;
+      score_b: number;
+      format: string;
+      delta: number;
+    }>(`/matches/${matchId}/force-confirm`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  voidMatch: (matchId: string, data: AdminVoidMatchPayload = {}) =>
+    adminFetch<{
+      message: string;
+      mode: "rolled_back_confirmed" | "deleted_pending" | string;
+      rolled_back_users: number;
+      score_label: string;
+    }>(`/matches/${matchId}/void`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Tournaments
   getTournaments: () => adminFetch<TournamentEvent[]>("/tournaments"),

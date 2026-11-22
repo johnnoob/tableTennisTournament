@@ -78,6 +78,7 @@ export interface CronStatusResponse {
   cron_secret_configured: boolean;
   pending_total_count: number;
   pending_overdue_count: number;
+  disputed_count?: number;
   auto_confirm_hours: number;
   decay_enabled: boolean;
   lock_on_expire: boolean;
@@ -124,4 +125,84 @@ export interface AdminSeasonItem {
   pending_matches: number;
   prizes_count: number;
   top3: AdminSeasonTopPlayer[];
+}
+
+export interface AdminUserItem {
+  id: string;
+  name: string;
+  email?: string | null;
+  department?: string | null;
+  avatar_url?: string | null;
+  global_mmr: number;
+  role: 'admin' | 'user' | string;
+  is_active: boolean;
+  auth_provider: string;
+  matches_played: number;
+  wins: number;
+  losses: number;
+  is_env_admin: boolean;
+}
+
+export interface AdminUserUpdatePayload {
+  role?: 'admin' | 'user';
+  is_active?: boolean;
+  department?: string;
+  name?: string;
+}
+
+export interface AdminMmrAdjustPayload {
+  target_mmr?: number;
+  delta?: number;
+  reason: string;
+}
+
+export interface AdminMatchPlayer {
+  id: string;
+  name: string;
+  avatar_url?: string | null;
+  department?: string | null;
+  mmr_delta?: number | null;
+}
+
+export interface AdminMatchItem {
+  id: string;
+  match_type: 'singles' | 'doubles' | string;
+  format: 'BO3' | 'BO5' | string;
+  status: 'pending' | 'disputed' | 'confirmed' | 'completed' | string;
+  score_a: number;
+  score_b: number;
+  mmr_exchanged: number;
+  season_id: string;
+  season_name: string;
+  created_at?: string | null;
+  reported_by_id: string;
+  reported_by_name: string;
+  is_overdue: boolean;
+  dispute_reason?: string | null;
+  team_a: AdminMatchPlayer[];
+  team_b: AdminMatchPlayer[];
+}
+
+export interface AdminMatchesCounts {
+  disputed: number;
+  pending: number;
+  overdue: number;
+  confirmed: number;
+  total: number;
+}
+
+export interface AdminMatchesResponse {
+  counts: AdminMatchesCounts;
+  auto_confirm_hours: number;
+  matches: AdminMatchItem[];
+}
+
+export interface AdminForceConfirmPayload {
+  score_a?: number;
+  score_b?: number;
+  reason?: string;
+}
+
+export interface AdminVoidMatchPayload {
+  reason?: string;
 }

@@ -78,6 +78,12 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="此帳號已被管理員停用，如有疑問請聯繫社團管理員",
+        )
+
     if user.email and user.email.lower() in settings.admin_emails_set and user.role != "admin":
         user.role = "admin"
         session.add(user)

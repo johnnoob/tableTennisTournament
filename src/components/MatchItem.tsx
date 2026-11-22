@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PlayerAvatar } from './PlayerAvatar';
 import { useAuth } from '@/hooks/useAuth';
@@ -173,6 +173,7 @@ export function MatchItem({
   variant = 'feed',
   timeDisplay = 'smart',
 }: Readonly<MatchItemProps>) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
 
@@ -219,7 +220,11 @@ export function MatchItem({
     : null;
 
   const handleShowDisputeInfo = () => {
-    toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理');
+    if (currentUser?.role === 'admin') {
+      navigate('/admin?tab=matches&status=disputed');
+      return;
+    }
+    toast.info('此場賽果已標記為爭議申訴，自動結算已暫停，正等待管理員裁決。');
   };
 
   if (variant === 'feed') {
@@ -744,6 +749,7 @@ export function MatchSeriesItem({
   timeDisplay?: 'smart' | 'clock';
 }>) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
 
@@ -765,7 +771,11 @@ export function MatchSeriesItem({
   };
 
   const handleShowDisputeInfo = () => {
-    toast.info('線上申訴檢視功能建置中，請聯繫管理員或對手協助處理');
+    if (currentUser?.role === 'admin') {
+      navigate('/admin?tab=matches&status=disputed');
+      return;
+    }
+    toast.info('此場賽果已標記為爭議申訴，自動結算已暫停，正等待管理員裁決。');
   };
 
   const isDoubles = cluster.type === 'doubles';

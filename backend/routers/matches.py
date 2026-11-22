@@ -5,7 +5,7 @@ import datetime
 
 from database import get_session
 from models import Match, Notification, User, SeasonRecord
-from schemas import MatchCreateReq, MatchBatchConfirmReq
+from schemas import MatchCreateReq, MatchBatchConfirmReq, MatchDisputeReq
 
 from config import settings
 from services.elo_engine import get_team_mmr, calculate_match_deltas
@@ -21,6 +21,7 @@ from services.season_service import (
 from services.match_service import (
     settle_match_transaction,
     settle_matches_batch_transaction,
+    dispute_match_transaction,
     MatchNotFoundError,
     MatchAlreadySettledError,
     ConfirmPermissionError,
@@ -179,6 +180,35 @@ def confirm_match(match_id: UUID, current_user: User = Depends(get_current_user)
 
     return {
         "message": "比分已確認，積分結算完畢！",
+        **result,
+    }
+
+
+@router.post("/api/matches/{match_id}/dispute", summary="對待確認比賽提出異議（暫停自動結算並通知管理員）")
+def dispute_match(
+    match_id: UUID,
+    req: MatchDisputeReq,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    try:
+        result = dispute_match_transaction(
+            session=session,
+            match_id=match_id,
+            current_user=current_user,
+            reason=req.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except MatchNotFoundError:
+        raise HTTPException(status_code=404, detail="找不到此比賽")
+    except MatchAlreadySettledError:
+        raise HTTPException(status_code=400, detail="此比賽目前已結算或已處於申訴狀態")
+    except ConfirmPermissionError:
+        raise HTTPException(status_code=403, detail="僅該場參賽選手可以提出異議")
+
+    return {
+        "message": "已提交賽果異議並暫停自動結算，系統已通知對手與管理員協助處理。",
         **result,
     }
 
@@ -402,6 +432,8 @@ def get_all_matches_history(
         if status_filter == "confirmed" and m.status not in ("confirmed", "completed"):
             continue
         if status_filter == "pending" and m.status != "pending":
+            continue
+        if status_filter == "disputed" and m.status != "disputed":
             continue
 
         team_a_p1 = user_map.get(m.team_a_p1_id)

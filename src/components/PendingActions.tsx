@@ -962,24 +962,45 @@ function DisputeMatchModal({
   match: PendingMatch | null;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
   const [disputeReason, setDisputeReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const disputeFieldId = useId();
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (isSubmitting && !nextOpen) return;
     onOpenChange(nextOpen);
     if (!nextOpen) {
       setDisputeReason('');
     }
   };
 
-  const handleDisputeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleDisputeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!disputeReason.trim()) {
-      toast.error('請填寫異議原因');
+    const cleaned = disputeReason.trim();
+    if (!cleaned || !match || isSubmitting) {
+      if (!cleaned) toast.error('請填寫異議原因');
       return;
     }
-    toast.info('線上異議單功能建置中，請先直接聯繫對手修改比分或撤回申報');
-    handleOpenChange(false);
+
+    setIsSubmitting(true);
+    try {
+      const res = await apiClient.post<{ message: string }>(
+        `/matches/${match.id}/dispute`,
+        { reason: cleaned },
+        { skipGlobalErrorToast: true },
+      );
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      toast.success(res.data.message || '已提交異議，自動結算已暫停並通知管理員處理');
+      setIsSubmitting(false);
+      onOpenChange(false);
+      setDisputeReason('');
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error('送出異議失敗：' + (detail || '請稍後再試'));
+      setIsSubmitting(false);
+    }
   };
 
   const info = match ? getMatchPerspective(match, 'confirm', currentUserId) : null;
@@ -993,13 +1014,14 @@ function DisputeMatchModal({
       tone="danger"
       icon={<ShieldAlert size={18} />}
       title="提出賽果異議"
-      description="若比分有誤或尚未完賽，請說明問題並通知對方更正。"
+      description="送出後將立即暫停自動結算，並通知對手與管理員協助裁決。"
       onSubmit={handleDisputeSubmit}
       footer={
         <>
           <Button
             type="button"
             variant="outline"
+            disabled={isSubmitting}
             onClick={() => handleOpenChange(false)}
             className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
           >
@@ -1007,10 +1029,10 @@ function DisputeMatchModal({
           </Button>
           <Button
             type="submit"
-            disabled={!disputeReason.trim()}
+            disabled={isSubmitting || disputeReason.trim().length < 2}
             className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
           >
-            送出異議
+            {isSubmitting ? '送出中...' : '送出異議'}
           </Button>
         </>
       }
@@ -1044,7 +1066,7 @@ function DisputeMatchModal({
             placeholder="請簡述異議原因（例如：比分登錄錯誤、實際局數為 2:1 等）..."
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            className="arena-textarea min-h-28"
+            className="arena-textarea min-h-28 text-base sm:text-sm"
           />
         </div>
       </div>
