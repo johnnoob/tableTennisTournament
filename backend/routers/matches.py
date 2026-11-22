@@ -27,7 +27,7 @@ from services.match_service import (
     MatchAlreadySettledError,
     ConfirmPermissionError,
 )
-from services.user_service import get_career_match_counts
+from services.user_service import get_season_match_counts
 
 router = APIRouter(tags=["Matches"])
 
@@ -301,14 +301,16 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
     pending_matches = session.exec(statement).all()
     
     involved_uids = set()
+    season_ids = set()
     for m in pending_matches:
+        season_ids.add(m.season_id)
         involved_uids.add(m.team_a_p1_id)
         if m.team_a_p2_id: involved_uids.add(m.team_a_p2_id)
         involved_uids.add(m.team_b_p1_id)
         if m.team_b_p2_id: involved_uids.add(m.team_b_p2_id)
-    
-    # 批次取得所有相關玩家的生涯出賽數 (Directive 1 & 2)
-    career_counts = get_career_match_counts(session, list(involved_uids))
+
+    # 批次取得所有相關玩家的當季出賽數（前 5 場 K=32，第 6 場起 K=24）
+    season_counts = get_season_match_counts(session, season_ids, list(involved_uids))
 
     auto_confirm_hours = int(
         get_config_value(
@@ -326,23 +328,24 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
         team_b_p2 = session.get(User, m.team_b_p2_id) if m.team_b_p2_id else None
 
         a_won = m.score_a > m.score_b
-        
+
         # 準備 Elo 計算參數 (Directive 3: Explicit Keyword Alignment)
         deltas = calculate_match_deltas(
             team_winner_p1_mmr=team_a_p1.global_mmr if a_won else team_b_p1.global_mmr,
             team_winner_p2_mmr=(team_a_p2.global_mmr if a_won else team_b_p2.global_mmr) if m.match_type == "doubles" else None,
             team_loser_p1_mmr=team_b_p1.global_mmr if a_won else team_a_p1.global_mmr,
             team_loser_p2_mmr=(team_b_p2.global_mmr if a_won else team_a_p2.global_mmr) if m.match_type == "doubles" else None,
-            winner_p1_matches=career_counts.get(m.team_a_p1_id if a_won else m.team_b_p1_id, 0),
-            winner_p2_matches=career_counts.get(m.team_a_p2_id if a_won else m.team_b_p2_id, 0) if m.match_type == "doubles" else None,
-            loser_p1_matches=career_counts.get(m.team_b_p1_id if a_won else m.team_a_p1_id, 0),
-            loser_p2_matches=career_counts.get(m.team_b_p2_id if a_won else m.team_a_p2_id, 0) if m.match_type == "doubles" else None,
+            winner_p1_matches=season_counts.get((m.season_id, m.team_a_p1_id if a_won else m.team_b_p1_id), 0),
+            winner_p2_matches=season_counts.get((m.season_id, m.team_a_p2_id if a_won else m.team_b_p2_id), 0) if m.match_type == "doubles" else None,
+            loser_p1_matches=season_counts.get((m.season_id, m.team_b_p1_id if a_won else m.team_a_p1_id), 0),
+            loser_p2_matches=season_counts.get((m.season_id, m.team_b_p2_id if a_won else m.team_a_p2_id), 0) if m.match_type == "doubles" else None,
             score_winner=max(m.score_a, m.score_b),
             score_loser=min(m.score_a, m.score_b),
             format=m.format
         )
-        potential_delta = deltas["winner_p1_delta"]
-        
+        win_delta = deltas["winner_p1_delta"]
+        lose_delta = deltas["loser_p1_delta"]
+
         player1_data = [{"id": str(team_a_p1.id), "name": team_a_p1.name, "avatar": team_a_p1.avatar_url}]
         opponent_data = [{"id": str(team_b_p1.id), "name": team_b_p1.name, "avatar": team_b_p1.avatar_url}]
 
@@ -351,8 +354,8 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
             if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
 
         expires_at = ensure_utc(m.created_at) + datetime.timedelta(hours=auto_confirm_hours)
-        a_change = potential_delta if m.score_a > m.score_b else -potential_delta
-        b_change = -potential_delta if m.score_a > m.score_b else potential_delta
+        a_change = win_delta if a_won else lose_delta
+        b_change = lose_delta if a_won else win_delta
 
         result.append({
             "id": str(m.id),
@@ -566,15 +569,17 @@ def get_recent_matches(limit: int = 8, session: Session = Depends(get_session)):
     recent_matches = session.exec(statement).all()
     user_map = _load_users_for_matches(session, recent_matches)
 
-    # 批次計算 Career Matches 以供 Pending 預覽用
+    # 批次計算 Pending 場次的當季出賽數（前 5 場 K=32，第 6 場起 K=24）
     involved_uids = set()
+    season_ids = set()
     for m in recent_matches:
         if m.status == "pending":
+            season_ids.add(m.season_id)
             involved_uids.add(m.team_a_p1_id)
             if m.team_a_p2_id: involved_uids.add(m.team_a_p2_id)
             involved_uids.add(m.team_b_p1_id)
             if m.team_b_p2_id: involved_uids.add(m.team_b_p2_id)
-    career_counts = get_career_match_counts(session, list(involved_uids))
+    season_counts = get_season_match_counts(session, season_ids, list(involved_uids))
 
     result = []
     for m in recent_matches:
@@ -597,28 +602,29 @@ def get_recent_matches(limit: int = 8, session: Session = Depends(get_session)):
                 if team_b_p2: opponent_data.append(_serialize_player(team_b_p2))
 
         is_a_win = m.score_a > m.score_b
-        
+
         # 🟢 如果比賽已結算，直接使用 DB 存好的積分變動 (m.mmr_exchanged)
         if m.status in ["confirmed", "completed"] and m.mmr_exchanged is not None:
             delta = m.mmr_exchanged
+            mmr_change = [delta, -delta] if is_a_win else [-delta, delta]
         else:
-            # 🟡 如果是 Pending，則動態計算預覽分數 (Directives Optimization)
+            # 🟡 如果是 Pending，則依當季出賽數與選手獨立 K 值動態計算預覽分數
             deltas = calculate_match_deltas(
                 team_winner_p1_mmr=team_a_p1.global_mmr if is_a_win else team_b_p1.global_mmr,
                 team_winner_p2_mmr=(team_a_p2.global_mmr if is_a_win else team_b_p2.global_mmr) if m.match_type == "doubles" else None,
                 team_loser_p1_mmr=team_b_p1.global_mmr if is_a_win else team_a_p1.global_mmr,
                 team_loser_p2_mmr=(team_b_p2.global_mmr if is_a_win else team_a_p2.global_mmr) if m.match_type == "doubles" else None,
-                winner_p1_matches=career_counts.get(m.team_a_p1_id if is_a_win else m.team_b_p1_id, 0),
-                winner_p2_matches=career_counts.get(m.team_a_p2_id if is_a_win else m.team_b_p2_id, 0) if m.match_type == "doubles" else None,
-                loser_p1_matches=career_counts.get(m.team_b_p1_id if is_a_win else m.team_a_p1_id, 0),
-                loser_p2_matches=career_counts.get(m.team_b_p2_id if is_a_win else m.team_a_p2_id, 0) if m.match_type == "doubles" else None,
+                winner_p1_matches=season_counts.get((m.season_id, m.team_a_p1_id if is_a_win else m.team_b_p1_id), 0),
+                winner_p2_matches=season_counts.get((m.season_id, m.team_a_p2_id if is_a_win else m.team_b_p2_id), 0) if m.match_type == "doubles" else None,
+                loser_p1_matches=season_counts.get((m.season_id, m.team_b_p1_id if is_a_win else m.team_a_p1_id), 0),
+                loser_p2_matches=season_counts.get((m.season_id, m.team_b_p2_id if is_a_win else m.team_a_p2_id), 0) if m.match_type == "doubles" else None,
                 score_winner=max(m.score_a, m.score_b),
                 score_loser=min(m.score_a, m.score_b),
                 format=m.format
             )
-            delta = deltas["winner_p1_delta"]
-
-        mmr_change = [delta, -delta] if is_a_win else [-delta, delta]
+            win_delta = deltas["winner_p1_delta"]
+            lose_delta = deltas["loser_p1_delta"]
+            mmr_change = [win_delta, lose_delta] if is_a_win else [lose_delta, win_delta]
 
         result.append({
             "id": str(m.id),

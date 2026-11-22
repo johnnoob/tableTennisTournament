@@ -87,7 +87,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   const [createTestOpen, setCreateTestOpen] = useState(false);
   const [testNameInput, setTestNameInput] = useState('');
   const [testDeptInput, setTestDeptInput] = useState('測試組');
-  const [testMmrInput, setTestMmrInput] = useState('1200');
+  const [testMmrInput, setTestMmrInput] = useState('1000');
 
   const { data: users = [], isLoading } = useQuery<AdminUserItem[]>({
     queryKey: ['admin', 'users'],
@@ -316,7 +316,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       setCreateTestOpen(false);
       setTestNameInput('');
       setTestDeptInput('測試組');
-      setTestMmrInput('1200');
+      setTestMmrInput('1000');
       toast.success(res.message);
     },
     onError: (err: Error) => {
@@ -341,7 +341,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     e.preventDefault();
     if (createTestMutation.isPending) return;
     const parsedMmr = Number(testMmrInput);
-    const safeMmr = Number.isNaN(parsedMmr) ? 1200 : Math.min(3000, Math.max(600, parsedMmr));
+    const safeMmr = Number.isNaN(parsedMmr) ? 1000 : Math.min(3000, Math.max(600, parsedMmr));
     createTestMutation.mutate({
       name: testNameInput.trim() || undefined,
       department: testDeptInput.trim() || '測試組',

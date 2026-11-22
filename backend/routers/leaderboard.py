@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from database import get_session
 from models import Season, SeasonRecord, User, Match, MatchParticipation
+from services.elo_engine import ELO_CONFIG
 from services.season_service import get_current_season
 
 router = APIRouter(tags=["Leaderboard"])
@@ -419,23 +420,29 @@ def get_leaderboard(season_id: Optional[str] = None, session: Session = Depends(
             "season_outcomes": user_season_outs,
         })
 
-    # 🌟 2-B. 區分有/無比賽紀錄玩家，兩者皆依 ELO 降序排列
-    active_data = [d for d in combined_data if d["matches_played"] > 0]
+    # 🌟 2-B. 區分已定級（滿 5 場）、定級賽中（1~4 場）與未出賽（0 場），各自依 ELO 降序排列
+    placement_required = int(ELO_CONFIG.get("SEASON_PLACEMENT_MATCHES", 5))
+    placed_data = [d for d in combined_data if d["matches_played"] >= placement_required]
+    placement_data = [d for d in combined_data if 0 < d["matches_played"] < placement_required]
     inactive_data = [d for d in combined_data if d["matches_played"] == 0]
 
-    active_data.sort(key=lambda x: x["display_mmr"], reverse=True)
+    placed_data.sort(key=lambda x: x["display_mmr"], reverse=True)
+    placement_data.sort(key=lambda x: x["display_mmr"], reverse=True)
     inactive_data.sort(key=lambda x: x["display_mmr"], reverse=True)
 
     current_rank = 1
-    for i, data in enumerate(active_data):
-        if i > 0 and data["display_mmr"] < active_data[i - 1]["display_mmr"]:
+    for i, data in enumerate(placed_data):
+        if i > 0 and data["display_mmr"] < placed_data[i - 1]["display_mmr"]:
             current_rank = i + 1
         data["computed_rank"] = current_rank
+
+    for data in placement_data:
+        data["computed_rank"] = "-"
 
     for data in inactive_data:
         data["computed_rank"] = "-"
 
-    final_combined = active_data + inactive_data
+    final_combined = placed_data + placement_data + inactive_data
 
     # 📈 3. 處理勝率、動能趨勢與焦點指標
     leaderboard_data = []

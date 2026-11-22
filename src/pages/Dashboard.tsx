@@ -556,6 +556,7 @@ export function Dashboard() {
                           rating: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
                           mmr: (myStats?.global_mmr || user?.global_mmr || user?.mmr || 1000) as number,
                           rank: myStats?.rank ?? '-',
+                          seasonMatchesPlayed: myStats?.season_matches_played ?? 0,
                           ptsChange: myStats?.pts_change,
                           recentForm: myStats?.recent_form,
                           recent5Delta: myStats?.recent_5_delta,

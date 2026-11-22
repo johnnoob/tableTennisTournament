@@ -455,7 +455,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
                 oauth_id=google_id,
                 google_id=google_id,
                 department="未設定處室",
-                global_mmr=1200.0,
+                global_mmr=1000.0,
                 role="admin" if is_env_admin else "user",
             )
 
@@ -697,7 +697,7 @@ async def line_callback(request: Request, session: Session = Depends(get_session
                 line_user_id=line_user_id,
                 line_display_name=display_name,
                 department="未設定處室",
-                global_mmr=1200.0,
+                global_mmr=1000.0,
                 role="admin" if is_env_admin else "user",
             )
 

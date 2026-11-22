@@ -93,6 +93,8 @@ export interface PlayerStats {
   season_lp?: number;
   global_mmr: number;
   matches_played?: number;
+  season_matches_played?: number;
+  placement_matches_required?: number;
   wins: number;
   losses: number;
   win_rate: string;
@@ -241,6 +243,7 @@ export interface DashboardPlayer {
   name: string;
   username: string;
   rank: string | number;
+  seasonMatchesPlayed?: number;
   rating: number;
   mmr: number;
   global_mmr?: number;

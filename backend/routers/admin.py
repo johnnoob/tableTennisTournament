@@ -1079,7 +1079,7 @@ def create_test_account(
         final_name = next((c for c in candidates if c not in used_names), f"測試球友 {len(existing_tests) + 1}")
 
     clean_dept = (req.department.strip() if req and req.department else "") or "測試組"
-    initial_mmr = round(float(req.global_mmr if req and req.global_mmr is not None else 1200.0), 1)
+    initial_mmr = round(float(req.global_mmr if req and req.global_mmr is not None else 1000.0), 1)
 
     new_user = User(
         name=final_name,

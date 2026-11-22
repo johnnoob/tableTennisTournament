@@ -6,26 +6,23 @@ import math
 ELO_CONFIG = {
     "DEFAULT_BASE_MMR": 1000.0,
     "MIN_MMR_FLOOR": 600.0,
-    "K_PLACEMENT": 40,          # matches < 10
-    "K_NORMAL": 24,             # matches 10 ~ 29
-    "K_VETERAN": 16,            # matches >= 30
-    "TEAM_WEIGHT_HIGH": 0.6,
-    "TEAM_WEIGHT_LOW": 0.4,
-    "DOUBLES_DELTA_DISCOUNT": 1.2,  # multiplier for doubles matches
+    "SEASON_PLACEMENT_MATCHES": 5,      # 每季前 5 場為定級賽
+    "K_PLACEMENT": 32,                  # 定級賽期間 (season_matches < 5)
+    "K_NORMAL": 24,                     # 完成定級後 (season_matches >= 5)
+    "TEAM_WEIGHT_HIGH": 0.5,            # 雙打隊伍戰力採真實平均 (50/50)
+    "TEAM_WEIGHT_LOW": 0.5,
+    "DOUBLES_PLAYER_MULTIPLIER": 0.85,  # 雙打個人變動為單打之 0.85 倍（同隊均分）
 }
 
 
 def get_k_factor(matches_played: int) -> int:
     """
-    決定波動率 K 值。
-    新手前 10 場波動最大，幫助快速定級；老手則相對穩定。
+    決定波動率 K 值（依本季出賽場次）：
+    每季前 5 場定級賽採用 K=32 加速校正定位；完成定級後（第 6 場起）恢復常態 K=24。
     """
-    if matches_played < ELO_CONFIG["K_PLACEMENT"] // 4:  # < 10
+    if matches_played < ELO_CONFIG["SEASON_PLACEMENT_MATCHES"]:
         return ELO_CONFIG["K_PLACEMENT"]
-    elif matches_played < 30:
-        return ELO_CONFIG["K_NORMAL"]
-    else:
-        return ELO_CONFIG["K_VETERAN"]
+    return ELO_CONFIG["K_NORMAL"]
 
 
 def get_team_mmr(mmr1: float, mmr2: float = None) -> float:
@@ -68,23 +65,12 @@ def distribute_doubles_delta(
     team_delta: float,
 ) -> tuple[float, float]:
     """
-    反比例分配雙打積分 (Inverse-Ratio Distribution)。
-    MMR 較低的玩家獲得更多正分（保護弱者）；
-    MMR 較高的玩家獲得較少正分（要求強者帶隊責任）。
-    對於負分，MMR 較高者扣較少（保護強者），MMR 較低者扣較多。
-
-    Logic:
-        weight_a = player_b_mmr / (player_a_mmr + player_b_mmr)
-        weight_b = player_a_mmr / (player_a_mmr + player_b_mmr)
+    同隊共擔雙打積分 (Equal 50/50 Split)：
+    將團隊總變動值平分給兩位搭檔，避免輸球時反比例懲罰低分隊友。
     """
-    total = player_a_mmr + player_b_mmr
-    weight_a = player_b_mmr / total
-    weight_b = player_a_mmr / total
-
-    delta_a = round(team_delta * weight_a, 1)
-    delta_b = round(team_delta * weight_b, 1)
-
-    return delta_a, delta_b
+    del player_a_mmr, player_b_mmr
+    half = round(team_delta * 0.5, 1)
+    return half, half
 
 
 def calculate_match_deltas(
@@ -102,6 +88,8 @@ def calculate_match_deltas(
 ) -> dict:
     """
     主計算函式：處理單打與雙打，回傳每位參與者的精確積分變動。
+    每位選手各自套用自身當季出賽數對應的 K 值（前 5 場定級賽 K=32，第 6 場起 K=24），
+    不與對手互相平均；雙打則兩位搭檔採真實均強 (50/50) 與 0.85 倍個人變動係數。
 
     Returns:
         {
@@ -117,32 +105,22 @@ def calculate_match_deltas(
     winner_team_mmr = get_team_mmr(team_winner_p1_mmr, team_winner_p2_mmr)
     loser_team_mmr = get_team_mmr(team_loser_p1_mmr, team_loser_p2_mmr)
 
-    # 2. 計算勝率期望值
+    # 2. 計算勝率期望值與賽制淨勝局加成
     expected_win_rate = 1 / (1 + 10 ** ((loser_team_mmr - winner_team_mmr) / 400))
+    surprise_factor = 1 - expected_win_rate
+    mov = get_mov_multiplier(score_winner, score_loser, format)
 
-    # 3. 動態 K 值 & MoV 乘數
+    # 3. 取得各選手獨立 K 值（不再與對手平均）
     k_win_p1 = get_k_factor(winner_p1_matches)
     k_lose_p1 = get_k_factor(loser_p1_matches)
 
-    if is_doubles:
-        k_win_p2 = get_k_factor(winner_p2_matches) if winner_p2_matches is not None else k_win_p1
-        k_lose_p2 = get_k_factor(loser_p2_matches) if loser_p2_matches is not None else k_lose_p1
-        match_k = (k_win_p1 + k_win_p2 + k_lose_p1 + k_lose_p2) / 4
-    else:
-        match_k = (k_win_p1 + k_lose_p1) / 2
-
-    mov = get_mov_multiplier(score_winner, score_loser, format)
-
-    # 4. 基礎隊伍積分變動
-    team_delta = match_k * (1 - expected_win_rate) * mov
-
-    # 5. 依賽制派發個人積分
+    # 4. 依賽制派發個人積分
     floor = ELO_CONFIG["MIN_MMR_FLOOR"]
 
     if not is_doubles:
         # ── 單打 ──────────────────────────────────────
-        winner_p1_delta = round(team_delta, 1)
-        loser_p1_delta = -winner_p1_delta
+        winner_p1_delta = round(k_win_p1 * surprise_factor * mov, 1)
+        loser_p1_delta = -round(k_lose_p1 * surprise_factor * mov, 1)
 
         # Floor 保護
         if team_loser_p1_mmr + loser_p1_delta < floor:
@@ -156,17 +134,15 @@ def calculate_match_deltas(
         }
 
     else:
-        # ── 雙打 ──────────────────────────────────────
-        discounted_delta = team_delta * ELO_CONFIG["DOUBLES_DELTA_DISCOUNT"]
+        # ── 雙打 (同隊 0.85x 均分共擔) ─────────────────
+        k_win_p2 = get_k_factor(winner_p2_matches) if winner_p2_matches is not None else k_win_p1
+        k_lose_p2 = get_k_factor(loser_p2_matches) if loser_p2_matches is not None else k_lose_p1
+        mult = ELO_CONFIG["DOUBLES_PLAYER_MULTIPLIER"]
 
-        # 勝方分配
-        winner_p1_delta, winner_p2_delta = distribute_doubles_delta(
-            team_winner_p1_mmr, team_winner_p2_mmr, discounted_delta
-        )
-        # 敗方分配（負值）
-        loser_p1_raw, loser_p2_raw = distribute_doubles_delta(
-            team_loser_p1_mmr, team_loser_p2_mmr, -discounted_delta
-        )
+        winner_p1_delta = round(k_win_p1 * surprise_factor * mov * mult, 1)
+        winner_p2_delta = round(k_win_p2 * surprise_factor * mov * mult, 1)
+        loser_p1_raw = -round(k_lose_p1 * surprise_factor * mov * mult, 1)
+        loser_p2_raw = -round(k_lose_p2 * surprise_factor * mov * mult, 1)
 
         # Floor 保護：確保不低於最低 MMR
         if team_loser_p1_mmr + loser_p1_raw < floor:
@@ -188,66 +164,43 @@ def calculate_match_deltas(
 if __name__ == "__main__":
     # ── 情境 A: 單打爆冷 (Upset) ──────────────────────────────────────────────
     print("=" * 60)
-    print("情境 A: 單打爆冷 — 林專員 (1000) 2:1 險勝 王科長 (1500)")
+    print("情境 A: 單打爆冷 — 林專員 (1000, 當季第3場 K=32) 2:1 勝 王科長 (1320, 已定級 K=24)")
     print("=" * 60)
     result_a = calculate_match_deltas(
         team_winner_p1_mmr=1000.0,
         team_winner_p2_mmr=None,
-        team_loser_p1_mmr=1500.0,
+        team_loser_p1_mmr=1320.0,
         team_loser_p2_mmr=None,
-        winner_p1_matches=5,
+        winner_p1_matches=2,
         winner_p2_matches=None,
-        loser_p1_matches=50,
+        loser_p1_matches=8,
         loser_p2_matches=None,
         score_winner=2,
         score_loser=1,
         format="BO3",
     )
-    print(f"  林專員獲得: +{result_a['winner_p1_delta']} MMR")
-    print(f"  王科長損失:  {result_a['loser_p1_delta']} MMR\n")
+    print(f"  林專員獲得: +{result_a['winner_p1_delta']} MMR (K=32)")
+    print(f"  王科長損失:  {result_a['loser_p1_delta']} MMR (K=24)\n")
 
-    # ── 情境 B: 雙打 — 強弱湭檔獲勝 ───────────────────────────────────
+    # ── 情境 B: 雙打 — 已定級強弱搭檔同隊均分 (0.85x) ──────────────────────
     print("=" * 60)
-    print("情境 B: 雙打 — (1500 + 1000) 獲勝 vs (1200 + 1200)")
-    print("  預期：1000 MMR 球員應獲得較高正分")
+    print("情境 B: 雙打 — (1320 + 1000) 獲勝 vs (1160 + 1160)")
+    print("  預期：同隊皆已定級 (K=24) 時，強弱搭檔同加同扣")
     print("=" * 60)
     result_b = calculate_match_deltas(
-        team_winner_p1_mmr=1500.0,
+        team_winner_p1_mmr=1320.0,
         team_winner_p2_mmr=1000.0,
-        team_loser_p1_mmr=1200.0,
-        team_loser_p2_mmr=1200.0,
-        winner_p1_matches=35,
-        winner_p2_matches=3,
-        loser_p1_matches=20,
-        loser_p2_matches=20,
+        team_loser_p1_mmr=1160.0,
+        team_loser_p2_mmr=1160.0,
+        winner_p1_matches=10,
+        winner_p2_matches=10,
+        loser_p1_matches=10,
+        loser_p2_matches=10,
         score_winner=2,
         score_loser=0,
         format="BO3",
     )
-    print(f"  勝方 1500 MMR 獲得: +{result_b['winner_p1_delta']} MMR")
-    print(f"  勝方 1000 MMR 獲得: +{result_b['winner_p2_delta']} MMR  <- 應較高")
-    print(f"  敗方 1200 MMR(p1) 損失:  {result_b['loser_p1_delta']} MMR")
-    print(f"  敗方 1200 MMR(p2) 損失:  {result_b['loser_p2_delta']} MMR\n")
-
-    # ── 情境 C: 相同雙打組合 — 失敗，驗證強者保護 ────────────────────
-    print("=" * 60)
-    print("情境 C: 雙打 — (1500 + 1000) 落敗 vs (1200 + 1200)")
-    print("  預期：1500 MMR 球員應扣較少（保護強者）")
-    print("=" * 60)
-    result_c = calculate_match_deltas(
-        team_winner_p1_mmr=1200.0,
-        team_winner_p2_mmr=1200.0,
-        team_loser_p1_mmr=1500.0,
-        team_loser_p2_mmr=1000.0,
-        winner_p1_matches=20,
-        winner_p2_matches=20,
-        loser_p1_matches=35,
-        loser_p2_matches=3,
-        score_winner=2,
-        score_loser=1,
-        format="BO3",
-    )
-    print(f"  勝方 1200 MMR(p1) 獲得: +{result_c['winner_p1_delta']} MMR")
-    print(f"  勝方 1200 MMR(p2) 獲得: +{result_c['winner_p2_delta']} MMR")
-    print(f"  敗方 1500 MMR 損失:  {result_c['loser_p1_delta']} MMR  <- 應較少")
-    print(f"  敗方 1000 MMR 損失:  {result_c['loser_p2_delta']} MMR  <- 應較多")
+    print(f"  勝方 1320 MMR 獲得: +{result_b['winner_p1_delta']} MMR")
+    print(f"  勝方 1000 MMR 獲得: +{result_b['winner_p2_delta']} MMR  <- 應與搭檔相同")
+    print(f"  敗方 1160 MMR(p1) 損失:  {result_b['loser_p1_delta']} MMR")
+    print(f"  敗方 1160 MMR(p2) 損失:  {result_b['loser_p2_delta']} MMR\n")

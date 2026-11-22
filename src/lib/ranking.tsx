@@ -1,27 +1,28 @@
 import { Shield, Trophy, Medal, Award } from 'lucide-react';
 import React from 'react';
 
-// 賽季起始基準分
-export const SEASON_BASE_SCORE = 1500;
+// 賽季起始基準分與定級門檻
+export const SEASON_BASE_SCORE = 1000;
+export const SEASON_PLACEMENT_MATCHES = 5;
 
 // 段位徽章邏輯 (全域唯一標準)
-// 分數區間採用目前最新的測試標準： Elite(2000) > Gold(1260) > Silver(1210)
+// 客觀標準（基準分 1000）：菁英 (>= 1320) > 金牌 (1180 ~ 1319) > 銀牌 (1050 ~ 1179) > 銅牌 (< 1050)
 export const getTierBadge = (mmr: number, iconSize: number = 14) => {
-  if (mmr >= 2000) {
+  if (mmr >= 1320) {
     return {
       name: '菁英 (Elite)',
       icon: React.createElement(Shield, { size: iconSize }),
       color: 'bg-slate-900 text-amber-400 border-amber-400/50 shadow-md shadow-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/50'
     };
   }
-  if (mmr >= 1260) {
+  if (mmr >= 1180) {
     return {
       name: '金牌 (Gold)',
       icon: React.createElement(Trophy, { size: iconSize }),
       color: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/35'
     };
   }
-  if (mmr >= 1210) {
+  if (mmr >= 1050) {
     return {
       name: '銀牌 (Silver)',
       icon: React.createElement(Medal, { size: iconSize }),
@@ -38,16 +39,16 @@ export const getTierBadge = (mmr: number, iconSize: number = 14) => {
 export type TierKey = 'elite' | 'gold' | 'silver' | 'bronze';
 
 export const getTierKey = (mmr: number): TierKey => {
-  if (mmr >= 2000) return 'elite';
-  if (mmr >= 1260) return 'gold';
-  if (mmr >= 1210) return 'silver';
+  if (mmr >= 1320) return 'elite';
+  if (mmr >= 1180) return 'gold';
+  if (mmr >= 1050) return 'silver';
   return 'bronze';
 };
 
 export const getShortTierName = (mmr: number): string => {
-  if (mmr >= 2000) return '菁英';
-  if (mmr >= 1260) return '金牌';
-  if (mmr >= 1210) return '銀牌';
+  if (mmr >= 1320) return '菁英';
+  if (mmr >= 1180) return '金牌';
+  if (mmr >= 1050) return '銀牌';
   return '銅牌';
 };
 
@@ -62,29 +63,29 @@ export interface TierProgress {
 export const getTierProgress = (mmr: number): TierProgress => {
   const roundedMmr = Math.round(mmr);
 
-  if (mmr >= 2000) {
+  if (mmr >= 1320) {
     return {
       currentTierName: '菁英 (Elite)',
       nextTierName: null,
-      targetMmr: 2000,
+      targetMmr: 1320,
       remainingMmr: 0,
       progressPercent: 100,
     };
   }
 
-  let floor = 1000;
-  let targetMmr = 1210;
+  let floor = 900;
+  let targetMmr = 1050;
   let currentTierName = '銅牌 (Bronze)';
   let nextTierName = '銀牌 (Silver)';
 
-  if (mmr >= 1260) {
-    floor = 1260;
-    targetMmr = 2000;
+  if (mmr >= 1180) {
+    floor = 1180;
+    targetMmr = 1320;
     currentTierName = '金牌 (Gold)';
     nextTierName = '菁英 (Elite)';
-  } else if (mmr >= 1210) {
-    floor = 1210;
-    targetMmr = 1260;
+  } else if (mmr >= 1050) {
+    floor = 1050;
+    targetMmr = 1180;
     currentTierName = '銀牌 (Silver)';
     nextTierName = '金牌 (Gold)';
   }

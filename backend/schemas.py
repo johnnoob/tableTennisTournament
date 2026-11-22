@@ -223,7 +223,7 @@ class AdminTestUserCreateReq(BaseModel):
     """管理員建立供測試互動流程的假人球友帳號"""
     name: Optional[str] = Field(default=None, max_length=40)
     department: Optional[str] = Field(default="測試組", max_length=60)
-    global_mmr: Optional[float] = Field(default=1200.0, ge=600.0, le=3000.0)
+    global_mmr: Optional[float] = Field(default=1000.0, ge=600.0, le=3000.0)
 
 
 class SeasonPrizeCopyReq(BaseModel):

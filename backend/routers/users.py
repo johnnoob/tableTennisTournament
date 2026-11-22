@@ -8,6 +8,7 @@ from services.auth_jwt import (
 )
 from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, Notification, utc_now
 from schemas import MatchPresetCreate, MatchPresetUpdate
+from services.elo_engine import ELO_CONFIG
 from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
 
@@ -105,11 +106,13 @@ def get_my_stats(
     session: Session = Depends(get_session)
 ):
     active_season = get_current_season(session)
+    placement_required = int(ELO_CONFIG.get("SEASON_PLACEMENT_MATCHES", 5))
 
     rank: int | str = "-"
     win_rate = "0%"
     trend = "new"
     matches_played = 0
+    season_matches_played = 0
     wins = 0
     losses = 0
     my_record = None
@@ -121,25 +124,28 @@ def get_my_stats(
 
         if my_record and my_record.matches_played > 0:
             matches_played = my_record.matches_played
+            season_matches_played = my_record.matches_played
             wins = my_record.wins
             losses = max(0, matches_played - wins)
             win_rate = f"{(wins / matches_played) * 100:.1f}%"
 
-            statement = select(func.count(User.id)).join(
-                SeasonRecord, User.id == SeasonRecord.user_id
-            ).where(
-                User.role != "guest",
-                SeasonRecord.season_id == active_season.id,
-                SeasonRecord.matches_played > 0,
-                User.global_mmr > current_user.global_mmr
-            )
-            higher_scores_count = session.exec(statement).one()
-            rank = higher_scores_count + 1
+            if season_matches_played >= placement_required:
+                statement = select(func.count(User.id)).join(
+                    SeasonRecord, User.id == SeasonRecord.user_id
+                ).where(
+                    User.role != "guest",
+                    User.is_active == True,
+                    SeasonRecord.season_id == active_season.id,
+                    SeasonRecord.matches_played >= placement_required,
+                    User.global_mmr > current_user.global_mmr
+                )
+                higher_scores_count = session.exec(statement).one()
+                rank = higher_scores_count + 1
 
-            if my_record.previous_rank and isinstance(rank, int):
-                if rank < my_record.previous_rank: trend = "up"
-                elif rank > my_record.previous_rank: trend = "down"
-                else: trend = "same"
+                if my_record.previous_rank and isinstance(rank, int):
+                    if rank < my_record.previous_rank: trend = "up"
+                    elif rank > my_record.previous_rank: trend = "down"
+                    else: trend = "same"
 
     # 讀取玩家參與的實際對戰紀錄（供 SeasonRecord 為 0 時保底補齊，及計算連勝/近5場走勢）
     user_matches = session.exec(
@@ -175,7 +181,7 @@ def get_my_stats(
         losses = matches_played - wins
         win_rate = f"{(wins / matches_played) * 100:.1f}%"
 
-    if rank == "-" and (matches_played > 0 or round(current_user.global_mmr) != 1000):
+    if not active_season and rank == "-" and (matches_played > 0 or round(current_user.global_mmr) != 1000):
         higher_count = session.exec(
             select(func.count(User.id)).where(
                 User.role != "guest",
@@ -281,6 +287,8 @@ def get_my_stats(
         "trend": trend,
         "global_mmr": round(current_user.global_mmr),
         "matches_played": matches_played,
+        "season_matches_played": season_matches_played,
+        "placement_matches_required": placement_required,
         "wins": wins,
         "losses": losses,
         "chart_data": chart_data,

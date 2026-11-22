@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { getTierBadge, getTierProgress } from '@/lib/ranking';
+import { getTierBadge, getTierProgress, SEASON_PLACEMENT_MATCHES } from '@/lib/ranking';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 
 interface RankingCardProps {
@@ -26,9 +26,9 @@ interface RankingCardProps {
 }
 
 function getTierAvatarRing(mmr: number): string {
-  if (mmr >= 2000) return 'from-amber-400 via-yellow-300 to-amber-500';
-  if (mmr >= 1260) return 'from-amber-400 via-orange-400 to-yellow-500';
-  if (mmr >= 1210) return 'from-slate-300 via-blue-300 to-indigo-400';
+  if (mmr >= 1320) return 'from-amber-400 via-yellow-300 to-amber-500';
+  if (mmr >= 1180) return 'from-amber-400 via-orange-400 to-yellow-500';
+  if (mmr >= 1050) return 'from-slate-300 via-blue-300 to-indigo-400';
   return 'from-sapphire-blue via-sky-400 to-indigo-500';
 }
 
@@ -157,17 +157,28 @@ export function RankingCard({
     tierProgress.remainingMmr > 0 ? Math.max(1, Math.ceil(tierProgress.remainingMmr / 16)) : 0;
 
   const hasNumericRank = displayRank !== '-' && displayRank !== '';
+  const seasonMatches = player.seasonMatchesPlayed ?? 0;
+  const isInPlacement = !hasNumericRank && seasonMatches > 0 && seasonMatches < SEASON_PLACEMENT_MATCHES;
+  const rankBadgeLabel = hasNumericRank
+    ? `#${displayRank}`
+    : isInPlacement
+      ? `${seasonMatches}/${SEASON_PLACEMENT_MATCHES}`
+      : 'NEW';
 
   return (
     <Card className="group relative transition-all duration-300 overflow-hidden sm:overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-4 sm:p-6 mt-1 sm:mt-3 border border-blue-200/85 dark:border-slate-700/80 shadow-md shadow-sapphire-blue/8 dark:shadow-primary-navy/30">
       {/* Floating Rank Badge (Tablet / Desktop) */}
       <div
         className={cn(
-          'hidden sm:flex absolute -left-3 -top-3 items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-14 bg-olympic-gold text-white',
-          hasNumericRank ? 'text-xl' : 'text-xs tracking-wider',
+          'hidden sm:flex absolute -left-3 -top-3 items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-14',
+          hasNumericRank
+            ? 'bg-olympic-gold text-white text-xl'
+            : isInPlacement
+              ? 'bg-sapphire-blue text-white text-sm tracking-tight'
+              : 'bg-olympic-gold text-white text-xs tracking-wider',
         )}
       >
-        {hasNumericRank ? `#${displayRank}` : 'NEW'}
+        {rankBadgeLabel}
       </div>
 
       <CardContent className="p-0 space-y-4 sm:space-y-5">
@@ -186,11 +197,15 @@ export function RankingCard({
               >
                 <span
                   className={cn(
-                    'sm:hidden absolute -top-2 -left-2 z-10 min-w-6 h-6 px-1.5 rounded-full bg-olympic-gold text-white font-display font-black flex items-center justify-center shadow-md ring-2 ring-card tabular-nums',
-                    hasNumericRank ? 'text-[11px]' : 'text-[9px] tracking-wider',
+                    'sm:hidden absolute -top-2 -left-2 z-10 min-w-6 h-6 px-1.5 rounded-full text-white font-display font-black flex items-center justify-center shadow-md ring-2 ring-card tabular-nums',
+                    hasNumericRank
+                      ? 'bg-olympic-gold text-[11px]'
+                      : isInPlacement
+                        ? 'bg-sapphire-blue text-[10px]'
+                        : 'bg-olympic-gold text-[9px] tracking-wider',
                   )}
                 >
-                  {hasNumericRank ? `#${displayRank}` : 'NEW'}
+                  {rankBadgeLabel}
                 </span>
                 <PlayerAvatar
                   src={player.avatar}
@@ -218,6 +233,11 @@ export function RankingCard({
                     >
                       {tier.icon} {tier.name}
                     </div>
+                    {isInPlacement && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 border border-sapphire-blue/25 text-xs font-black whitespace-nowrap tabular-nums">
+                        定級賽 {seasonMatches}/{SEASON_PLACEMENT_MATCHES} · K=32
+                      </span>
+                    )}
                     {currentStreak >= 2 && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-black shadow-xs whitespace-nowrap">
                         <Flame size={12} aria-hidden="true" />
@@ -423,10 +443,18 @@ export function RankingCard({
               </div>
               <div className="min-w-0">
                 <p className="text-sm sm:text-base font-display font-black text-foreground leading-tight truncate">
-                  {totalMatches > 0 ? '👑 全場最高積分' : '等待首戰定級'}
+                  {hasNumericRank
+                    ? '👑 全場最高積分'
+                    : isInPlacement
+                      ? `⚡ 定級賽 (${seasonMatches}/${SEASON_PLACEMENT_MATCHES}) · K=32`
+                      : `⚡ 定級賽 (0/${SEASON_PLACEMENT_MATCHES}) · K=32`}
                 </p>
                 <p className="text-[11px] font-bold text-muted-foreground mt-0.5 truncate">
-                  {totalMatches > 0 ? '持續守住王座領先優勢' : '打完第 1 場即開啟超車雷達'}
+                  {hasNumericRank
+                    ? '持續守住王座領先優勢'
+                    : isInPlacement
+                      ? `再完成 ${SEASON_PLACEMENT_MATCHES - seasonMatches} 場本季對戰即正式入榜`
+                      : `打滿 ${SEASON_PLACEMENT_MATCHES} 場本季對戰即正式入榜`}
                 </p>
               </div>
             </div>

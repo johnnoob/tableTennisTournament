@@ -20,14 +20,28 @@ import {
   Loader2,
   Hourglass,
   Sparkles,
+  BookOpen,
+  Scale,
+  Shield,
+  Medal,
+  Award,
 } from 'lucide-react';
 import {
   getTierBadge,
   getTierKey,
   getShortTierName,
+  SEASON_BASE_SCORE,
+  SEASON_PLACEMENT_MATCHES,
   type TierKey,
 } from '@/lib/ranking';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   ResponsiveSelect,
   type ResponsiveSelectOption,
@@ -156,9 +170,13 @@ function TrendBadge({ trend }: Readonly<{ trend?: string }>) {
 function MedalBadge({
   rank,
   previewIndex,
+  matchesPlayed = 0,
+  isAllTime = false,
 }: Readonly<{
   rank: string | number;
   previewIndex?: number;
+  matchesPlayed?: number;
+  isAllTime?: boolean;
 }>) {
   const isRanked = rank !== '-' && rank !== '';
   const numRank = isRanked ? Number(rank) : undefined;
@@ -184,6 +202,20 @@ function MedalBadge({
     return (
       <span className="font-display font-black text-base text-muted-foreground tabular-nums leading-none">
         #{numRank}
+      </span>
+    );
+  }
+
+  if (!isAllTime && matchesPlayed > 0 && matchesPlayed < SEASON_PLACEMENT_MATCHES) {
+    return (
+      <span
+        title={`定級賽進行中（已完成 ${matchesPlayed}/${SEASON_PLACEMENT_MATCHES} 場，享有 K=32 加速，滿 ${SEASON_PLACEMENT_MATCHES} 場正式入榜）`}
+        className="inline-flex flex-col items-center justify-center px-1.5 py-1 rounded-lg border border-sapphire-blue/35 bg-sapphire-blue/10 text-sapphire-blue dark:border-blue-400/40 dark:bg-blue-500/15 dark:text-blue-300 font-display font-black leading-none tabular-nums"
+      >
+        <span className="text-[9px] font-sans font-black tracking-tight opacity-85">定級</span>
+        <span className="text-[11px] mt-0.5">
+          {matchesPlayed}/{SEASON_PLACEMENT_MATCHES}
+        </span>
       </span>
     );
   }
@@ -240,6 +272,7 @@ export function Leaderboard() {
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   const [sortBy, setSortBy] = useState<SortMode>('mmr');
   const [showUnrankedSection, setShowUnrankedSection] = useState(true);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
@@ -412,8 +445,15 @@ export function Leaderboard() {
     return copy;
   }, [realLeaderboard, searchTerm, selectedDept, tierFilter, sortBy]);
 
+  const activePlayedCount = useMemo(
+    () => realLeaderboard.filter((p) => p.matches_played > 0).length,
+    [realLeaderboard],
+  );
+
   // Pre-season mode: nobody has played matches yet in this season
-  const isPreseasonMode = rankedCount === 0 && realLeaderboard.length > 0;
+  const isPreseasonMode = !isAllTime && activePlayedCount === 0 && realLeaderboard.length > 0;
+  // Placement rush: matches started in this season, but nobody reached 5 placement matches yet
+  const isPlacementPhase = !isAllTime && rankedCount === 0 && activePlayedCount > 0;
 
   const { primaryPlayers, secondaryUnrankedPlayers } = useMemo(() => {
     if (isPreseasonMode) {
@@ -434,8 +474,11 @@ export function Leaderboard() {
     if (rankedCount > 0) {
       return realLeaderboard.filter((p) => p.rank !== '-').slice(0, 3);
     }
+    if (activePlayedCount > 0) {
+      return realLeaderboard.filter((p) => p.matches_played > 0).slice(0, 3);
+    }
     return realLeaderboard.slice(0, 3);
-  }, [realLeaderboard, rankedCount]);
+  }, [realLeaderboard, rankedCount, activePlayedCount]);
 
   const showPodium = !hasActiveFilters && podiumPlayers.length > 0;
 
@@ -470,15 +513,25 @@ export function Leaderboard() {
   );
 
   const countAction = (
-    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground">
-      <Users size={14} className="text-sapphire-blue" aria-hidden="true" />
-      <span>
-        已定級{' '}
-        <strong className="font-display font-black text-foreground tabular-nums">
-          {rankedCount}
-        </strong>{' '}
-        / {realLeaderboard.length} 人
-      </span>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground">
+        <Users size={14} className="text-sapphire-blue" aria-hidden="true" />
+        <span>
+          已定級{' '}
+          <strong className="font-display font-black text-foreground tabular-nums">
+            {rankedCount}
+          </strong>{' '}
+          / {realLeaderboard.length} 人
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={() => setIsRulesModalOpen(true)}
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card hover:bg-secondary border border-border text-xs font-black text-foreground transition-colors shadow-2xs"
+      >
+        <BookOpen size={14} className="text-sapphire-blue" aria-hidden="true" />
+        <span>賽制與段位說明</span>
+      </button>
     </div>
   );
 
@@ -519,6 +572,7 @@ export function Leaderboard() {
                 me={myStanding.me}
                 index={myStanding.idx}
                 above={myStanding.above}
+                isAllTime={isAllTime}
                 onSelect={openInspect}
               />
             </motion.section>
@@ -686,7 +740,9 @@ export function Leaderboard() {
                         ? '賽季最終頒獎台'
                         : isPreseasonMode
                           ? '季前實力預排 Top 3'
-                          : '本季領先前三強'}
+                          : isPlacementPhase
+                            ? '定級衝刺領先組 Top 3'
+                            : '本季領先前三強'}
                   </span>
                 </p>
                 <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
@@ -698,6 +754,7 @@ export function Leaderboard() {
                 <PodiumChampionCard
                   player={podiumPlayers[0]}
                   isPreseason={isPreseasonMode}
+                  isPlacementOnly={isPlacementPhase}
                   currentUserId={currentUser?.id}
                   onSelect={openInspect}
                   className="col-span-2 md:col-span-1 order-1 md:order-2"
@@ -706,6 +763,7 @@ export function Leaderboard() {
                   place={2}
                   player={podiumPlayers[1]}
                   isPreseason={isPreseasonMode}
+                  isPlacementOnly={isPlacementPhase}
                   currentUserId={currentUser?.id}
                   onSelect={openInspect}
                   className="col-span-1 order-2 md:order-1"
@@ -714,6 +772,7 @@ export function Leaderboard() {
                   place={3}
                   player={podiumPlayers[2]}
                   isPreseason={isPreseasonMode}
+                  isPlacementOnly={isPlacementPhase}
                   currentUserId={currentUser?.id}
                   onSelect={openInspect}
                   className="col-span-1 order-3 md:order-3"
@@ -722,8 +781,8 @@ export function Leaderboard() {
             </motion.section>
           )}
 
-          {/* 季前提示條（全場尚未打完首場本季賽事時） */}
-          {isPreseasonMode && (
+          {/* 季前 / 定級賽提示條 */}
+          {(isPreseasonMode || isPlacementPhase) && (
             <motion.div
               variants={fadeInUp}
               className="rounded-2xl bg-sapphire-blue/[0.06] dark:bg-blue-500/12 border border-sapphire-blue/25 px-4 py-3 flex items-center gap-2.5 text-xs font-bold text-foreground"
@@ -734,8 +793,16 @@ export function Leaderboard() {
                 aria-hidden="true"
               />
               <span>
-                新賽季開戰中！目前依全體球友全域 ELO 進行<strong>季前實力預排</strong>
-                ，完成第 1 場本季對戰即可正式定級入榜。
+                {isPreseasonMode ? (
+                  <>
+                    新賽季開戰中！目前依全體球友全域 ELO 進行<strong>季前實力預排</strong>
+                    ，完成本季 {SEASON_PLACEMENT_MATCHES} 場定級賽即可正式入榜（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）。
+                  </>
+                ) : (
+                  <>
+                    本季<strong>定級賽衝刺期</strong>進行中！目前尚未有球友打滿 {SEASON_PLACEMENT_MATCHES} 場，前 {SEASON_PLACEMENT_MATCHES} 場享有 <strong>K=32</strong> 加速校正，打滿 {SEASON_PLACEMENT_MATCHES} 場立即鎖定正式排名。
+                  </>
+                )}
               </span>
             </motion.div>
           )}
@@ -751,6 +818,7 @@ export function Leaderboard() {
                       key={player.player_id}
                       player={player}
                       previewIndex={realIndexMap.get(player.player_id) ?? idx + 1}
+                      isAllTime={isAllTime}
                       isMe={currentUser?.id === player.player_id}
                       onSelect={openInspect}
                     />
@@ -766,7 +834,7 @@ export function Leaderboard() {
                         <tr className="border-b border-border bg-surface-subtle/90">
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider w-20 text-center"
+                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider w-24 text-center"
                           >
                             名次
                           </th>
@@ -821,10 +889,12 @@ export function Leaderboard() {
                                 isMe && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/12',
                               )}
                             >
-                              <td className="py-3.5 px-4 w-20 text-center">
+                              <td className="py-3.5 px-4 w-24 text-center">
                                 <div className="flex flex-col items-center justify-center gap-1">
                                   <MedalBadge
                                     rank={player.rank}
+                                    matchesPlayed={player.matches_played}
+                                    isAllTime={isAllTime}
                                     previewIndex={
                                       player.rank === '-'
                                         ? (realIndexMap.get(player.player_id) ?? idx + 1)
@@ -992,10 +1062,10 @@ export function Leaderboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs sm:text-sm font-display font-black text-foreground truncate">
-                        待定級／尚未出賽選手（共 {secondaryUnrankedPlayers.length} 人）
+                        尚未出賽選手（共 {secondaryUnrankedPlayers.length} 人）
                       </p>
                       <p className="text-[11px] font-bold text-muted-foreground truncate">
-                        依全域 ELO 排序 · 完成本季第 1 場比賽即正式登榜
+                        依全域 ELO 排序 · 完成本季 {SEASON_PLACEMENT_MATCHES} 場定級賽即取得正式排名（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）
                       </p>
                     </div>
                   </div>
@@ -1078,6 +1148,11 @@ export function Leaderboard() {
               </div>
             )}
           </motion.section>
+
+          <RankingRulesDialog
+            open={isRulesModalOpen}
+            onOpenChange={setIsRulesModalOpen}
+          />
         </motion.div>
       )}
     </AnimatePresence>
@@ -1091,15 +1166,22 @@ function MyStandingBanner({
   me,
   index,
   above,
+  isAllTime,
   onSelect,
 }: Readonly<{
   me: RawLeaderboardItem;
   index: number;
   above?: RawLeaderboardItem;
+  isAllTime: boolean;
   onSelect: (id: string) => void;
 }>) {
   const tier = getTierBadge(me.global_mmr, 12);
   const isRanked = me.rank !== '-' && me.rank !== '';
+  const isInPlacement =
+    !isRanked &&
+    !isAllTime &&
+    me.matches_played > 0 &&
+    me.matches_played < SEASON_PLACEMENT_MATCHES;
   const { losses, winRateRounded } = getWinRateStats(me);
   const streak = me.current_streak ?? 0;
   const gapToAbove = above
@@ -1122,7 +1204,11 @@ function MyStandingBanner({
               className="size-12 rounded-2xl border-2 border-sapphire-blue/40 bg-card text-sm"
             />
             <span className="absolute -top-2 -left-2 min-w-6 h-6 px-1.5 rounded-full bg-sapphire-blue text-white font-display font-black text-[11px] flex items-center justify-center shadow-sm ring-2 ring-card tabular-nums">
-              {isRanked ? `#${me.rank}` : `#${index + 1}`}
+              {isRanked
+                ? `#${me.rank}`
+                : isInPlacement
+                  ? `${me.matches_played}/${SEASON_PLACEMENT_MATCHES}`
+                  : `#${index + 1}`}
             </span>
           </div>
 
@@ -1163,9 +1249,22 @@ function MyStandingBanner({
                   </strong>{' '}
                   分即可超車
                 </span>
+              ) : isInPlacement ? (
+                <span>
+                  ⚡ 定級賽進行中（已完成{' '}
+                  <strong className="font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
+                    {me.matches_played}/{SEASON_PLACEMENT_MATCHES}
+                  </strong>{' '}
+                  場，享有 K=32 加速）· 再打{' '}
+                  <strong className="font-display font-black text-foreground tabular-nums">
+                    {SEASON_PLACEMENT_MATCHES - me.matches_played}
+                  </strong>{' '}
+                  場即可正式取得賽季排名
+                </span>
               ) : (
                 <span>
-                  ⚡ 依基準積分暫居預排第 #{index + 1} · 完成 1 場本季對戰即可正式定級
+                  ⚡ 依基準積分暫居預排第 #{index + 1} · 完成{' '}
+                  {SEASON_PLACEMENT_MATCHES} 場本季對戰即可正式定級（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）
                 </span>
               )}
             </p>
@@ -1214,12 +1313,14 @@ function MyStandingBanner({
 function PodiumChampionCard({
   player,
   isPreseason,
+  isPlacementOnly = false,
   currentUserId,
   onSelect,
   className,
 }: Readonly<{
   player?: RawLeaderboardItem;
   isPreseason: boolean;
+  isPlacementOnly?: boolean;
   currentUserId?: string;
   onSelect: (id: string) => void;
   className?: string;
@@ -1256,7 +1357,7 @@ function PodiumChampionCard({
       <div className="flex items-center justify-between gap-2 w-full">
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-olympic-gold text-white text-xs font-display font-black shadow-xs whitespace-nowrap">
           <Crown size={12} aria-hidden="true" />
-          {isPreseason ? '預排 #1' : '#1 榜首王者'}
+          {isPreseason ? '預排 #1' : isPlacementOnly ? '暫居 #1' : '#1 榜首王者'}
         </span>
         <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
       </div>
@@ -1352,6 +1453,7 @@ function PodiumRunnerCard({
   place,
   player,
   isPreseason,
+  isPlacementOnly = false,
   currentUserId,
   onSelect,
   className,
@@ -1359,6 +1461,7 @@ function PodiumRunnerCard({
   place: 2 | 3;
   player?: RawLeaderboardItem;
   isPreseason: boolean;
+  isPlacementOnly?: boolean;
   currentUserId?: string;
   onSelect: (id: string) => void;
   className?: string;
@@ -1366,9 +1469,11 @@ function PodiumRunnerCard({
   const isSilver = place === 2;
   const label = isPreseason
     ? `預排 #${place}`
-    : isSilver
-      ? '#2 亞軍'
-      : '#3 季軍';
+    : isPlacementOnly
+      ? `暫居 #${place}`
+      : isSilver
+        ? '#2 亞軍'
+        : '#3 季軍';
 
   if (!player) {
     return (
@@ -1498,11 +1603,13 @@ function PodiumRunnerCard({
 function MobilePlayerRowCard({
   player,
   previewIndex,
+  isAllTime,
   isMe,
   onSelect,
 }: Readonly<{
   player: RawLeaderboardItem;
   previewIndex: number;
+  isAllTime: boolean;
   isMe: boolean;
   onSelect: (id: string) => void;
 }>) {
@@ -1526,9 +1633,11 @@ function MobilePlayerRowCard({
     >
       {/* Top Row: Medal + Avatar + Name/Badges + Right ELO */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 shrink-0 flex flex-col items-center justify-center gap-1">
+        <div className="w-9 shrink-0 flex flex-col items-center justify-center gap-1">
           <MedalBadge
             rank={player.rank}
+            matchesPlayed={player.matches_played}
+            isAllTime={isAllTime}
             previewIndex={player.rank === '-' ? previewIndex : undefined}
           />
           <TrendBadge trend={player.trend} />
@@ -1618,5 +1727,175 @@ function MobilePlayerRowCard({
         </div>
       </div>
     </button>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 模組 7：賽制與段位說明公開彈窗（RankingRulesDialog）
+ * ─────────────────────────────────────────────────────────────────────────── */
+function RankingRulesDialog({
+  open,
+  onOpenChange,
+}: Readonly<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}>) {
+  const tiers = [
+    {
+      label: '菁英 (Elite)',
+      range: '1320+ ELO',
+      desc: '頂尖 5%～8% 殿堂級高手',
+      icon: Shield,
+      pillClass:
+        'bg-slate-900 text-amber-400 border-amber-400/50 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/50',
+    },
+    {
+      label: '金牌 (Gold)',
+      range: '1180 ~ 1319 ELO',
+      desc: '俱樂部前段班實力強者',
+      icon: Trophy,
+      pillClass:
+        'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/35',
+    },
+    {
+      label: '銀牌 (Silver)',
+      range: '1050 ~ 1179 ELO',
+      desc: '穩定出賽之中堅主力區間',
+      icon: Medal,
+      pillClass:
+        'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-500/20 dark:text-slate-200 dark:border-slate-500/35',
+    },
+    {
+      label: '銅牌 (Bronze)',
+      range: '< 1050 ELO',
+      desc: '初入賽場／熱身累積期',
+      icon: Award,
+      pillClass:
+        'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30',
+    },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Scale size={20} className="text-sapphire-blue shrink-0" aria-hidden="true" />
+            <span>Single-Track ELO 賽制與段位說明</span>
+          </DialogTitle>
+          <DialogDescription>
+            全系統採用單軌 ELO 積分，公開透明計算每場單雙打對戰與賽季排名。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 text-xs sm:text-sm">
+          {/* 1. 段位區間 */}
+          <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-display font-black text-foreground flex items-center gap-1.5">
+                <Trophy size={14} className="text-olympic-gold" aria-hidden="true" />
+                四大段位門檻（起始基準 {SEASON_BASE_SCORE} 分）
+              </p>
+              <span className="text-[11px] font-bold text-muted-foreground">最低保護 600</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {tiers.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <div
+                    key={t.label}
+                    className="rounded-xl border border-border bg-card p-2.5 flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0">
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-black',
+                          t.pillClass,
+                        )}
+                      >
+                        <Icon size={11} aria-hidden="true" />
+                        {t.label}
+                      </span>
+                      <p className="text-[11px] text-muted-foreground font-bold mt-1 truncate">
+                        {t.desc}
+                      </p>
+                    </div>
+                    <span className="font-display font-black text-xs text-foreground tabular-nums shrink-0">
+                      {t.range}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. 賽季定級門檻 & K 值 */}
+          <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2">
+            <p className="font-display font-black text-foreground flex items-center gap-1.5">
+              <BookOpen size={14} className="text-sapphire-blue" aria-hidden="true" />
+              賽季 {SEASON_PLACEMENT_MATCHES} 場定級賽與動態 K 值
+            </p>
+            <ul className="space-y-1.5 text-xs text-muted-foreground font-bold leading-relaxed">
+              <li>
+                • <strong className="text-foreground">每季前 {SEASON_PLACEMENT_MATCHES} 場（定級賽 · K=32）</strong>
+                ：享較高權重快速校準當季實力，榜單標示「定級 X/{SEASON_PLACEMENT_MATCHES}」，打滿 {SEASON_PLACEMENT_MATCHES} 場即正式取得{' '}
+                <strong className="text-foreground">#1, #2, #3</strong> 賽季名次。
+              </li>
+              <li>
+                • <strong className="text-foreground">每季第 {SEASON_PLACEMENT_MATCHES + 1} 場起（常態期 · K=24）</strong>
+                ：完成定級後恢復穩定係數；每位選手皆<strong className="text-foreground">獨立套用自身 K 值</strong>，不與對手平均。
+              </li>
+              <li>
+                • <strong className="text-foreground">季中高手速升範例</strong>
+                ：同分對決 2:1 勝場定級期約 <strong className="text-emerald-600 dark:text-emerald-400">+16 分</strong>（2:0 完封 <strong className="text-emerald-600 dark:text-emerald-400">+19.2 分</strong>）；第 6 場起為 <strong className="text-emerald-600 dark:text-emerald-400">+12 分</strong>（完封 <strong className="text-emerald-600 dark:text-emerald-400">+14.4 分</strong>）。
+              </li>
+            </ul>
+          </div>
+
+          {/* 3. 完封加成 & 雙打機制 & 軟重置 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-1.5">
+              <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+                <Flame size={14} className="text-smash-orange" aria-hidden="true" />
+                完封淨勝局加成
+              </p>
+              <p className="text-xs text-muted-foreground font-bold leading-relaxed">
+                BO3：2:1 為 <strong className="text-foreground">1.0x</strong>｜2:0 完封{' '}
+                <strong className="text-foreground">1.2x</strong>
+                <br />
+                BO5：3:2 為 <strong className="text-foreground">1.2x</strong>｜3:1 為{' '}
+                <strong className="text-foreground">1.35x</strong>｜3:0 宰制{' '}
+                <strong className="text-foreground">1.5x</strong>
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-1.5">
+              <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+                <Users size={14} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                雙打公平共擔 (50/50)
+              </p>
+              <p className="text-xs text-muted-foreground font-bold leading-relaxed">
+                隊伍戰力採兩位搭檔平均，個人加減分為單打的{' '}
+                <strong className="text-foreground">0.85x</strong>，同 K 值搭檔同加同扣。
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-sapphire-blue/25 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 p-3.5 space-y-1">
+            <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+              <Sparkles size={14} className="text-sapphire-blue dark:text-blue-300" aria-hidden="true" />
+              換季積分軟重置
+            </p>
+            <p className="text-xs text-muted-foreground font-bold leading-relaxed">
+              新賽季開打時依公式{' '}
+              <span className="font-display font-black text-foreground">
+                (上季結算 ELO + {SEASON_BASE_SCORE}) ÷ 2
+              </span>{' '}
+              回歸（例：上季 1320 菁英新季從 1160 銀牌頂端出發，搭配開季前 5 場 K=32 迅速衝刺重返高段位）。
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

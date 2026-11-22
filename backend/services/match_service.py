@@ -83,21 +83,26 @@ def _settle_locked_match(
         loser_p1, loser_p2 = team_a_p1, team_a_p2
         score_winner, score_loser = match.score_b, match.score_a
 
-    def _career_matches(player: User) -> int:
-        return session.exec(
-            select(func.count(MatchParticipation.id))
-            .where(MatchParticipation.user_id == player.id)
-        ).one()
+    def _season_matches(player: User) -> int:
+        rec = session.exec(
+            select(SeasonRecord).where(
+                SeasonRecord.user_id == player.id,
+                SeasonRecord.season_id == match.season_id,
+            )
+        ).first()
+        if rec is not None:
+            return max(0, int(rec.matches_played or 0))
+        return 0
 
     deltas = calculate_match_deltas(
         team_winner_p1_mmr=winner_p1.global_mmr,
         team_winner_p2_mmr=winner_p2.global_mmr if winner_p2 else None,
         team_loser_p1_mmr=loser_p1.global_mmr,
         team_loser_p2_mmr=loser_p2.global_mmr if loser_p2 else None,
-        winner_p1_matches=_career_matches(winner_p1),
-        winner_p2_matches=_career_matches(winner_p2) if winner_p2 else None,
-        loser_p1_matches=_career_matches(loser_p1),
-        loser_p2_matches=_career_matches(loser_p2) if loser_p2 else None,
+        winner_p1_matches=_season_matches(winner_p1),
+        winner_p2_matches=_season_matches(winner_p2) if winner_p2 else None,
+        loser_p1_matches=_season_matches(loser_p1),
+        loser_p2_matches=_season_matches(loser_p2) if loser_p2 else None,
         score_winner=score_winner,
         score_loser=score_loser,
         format=match.format,
