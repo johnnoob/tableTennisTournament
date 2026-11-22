@@ -296,3 +296,67 @@ export interface MatchPresetUpdatePayload {
   opponent2_id?: string | null;
   sort_order?: number;
 }
+
+export type ChallengeStatus =
+  | 'pending'
+  | 'countered'
+  | 'accepted'
+  | 'declined'
+  | 'cancelled'
+  | 'completed'
+  | 'expired';
+
+export interface ChallengePlayer {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  department?: string | null;
+  mmr: number;
+}
+
+export interface ChallengeReportPrefill {
+  match_type: 'singles' | 'doubles';
+  format: 'BO3' | 'BO5';
+  partner_id?: string | null;
+  opponent1_id?: string | null;
+  opponent2_id?: string | null;
+}
+
+export interface ChallengeItem {
+  id: string;
+  match_type: 'singles' | 'doubles';
+  format: 'BO3' | 'BO5';
+  status: ChallengeStatus;
+  proposed_at: string;
+  proposed_by: string;
+  location?: string | null;
+  message?: string | null;
+  decline_reason?: string | null;
+  is_public: boolean;
+  reported_matches_count: number;
+  last_match_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  challenger: ChallengePlayer | null;
+  challenged: ChallengePlayer | null;
+  challenger_partner?: ChallengePlayer | null;
+  challenged_partner?: ChallengePlayer | null;
+  my_role?: 'challenger' | 'challenged' | 'challenger_partner' | 'challenged_partner' | null;
+  is_representative: boolean;
+  awaiting_my_response: boolean;
+  can_accept: boolean;
+  can_counter: boolean;
+  can_decline: boolean;
+  can_cancel: boolean;
+  can_report: boolean;
+  can_complete: boolean;
+  report_prefill?: ChallengeReportPrefill | null;
+}
+
+export type PublicChallengeItem = ChallengeItem;
+
+export interface MyChallengesResponse {
+  active: ChallengeItem[];
+  history: ChallengeItem[];
+  pending_response_count: number;
+}

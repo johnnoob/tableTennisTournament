@@ -472,60 +472,85 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
                 "rating": round(h.mmr)
             })
             
-    # 4. 👿 宿命天敵 (重複利用上面已經撈出來的 participations)
+    # 4. 👿 宿命天敵 & 黃金搭檔（批次查詢避免 N+1）
     rivals_stats = {}
     partners_stats = {}
+    match_ids = list({p.match_id for p in participations})
+    parts_by_match: dict[UUID, list[MatchParticipation]] = {}
+    if match_ids:
+        all_match_parts = session.exec(
+            select(MatchParticipation).where(MatchParticipation.match_id.in_(match_ids))
+        ).all()
+        for mp in all_match_parts:
+            parts_by_match.setdefault(mp.match_id, []).append(mp)
 
     for p in participations:
-        # 計算天敵
-        opponents = session.exec(select(MatchParticipation).where(
-            MatchParticipation.match_id == p.match_id, 
-            MatchParticipation.team != p.team
-        )).all()
-        for opp in opponents:
-            if opp.user_id not in rivals_stats:
-                rivals_stats[opp.user_id] = {"matches": 0, "wins": 0, "rating_exchanged": 0, "user_id": opp.user_id}
-            rivals_stats[opp.user_id]["matches"] += 1
+        for other in parts_by_match.get(p.match_id, ()):
+            if other.team != p.team:
+                bucket = rivals_stats.setdefault(
+                    other.user_id,
+                    {"matches": 0, "wins": 0, "rating_exchanged": 0.0, "user_id": other.user_id},
+                )
+            elif other.user_id != p.user_id:
+                bucket = partners_stats.setdefault(
+                    other.user_id,
+                    {"matches": 0, "wins": 0, "rating_exchanged": 0.0, "user_id": other.user_id},
+                )
+            else:
+                continue
+            bucket["matches"] += 1
             if p.is_winner:
-                rivals_stats[opp.user_id]["wins"] += 1
-            rivals_stats[opp.user_id]["rating_exchanged"] += p.mmr_delta
+                bucket["wins"] += 1
+            bucket["rating_exchanged"] += p.mmr_delta
 
-        # 計算搭檔
-        teammates = session.exec(select(MatchParticipation).where(
-            MatchParticipation.match_id == p.match_id, 
-            MatchParticipation.team == p.team,
-            MatchParticipation.user_id != p.user_id
-        )).all()
-        for tm in teammates:
-            if tm.user_id not in partners_stats:
-                partners_stats[tm.user_id] = {"matches": 0, "wins": 0, "rating_exchanged": 0, "user_id": tm.user_id}
-            partners_stats[tm.user_id]["matches"] += 1
-            if p.is_winner:
-                partners_stats[tm.user_id]["wins"] += 1
-            partners_stats[tm.user_id]["rating_exchanged"] += p.mmr_delta
-            
-    sorted_rivals = sorted(rivals_stats.values(), key=lambda x: x["rating_exchanged"])
-    nemesis_list = []
-    for m in sorted_rivals[:3]: # 取前三名扣最多分的
-        opp_user = session.get(User, m["user_id"])
-        nemesis_list.append({
-            "id": str(opp_user.id),
-            "name": opp_user.name,
-            "avatar": opp_user.avatar_url,
-            "winRate": int((m["wins"]/m["matches"])*100) if m["matches"] > 0 else 0
-        })
+    nemesis_candidates = [r for r in rivals_stats.values() if r["rating_exchanged"] < 0]
+    sorted_rivals = sorted(
+        nemesis_candidates,
+        key=lambda x: (
+            x["rating_exchanged"],
+            x["wins"] / x["matches"] if x["matches"] > 0 else 0,
+            -x["matches"],
+        ),
+    )[:3]
 
-    sorted_partners = sorted(partners_stats.values(), key=lambda x: x["rating_exchanged"], reverse=True)
-    golden_list = []
-    for g in sorted_partners[:3]: # 取前三名加最多分的
-        if g["rating_exchanged"] >= 0:
-            tm_user = session.get(User, g["user_id"])
-            golden_list.append({
-                "id": str(tm_user.id),
-                "name": tm_user.name,
-                "avatar": tm_user.avatar_url,
-                "winRate": int((g["wins"]/g["matches"])*100) if g["matches"] > 0 else 0
-            })
+    golden_candidates = [
+        g for g in partners_stats.values() if g["rating_exchanged"] > 0 and g["wins"] > 0
+    ]
+    sorted_partners = sorted(
+        golden_candidates,
+        key=lambda x: (
+            x["rating_exchanged"],
+            x["wins"] / x["matches"] if x["matches"] > 0 else 0,
+            x["matches"],
+        ),
+        reverse=True,
+    )[:3]
+
+    needed_user_ids = list({item["user_id"] for item in sorted_rivals + sorted_partners})
+    user_map: dict[UUID, User] = {}
+    if needed_user_ids:
+        user_rows = session.exec(select(User).where(User.id.in_(needed_user_ids))).all()
+        user_map = {u.id: u for u in user_rows}
+
+    def _serialize_relation(row: dict) -> dict | None:
+        rel_user = user_map.get(row["user_id"])
+        if not rel_user:
+            return None
+        matches_count = row["matches"]
+        wins_count = row["wins"]
+        losses_count = max(0, matches_count - wins_count)
+        return {
+            "id": str(rel_user.id),
+            "name": rel_user.name,
+            "avatar": rel_user.avatar_url,
+            "winRate": int((wins_count / matches_count) * 100) if matches_count > 0 else 0,
+            "wins": wins_count,
+            "losses": losses_count,
+            "matches": matches_count,
+        }
+
+    nemesis_list = [item for item in (_serialize_relation(r) for r in sorted_rivals) if item]
+    golden_list = [item for item in (_serialize_relation(g) for g in sorted_partners) if item]
 
     # 5. 📦 打包成前端需要的格式
     return {
@@ -923,6 +948,8 @@ _ARBITRATION_KEYWORDS = (
 
 
 def _classify_notification_category(notif: Notification) -> str:
+    if notif.type and notif.type.startswith("challenge_"):
+        return "challenge"
     content = notif.content or ""
     if notif.type == "pending_confirm":
         return "action_required"

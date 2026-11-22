@@ -48,6 +48,7 @@ interface ReportPayload {
   team_b_p2_id: string | null;
   format: 'BO3' | 'BO5';
   reported_by: string;
+  challenge_id?: string | null;
 }
 
 interface AxiosErrorShape {
@@ -71,6 +72,7 @@ interface ReportScoreProps {
   initialOpponent2Id?: string | null;
   initialScoreA?: number;
   initialScoreB?: number;
+  challengeId?: string | null;
 }
 
 type MatchType = 'singles' | 'doubles';
@@ -146,6 +148,7 @@ export function ReportScore({
   initialOpponent2Id = null,
   initialScoreA = 0,
   initialScoreB = 0,
+  challengeId = null,
 }: ReportScoreProps) {
   const { data: currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -500,6 +503,8 @@ export function ReportScore({
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'rivals'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me', 'partners'] });
+      queryClient.invalidateQueries({ queryKey: ['challenges', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['challenges', 'public'] });
     },
   });
 
@@ -557,6 +562,7 @@ export function ReportScore({
         team_b_p2_id: matchType === 'doubles' ? opponent2Id : null,
         format: matchFormat,
         reported_by: currentUser.id,
+        challenge_id: challengeId ?? null,
       };
 
       mutation.mutate(payload);

@@ -6,6 +6,7 @@ import {
   Crown,
   Flame,
   Loader2,
+  MapPin,
   Rocket,
   Search,
   Sparkles,
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
+import { formatChallengeDateTimeLabel } from '@/lib/challengeUtils';
+import { usePublicChallenges } from '@/hooks/useChallenges';
 import type {
   ClubSpotlights,
   LeaderboardResponse,
@@ -630,6 +633,119 @@ function ClubSpotlightsCard({
   );
 }
 
+function UpcomingChallengesCard({
+  onInspectPlayer,
+  className,
+}: Readonly<{
+  onInspectPlayer: (playerId: string) => void;
+  className?: string;
+}>) {
+  const { data: upcoming = [] } = usePublicChallenges();
+
+  return (
+    <section aria-label="近期公開約戰預告" className={cn('space-y-3 min-w-0', className)}>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight flex items-center gap-1.5">
+            <Swords size={18} className="text-smash-orange shrink-0" aria-hidden="true" />
+            <span>近期約戰預告</span>
+          </h2>
+          <p className="text-xs font-bold text-muted-foreground mt-0.5">
+            即將開打的公開挑戰，歡迎前往觀戰加油
+          </p>
+        </div>
+        {upcoming.length > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-smash-orange/12 text-smash-orange text-[11px] font-display font-black tabular-nums shrink-0">
+            {upcoming.length} 場
+          </span>
+        )}
+      </div>
+
+      <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs p-3 sm:p-4 space-y-2.5 overflow-hidden">
+        {upcoming.length > 0 ? (
+          upcoming.map((ch) => (
+            <div
+              key={ch.id}
+              className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="inline-flex items-center gap-1 font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
+                  <CalendarClock size={12} aria-hidden="true" />
+                  {formatChallengeDateTimeLabel(ch.proposed_at)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground shrink-0">
+                  {ch.match_type === 'doubles' ? '雙打' : '單打'} · {ch.format}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => ch.challenger && onInspectPlayer(ch.challenger.id)}
+                  className="flex items-center gap-1.5 min-w-0 flex-1 text-left group"
+                >
+                  <PlayerAvatar
+                    src={ch.challenger?.avatar}
+                    name={ch.challenger?.name || '?'}
+                    className="size-7 rounded-lg border border-border shrink-0 text-[10px]"
+                  />
+                  <span className="text-xs font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                    {ch.challenger?.name}
+                    {ch.match_type === 'doubles' && ch.challenger_partner
+                      ? `/${ch.challenger_partner.name}`
+                      : ''}
+                  </span>
+                </button>
+
+                <span className="text-[11px] font-display font-black italic text-smash-orange shrink-0">
+                  VS
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => ch.challenged && onInspectPlayer(ch.challenged.id)}
+                  className="flex items-center justify-end gap-1.5 min-w-0 flex-1 text-right group"
+                >
+                  <span className="text-xs font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                    {ch.challenged?.name}
+                    {ch.match_type === 'doubles' && ch.challenged_partner
+                      ? `/${ch.challenged_partner.name}`
+                      : ''}
+                  </span>
+                  <PlayerAvatar
+                    src={ch.challenged?.avatar}
+                    name={ch.challenged?.name || '?'}
+                    className="size-7 rounded-lg border border-border shrink-0 text-[10px]"
+                  />
+                </button>
+              </div>
+
+              {(ch.location || ch.message) && (
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-muted-foreground pt-0.5">
+                  {ch.location && (
+                    <span className="inline-flex items-center gap-1 font-bold truncate">
+                      <MapPin size={11} className="shrink-0" aria-hidden="true" />
+                      {ch.location}
+                    </span>
+                  )}
+                  {ch.message && <span className="truncate italic">「{ch.message}」</span>}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="py-5 px-3 text-center space-y-1">
+            <p className="text-xs font-black text-foreground">目前尚無公開約戰預告</p>
+            <p className="text-[11px] font-bold text-muted-foreground leading-relaxed">
+              點擊任一球友頭像即可下戰帖約時間！
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function ClubRightRail({
   seasonData,
   allTimeData,
@@ -648,6 +764,10 @@ export function ClubRightRail({
         pulse={seasonData?.season_pulse}
         className="order-1 md:order-2 xl:order-1"
       />
+      <UpcomingChallengesCard
+        onInspectPlayer={onInspectPlayer}
+        className="order-2 md:order-3 xl:order-2"
+      />
       <TopRivalsCard
         data={activeLeaderboardData}
         scope={scope}
@@ -655,12 +775,12 @@ export function ClubRightRail({
         isFetching={scope === 'all-time' && isAllTimeFetching}
         currentUserId={currentUserId}
         onInspectPlayer={onInspectPlayer}
-        className="order-2 md:order-1 md:col-span-2 xl:col-span-1 xl:order-2"
+        className="order-3 md:order-1 md:col-span-2 xl:col-span-1 xl:order-3"
       />
       <ClubSpotlightsCard
         spotlights={seasonData?.spotlights}
         onInspectPlayer={onInspectPlayer}
-        className="order-3 md:order-3 xl:order-3"
+        className="order-4 md:order-4 xl:order-4"
       />
     </div>
   );

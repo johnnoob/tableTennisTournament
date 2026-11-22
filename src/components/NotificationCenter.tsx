@@ -13,6 +13,7 @@ import {
   RotateCcw,
   ShieldAlert,
   Sparkles,
+  Swords,
   Trash2,
   Trophy,
 } from 'lucide-react';
@@ -340,6 +341,26 @@ function getCategoryVisual(item: NotificationItem, isAdmin: boolean) {
       dotColor: 'bg-rose-500',
     };
   }
+  if (item.category === 'challenge') {
+    const isUrgent = item.type === 'challenge_received' || item.type === 'challenge_countered';
+    const labelMap: Record<string, string> = {
+      challenge_received: '收到挑戰戰帖',
+      challenge_countered: '對方改約時間',
+      challenge_accepted: '約戰已成立',
+      challenge_declined: '戰帖已婉拒',
+      challenge_cancelled: '約戰已取消',
+    };
+    return {
+      icon: Swords,
+      label: labelMap[item.type] || '約戰動態',
+      hint: isUrgent ? '前往回應約戰' : '查看約戰看板',
+      borderClass: isUrgent ? 'border-l-smash-orange' : 'border-l-sapphire-blue',
+      iconBg: isUrgent
+        ? 'bg-orange-100/90 text-smash-orange dark:bg-orange-500/20 dark:text-orange-300'
+        : 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300',
+      dotColor: isUrgent ? 'bg-smash-orange' : 'bg-sapphire-blue',
+    };
+  }
   if (item.category === 'season') {
     return {
       icon: Trophy,
@@ -556,6 +577,11 @@ export function NotificationCenterSheet({
     }
 
     onOpenChange(false);
+
+    if (item.category === 'challenge') {
+      navigate('/?focus=challenges');
+      return;
+    }
 
     if (item.category === 'season') {
       navigate(item.content.includes('錦標賽') ? '/tournament' : '/leaderboard');

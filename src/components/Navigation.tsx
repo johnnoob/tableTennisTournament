@@ -95,7 +95,12 @@ export function Navigation() {
   const unreadNotifCount = notificationsData?.unread_count ?? 0;
   const hasUrgentNotif = Boolean(
     notificationsData?.notifications?.some(
-      (n) => !n.is_read && (n.category === 'disputed' || n.category === 'action_required')
+      (n) =>
+        !n.is_read &&
+        (n.category === 'disputed' ||
+          n.category === 'action_required' ||
+          n.type === 'challenge_received' ||
+          n.type === 'challenge_countered')
     )
   );
 

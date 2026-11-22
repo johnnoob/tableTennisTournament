@@ -43,11 +43,14 @@ import {
 import { cn, formatLocalTime } from '@/lib/utils';
 import { clusterMatchesIntoSeries } from '@/lib/matchDate';
 import { PendingActions } from '@/components/PendingActions';
+import { ChallengeHub } from '@/components/ChallengeHub';
 import { useAuth } from '@/hooks/useAuth';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
+import type { MatchFormat } from '@/lib/matchScore';
 
 import type {
   Announcement,
+  ChallengeItem,
   MatchFeedItem,
   MatchHistoryResponse,
   MatchPreset,
@@ -250,16 +253,20 @@ export function Dashboard() {
     open: boolean;
     nonce: number;
     matchType: 'singles' | 'doubles';
+    format?: MatchFormat;
     partnerId: string | null;
     opponent1Id: string | null;
     opponent2Id: string | null;
+    challengeId?: string | null;
   }>({
     open: false,
     nonce: 0,
     matchType: 'singles',
+    format: undefined,
     partnerId: null,
     opponent1Id: null,
     opponent2Id: null,
+    challengeId: null,
   });
   const [editorState, setEditorState] = useState<{
     open: boolean;
@@ -392,9 +399,25 @@ export function Dashboard() {
       open: true,
       nonce: prev.nonce + 1,
       matchType,
+      format: undefined,
       partnerId,
       opponent1Id,
       opponent2Id,
+      challengeId: null,
+    }));
+  };
+
+  const handleReportFromChallenge = (challenge: ChallengeItem) => {
+    const prefill = challenge.report_prefill;
+    setQuickReportState((prev) => ({
+      open: true,
+      nonce: prev.nonce + 1,
+      matchType: prefill?.match_type || challenge.match_type,
+      format: (prefill?.format || challenge.format) as MatchFormat,
+      partnerId: prefill?.partner_id ?? null,
+      opponent1Id: prefill?.opponent1_id ?? null,
+      opponent2Id: prefill?.opponent2_id ?? null,
+      challengeId: challenge.id,
     }));
   };
 
@@ -466,6 +489,17 @@ export function Dashboard() {
           {isLoggedIn && (
             <motion.div variants={fadeInUp}>
               <PendingActions />
+            </motion.div>
+          )}
+
+          {/* 1.5 Priority: Match Challenges Hub */}
+          {isLoggedIn && (
+            <motion.div variants={fadeInUp}>
+              <ChallengeHub
+                currentUserId={user?.id}
+                onInspectPlayer={openInspect}
+                onReportChallenge={handleReportFromChallenge}
+              />
             </motion.div>
           )}
 
@@ -1090,9 +1124,11 @@ export function Dashboard() {
                   setQuickReportState((prev) => ({ ...prev, open: nextOpen }))
                 }
                 initialMatchType={quickReportState.matchType}
+                initialFormat={quickReportState.format}
                 initialPartnerId={quickReportState.partnerId}
                 initialOpponentId={quickReportState.opponent1Id}
                 initialOpponent2Id={quickReportState.opponent2Id}
+                challengeId={quickReportState.challengeId}
               />
 
               <MatchPresetEditorModal

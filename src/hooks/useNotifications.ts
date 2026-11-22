@@ -6,6 +6,7 @@ export type NotificationCategory =
   | 'disputed'
   | 'arbitration'
   | 'season'
+  | 'challenge'
   | 'match_settled';
 
 export interface NotificationMatchPlayer {

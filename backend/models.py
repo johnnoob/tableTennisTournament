@@ -320,3 +320,31 @@ class AdminAuditLog(SQLModel, table=True):
     summary: str = Field(description="人類可讀的變更摘要")
     metadata_json: Optional[str] = Field(default=None, description="變更細節 JSON")
     created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+# ==========================================
+# 15. MatchChallenge 表 (約戰／發起挑戰)
+# ==========================================
+class MatchChallenge(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    challenger_id: UUID = Field(foreign_key="user.id", index=True)
+    challenged_id: UUID = Field(foreign_key="user.id", index=True)
+    match_type: str = Field(default="singles", description="singles 或 doubles")
+    format: str = Field(default="BO3", description="BO3 或 BO5")
+    challenger_partner_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
+    challenged_partner_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
+    proposed_at: datetime = Field(index=True, description="約定時間 (UTC)")
+    proposed_by: UUID = Field(foreign_key="user.id", description="最後一次提出此時間的一方")
+    location: Optional[str] = Field(default=None, max_length=80)
+    message: Optional[str] = Field(default=None, max_length=120)
+    status: str = Field(
+        default="pending",
+        index=True,
+        description="pending | countered | accepted | declined | cancelled | completed | expired",
+    )
+    decline_reason: Optional[str] = Field(default=None, max_length=100)
+    is_public: bool = Field(default=True, index=True)
+    reported_matches_count: int = Field(default=0)
+    last_match_id: Optional[UUID] = Field(default=None, foreign_key="match.id")
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now)

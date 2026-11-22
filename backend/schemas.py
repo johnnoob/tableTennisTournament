@@ -21,6 +21,37 @@ class MatchCreateReq(BaseModel):
     
     # 發起人 (通常未來會從 JWT Token 解析，目前開發階段先由前端傳遞)
     reported_by: UUID
+    challenge_id: Optional[UUID] = None
+
+
+class ChallengeCreateReq(BaseModel):
+    """發起約戰／挑戰"""
+    challenged_id: UUID
+    match_type: str = Field(default="singles", description="singles 或 doubles")
+    format: str = Field(default="BO3", description="BO3 或 BO5")
+    challenger_partner_id: Optional[UUID] = None
+    challenged_partner_id: Optional[UUID] = None
+    proposed_at: datetime
+    location: Optional[str] = Field(default=None, max_length=80)
+    message: Optional[str] = Field(default=None, max_length=120)
+    is_public: bool = True
+
+
+class ChallengeAcceptReq(BaseModel):
+    """接受約戰（雙打時可選擇補填己方搭檔）"""
+    challenged_partner_id: Optional[UUID] = None
+
+
+class ChallengeCounterReq(BaseModel):
+    """改約其他日期與時間"""
+    proposed_at: datetime
+    location: Optional[str] = Field(default=None, max_length=80)
+    message: Optional[str] = Field(default=None, max_length=120)
+
+
+class ChallengeDeclineReq(BaseModel):
+    """婉拒挑戰"""
+    reason: Optional[str] = Field(default=None, max_length=100)
 
 
 class MatchBatchConfirmReq(BaseModel):

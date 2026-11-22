@@ -4,10 +4,11 @@ from uuid import UUID
 import datetime
 
 from database import get_session
-from models import Match, Notification, User, SeasonRecord
+from models import Match, MatchChallenge, Notification, User, SeasonRecord, utc_now
 from schemas import MatchCreateReq, MatchBatchConfirmReq, MatchDisputeReq
 
 from config import settings
+from services.challenge_service import ensure_challenge_table
 from services.elo_engine import get_team_mmr, calculate_match_deltas
 from services.auth_jwt import get_current_user
 from services.season_service import (
@@ -67,6 +68,26 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     )
     session.add(new_match)
     session.flush()
+
+    # 若此場比賽由約戰戰帖直接轉入報分，累加已報場數（不自動結束約戰，方便同一場約打連報多場）
+    if req.challenge_id:
+        ensure_challenge_table()
+        challenge = session.get(MatchChallenge, req.challenge_id)
+        if (
+            challenge is not None
+            and challenge.status == "accepted"
+            and real_reporter_id
+            in (
+                challenge.challenger_id,
+                challenge.challenged_id,
+                challenge.challenger_partner_id,
+                challenge.challenged_partner_id,
+            )
+        ):
+            challenge.reported_matches_count = (challenge.reported_matches_count or 0) + 1
+            challenge.last_match_id = new_match.id
+            challenge.updated_at = utc_now()
+            session.add(challenge)
 
     # 3. 🔔 建立通知發送給對手與雙打搭檔
     reporter = session.get(User, req.reported_by)

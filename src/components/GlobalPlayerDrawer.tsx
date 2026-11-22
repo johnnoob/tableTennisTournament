@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TrendingUp, Swords, Zap, X, Plus } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { getTierBadge } from '@/lib/ranking';
@@ -10,8 +10,10 @@ import { StatsChart } from '@/components/StatsChart';
 import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ReportScore } from '@/components/ReportScore';
+import { ChallengeModal } from '@/components/ChallengeModal';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useAuth } from '@/hooks/useAuth';
+import { useMyChallenges } from '@/hooks/useChallenges';
 import apiClient from '@/utils/apiClient';
 import type { ChartDataPoint, H2HBucket, H2HResponse } from '@/types/api.types';
 
@@ -20,6 +22,9 @@ interface PlayerPartnerItem {
   name: string;
   avatar?: string | null;
   winRate: number;
+  wins?: number;
+  losses?: number;
+  matches?: number;
 }
 
 interface PlayerProfileData {
@@ -45,14 +50,28 @@ interface PlayerProfileData {
 type H2HTab = 'singles_vs' | 'doubles_vs' | 'doubles_with';
 
 export function GlobalPlayerDrawer() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const inspectingId = searchParams.get('inspect');
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const { data: currentUser } = useAuth();
 
   const [quickReportTarget, setQuickReportTarget] = useState<{ id: string; key: number } | null>(null);
+  const [challengeTarget, setChallengeTarget] = useState<{
+    id: string;
+    name: string;
+    avatar?: string | null;
+    department?: string | null;
+  } | null>(null);
 
   const isViewingSelf = Boolean(currentUser?.id && inspectingId && String(currentUser.id) === String(inspectingId));
+
+  const { data: myChallenges } = useMyChallenges(Boolean(currentUser && inspectingId && !isViewingSelf));
+  const existingChallenge = myChallenges?.active.find(
+    (ch) =>
+      (ch.challenger?.id === currentUser?.id && ch.challenged?.id === inspectingId) ||
+      (ch.challenged?.id === currentUser?.id && ch.challenger?.id === inspectingId)
+  );
 
   const { data: player, isPending: isLoading } = useQuery({
     queryKey: ['users', 'profile', inspectingId],
@@ -76,6 +95,31 @@ export function GlobalPlayerDrawer() {
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('inspect');
     setSearchParams(newParams);
+  };
+
+  const inspectOtherPlayer = (targetId: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('inspect', targetId);
+    setSearchParams(newParams);
+  };
+
+  const handleOpenChallenge = () => {
+    if (!player) return;
+    if (existingChallenge) {
+      closeDrawer();
+      navigate('/?focus=challenges');
+      return;
+    }
+    const target = {
+      id: player.id,
+      name: player.name,
+      avatar: player.avatar,
+      department: player.department,
+    };
+    closeDrawer();
+    setTimeout(() => {
+      setChallengeTarget(target);
+    }, 150);
   };
 
   const handleQuickReport = () => {
@@ -203,9 +247,11 @@ export function GlobalPlayerDrawer() {
                 <p className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider ml-1">最佳雙打搭檔</p>
                 <div className="grid gap-2">
                   {player.goldenPartner.map((p) => (
-                    <div
+                    <button
+                      type="button"
                       key={p.id}
-                      className="bg-amber-50/70 dark:bg-amber-500/12 border border-amber-200/70 dark:border-amber-500/30 rounded-2xl p-3 flex items-center justify-between"
+                      onClick={() => inspectOtherPlayer(p.id)}
+                      className="w-full text-left bg-amber-50/70 dark:bg-amber-500/12 border border-amber-200/70 dark:border-amber-500/30 hover:border-amber-400 rounded-2xl p-3 flex items-center justify-between transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <PlayerAvatar
@@ -213,12 +259,19 @@ export function GlobalPlayerDrawer() {
                           name={p.name}
                           className="size-9 rounded-xl border border-amber-200 dark:border-amber-500/30 text-xs"
                         />
-                        <span className="text-sm font-black text-foreground truncate">{p.name}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-black text-foreground truncate block">{p.name}</span>
+                          {typeof p.wins === 'number' && typeof p.losses === 'number' && (
+                            <span className="text-[11px] font-bold text-amber-700/80 dark:text-amber-300/85 tabular-nums">
+                              {p.wins}勝{p.losses}敗
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span className="text-base font-display font-black text-amber-600 dark:text-amber-400 tabular-nums shrink-0">
                         {p.winRate}% <span className="text-xs font-sans text-amber-500 dark:text-amber-300">勝率</span>
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -229,9 +282,11 @@ export function GlobalPlayerDrawer() {
                 <p className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider ml-1">宿命天敵</p>
                 <div className="grid gap-2">
                   {player.nemesis.map((p) => (
-                    <div
+                    <button
+                      type="button"
                       key={p.id}
-                      className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/70 dark:border-rose-500/30 rounded-2xl p-3 flex items-center justify-between"
+                      onClick={() => inspectOtherPlayer(p.id)}
+                      className="w-full text-left bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/70 dark:border-rose-500/30 hover:border-rose-400 rounded-2xl p-3 flex items-center justify-between transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <PlayerAvatar
@@ -239,12 +294,19 @@ export function GlobalPlayerDrawer() {
                           name={p.name}
                           className="size-9 rounded-xl border border-rose-200 dark:border-rose-500/30 text-xs"
                         />
-                        <span className="text-sm font-black text-foreground truncate">{p.name}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-black text-foreground truncate block">{p.name}</span>
+                          {typeof p.wins === 'number' && typeof p.losses === 'number' && (
+                            <span className="text-[11px] font-bold text-rose-700/80 dark:text-rose-300/85 tabular-nums">
+                              {p.wins}勝{p.losses}敗
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span className="text-base font-display font-black text-rose-600 dark:text-rose-400 tabular-nums shrink-0">
                         {p.winRate}% <span className="text-xs font-sans text-rose-400 dark:text-rose-300">勝率</span>
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -262,29 +324,35 @@ export function GlobalPlayerDrawer() {
 
         {/* Footer Actions */}
         <div className="p-4 md:p-5 pb-[max(1rem,env(safe-area-inset-bottom,0px))] border-t border-border bg-popover shrink-0 flex items-center gap-2.5">
-          {canQuickReport && (
+          {canQuickReport ? (
+            <>
+              <Button
+                type="button"
+                onClick={handleOpenChallenge}
+                className="flex-1 h-11 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm gap-1.5 shadow-sm"
+              >
+                <Swords size={16} aria-hidden="true" />
+                {existingChallenge ? '查看進行中戰帖' : `向 ${player.name} 發起挑戰`}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleQuickReport}
+                className="h-11 px-4 rounded-xl border-sapphire-blue/35 text-sapphire-blue hover:bg-blue-50 dark:hover:bg-blue-500/15 font-black text-sm gap-1.5 shrink-0"
+              >
+                <Plus size={15} aria-hidden="true" />
+                直接報分
+              </Button>
+            </>
+          ) : (
             <Button
               type="button"
-              onClick={handleQuickReport}
-              className="flex-1 h-11 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5 shadow-sm"
+              onClick={closeDrawer}
+              className="w-full h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-black text-sm"
             >
-              <Plus size={16} aria-hidden="true" />
-              跟 {player.name} 報分
+              關閉檔案
             </Button>
           )}
-          <Button
-            type="button"
-            variant={canQuickReport ? 'outline' : 'default'}
-            onClick={closeDrawer}
-            className={cn(
-              'h-11 rounded-xl font-black text-sm',
-              canQuickReport
-                ? 'px-5 border-border text-muted-foreground hover:bg-secondary hover:text-foreground'
-                : 'w-full bg-primary hover:opacity-90 text-primary-foreground'
-            )}
-          >
-            關閉檔案
-          </Button>
         </div>
       </div>
     );
@@ -316,6 +384,16 @@ export function GlobalPlayerDrawer() {
             if (!nextOpen) setQuickReportTarget(null);
           }}
           initialOpponentId={quickReportTarget.id}
+        />
+      )}
+
+      {challengeTarget && (
+        <ChallengeModal
+          open={Boolean(challengeTarget)}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setChallengeTarget(null);
+          }}
+          targetPlayer={challengeTarget}
         />
       )}
     </>
