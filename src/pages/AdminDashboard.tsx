@@ -1,5 +1,5 @@
 import { useId, useState, useEffect, useRef } from 'react';
-import { format, parseISO, isValid } from 'date-fns';
+import { addDays, format, parseISO, isValid } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,15 +19,31 @@ import {
     Loader2,
     Image as ImageIcon,
     UploadCloud,
-    X
+    X,
+    Clock,
+    CheckCircle2,
+    AlertTriangle,
+    RefreshCw,
+    Sliders,
+    Sparkles,
+    Activity,
+    ArrowRight,
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { adminApi, type AnnouncementPayload, type TournamentCreatePayload } from '@/lib/admin';
 import apiClient from '@/utils/apiClient';
-import type { SystemConfig, Announcement, TournamentEvent, SeasonPrize } from '@/types/admin';
+import type {
+    SystemConfig,
+    Announcement,
+    TournamentEvent,
+    SeasonPrize,
+    CronStatusResponse,
+    DecayPreviewResponse,
+    AdminSeasonItem,
+} from '@/types/admin';
 import type { AnnouncementType, SeasonSummary } from '@/types/api.types';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
@@ -37,9 +53,9 @@ import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import { toast } from 'sonner';
 
 const tabs = [
-    { id: 'general', label: '系統設定', icon: Settings },
+    { id: 'general', label: '系統與排程', icon: Settings },
+    { id: 'seasons', label: '賽季與獎品', icon: Calendar },
     { id: 'announcements', label: '公告管理', icon: Megaphone },
-    { id: 'prizes', label: '賽季獎品', icon: Trophy },
     { id: 'tournaments', label: '錦標賽', icon: Users },
 ];
 
@@ -48,10 +64,15 @@ export function AdminDashboard() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('general');
 
-    // Fetch configs
+    // Fetch configs & cron status
     const { data: configs = [], isLoading: isConfigsLoading } = useQuery({
         queryKey: ['admin', 'configs'],
         queryFn: () => adminApi.getConfigs()
+    });
+
+    const { data: cronStatus, isLoading: isCronLoading } = useQuery<CronStatusResponse>({
+        queryKey: ['admin', 'cron-status'],
+        queryFn: () => adminApi.getCronStatus()
     });
 
     // Fetch announcements
@@ -66,16 +87,18 @@ export function AdminDashboard() {
         queryFn: () => adminApi.getTournaments()
     });
 
-    // Fetch seasons
-    const { data: seasons = [], isLoading: isSeasonsLoading } = useQuery<SeasonSummary[]>({
-        queryKey: ['seasons', 'list'],
-        queryFn: async () => {
-            const res = await apiClient.get<SeasonSummary[]>('/seasons');
-            return res.data;
-        }
+    // Fetch rich admin seasons (fallback /seasons synced automatically)
+    const { data: adminSeasons = [], isLoading: isSeasonsLoading } = useQuery<AdminSeasonItem[]>({
+        queryKey: ['admin', 'seasons'],
+        queryFn: () => adminApi.getAdminSeasons()
     });
 
-    const loading = isConfigsLoading || isAnnouncementsLoading || isTournamentsLoading || isSeasonsLoading;
+    const loading =
+        isConfigsLoading ||
+        isCronLoading ||
+        isAnnouncementsLoading ||
+        isTournamentsLoading ||
+        isSeasonsLoading;
 
     // Security: Redirect if not admin
     if (user && user.role !== 'admin') {
@@ -85,6 +108,8 @@ export function AdminDashboard() {
     const handleUpdate = () => {
         queryClient.invalidateQueries({ queryKey: ['admin'] });
         queryClient.invalidateQueries({ queryKey: ['seasons'] });
+        queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
     };
 
     const isSeasonPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
@@ -168,9 +193,9 @@ export function AdminDashboard() {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
                         >
-                            {activeTab === 'general' && <GeneralConfig configs={configs} onUpdate={handleUpdate} />}
+                            {activeTab === 'general' && <GeneralConfig configs={configs} cronStatus={cronStatus} onUpdate={handleUpdate} />}
+                            {activeTab === 'seasons' && <SeasonAndPrizeManager seasons={adminSeasons} onUpdate={handleUpdate} />}
                             {activeTab === 'announcements' && <AnnouncementManager announcements={announcements} onUpdate={handleUpdate} />}
-                            {activeTab === 'prizes' && <PrizeManager seasons={seasons} onUpdate={handleUpdate} />}
                             {activeTab === 'tournaments' && <TournamentManager tournaments={tournaments} onUpdate={handleUpdate} />}
                         </motion.div>
                     </AnimatePresence>
@@ -184,97 +209,299 @@ export function AdminDashboard() {
 // Sub-Components for Tabs
 // ==========================================
 
-function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdate: () => void }) {
-    const daysId = useId();
-    const hoursId = useId();
-    const minsId = useId();
-    const startDateId = useId();
+function toLocalInputValue(isoStr?: string | null): string {
+    if (!isoStr) return '';
+    try {
+        const d = parseISO(isoStr);
+        return isValid(d) ? format(d, "yyyy-MM-dd'T'HH:mm") : '';
+    } catch {
+        return '';
+    }
+}
+
+function localInputToIso(localStr: string): string | null {
+    if (!localStr) return null;
+    try {
+        const d = new Date(localStr);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+    } catch {
+        return null;
+    }
+}
+
+function GeneralConfig({
+    configs,
+    cronStatus,
+    onUpdate,
+}: {
+    configs: SystemConfig[];
+    cronStatus?: CronStatusResponse;
+    onUpdate: () => void;
+}) {
+    const confirmHoursId = useId();
+    const decayThresholdId = useId();
+    const decayCycleId = useId();
+    const decayAmountId = useId();
 
     const isPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
-    const intervalDays = configs.find((c) => c.key === 'season_interval_days')?.value || '90';
-    const intervalHours = configs.find((c) => c.key === 'season_interval_hours')?.value || '0';
-    const intervalMinutes = configs.find((c) => c.key === 'season_interval_minutes')?.value || '0';
-    const startDate = configs.find((c) => c.key === 'season_start_date')?.value || '';
+    const isLockOnExpire =
+        (configs.find((c) => c.key === 'season_lock_on_expire')?.value ?? 'true') === 'true';
+    const isDecayEnabled = configs.find((c) => c.key === 'decay_enabled')?.value === 'true';
 
-    const [localDays, setLocalDays] = useState(intervalDays);
-    const [localHours, setLocalHours] = useState(intervalHours);
-    const [localMinutes, setLocalMinutes] = useState(intervalMinutes);
-
-    // 初始化時將 UTC 轉為本地格式給 datetime-local 使用
-    const [localStartDate, setLocalStartDate] = useState(() => {
-        if (!startDate) return '';
-        try {
-            const date = parseISO(startDate);
-            return isValid(date) ? format(date, "yyyy-MM-dd'T'HH:mm:ss") : startDate;
-        } catch { return startDate; }
-    });
+    const [autoConfirmHours, setAutoConfirmHours] = useState(
+        () =>
+            configs.find((c) => c.key === 'match_auto_confirm_hours')?.value ||
+            String(cronStatus?.auto_confirm_hours ?? 48)
+    );
+    const [decayThreshold, setDecayThreshold] = useState(
+        () => configs.find((c) => c.key === 'decay_days_threshold')?.value || '21'
+    );
+    const [decayCycle, setDecayCycle] = useState(
+        () => configs.find((c) => c.key === 'decay_cycle_days')?.value || '7'
+    );
+    const [decayAmount, setDecayAmount] = useState(
+        () => configs.find((c) => c.key === 'decay_amount')?.value || '5'
+    );
+    const [decayModalOpen, setDecayModalOpen] = useState(false);
 
     const updateConfigsMutation = useMutation({
-        mutationFn: async (updates: { key: string, value: string }[]) => {
-            return Promise.all(updates.map(u => adminApi.updateConfig(u.key, u.value)));
+        mutationFn: async (updates: { key: string; value: string }[]) => {
+            return Promise.all(updates.map((u) => adminApi.updateConfig(u.key, u.value)));
         },
         onSuccess: () => {
             onUpdate();
-            toast.success("系統設定已更新！");
+            toast.success('規則與排程設定已更新！');
         },
         onError: (err: Error) => {
-            toast.error("更新失敗", { description: err.message || "請檢查網路連線" });
-        }
+            toast.error('更新失敗', { description: err.message || '請檢查網路連線' });
+        },
+    });
+
+    const runCronMutation = useMutation({
+        mutationFn: () => adminApi.runCronNow(),
+        onSuccess: (res) => {
+            onUpdate();
+            toast.success(res.message);
+        },
+        onError: (err: Error) => {
+            toast.error('執行排程失敗', { description: err.message });
+        },
+    });
+
+    const {
+        data: decayPreview,
+        isFetching: isPreviewFetching,
+        refetch: refetchDecayPreview,
+    } = useQuery<DecayPreviewResponse>({
+        queryKey: ['admin', 'decay-preview'],
+        queryFn: () => adminApi.getDecayPreview(),
+        enabled: decayModalOpen,
+    });
+
+    const triggerDecayMutation = useMutation({
+        mutationFn: () => adminApi.triggerDecay(),
+        onSuccess: (res) => {
+            setDecayModalOpen(false);
+            onUpdate();
+            toast.success(res.message);
+        },
+        onError: (err: Error) => {
+            toast.error('執行惰性衰退失敗', { description: err.message });
+        },
     });
 
     const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        // 存檔前轉回 UTC ISO 字串
-        let finalStartDate = localStartDate;
-        if (localStartDate) {
-            try {
-                const date = new Date(localStartDate);
-                if (!isNaN(date.getTime())) {
-                    finalStartDate = date.toISOString();
-                }
-            } catch (err) {
-                console.error("Date conversion error", err);
-            }
-        }
+        const safeHours = String(Math.max(1, parseInt(autoConfirmHours || '48', 10) || 48));
+        const safeThresh = String(Math.max(1, parseInt(decayThreshold || '21', 10) || 21));
+        const safeCycle = String(Math.max(1, parseInt(decayCycle || '7', 10) || 7));
+        const safeAmount = String(Math.max(0.5, parseFloat(decayAmount || '5') || 5));
 
         updateConfigsMutation.mutate([
-            { key: 'season_interval_days', value: localDays },
-            { key: 'season_interval_hours', value: localHours },
-            { key: 'season_interval_minutes', value: localMinutes },
-            { key: 'season_start_date', value: finalStartDate },
+            { key: 'match_auto_confirm_hours', value: safeHours },
+            { key: 'decay_days_threshold', value: safeThresh },
+            { key: 'decay_cycle_days', value: safeCycle },
+            { key: 'decay_amount', value: safeAmount },
         ]);
     };
 
-    const handleTogglePause = () => {
-        updateConfigsMutation.mutate([{ key: 'season_paused', value: String(!isPaused) }]);
+    const toggleConfig = (key: string, nextVal: boolean) => {
+        updateConfigsMutation.mutate([{ key, value: String(nextVal) }]);
     };
 
     const saving = updateConfigsMutation.isPending;
+    const summary = cronStatus?.summary;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-            <Card className="arena-card p-6 sm:p-8">
-                <h3 className="text-xl font-black text-foreground mb-6 flex items-center gap-3">
-                    <Pause className="text-sapphire-blue" size={22} aria-hidden="true" />
-                    賽季自動管控
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* 左側：Vercel Cron 健康狀態與手動觸發 */}
+            <div className="lg:col-span-5 space-y-6">
+                <Card className="arena-card p-5 sm:p-6 space-y-5 overflow-hidden">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                                <Activity size={18} className="text-sapphire-blue shrink-0" aria-hidden="true" />
+                                <h3 className="text-lg font-display font-black text-foreground">
+                                    Vercel Cron 排程監控
+                                </h3>
+                            </div>
+                            <p className="text-xs font-bold text-muted-foreground mt-1">
+                                排程週期：{cronStatus?.cron_schedule_label || '每日 04:00 (台灣時間)'}
+                            </p>
+                        </div>
+
+                        <span
+                            className={cn(
+                                'px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 inline-flex items-center gap-1',
+                                cronStatus?.cron_test_mode
+                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                    : summary?.status === 'partial_error'
+                                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300'
+                                      : summary
+                                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-secondary text-muted-foreground'
+                            )}
+                        >
+                            {cronStatus?.cron_test_mode ? (
+                                <>
+                                    <AlertTriangle size={12} aria-hidden="true" />
+                                    測試模式 (分鐘)
+                                </>
+                            ) : summary ? (
+                                <>
+                                    <CheckCircle2 size={12} aria-hidden="true" />
+                                    {summary.status === 'partial_error' ? '部分異常' : '正常運作'}
+                                </>
+                            ) : (
+                                '尚未執行紀錄'
+                            )}
+                        </span>
+                    </div>
+
+                    {cronStatus && !cronStatus.cron_secret_configured && (
+                        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-500/12 border border-amber-200/80 dark:border-amber-500/30 p-3.5 text-xs font-bold text-amber-800 dark:text-amber-200 leading-relaxed">
+                            尚未偵測到環境變數 <code className="font-mono font-black">CRON_SECRET</code>。部署於 Vercel 時建議設定此變數，Vercel Cron 每日觸發才能順利通過驗證。
+                        </div>
+                    )}
+
+                    {/* Pending Backlog & Last Run Info */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                        <div className="rounded-2xl bg-surface-subtle/85 border border-border p-3.5">
+                            <p className="text-[11px] font-bold text-muted-foreground">待確認比賽（已超時）</p>
+                            <p className="text-xl font-display font-black text-foreground tabular-nums mt-1">
+                                {cronStatus?.pending_total_count ?? 0}
+                                <span
+                                    className={cn(
+                                        'text-xs ml-1.5',
+                                        (cronStatus?.pending_overdue_count ?? 0) > 0
+                                            ? 'text-smash-orange'
+                                            : 'text-muted-foreground'
+                                    )}
+                                >
+                                    ({cronStatus?.pending_overdue_count ?? 0} 場超時)
+                                </span>
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-surface-subtle/85 border border-border p-3.5">
+                            <p className="text-[11px] font-bold text-muted-foreground">最近執行時間</p>
+                            <p className="text-sm font-display font-black text-foreground tabular-nums mt-1.5 truncate">
+                                {cronStatus?.last_run_at
+                                    ? formatLocalTime(cronStatus.last_run_at, 'MM/dd HH:mm')
+                                    : '無執行紀錄'}
+                            </p>
+                            {summary && (
+                                <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                                    {summary.trigger === 'manual' ? '管理員手動' : 'Vercel 自動'} · {summary.duration_ms}ms
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {summary && summary.tasks_run.length > 0 && (
+                        <div className="rounded-2xl bg-surface-subtle/70 border border-border/80 p-3.5 space-y-1.5">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                                最近一次執行摘要
+                            </p>
+                            <ul className="space-y-1 text-xs font-bold text-foreground/90">
+                                {summary.tasks_run.map((line, i) => (
+                                    <li key={i} className="flex items-start gap-1.5">
+                                        <span className="text-sapphire-blue mt-0.5">•</span>
+                                        <span>{line}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <Button
+                            type="button"
+                            disabled={runCronMutation.isPending}
+                            onClick={() => runCronMutation.mutate()}
+                            className="w-full h-11 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs sm:text-sm gap-2"
+                        >
+                            {runCronMutation.isPending ? (
+                                <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                            ) : (
+                                <RefreshCw size={15} aria-hidden="true" />
+                            )}
+                            立即執行排程
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setDecayModalOpen(true);
+                                if (decayModalOpen) refetchDecayPreview();
+                            }}
+                            className="w-full h-11 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-display font-black text-xs sm:text-sm gap-2"
+                        >
+                            <Clock size={15} className="text-smash-orange" aria-hidden="true" />
+                            預覽／執行衰退
+                        </Button>
+                    </div>
+                </Card>
+
+                <Card className="p-5 sm:p-6 border border-blue-200/80 dark:border-blue-500/25 bg-sapphire-blue/[0.06] dark:bg-blue-500/10 rounded-2xl md:rounded-3xl space-y-2.5">
+                    <h4 className="text-sm font-display font-black text-foreground flex items-center gap-2">
+                        <Sparkles size={15} className="text-sapphire-blue" aria-hidden="true" />
+                        排程運作架構說明
+                    </h4>
+                    <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                        Vercel 每日 04:00 僅負責「<strong>超時未確認比賽自動結算</strong>」與「<strong>選配之久未出賽衰退扣分</strong>」。賽季名稱、開始與結束完全由管理員於「<strong>賽季與獎品</strong>」分頁手動掌控，不再被排程半夜覆蓋或偷偷重置積分。
+                    </p>
+                </Card>
+            </div>
+
+            {/* 右側：規則開關與參數表單 */}
+            <Card className="lg:col-span-7 arena-card p-5 sm:p-7 space-y-6">
+                <h3 className="text-lg sm:text-xl font-display font-black text-foreground flex items-center gap-2.5">
+                    <Sliders className="text-sapphire-blue" size={20} aria-hidden="true" />
+                    賽事與積分規則開關
                 </h3>
 
-                <form onSubmit={handleSave} className="space-y-6">
-                    <div className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-surface-subtle/80 rounded-2xl border border-border">
-                        <div>
-                            <p className="font-bold text-foreground">暫停積分申報</p>
-                            <p className="text-xs text-muted-foreground mt-1">開啟後所有人將無法發起新的大會積分報分</p>
+                {/* 3 Global Switches */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
+                        <div className="min-w-0">
+                            <p className="font-bold text-sm text-foreground">暫停積分申報</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                開啟後全站暫時停止發起新的報分（既有待確認比賽仍可完成）
+                            </p>
                         </div>
                         <button
                             type="button"
                             role="switch"
                             aria-checked={isPaused}
                             aria-label="暫停積分申報"
-                            onClick={handleTogglePause}
+                            onClick={() => toggleConfig('season_paused', !isPaused)}
                             disabled={saving}
                             className={cn(
-                                "w-14 h-8 rounded-full transition-colors duration-300 relative shrink-0",
-                                isPaused ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"
+                                'w-14 h-8 rounded-full transition-colors duration-300 relative shrink-0',
+                                isPaused ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700'
                             )}
                         >
                             <motion.div
@@ -284,61 +511,118 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                         </button>
                     </div>
 
-                    <fieldset className="space-y-3">
-                        <legend className="arena-label text-muted-foreground">自動產生賽季間隔</legend>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <label htmlFor={daysId} className="arena-label text-center text-muted-foreground">Days 天</label>
-                                <input
-                                    id={daysId}
-                                    name="intervalDays"
-                                    type="number"
-                                    min={0}
-                                    value={localDays}
-                                    onChange={e => setLocalDays(e.target.value)}
-                                    className="arena-input text-center tabular-nums"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor={hoursId} className="arena-label text-center text-muted-foreground">Hours 時</label>
-                                <input
-                                    id={hoursId}
-                                    name="intervalHours"
-                                    type="number"
-                                    min={0}
-                                    max={23}
-                                    value={localHours}
-                                    onChange={e => setLocalHours(e.target.value)}
-                                    className="arena-input text-center tabular-nums"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor={minsId} className="arena-label text-center text-muted-foreground">Mins 分</label>
-                                <input
-                                    id={minsId}
-                                    name="intervalMinutes"
-                                    type="number"
-                                    min={0}
-                                    max={59}
-                                    value={localMinutes}
-                                    onChange={e => setLocalMinutes(e.target.value)}
-                                    className="arena-input text-center tabular-nums"
-                                />
-                            </div>
+                    <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
+                        <div className="min-w-0">
+                            <p className="font-bold text-sm text-foreground">賽季到期自動鎖定新報分</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                超過賽季結束時刻後鎖定新增報分以確保榜單公平，但放行舊比賽確認直到管理員正式結算
+                            </p>
                         </div>
-                    </fieldset>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isLockOnExpire}
+                            aria-label="賽季到期自動鎖定新報分"
+                            onClick={() => toggleConfig('season_lock_on_expire', !isLockOnExpire)}
+                            disabled={saving}
+                            className={cn(
+                                'w-14 h-8 rounded-full transition-colors duration-300 relative shrink-0',
+                                isLockOnExpire ? 'bg-sapphire-blue' : 'bg-slate-300 dark:bg-slate-700'
+                            )}
+                        >
+                            <motion.div
+                                animate={{ x: isLockOnExpire ? 28 : 4 }}
+                                className="size-6 bg-white rounded-full absolute top-1 shadow-sm"
+                            />
+                        </button>
+                    </div>
 
-                    <div>
-                        <label htmlFor={startDateId} className="arena-label text-muted-foreground">首季起始基準時間 (含秒)</label>
-                        <input
-                            id={startDateId}
-                            name="seasonStartDate"
-                            type="datetime-local"
-                            step="1"
-                            value={localStartDate}
-                            onChange={e => setLocalStartDate(e.target.value)}
-                            className="arena-input"
-                        />
+                    <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
+                        <div className="min-w-0">
+                            <p className="font-bold text-sm text-foreground">啟用久未出賽惰性衰退</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                開啟後，Cron 每日檢查並對超過指定天數未出賽的活躍同仁自動扣分
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isDecayEnabled}
+                            aria-label="啟用久未出賽惰性衰退"
+                            onClick={() => toggleConfig('decay_enabled', !isDecayEnabled)}
+                            disabled={saving}
+                            className={cn(
+                                'w-14 h-8 rounded-full transition-colors duration-300 relative shrink-0',
+                                isDecayEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                            )}
+                        >
+                            <motion.div
+                                animate={{ x: isDecayEnabled ? 28 : 4 }}
+                                className="size-6 bg-white rounded-full absolute top-1 shadow-sm"
+                            />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Numeric Parameters Form */}
+                <form onSubmit={handleSave} className="space-y-4 pt-2 border-t border-border/70">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor={confirmHoursId} className="arena-label text-muted-foreground">
+                                超時自動確認時數（小時）
+                            </label>
+                            <input
+                                id={confirmHoursId}
+                                type="number"
+                                min={1}
+                                value={autoConfirmHours}
+                                onChange={(e) => setAutoConfirmHours(e.target.value)}
+                                className="arena-input tabular-nums"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor={decayThresholdId} className="arena-label text-muted-foreground">
+                                惰性衰退觸發天數（天）
+                            </label>
+                            <input
+                                id={decayThresholdId}
+                                type="number"
+                                min={1}
+                                value={decayThreshold}
+                                onChange={(e) => setDecayThreshold(e.target.value)}
+                                className="arena-input tabular-nums"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor={decayCycleId} className="arena-label text-muted-foreground">
+                                連續扣分間隔週期（天）
+                            </label>
+                            <input
+                                id={decayCycleId}
+                                type="number"
+                                min={1}
+                                value={decayCycle}
+                                onChange={(e) => setDecayCycle(e.target.value)}
+                                className="arena-input tabular-nums"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor={decayAmountId} className="arena-label text-muted-foreground">
+                                每次衰退扣除 ELO 分數
+                            </label>
+                            <input
+                                id={decayAmountId}
+                                type="number"
+                                min={1}
+                                step="0.5"
+                                value={decayAmount}
+                                onChange={(e) => setDecayAmount(e.target.value)}
+                                className="arena-input tabular-nums"
+                            />
+                        </div>
                     </div>
 
                     <Button
@@ -346,32 +630,916 @@ function GeneralConfig({ configs, onUpdate }: { configs: SystemConfig[], onUpdat
                         disabled={saving}
                         className="w-full h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground border-none shadow-sm font-display font-black text-sm tracking-wide transition-all"
                     >
-                        {saving ? <Loader2 className="animate-spin mr-2" size={18} aria-hidden="true" /> : <Save className="mr-2" size={18} aria-hidden="true" />}
-                        儲存設定變更
+                        {saving ? (
+                            <Loader2 className="animate-spin mr-2" size={18} aria-hidden="true" />
+                        ) : (
+                            <Save className="mr-2" size={18} aria-hidden="true" />
+                        )}
+                        儲存規則設定
                     </Button>
                 </form>
             </Card>
 
-            <div className="space-y-8">
-                <Card className="p-6 sm:p-8 border border-blue-700 shadow-lg bg-sapphire-blue text-white rounded-2xl md:rounded-3xl overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/20 transition-all duration-1000" />
-                    <h3 className="text-xl font-black mb-4 relative z-10">
-                        自動排程說明
-                    </h3>
-                    <p className="text-sm text-white/80 leading-relaxed mb-6 relative z-10">
-                        系統會依據您設定的「起始基準日」與「間隔時間」自動定義出連續時間區間。
-                        後端排程器每日檢查當前時間落在哪個區間，若該區間的「賽季紀錄」尚未建立，則會自動啟動新賽季並封存舊賽季。
-                    </p>
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 relative z-10">
-                        <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-2">排程運作提示</p>
-                        <div className="flex items-center gap-3">
-                            <Calendar size={18} className="text-olympic-gold" aria-hidden="true" />
-                            <p className="font-bold text-sm">依據基準時刻與間隔自動輪替賽季</p>
+            {/* Decay Dry-Run Preview & Trigger Modal */}
+            <ResponsiveFormModal
+                open={decayModalOpen}
+                onOpenChange={setDecayModalOpen}
+                size="md"
+                icon={<Clock size={18} />}
+                title="惰性衰退預覽與執行"
+                description="先預覽符合條件的扣分名單，確認無誤後才實際扣除 ELO"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    triggerDecayMutation.mutate();
+                }}
+                footer={
+                    <>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDecayModalOpen(false)}
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                triggerDecayMutation.isPending ||
+                                isPreviewFetching ||
+                                (decayPreview?.affected_count ?? 0) === 0
+                            }
+                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-smash-orange hover:bg-orange-600 text-white font-display font-black text-sm"
+                        >
+                            {triggerDecayMutation.isPending
+                                ? '執行扣分中...'
+                                : `確認執行扣分 (${decayPreview?.affected_count ?? 0} 人)`}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    {isPreviewFetching ? (
+                        <div className="py-10 flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+                            <Loader2 size={16} className="animate-spin text-sapphire-blue" />
+                            <span>試算衰退名單中...</span>
+                        </div>
+                    ) : decayPreview ? (
+                        <>
+                            <div className="rounded-2xl bg-surface-subtle border border-border p-3.5 text-xs font-bold text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+                                <span>
+                                    目前門檻：閒置滿 {decayPreview.threshold}{' '}
+                                    {decayPreview.time_unit === 'minutes' ? '分鐘' : '天'} · 每次扣{' '}
+                                    <strong className="text-foreground">{decayPreview.amount}</strong> 分
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-card border border-border text-foreground font-black">
+                                    受影響：{decayPreview.affected_count} 人
+                                </span>
+                            </div>
+
+                            {decayPreview.affected_users.length > 0 ? (
+                                <div className="max-h-64 overflow-y-auto divide-y divide-border rounded-2xl border border-border bg-card">
+                                    {decayPreview.affected_users.map((u) => (
+                                        <div
+                                            key={u.user_id}
+                                            className="p-3 flex items-center justify-between gap-3"
+                                        >
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <PlayerAvatar
+                                                    src={u.avatar_url}
+                                                    name={u.name}
+                                                    className="size-9 rounded-xl text-xs shrink-0"
+                                                />
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-display font-black text-foreground truncate">
+                                                        {u.name}
+                                                    </p>
+                                                    <p className="text-[11px] font-bold text-muted-foreground truncate">
+                                                        已閒置 {u.inactive_value}{' '}
+                                                        {decayPreview.time_unit === 'minutes' ? '分鐘' : '天'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0 tabular-nums">
+                                                <p className="text-xs font-display font-black text-rose-500">
+                                                    -{u.deduction} 分
+                                                </p>
+                                                <p className="text-[11px] font-bold text-muted-foreground">
+                                                    {u.current_mmr} → {u.projected_mmr}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs font-bold text-muted-foreground">
+                                    目前所有近期有出賽紀錄的球友皆活躍中，無符合衰退門檻的名單。
+                                </div>
+                            )}
+                        </>
+                    ) : null}
+                </div>
+            </ResponsiveFormModal>
+        </div>
+    );
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Phase 2：賽季生命週期管控 ＋ 整合賽季獎品設定
+ * ─────────────────────────────────────────────────────────────────────────── */
+function SeasonAndPrizeManager({
+    seasons,
+    onUpdate,
+}: {
+    seasons: AdminSeasonItem[];
+    onUpdate: () => void;
+}) {
+    const activeSeason = seasons.find((s) => s.status === 'active');
+    const [selectedPrizeSeason, setSelectedPrizeSeason] = useState('');
+    const effectivePrizeSeasonId = selectedPrizeSeason || seasons[0]?.id || '';
+
+    const [editingSeason, setEditingSeason] = useState<AdminSeasonItem | null>(null);
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [rolloverModalOpen, setRolloverModalOpen] = useState(false);
+
+    const prizeSectionRef = useRef<HTMLDivElement>(null);
+
+    const jumpToPrizes = (seasonId: string) => {
+        setSelectedPrizeSeason(seasonId);
+        prizeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const seasonSummaryList: SeasonSummary[] = seasons.map((s) => ({
+        id: s.id,
+        name: s.name,
+        status: s.status,
+        start_date: s.start_date || '',
+        end_date: s.end_date || '',
+        participants_count: s.participants_count,
+    }));
+
+    return (
+        <div className="space-y-8">
+            {/* 1. Active Season Spotlight OR Off-Season Start Card */}
+            {activeSeason ? (
+                <Card className="arena-hero-surface rounded-2xl md:rounded-3xl p-5 sm:p-6 border border-blue-200/85 dark:border-slate-700/80 shadow-sm space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                    className={cn(
+                                        'px-2.5 py-0.5 rounded-full text-xs font-black',
+                                        activeSeason.is_expired
+                                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40'
+                                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+                                    )}
+                                >
+                                    {activeSeason.is_expired ? '已達截止日 · 待管理員結算' : '進行中賽季'}
+                                </span>
+                                <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                                    代號 {activeSeason.id}
+                                </span>
+                            </div>
+                            <h3 className="text-xl sm:text-2xl font-display font-black text-foreground truncate">
+                                {activeSeason.name}
+                            </h3>
+                            <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                                期間：
+                                {activeSeason.start_date
+                                    ? formatLocalTime(activeSeason.start_date, 'yyyy/MM/dd HH:mm')
+                                    : '未設定'}
+                                {' → '}
+                                {activeSeason.end_date
+                                    ? formatLocalTime(activeSeason.end_date, 'yyyy/MM/dd HH:mm')
+                                    : '無期限'}
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditingSeason(activeSeason)}
+                                className="h-11 px-4 rounded-xl bg-card border-border text-foreground font-display font-black text-xs sm:text-sm gap-1.5"
+                            >
+                                <Edit size={15} aria-hidden="true" />
+                                編輯名稱與起訖
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => setRolloverModalOpen(true)}
+                                className="h-11 px-5 rounded-xl bg-gradient-to-r from-sapphire-blue to-blue-700 text-white font-display font-black text-xs sm:text-sm shadow-sm gap-1.5"
+                            >
+                                <Trophy size={15} aria-hidden="true" />
+                                結算並開啟新季
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* KPI & Top 3 Preview Strip */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-3 border-t border-blue-200/60 dark:border-white/10">
+                        <div className="lg:col-span-5 grid grid-cols-3 gap-2">
+                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
+                                <p className="text-[11px] font-bold text-muted-foreground">參賽人數</p>
+                                <p className="text-xl font-display font-black text-foreground tabular-nums mt-0.5">
+                                    {activeSeason.participants_count}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
+                                <p className="text-[11px] font-bold text-muted-foreground">已結算場</p>
+                                <p className="text-xl font-display font-black text-foreground tabular-nums mt-0.5">
+                                    {activeSeason.total_matches}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
+                                <p className="text-[11px] font-bold text-muted-foreground">待確認</p>
+                                <p
+                                    className={cn(
+                                        'text-xl font-display font-black tabular-nums mt-0.5',
+                                        activeSeason.pending_matches > 0
+                                            ? 'text-smash-orange'
+                                            : 'text-foreground'
+                                    )}
+                                >
+                                    {activeSeason.pending_matches}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-7 rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 flex flex-col justify-center">
+                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider mb-2">
+                                目前頒獎台前三強
+                            </p>
+                            {activeSeason.top3.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {activeSeason.top3.map((p, idx) => (
+                                        <div
+                                            key={p.player_id}
+                                            className="flex items-center gap-2 min-w-0 rounded-xl bg-surface-subtle/80 px-2.5 py-1.5 border border-border/60"
+                                        >
+                                            <span className="text-xs font-display font-black text-olympic-gold shrink-0">
+                                                #{idx + 1}
+                                            </span>
+                                            <PlayerAvatar
+                                                src={p.avatar_url}
+                                                name={p.player_name}
+                                                className="size-7 rounded-lg text-[10px] shrink-0"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs font-black text-foreground truncate">
+                                                    {p.player_name}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-muted-foreground tabular-nums">
+                                                    {p.global_mmr} ELO
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs font-bold text-muted-foreground">
+                                    尚無本季完賽紀錄
+                                </p>
+                            )}
                         </div>
                     </div>
                 </Card>
+            ) : (
+                <Card className="arena-surface rounded-2xl md:rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-dashed">
+                    <div className="space-y-1">
+                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-xs font-black text-muted-foreground">
+                            目前為休賽季
+                        </span>
+                        <h3 className="text-xl font-display font-black text-foreground">
+                            尚未有進行中的賽季
+                        </h3>
+                        <p className="text-xs font-bold text-muted-foreground">
+                            可手動建立並啟動新賽季，自訂賽季名稱與預計結束時間。
+                        </p>
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={() => setCreateModalOpen(true)}
+                        className="h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-2 shrink-0"
+                    >
+                        <Plus size={16} aria-hidden="true" />
+                        建立並啟動新賽季
+                    </Button>
+                </Card>
+            )}
+
+            {/* 2. All Seasons List */}
+            {seasons.length > 0 && (
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-base sm:text-lg font-display font-black text-foreground">
+                            所有賽季歷程 ({seasons.length})
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {seasons.map((s) => (
+                            <Card
+                                key={s.id}
+                                className="arena-card p-4 flex flex-col justify-between gap-3.5"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span
+                                                className={cn(
+                                                    'px-2 py-0.5 rounded-full text-[11px] font-black',
+                                                    s.status === 'active'
+                                                        ? s.is_expired
+                                                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                        : 'bg-secondary text-muted-foreground'
+                                                )}
+                                            >
+                                                {s.status === 'active'
+                                                    ? s.is_expired
+                                                        ? '已到期待結算'
+                                                        : '進行中'
+                                                    : '已結算'}
+                                            </span>
+                                            <span className="text-[11px] font-bold text-muted-foreground">
+                                                {s.id} · {s.participants_count} 人 · {s.total_matches} 場
+                                            </span>
+                                        </div>
+                                        <h4 className="text-base font-display font-black text-foreground truncate">
+                                            {s.name}
+                                        </h4>
+                                        <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                                            {s.start_date
+                                                ? formatLocalTime(s.start_date, 'yyyy/MM/dd')
+                                                : '—'}
+                                            {' → '}
+                                            {s.end_date
+                                                ? formatLocalTime(s.end_date, 'yyyy/MM/dd')
+                                                : '無期限'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-2 border-t border-border/70">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setEditingSeason(s)}
+                                        className="flex-1 h-10 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1.5"
+                                    >
+                                        <Edit size={13} aria-hidden="true" />
+                                        編輯起訖
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => jumpToPrizes(s.id)}
+                                        className="flex-1 h-10 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1.5"
+                                    >
+                                        <Trophy size={13} className="text-olympic-gold" aria-hidden="true" />
+                                        獎品 ({s.prizes_count})
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Integrated Prize Manager */}
+            <div ref={prizeSectionRef} className="pt-4 border-t border-border">
+                <PrizeManager
+                    seasons={seasonSummaryList}
+                    selectedSeason={effectivePrizeSeasonId}
+                    onSelectSeason={setSelectedPrizeSeason}
+                    onUpdate={onUpdate}
+                />
             </div>
+
+            {/* Edit Season Modal */}
+            {editingSeason && (
+                <SeasonEditModal
+                    key={editingSeason.id}
+                    season={editingSeason}
+                    onClose={() => setEditingSeason(null)}
+                    onSaved={() => {
+                        setEditingSeason(null);
+                        onUpdate();
+                    }}
+                />
+            )}
+
+            {/* Create New Season Modal (when off-season) */}
+            {createModalOpen && (
+                <SeasonCreateModal
+                    defaultName={`正式賽季 #${seasons.length + 1}`}
+                    onClose={() => setCreateModalOpen(false)}
+                    onCreated={() => {
+                        setCreateModalOpen(false);
+                        onUpdate();
+                    }}
+                />
+            )}
+
+            {/* Rollover / Settlement Wizard Modal */}
+            {rolloverModalOpen && activeSeason && (
+                <SeasonRolloverModal
+                    activeSeason={activeSeason}
+                    defaultNextName={`正式賽季 #${seasons.length + 1}`}
+                    onClose={() => setRolloverModalOpen(false)}
+                    onSuccess={() => {
+                        setRolloverModalOpen(false);
+                        onUpdate();
+                    }}
+                />
+            )}
         </div>
+    );
+}
+
+function SeasonDurationQuickBar({
+    startLocal,
+    onSelectDays,
+    onClearEnd,
+}: {
+    startLocal: string;
+    onSelectDays: (endLocal: string) => void;
+    onClearEnd: () => void;
+}) {
+    const applyDays = (days: number) => {
+        const base = startLocal ? new Date(startLocal) : new Date();
+        const safeBase = isNaN(base.getTime()) ? new Date() : base;
+        const target = addDays(safeBase, days);
+        onSelectDays(format(target, "yyyy-MM-dd'T'HH:mm"));
+    };
+
+    return (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[11px] font-bold text-muted-foreground mr-1">快選區間：</span>
+            {[30, 60, 90].map((d) => (
+                <button
+                    key={d}
+                    type="button"
+                    onClick={() => applyDays(d)}
+                    className="h-8 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-black text-foreground transition-colors"
+                >
+                    +{d} 天
+                </button>
+            ))}
+            <button
+                type="button"
+                onClick={onClearEnd}
+                className="h-8 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+            >
+                設為無期限
+            </button>
+        </div>
+    );
+}
+
+function SeasonEditModal({
+    season,
+    onClose,
+    onSaved,
+}: {
+    season: AdminSeasonItem;
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const nameId = useId();
+    const startId = useId();
+    const endId = useId();
+
+    const [name, setName] = useState(season.name);
+    const [startLocal, setStartLocal] = useState(() => toLocalInputValue(season.start_date));
+    const [endLocal, setEndLocal] = useState(() => toLocalInputValue(season.end_date));
+
+    const mutation = useMutation({
+        mutationFn: () =>
+            adminApi.updateSeason(season.id, {
+                name: name.trim(),
+                start_date: localInputToIso(startLocal),
+                end_date: endLocal ? localInputToIso(endLocal) : null,
+                clear_end_date: !endLocal,
+            }),
+        onSuccess: () => {
+            toast.success('賽季資訊已更新');
+            onSaved();
+        },
+        onError: (err: Error) => toast.error('更新失敗', { description: err.message }),
+    });
+
+    return (
+        <ResponsiveFormModal
+            open
+            onOpenChange={(open) => !open && onClose()}
+            icon={<Calendar size={18} />}
+            title={`編輯賽季 (${season.id})`}
+            description="修改名稱或微調賽季開始與預計截止時間"
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (!name.trim()) {
+                    toast.error('請輸入賽季名稱');
+                    return;
+                }
+                mutation.mutate();
+            }}
+            footer={
+                <>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={mutation.isPending}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+                    >
+                        {mutation.isPending ? '儲存中...' : '儲存變更'}
+                    </Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor={nameId} className="arena-label">
+                        賽季顯示名稱
+                    </label>
+                    <input
+                        id={nameId}
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="例：2026 春季例行賽"
+                        className="arena-input"
+                    />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label htmlFor={startId} className="arena-label">
+                            開始時間
+                        </label>
+                        <input
+                            id={startId}
+                            type="datetime-local"
+                            value={startLocal}
+                            onChange={(e) => setStartLocal(e.target.value)}
+                            className="arena-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={endId} className="arena-label">
+                            截止／結算時間（留空即無期限）
+                        </label>
+                        <input
+                            id={endId}
+                            type="datetime-local"
+                            value={endLocal}
+                            onChange={(e) => setEndLocal(e.target.value)}
+                            className="arena-input"
+                        />
+                    </div>
+                </div>
+                <SeasonDurationQuickBar
+                    startLocal={startLocal}
+                    onSelectDays={setEndLocal}
+                    onClearEnd={() => setEndLocal('')}
+                />
+            </div>
+        </ResponsiveFormModal>
+    );
+}
+
+function SeasonCreateModal({
+    defaultName,
+    onClose,
+    onCreated,
+}: {
+    defaultName: string;
+    onClose: () => void;
+    onCreated: () => void;
+}) {
+    const nameId = useId();
+    const startId = useId();
+    const endId = useId();
+
+    const [name, setName] = useState(defaultName);
+    const [startLocal, setStartLocal] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    const [endLocal, setEndLocal] = useState(() =>
+        format(addDays(new Date(), 90), "yyyy-MM-dd'T'HH:mm")
+    );
+
+    const mutation = useMutation({
+        mutationFn: () =>
+            adminApi.createSeason({
+                name: name.trim(),
+                start_date: localInputToIso(startLocal),
+                end_date: localInputToIso(endLocal),
+            }),
+        onSuccess: () => {
+            toast.success('新賽季已啟動！');
+            onCreated();
+        },
+        onError: (err: Error) => toast.error('建立失敗', { description: err.message }),
+    });
+
+    return (
+        <ResponsiveFormModal
+            open
+            onOpenChange={(open) => !open && onClose()}
+            icon={<Plus size={18} />}
+            title="建立並啟動新賽季"
+            description="自訂賽季名稱與預計結束日期"
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (!name.trim()) {
+                    toast.error('請輸入賽季名稱');
+                    return;
+                }
+                mutation.mutate();
+            }}
+            footer={
+                <>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={mutation.isPending}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+                    >
+                        {mutation.isPending ? '建立中...' : '立即啟動賽季'}
+                    </Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor={nameId} className="arena-label">
+                        賽季名稱
+                    </label>
+                    <input
+                        id={nameId}
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="例：2026 春季例行賽"
+                        className="arena-input"
+                    />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label htmlFor={startId} className="arena-label">
+                            開始時間
+                        </label>
+                        <input
+                            id={startId}
+                            type="datetime-local"
+                            value={startLocal}
+                            onChange={(e) => setStartLocal(e.target.value)}
+                            className="arena-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={endId} className="arena-label">
+                            截止／結算時間
+                        </label>
+                        <input
+                            id={endId}
+                            type="datetime-local"
+                            value={endLocal}
+                            onChange={(e) => setEndLocal(e.target.value)}
+                            className="arena-input"
+                        />
+                    </div>
+                </div>
+                <SeasonDurationQuickBar
+                    startLocal={startLocal}
+                    onSelectDays={setEndLocal}
+                    onClearEnd={() => setEndLocal('')}
+                />
+            </div>
+        </ResponsiveFormModal>
+    );
+}
+
+function SeasonRolloverModal({
+    activeSeason,
+    defaultNextName,
+    onClose,
+    onSuccess,
+}: {
+    activeSeason: AdminSeasonItem;
+    defaultNextName: string;
+    onClose: () => void;
+    onSuccess: () => void;
+}) {
+    const nextNameId = useId();
+    const nextEndId = useId();
+
+    const [applySoftReset, setApplySoftReset] = useState(true);
+    const [startNewSeason, setStartNewSeason] = useState(true);
+    const [nextName, setNextName] = useState(defaultNextName);
+    const [nextStartLocal] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    const [nextEndLocal, setNextEndLocal] = useState(() =>
+        format(addDays(new Date(), 90), "yyyy-MM-dd'T'HH:mm")
+    );
+
+    const mutation = useMutation({
+        mutationFn: () =>
+            adminApi.rolloverSeason({
+                new_name: startNewSeason ? nextName.trim() : null,
+                new_start_date: startNewSeason ? localInputToIso(nextStartLocal) : null,
+                new_end_date: startNewSeason && nextEndLocal ? localInputToIso(nextEndLocal) : null,
+                apply_soft_reset: applySoftReset,
+                start_new_season: startNewSeason,
+            }),
+        onSuccess: (res) => {
+            const msg = res.new_season
+                ? `已完成結算並啟動「${res.new_season.name}」！`
+                : '已完成本季結算，目前進入休賽季。';
+            toast.success(msg);
+            onSuccess();
+        },
+        onError: (err: Error) => toast.error('結算失敗', { description: err.message }),
+    });
+
+    return (
+        <ResponsiveFormModal
+            open
+            onOpenChange={(open) => !open && onClose()}
+            size="lg"
+            icon={<Trophy size={18} />}
+            title={`結算賽季「${activeSeason.name}」`}
+            description="將永久封存本季每位選手的最終 ELO 快照"
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (startNewSeason && !nextName.trim()) {
+                    toast.error('請輸入新賽季名稱');
+                    return;
+                }
+                mutation.mutate();
+            }}
+            footer={
+                <>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={mutation.isPending}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5"
+                    >
+                        <span>
+                            {mutation.isPending
+                                ? '結算處理中...'
+                                : startNewSeason
+                                  ? '確認結算並開啟新季'
+                                  : '確認結算並進入休賽季'}
+                        </span>
+                        <ArrowRight size={15} aria-hidden="true" />
+                    </Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                {/* Pending Match Guardrail Alert */}
+                {activeSeason.pending_matches > 0 && (
+                    <div className="rounded-2xl bg-amber-50/85 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-500/35 p-3.5 flex items-start gap-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                        <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>
+                            本季尚有 <strong>{activeSeason.pending_matches} 場「待確認」比賽</strong>尚未結算，建議先請對手確認或於「系統與排程」執行自動確認後再結算，以免漏計獎項排名。
+                        </span>
+                    </div>
+                )}
+
+                {/* Final Top 3 Preview */}
+                {activeSeason.top3.length > 0 && (
+                    <div className="rounded-2xl bg-surface-subtle/80 border border-border p-3.5 space-y-2">
+                        <p className="text-xs font-black text-muted-foreground">
+                            即將封存之本季最終前三名
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {activeSeason.top3.map((p, idx) => (
+                                <div
+                                    key={p.player_id}
+                                    className="rounded-xl bg-card border border-border px-3 py-2 flex items-center gap-2 min-w-0"
+                                >
+                                    <span className="text-xs font-display font-black text-olympic-gold">
+                                        #{idx + 1}
+                                    </span>
+                                    <span className="text-xs font-black text-foreground truncate flex-1">
+                                        {p.player_name}
+                                    </span>
+                                    <span className="text-xs font-display font-black tabular-nums text-muted-foreground">
+                                        {p.global_mmr}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Soft Reset Toggle */}
+                <div className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-surface-subtle/80 border border-border">
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground">執行賽季 ELO 軟重置</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            結算後將活躍球友積分向基準 1000 分收斂：(目前 ELO + 1000) ÷ 2
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={applySoftReset}
+                        onClick={() => setApplySoftReset((v) => !v)}
+                        className={cn(
+                            'w-12 h-7 rounded-full transition-colors relative shrink-0',
+                            applySoftReset ? 'bg-sapphire-blue' : 'bg-slate-300 dark:bg-slate-700'
+                        )}
+                    >
+                        <motion.div
+                            animate={{ x: applySoftReset ? 22 : 3 }}
+                            className="size-5 bg-white rounded-full absolute top-1 shadow-xs"
+                        />
+                    </button>
+                </div>
+
+                {/* Start Next Season Immediately Toggle */}
+                <div className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-surface-subtle/80 border border-border">
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground">結算後立即啟動下一季</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            關閉則先進入「休賽季」（稍後可隨時手動啟動新賽季）
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={startNewSeason}
+                        onClick={() => setStartNewSeason((v) => !v)}
+                        className={cn(
+                            'w-12 h-7 rounded-full transition-colors relative shrink-0',
+                            startNewSeason ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                        )}
+                    >
+                        <motion.div
+                            animate={{ x: startNewSeason ? 22 : 3 }}
+                            className="size-5 bg-white rounded-full absolute top-1 shadow-xs"
+                        />
+                    </button>
+                </div>
+
+                {startNewSeason && (
+                    <div className="space-y-3 pt-2 border-t border-border/70">
+                        <div>
+                            <label htmlFor={nextNameId} className="arena-label">
+                                新賽季名稱
+                            </label>
+                            <input
+                                id={nextNameId}
+                                required
+                                value={nextName}
+                                onChange={(e) => setNextName(e.target.value)}
+                                className="arena-input"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor={nextEndId} className="arena-label">
+                                新賽季預計截止時間（留空即無期限）
+                            </label>
+                            <input
+                                id={nextEndId}
+                                type="datetime-local"
+                                value={nextEndLocal}
+                                onChange={(e) => setNextEndLocal(e.target.value)}
+                                className="arena-input"
+                            />
+                            <SeasonDurationQuickBar
+                                startLocal={nextStartLocal}
+                                onSelectDays={setNextEndLocal}
+                                onClearEnd={() => setNextEndLocal('')}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+        </ResponsiveFormModal>
     );
 }
 
@@ -767,8 +1935,17 @@ function ResponsiveAnnouncementModal({
     );
 }
 
-function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdate: () => void }) {
-    const [selectedSeason, setSelectedSeason] = useState(seasons[0]?.id || '');
+function PrizeManager({
+    seasons,
+    selectedSeason,
+    onSelectSeason,
+    onUpdate,
+}: {
+    seasons: SeasonSummary[];
+    selectedSeason: string;
+    onSelectSeason: (seasonId: string) => void;
+    onUpdate: () => void;
+}) {
     const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
     const [deletingPrizeId, setDeletingPrizeId] = useState<string | null>(null);
 
@@ -825,7 +2002,7 @@ function PrizeManager({ seasons, onUpdate }: { seasons: SeasonSummary[], onUpdat
                     <ResponsiveSelect
                         value={selectedSeason}
                         onValueChange={(val) => {
-                            setSelectedSeason(val);
+                            onSelectSeason(val);
                             setExtraPrizes([]);
                         }}
                         title="選擇要設置獎勵的賽季"

@@ -34,6 +34,30 @@ class SeasonCreate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
+
+class SeasonStartReq(BaseModel):
+    """管理員手動開啟新賽季"""
+    name: str
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+
+class SeasonUpdateReq(BaseModel):
+    """管理員編輯賽季名稱與起訖時間"""
+    name: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    clear_end_date: bool = False
+
+
+class SeasonRolloverReq(BaseModel):
+    """管理員一鍵結算當前賽季並（可選）開啟新賽季"""
+    new_name: Optional[str] = None
+    new_start_date: Optional[datetime] = None
+    new_end_date: Optional[datetime] = None
+    apply_soft_reset: bool = True
+    start_new_season: bool = True
+
 class ConfigUpdate(BaseModel):
     value: str
 

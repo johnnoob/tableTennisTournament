@@ -1,226 +1,354 @@
-from sqlmodel import Session, select
-from sqlalchemy import update
 from datetime import datetime, timedelta, timezone
-from models import Season, SeasonRecord, SystemConfig, User, PlayerStatHistory, utc_now
-from services.elo_engine import ELO_CONFIG
 import logging
-import os
+from sqlmodel import Session, select
+from models import (
+    Match,
+    MatchParticipation,
+    PlayerStatHistory,
+    Season,
+    SeasonRecord,
+    SystemConfig,
+    User,
+    utc_now,
+)
+from services.elo_engine import ELO_CONFIG
 
 logger = logging.getLogger(__name__)
 
+
 def ensure_utc(dt: datetime | None) -> datetime | None:
-    """確保 datetime 對象帶有 UTC 時區資訊，若為 naive 則補上 UTC"""
+    """確保 datetime 對象帶有 UTC 時區資訊，若為 naive 則補上 UTC。"""
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
+
 
 def get_config_value(session: Session, key: str, default: str) -> str:
     config = session.get(SystemConfig, key)
     return config.value if config else default
 
+
+def set_config_value(
+    session: Session,
+    key: str,
+    value: str,
+    description: str | None = None,
+    commit: bool = False,
+) -> SystemConfig:
+    config = session.get(SystemConfig, key)
+    now = utc_now()
+    if not config:
+        config = SystemConfig(
+            key=key,
+            value=value,
+            description=description,
+            updated_at=now,
+        )
+        session.add(config)
+    else:
+        config.value = value
+        if description is not None:
+            config.description = description
+        config.updated_at = now
+        session.add(config)
+    if commit:
+        session.commit()
+        session.refresh(config)
+    return config
+
+
 def is_season_paused(session: Session) -> bool:
     val = get_config_value(session, "season_paused", "false")
     return val.lower() == "true"
 
+
+def is_lock_on_expire_enabled(session: Session) -> bool:
+    val = get_config_value(session, "season_lock_on_expire", "true")
+    return val.lower() == "true"
+
+
+def is_season_expired(season: Season | None, now: datetime | None = None) -> bool:
+    if not season or not season.end_date:
+        return False
+    check_now = ensure_utc(now) or utc_now()
+    end_utc = ensure_utc(season.end_date)
+    return bool(end_utc is not None and end_utc <= check_now)
+
+
 def get_current_season(session: Session) -> Season | None:
     """
-    取得目前的正式賽季。如果系統設定為暫停，則不回傳任何賽季(阻斷報分)。
+    取得目前狀態為 active 的最新賽季。
+    注意：不會在讀取時擅自把過期賽季改為 completed，也不因暫停報分而隱藏賽季；
+    報分限制（暫停或到期鎖定）由報分路由明確檢查與提示。
     """
-    if is_season_paused(session):
-        return None
+    statement = (
+        select(Season)
+        .where(Season.status == "active")
+        .order_by(Season.start_date.desc())
+    )
+    return session.exec(statement).first()
 
-    now = utc_now()
-    
-    # 1. 巡視並結算過期賽季
-    expired_seasons = session.exec(
-        select(Season).where(Season.status == "active", Season.end_date <= now)
-    ).all()
-    for old_season in expired_seasons:
-        old_season.status = "completed"
-        session.add(old_season)
-    if expired_seasons:
+
+def _generate_next_season_id(session: Session) -> str:
+    existing_ids = {s.id for s in session.exec(select(Season)).all()}
+    idx = len(existing_ids)
+    while f"S{idx}" in existing_ids:
+        idx += 1
+    return f"S{idx}"
+
+
+def soft_reset_all_users_mmr(session: Session, commit: bool = True) -> int:
+    """
+    執行「軟重置」：將所有活躍非訪客玩家的 global_mmr 向基準分回歸。
+    公式：new_mmr = (current_mmr + DEFAULT_BASE_MMR) / 2
+    """
+    baseline = ELO_CONFIG["DEFAULT_BASE_MMR"]
+
+    statement = select(User).where(User.is_active == True, User.role != "guest")
+    active_users = session.exec(statement).all()
+
+    updated_count = 0
+    for user in active_users:
+        user.global_mmr = (user.global_mmr + baseline) / 2
+        session.add(user)
+
+        reset_history = PlayerStatHistory(
+            user_id=user.id,
+            match_id=None,
+            mmr=user.global_mmr,
+            event_type="soft_reset",
+        )
+        session.add(reset_history)
+        updated_count += 1
+
+    if commit:
         session.commit()
 
-    # 2. 尋找目前涵蓋的活躍賽季 (依開始時間倒序，確保抓到最新的一個)
-    statement = select(Season).where(
-        Season.status == "active",
-        Season.start_date <= now
-    ).order_by(Season.start_date.desc())
-    active_seasons = session.exec(statement).all()
-    
-    valid_season = None
-    for s in active_seasons:
-        if s.end_date is None or ensure_utc(s.end_date) > now:
-            valid_season = s
-            break
-            
-    if valid_season:
-        return valid_season
-        
-    return None
+    logger.info(
+        f"[SoftReset] Regressed active users' MMR toward {baseline}. Rows affected: {updated_count}"
+    )
+    return updated_count
 
 
-def get_dynamic_season_meta(session: Session, now: datetime):
-    """
-    依據 SystemConfig 計算目前的賽季 ID 與時間區間。
-    支持 天(days), 時(hours), 分(minutes) 的組合間隔。
-    """
-    # 1. 讀取基準點與間隔
-    start_date_str = get_config_value(session, "season_start_date", "2026-01-01T00:00:00")
-    base_start = datetime.fromisoformat(start_date_str).replace(tzinfo=timezone.utc)
+def create_manual_season(
+    session: Session,
+    name: str,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+) -> Season:
+    """管理員於休賽季手動建立並啟動新賽季。"""
+    existing_active = get_current_season(session)
+    if existing_active:
+        raise ValueError(f"目前已有進行中的賽季「{existing_active.name}」，請使用結算／換季流程。")
 
-    # 2. 讀取顆粒度更高的間隔設定
-    i_days = int(get_config_value(session, "season_interval_days", "90"))
-    i_hours = int(get_config_value(session, "season_interval_hours", "0"))
-    i_mins = int(get_config_value(session, "season_interval_minutes", "0"))
-    
-    # 總秒數作為計算基準
-    interval_seconds = (i_days * 86400) + (i_hours * 3600) + (i_mins * 60)
+    clean_name = name.strip()
+    if not clean_name:
+        raise ValueError("賽季名稱不可為空")
 
-    if interval_seconds <= 0:
-        interval_seconds = 3600 * 24 * 90 # 預案：防止除以 0，預設 90 天
-        
-    # 3. 計算目前的「桶 (Bucket)」索引
-    total_elapsed_seconds = (now - base_start).total_seconds()
-    
-    if total_elapsed_seconds < 0:
-        # 如果現在時間早於起始基準，則使用基準點作為第一個桶
-        bucket_index = 0
-    else:
-        bucket_index = int(total_elapsed_seconds // interval_seconds)
-    
-    # 4. 生成賽季元數據
-    # 使用 S{index} 作為 ID 避免時間格式的侷限
-    current_id = f"S{bucket_index}"
-    name = f"正式賽季 #{bucket_index + 1}"
-    
-    calc_start_date = base_start + timedelta(seconds=bucket_index * interval_seconds)
-    calc_end_date = calc_start_date + timedelta(seconds=interval_seconds)
-    
-    return current_id, name, calc_start_date, calc_end_date
+    start_utc = ensure_utc(start_date) or utc_now()
+    end_utc = ensure_utc(end_date)
+    if end_utc is not None and end_utc <= start_utc:
+        raise ValueError("結束時間必須晚於開始時間")
 
-def ensure_current_quarter_season(session: Session) -> Season:
-    """
-    確保目前的賽季存在。
-    """
-    now = utc_now()
-    current_id, name, start_date, end_date = get_dynamic_season_meta(session, now)
-    
-    existing_season = session.get(Season, current_id)
-    
-    if existing_season:
-        needs_update = False
-        # 檢查並同步狀態、名稱、開始與結束時間
-        if existing_season.status != "active":
-            existing_season.status = "active"
-            needs_update = True
-        
-        # 如果系統設定 (interval) 改變了，同步更新現有的 S 桶時間
-        if existing_season.name != name:
-            existing_season.name = name
-            needs_update = True
-        if ensure_utc(existing_season.start_date) != start_date:
-            existing_season.start_date = start_date
-            needs_update = True
-        if ensure_utc(existing_season.end_date) != end_date:
-            existing_season.end_date = end_date
-            needs_update = True
-            
-        if needs_update:
-            session.add(existing_season)
-            session.commit()
-            session.refresh(existing_season)
-        return existing_season
-        
-    # 關閉所有現存的活躍賽季
-    active_seasons = session.exec(
-        select(Season).where(Season.status == "active")
-    ).all()
-    for old_season in active_seasons:
-        old_season.status = "completed"
-        # 確保過期賽季有 end_date
-        if not old_season.end_date or ensure_utc(old_season.end_date) > now:
-             old_season.end_date = now
-        session.add(old_season)
-
-    # 📸 季末快照：為每位玩家記錄當前 MMR 至 SeasonRecord.final_mmr
-    for old_season in active_seasons:
-        season_records = session.exec(
-            select(SeasonRecord).where(SeasonRecord.season_id == old_season.id)
-        ).all()
-        for record in season_records:
-            user = session.get(User, record.user_id)
-            if user:
-                record.final_mmr = user.global_mmr
-                session.add(record)
-    session.commit()
-
-    # 🔄 執行軟重置，將所有活躍玩家的 MMR 向基準分回歸
-    soft_reset_all_users_mmr(session)
-
-    # 產生新賽季
     new_season = Season(
-        id=current_id,
-        name=name,
+        id=_generate_next_season_id(session),
+        name=clean_name,
         status="active",
-        start_date=start_date,
-        end_date=end_date
+        start_date=start_utc,
+        end_date=end_utc,
     )
     session.add(new_season)
     session.commit()
     session.refresh(new_season)
     return new_season
 
-def auto_generate_quarterly_season(session_factory):
-    """
-    排程器呼叫入口，若系統暫停則不動作。
-    """
-    generator = session_factory()
-    session = next(generator)
-    try:
-        # 如果管理員設定暫停，則不自動產生新賽季
-        if is_season_paused(session):
-            return
-        ensure_current_quarter_season(session)
-    finally:
-        session.close()
 
+def update_season_details(
+    session: Session,
+    season_id: str,
+    name: str | None = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    clear_end_date: bool = False,
+) -> Season:
+    """管理員更新指定賽季的名稱或起訖時間（不再被排程覆蓋）。"""
+    season = session.get(Season, season_id)
+    if not season:
+        raise LookupError("找不到指定的賽季")
 
-def soft_reset_all_users_mmr(session: Session) -> int:
-    """
-    賽季結束時執行「軟重置」：將所有活躍玩家的 global_mmr 向基準分 (1000) 回歸。
-    公式：new_mmr = (current_mmr + DEFAULT_BASE_MMR) / 2
+    if name is not None:
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValueError("賽季名稱不可為空")
+        season.name = clean_name
 
-    這能防止積分長期通脹，同時保留玩家的相對排名優勢。
+    next_start = ensure_utc(start_date) if start_date is not None else ensure_utc(season.start_date)
+    if clear_end_date:
+        next_end = None
+    elif end_date is not None:
+        next_end = ensure_utc(end_date)
+    else:
+        next_end = ensure_utc(season.end_date)
 
-    Returns:
-        更新的玩家人數
-    """
-    baseline = ELO_CONFIG["DEFAULT_BASE_MMR"]
+    if next_start and next_end and next_end <= next_start:
+        raise ValueError("結束時間必須晚於開始時間")
 
-    # 取得所有活躍玩家
-    statement = select(User).where(User.is_active == True)
-    active_users = session.exec(statement).all()
-    
-    updated_count = 0
-    for user in active_users:
-        # 1. 執行 MMR 軟重置
-        user.global_mmr = (user.global_mmr + baseline) / 2
-        session.add(user)
-        
-        # 2. 建立歷史錨點 (Chart Anchor)
-        reset_history = PlayerStatHistory(
-            user_id=user.id,
-            match_id=None,
-            mmr=user.global_mmr,
-            event_type="soft_reset"
-        )
-        session.add(reset_history)
-        updated_count += 1
+    if next_start is not None:
+        season.start_date = next_start
+    season.end_date = next_end
+
+    session.add(season)
     session.commit()
+    session.refresh(season)
+    return season
 
-    logger.info(
-        f"[SoftReset] Regressed all active users' MMR toward {baseline}. "
-        f"Rows affected: {updated_count}"
+
+def _snapshot_season_records(session: Session, season: Season, now: datetime) -> None:
+    """結算賽季時，為所有參賽玩家寫入 final_mmr 快照並補齊缺少的 SeasonRecord。"""
+    existing_records = session.exec(
+        select(SeasonRecord).where(SeasonRecord.season_id == season.id)
+    ).all()
+    record_by_user = {r.user_id: r for r in existing_records}
+
+    # 若有已結算比賽但缺乏 SeasonRecord 的玩家，先補齊戰績統計
+    settled_matches = session.exec(
+        select(Match).where(
+            Match.season_id == season.id,
+            Match.status.in_(["confirmed", "completed"]),
+        )
+    ).all()
+
+    match_counts: dict = {}
+    for m in settled_matches:
+        a_won = m.score_a > m.score_b
+        for uid in (m.team_a_p1_id, m.team_a_p2_id):
+            if uid is not None:
+                entry = match_counts.setdefault(uid, {"played": 0, "wins": 0})
+                entry["played"] += 1
+                if a_won:
+                    entry["wins"] += 1
+        for uid in (m.team_b_p1_id, m.team_b_p2_id):
+            if uid is not None:
+                entry = match_counts.setdefault(uid, {"played": 0, "wins": 0})
+                entry["played"] += 1
+                if not a_won:
+                    entry["wins"] += 1
+
+    for uid, counts in match_counts.items():
+        if uid not in record_by_user:
+            rec = SeasonRecord(
+                user_id=uid,
+                season_id=season.id,
+                matches_played=counts["played"],
+                wins=counts["wins"],
+            )
+            session.add(rec)
+            record_by_user[uid] = rec
+
+    for uid, record in record_by_user.items():
+        user = session.get(User, uid)
+        if user:
+            record.final_mmr = user.global_mmr
+            session.add(record)
+
+    season.status = "completed"
+    if not season.end_date or (ensure_utc(season.end_date) and ensure_utc(season.end_date) > now):
+        season.end_date = now
+    session.add(season)
+
+
+def settle_and_rollover_season(
+    session: Session,
+    new_name: str | None = None,
+    new_start_date: datetime | None = None,
+    new_end_date: datetime | None = None,
+    apply_soft_reset: bool = True,
+    start_new_season: bool = True,
+) -> dict:
+    """
+    管理員一鍵結算當前進行中賽季，視設定執行積分軟重置並開啟下一季。
+    全程在單一資料庫交易內原子完成。
+    """
+    now = utc_now()
+    active_seasons = session.exec(
+        select(Season).where(Season.status == "active").order_by(Season.start_date.desc())
+    ).all()
+
+    if not active_seasons:
+        raise ValueError("目前沒有進行中的賽季可結算")
+
+    settled_ids: list[str] = []
+    for old_season in active_seasons:
+        _snapshot_season_records(session, old_season, now)
+        settled_ids.append(old_season.id)
+
+    soft_reset_count = 0
+    if apply_soft_reset:
+        soft_reset_count = soft_reset_all_users_mmr(session, commit=False)
+
+    new_season_data = None
+    if start_new_season:
+        total_seasons = len(session.exec(select(Season)).all())
+        clean_name = (new_name or f"正式賽季 #{total_seasons + 1}").strip()
+        if not clean_name:
+            raise ValueError("新賽季名稱不可為空")
+
+        start_utc = ensure_utc(new_start_date) or now
+        end_utc = ensure_utc(new_end_date)
+        if end_utc is not None and end_utc <= start_utc:
+            raise ValueError("新賽季結束時間必須晚於開始時間")
+
+        new_season = Season(
+            id=_generate_next_season_id(session),
+            name=clean_name,
+            status="active",
+            start_date=start_utc,
+            end_date=end_utc,
+        )
+        session.add(new_season)
+        session.flush()
+        new_season_data = {
+            "id": new_season.id,
+            "name": new_season.name,
+            "status": new_season.status,
+            "start_date": new_season.start_date,
+            "end_date": new_season.end_date,
+        }
+
+    session.commit()
+    return {
+        "settled_season_ids": settled_ids,
+        "soft_reset_count": soft_reset_count,
+        "new_season": new_season_data,
+    }
+
+
+def ensure_current_quarter_season(session: Session) -> Season | None:
+    """
+    非破壞性啟動預檢：
+    - 若資料庫已存在賽季（無論自訂名稱或日期為何），絕不覆蓋或自動重置，直接回傳進行中賽季（若有）。
+    - 僅當全新空白資料庫（0 個賽季）時，自動初始化第一個預設賽季，方便開箱即用。
+    """
+    active = get_current_season(session)
+    if active:
+        return active
+
+    any_season = session.exec(select(Season).limit(1)).first()
+    if any_season:
+        return None
+
+    now = utc_now()
+    default_days = int(get_config_value(session, "season_interval_days", "90") or "90")
+    end_dt = now + timedelta(days=max(1, default_days))
+
+    initial_season = Season(
+        id="S0",
+        name="正式賽季 #1",
+        status="active",
+        start_date=now,
+        end_date=end_dt,
     )
-    return updated_count
+    session.add(initial_season)
+    session.commit()
+    session.refresh(initial_season)
+    return initial_season

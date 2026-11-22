@@ -133,6 +133,7 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
     user = session.exec(statement).first()
 
     # 📝 2. 如果是新同仁，自動幫他註冊
+    is_env_admin = bool(email and email.lower() in settings.admin_emails_set)
     if not user:
         # 如果有用同樣的 email 註冊過，就綁定在一起
         user_by_email = session.exec(select(User).where(User.email == email)).first()
@@ -141,6 +142,8 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
             user.oauth_id = google_id
             user.auth_provider = "google"
             user.avatar_url = picture
+            if is_env_admin and user.role != "admin":
+                user.role = "admin"
         else:
             user = User(
                 email=email,
@@ -151,8 +154,13 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
                 # 預設給一些基本設定
                 department="未設定處室",
                 global_mmr=1200.0,
-                role="user"
+                role="admin" if is_env_admin else "user"
             )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+    elif is_env_admin and user.role != "admin":
+        user.role = "admin"
         session.add(user)
         session.commit()
         session.refresh(user)

@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     cloudinary_api_secret: str = ""
 
     # ── 其他 ──────────────────────────────────────────────────────
+    admin_emails: str = ""               # 逗號分隔的管理員 Google 信箱清單 (ADMIN_EMAILS)
+
     # ── 背景任務 (Cron / Scheduler) ─────────────────────────────────
     enable_local_scheduler: bool = False  # 是否在本地啟動 APScheduler
     cron_test_mode: bool = False         # 測試模式：時間單位會從 Days/Hours 變更為 Minutes
@@ -80,6 +82,10 @@ class Settings(BaseSettings):
     
     # 自動確認 (Auto-confirm) 參數
     match_auto_confirm_duration: int = 48 # 超過多少單位自動確認比賽
+
+    @property
+    def admin_emails_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
 
     @property
     def is_production(self) -> bool:

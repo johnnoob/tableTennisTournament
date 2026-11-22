@@ -7,9 +7,17 @@ from database import get_session
 from models import Match, Notification, User, SeasonRecord
 from schemas import MatchCreateReq, MatchBatchConfirmReq
 
+from config import settings
 from services.elo_engine import get_team_mmr, calculate_match_deltas
 from services.auth_jwt import get_current_user
-from services.season_service import get_current_season, ensure_utc
+from services.season_service import (
+    ensure_utc,
+    get_config_value,
+    get_current_season,
+    is_lock_on_expire_enabled,
+    is_season_expired,
+    is_season_paused,
+)
 from services.match_service import (
     settle_match_transaction,
     settle_matches_batch_transaction,
@@ -26,14 +34,21 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     real_reporter_id = current_user.id
 
     # 1. 🔍 尋找當前進行中的賽季
-    from services.season_service import is_season_paused
     if is_season_paused(session):
         raise HTTPException(status_code=403, detail="積分賽季目前處於暫停狀態，暫時無法報分！")
 
     current_season = get_current_season(session)
-    
+
     if not current_season:
         raise HTTPException(status_code=400, detail="目前沒有進行中的賽季，無法報分！")
+
+    if is_lock_on_expire_enabled(session) and is_season_expired(current_season):
+        end_utc = ensure_utc(current_season.end_date)
+        end_str = end_utc.strftime("%m/%d %H:%M") if end_utc else "截止時刻"
+        raise HTTPException(
+            status_code=403,
+            detail=f"賽季「{current_season.name}」已於 {end_str} 截止新報分，正等待管理員結算並開啟新賽季（既有待確認比賽仍可正常確認）。",
+        )
 
     # 2. 📝 建立對戰紀錄 (狀態預設為 pending)
     new_match = Match(
@@ -192,6 +207,14 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
     # 批次取得所有相關玩家的生涯出賽數 (Directive 1 & 2)
     career_counts = get_career_match_counts(session, list(involved_uids))
 
+    auto_confirm_hours = int(
+        get_config_value(
+            session,
+            "match_auto_confirm_hours",
+            str(settings.match_auto_confirm_duration),
+        )
+    )
+
     result = []
     for m in pending_matches:
         team_a_p1 = session.get(User, m.team_a_p1_id)
@@ -224,7 +247,7 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
             if team_a_p2: player1_data.append({"id": str(team_a_p2.id), "name": team_a_p2.name, "avatar": team_a_p2.avatar_url})
             if team_b_p2: opponent_data.append({"id": str(team_b_p2.id), "name": team_b_p2.name, "avatar": team_b_p2.avatar_url})
 
-        expires_at = m.created_at + datetime.timedelta(hours=48)
+        expires_at = ensure_utc(m.created_at) + datetime.timedelta(hours=auto_confirm_hours)
         a_change = potential_delta if m.score_a > m.score_b else -potential_delta
         b_change = -potential_delta if m.score_a > m.score_b else potential_delta
 

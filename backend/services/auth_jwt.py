@@ -77,7 +77,13 @@ def get_current_user(
     user = session.get(User, UUID(user_id_str))
     if user is None:
         raise credentials_exception
-        
+
+    if user.email and user.email.lower() in settings.admin_emails_set and user.role != "admin":
+        user.role = "admin"
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+
     return user
 
 def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
