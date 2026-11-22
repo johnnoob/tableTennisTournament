@@ -73,10 +73,111 @@ export interface AuthProvidersStatus {
   line: boolean;
 }
 
+export interface ChartOpponent {
+  id: string;
+  name: string;
+  mmr: number;
+}
+
+export interface ChartPartner {
+  id: string;
+  name: string;
+}
+
 export interface ChartDataPoint {
-  name: string; // 用於 X 軸顯示 (原本是 date)
-  rating: number; // 用於 Y 軸 (原本是 mmr)
-  event_type?: 'match' | 'soft_reset' | 'decay';
+  idx?: number;
+  name: string; // 唯一識別標籤 / 舊版日期字串
+  recorded_at?: string | null; // UTC ISO 時間戳
+  rating: number; // Y 軸 ELO 分數
+  delta?: number;
+  event_type?: 'match' | 'soft_reset' | 'decay' | 'admin_adjust' | 'start';
+  match_id?: string;
+  match_type?: 'singles' | 'doubles';
+  format?: string;
+  result?: 'W' | 'L';
+  score?: string;
+  opponents?: ChartOpponent[];
+  partner?: ChartPartner | null;
+}
+
+export interface ProgressionSummary {
+  net_delta: number;
+  matches: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  peak_rating: number;
+  low_rating: number;
+  current_rating: number;
+}
+
+export interface RadarAxisItem {
+  key: string;
+  label: string;
+  score: number;
+  detail: string;
+  sample: number;
+}
+
+export interface PlayerArchetype {
+  title: string;
+  tagline: string;
+  badge_tone: 'blue' | 'amber' | 'rose' | 'emerald' | 'violet';
+  strength_label: string;
+  focus_label: string;
+}
+
+export interface FormatSplitStats {
+  matches: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  net_mmr: number;
+}
+
+export interface ScorelineBucket {
+  count: number;
+  pct: number;
+}
+
+export interface ScorelineBreakdown {
+  total: number;
+  sweep_win: ScorelineBucket;
+  close_win: ScorelineBucket;
+  close_loss: ScorelineBucket;
+  sweep_loss: ScorelineBucket;
+}
+
+export interface OpponentTierStats {
+  key: 'elite' | 'gold' | 'silver' | 'bronze';
+  label: string;
+  range: string;
+  matches: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+}
+
+export interface WeeklyActivityItem {
+  label: string;
+  matches: number;
+  wins: number;
+}
+
+export interface PlayerAnalytics {
+  unlocked: boolean;
+  settled_count: number;
+  unlock_required: number;
+  radar: RadarAxisItem[];
+  archetype: PlayerArchetype;
+  breakdown: {
+    singles: FormatSplitStats;
+    doubles: FormatSplitStats;
+    scorelines: ScorelineBreakdown;
+    vs_tiers: OpponentTierStats[];
+    activity_weeks: WeeklyActivityItem[];
+    activity_8w_total: number;
+  };
 }
 
 export interface NextRivalInfo {
@@ -106,6 +207,8 @@ export interface PlayerStats {
   peak_mmr?: number;
   next_rival?: NextRivalInfo | null;
   chart_data: ChartDataPoint[];
+  progression_summary?: ProgressionSummary;
+  analytics?: PlayerAnalytics;
 }
 
 export interface H2HRecentMatch {

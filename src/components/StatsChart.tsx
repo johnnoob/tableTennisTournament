@@ -1,48 +1,78 @@
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
+import { useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+} from 'recharts';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, formatLocalTime } from '@/lib/utils';
 import { Star } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
-
-// 🌟 定義接收從 Dashboard 傳進來的真實資料
-interface DataPoint {
-  name: string;
-  rating: number;
-  event_type?: 'match' | 'soft_reset' | 'decay';
-}
+import type { ChartDataPoint } from '@/types/api.types';
 
 interface StatsChartProps {
-  data?: DataPoint[];
+  data?: ChartDataPoint[];
   ptsChange?: number;
   showCard?: boolean;
   showHeader?: boolean;
+  showTierLines?: boolean;
   height?: number;
+  selectedIdx?: number;
+  onSelectPoint?: (point: ChartDataPoint) => void;
 }
+
+const TIER_THRESHOLDS = [
+  { score: 1050, label: '銀牌 1050', light: '#64748b', dark: '#94a3b8' },
+  { score: 1180, label: '金牌 1180', light: '#d97706', dark: '#fbbf24' },
+  { score: 1320, label: '菁英 1320', light: '#4f46e5', dark: '#818cf8' },
+] as const;
 
 interface CustomizedDotProps {
   cx?: number;
   cy?: number;
-  payload?: DataPoint;
+  payload?: ChartDataPoint;
   isDark?: boolean;
+  selectedIdx?: number;
+  onSelectPoint?: (point: ChartDataPoint) => void;
 }
 
-interface TooltipEntry {
-  payload?: DataPoint;
+function getDotFillColor(payload: ChartDataPoint | undefined, isDark?: boolean): string {
+  if (payload?.event_type === 'soft_reset') return '#f59e0b';
+  if (payload?.result === 'W') return '#10b981';
+  if (payload?.result === 'L') return '#f43f5e';
+  return isDark ? '#60a5fa' : '#2563eb';
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: TooltipEntry[];
-  label?: string | number;
-}
+const CustomizedDot = ({
+  cx,
+  cy,
+  payload,
+  isDark,
+  selectedIdx,
+  onSelectPoint,
+}: CustomizedDotProps) => {
+  if (cx === undefined || cy === undefined || !payload) return null;
+  const strokeColor = isDark ? '#0f172a' : '#ffffff';
+  const fillColor = getDotFillColor(payload, isDark);
+  const isSelected = selectedIdx !== undefined && payload.idx === selectedIdx;
 
-const CustomizedDot = ({ cx, cy, payload, isDark }: CustomizedDotProps) => {
-  if (cx === undefined || cy === undefined) return null;
-  const strokeColor = isDark ? '#111a2e' : '#ffffff';
-  const fillColor = isDark ? '#60a5fa' : '#2563eb';
-  if (payload?.event_type === 'soft_reset') {
+  const handleClick = onSelectPoint ? () => onSelectPoint(payload) : undefined;
+
+  if (payload.event_type === 'soft_reset') {
     return (
-      <g transform={`translate(${cx - 8}, ${cy - 8})`}>
+      <g
+        transform={`translate(${cx - 8}, ${cy - 8})`}
+        onClick={handleClick}
+        style={{ cursor: onSelectPoint ? 'pointer' : undefined }}
+      >
+        {isSelected && (
+          <circle cx={8} cy={8} r={12} fill="#f59e0b" fillOpacity={0.22} />
+        )}
         <path
           d="M8 0L9.8 5.5H15.6L10.9 9.1L12.7 14.6L8 11L3.3 14.6L5.1 9.1L0.4 5.5H6.2L8 0Z"
           fill="#f59e0b"
@@ -52,47 +82,120 @@ const CustomizedDot = ({ cx, cy, payload, isDark }: CustomizedDotProps) => {
       </g>
     );
   }
-  return <circle cx={cx} cy={cy} r={4} stroke={strokeColor} strokeWidth={2} fill={fillColor} />;
+
+  return (
+    <g
+      onClick={handleClick}
+      style={{ cursor: onSelectPoint ? 'pointer' : undefined }}
+    >
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={9} fill={fillColor} fillOpacity={0.24} />
+      )}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={isSelected ? 5 : 3.8}
+        stroke={strokeColor}
+        strokeWidth={2}
+        fill={fillColor}
+      />
+    </g>
+  );
 };
+
+interface TooltipEntry {
+  payload?: ChartDataPoint;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string | number;
+}
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   const data = payload?.[0]?.payload;
-  if (active && data) {
-    const isReset = data.event_type === 'soft_reset';
+  if (!active || !data) return null;
 
-    return (
-      <div className="bg-popover p-4 rounded-2xl shadow-xl border border-border min-w-[140px]">
-        <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-2">{label}</p>
-        <div className="space-y-1">
-          {isReset ? (
-            <>
-              <p className="text-amber-600 dark:text-amber-400 font-black text-xs flex items-center gap-1.5">
-                <Star size={12} fill="currentColor" />
-                ✨ 系統換季重置
-              </p>
-              <div className="h-px bg-border my-2" />
-              <p className="text-foreground font-black text-sm">
-                重置後積分: <span className="text-sapphire-blue">{Math.round(data.rating)}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-foreground font-black text-sm">
-              Rating: <span className="text-sapphire-blue font-display">{Math.round(data.rating)}</span>
+  const isReset = data.event_type === 'soft_reset';
+  const timeLabel = data.recorded_at
+    ? formatLocalTime(data.recorded_at, 'MM/dd HH:mm')
+    : String(label ?? data.name);
+  const deltaNum = typeof data.delta === 'number' ? data.delta : null;
+  const oppText =
+    data.opponents && data.opponents.length > 0
+      ? data.opponents.map((o) => o.name).join(' / ')
+      : null;
+
+  return (
+    <div className="bg-popover/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-border min-w-[185px] max-w-[250px] space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-muted-foreground font-bold tabular-nums">
+          {timeLabel}
+        </span>
+        {isReset ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-black">
+            <Star size={10} fill="currentColor" aria-hidden="true" />
+            換季重置
+          </span>
+        ) : data.result ? (
+          <span
+            className={cn(
+              'px-2 py-0.5 rounded-full text-[10px] font-black',
+              data.result === 'W'
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
+            )}
+          >
+            {data.result === 'W' ? '勝場' : '敗場'} {data.score || ''}
+          </span>
+        ) : null}
+      </div>
+
+      {oppText && (
+        <div className="text-xs space-y-0.5">
+          <p className="font-bold text-foreground truncate">
+            {data.match_type === 'doubles' ? '雙打' : '單打'} {data.format || ''} · vs {oppText}
+          </p>
+          {data.partner && (
+            <p className="text-[11px] font-bold text-muted-foreground truncate">
+              搭檔：{data.partner.name}
             </p>
           )}
         </div>
+      )}
+
+      <div className="pt-1.5 border-t border-border/80 flex items-baseline justify-between gap-3">
+        <span className="font-display font-black text-base text-foreground tabular-nums">
+          {Math.round(data.rating)}{' '}
+          <span className="text-[10px] font-sans font-bold text-muted-foreground">ELO</span>
+        </span>
+        {deltaNum !== null && deltaNum !== 0 && !isReset && (
+          <span
+            className={cn(
+              'font-display font-black text-xs tabular-nums',
+              deltaNum > 0
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-rose-500 dark:text-rose-400',
+            )}
+          >
+            {deltaNum > 0 ? `+${deltaNum}` : deltaNum}
+          </span>
+        )}
       </div>
-    );
-  }
-  return null;
+    </div>
+  );
 };
 
 export function StatsChart({
   showCard = true,
   showHeader = true,
+  showTierLines = true,
   height = 220,
-  data = [], // 🌟 接收資料 (預設為空陣列)
-  ptsChange = 0 // 🌟 接收分數變化
+  data = [],
+  ptsChange = 0,
+  selectedIdx,
+  onSelectPoint,
 }: StatsChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -102,36 +205,90 @@ export function StatsChart({
   const lineStroke = isDark ? '#60a5fa' : '#2563eb';
   const refLineStroke = isDark ? '#64748b' : '#94a3b8';
 
-  // 防呆機制：如果圖表沒有資料，或是只有 1 筆起始資料，
-  // 為了讓圖表畫得出來並且能 hover，我們幫它「複製」一個點拉成一條平線。
-  const chartData = data.length === 1
-    ? [{ name: 'Start', rating: data[0].rating, event_type: data[0].event_type }, { name: 'Now', rating: data[0].rating, event_type: data[0].event_type }]
-    : data;
+  const chartData = useMemo(() => {
+    if (data.length === 1) {
+      return [
+        { ...data[0], idx: data[0].idx ?? 1, name: data[0].name || '起點' },
+        { ...data[0], idx: 2, name: '目前' },
+      ];
+    }
+    return data.map((item, i) => ({
+      ...item,
+      idx: item.idx ?? i + 1,
+    }));
+  }, [data]);
+
+  const pointByName = useMemo(() => {
+    const map = new Map<string, ChartDataPoint>();
+    for (const pt of chartData) {
+      map.set(pt.name, pt);
+    }
+    return map;
+  }, [chartData]);
+
+  const { yDomain, visibleTiers } = useMemo(() => {
+    if (chartData.length === 0) {
+      return {
+        yDomain: [950, 1100] as [number, number],
+        visibleTiers: TIER_THRESHOLDS.filter((t) => t.score >= 950 && t.score <= 1100),
+      };
+    }
+    const ratings = chartData.map((d) => d.rating);
+    const minVal = Math.min(...ratings);
+    const maxVal = Math.max(...ratings);
+
+    let yMin = Math.floor((minVal - 35) / 50) * 50;
+    let yMax = Math.ceil((maxVal + 35) / 50) * 50;
+    if (yMax - yMin < 100) {
+      yMin -= 50;
+      yMax += 50;
+    }
+
+    return {
+      yDomain: [yMin, yMax] as [number, number],
+      visibleTiers: TIER_THRESHOLDS.filter((t) => t.score >= yMin && t.score <= yMax),
+    };
+  }, [chartData]);
+
+  const handleChartClick = (state: { activeTooltipIndex?: number | string | null }) => {
+    if (!onSelectPoint) return;
+    const rawIdx = state?.activeTooltipIndex;
+    const idxNum = typeof rawIdx === 'number' ? rawIdx : Number(rawIdx);
+    if (!Number.isNaN(idxNum) && idxNum >= 0 && idxNum < chartData.length) {
+      onSelectPoint(chartData[idxNum]);
+    }
+  };
 
   const content = (
-    <div className={cn("size-full", !showCard && "p-0")}>
+    <div className={cn('size-full', !showCard && 'p-0')}>
       {showHeader && (
         <div className="flex items-center justify-between mb-6">
           <div>
             <h4 className="font-display text-xl text-foreground">Performance Analytics</h4>
-            <p className="text-xs text-muted-foreground mt-1 font-sans">Rating Progression • Season Summary</p>
+            <p className="text-xs text-muted-foreground mt-1 font-sans">
+              Rating Progression • Season Summary
+            </p>
           </div>
-          <div className={cn(
-            "rounded-full px-3 py-1 text-xs font-semibold",
-            ptsChange >= 0
-              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"
-              : "bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300"
-          )}>
-            {/* 🌟 動態顯示分數變化與正負號 */}
+          <div
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-semibold',
+              ptsChange >= 0
+                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                : 'bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300',
+            )}
+          >
             {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
           </div>
         </div>
       )}
 
-      <div className={cn("w-full", showCard ? "min-h-[220px]" : "")}>
+      <div className={cn('w-full', showCard ? 'min-h-[220px]' : '')}>
         <ResponsiveContainer width="100%" height={height}>
-          {/* 🌟 綁定 chartData */}
-          <AreaChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+          <AreaChart
+            data={chartData}
+            margin={{ top: 18, right: 14, left: -16, bottom: 2 }}
+            onClick={handleChartClick}
+          >
             <defs>
               <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={lineStroke} stopOpacity={isDark ? 0.28 : 0.16} />
@@ -143,41 +300,87 @@ export function StatsChart({
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: tickColor }}
-              dy={10}
+              interval="preserveStartEnd"
+              minTickGap={28}
+              tick={{ fontSize: 11, fill: tickColor }}
+              tickFormatter={(value) => {
+                const pt = pointByName.get(String(value));
+                if (pt?.recorded_at) {
+                  return formatLocalTime(pt.recorded_at, 'MM/dd');
+                }
+                return String(value);
+              }}
+              dy={8}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: tickColor }}
-              domain={['dataMin - 50', 'dataMax + 50']} // 讓上下有點留白空間
+              tick={{ fontSize: 11, fill: tickColor }}
+              domain={yDomain}
+              allowDecimals={false}
             />
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ stroke: lineStroke, strokeWidth: 1, strokeDasharray: '4 4' }}
             />
-            {/* 動態渲染參考線 */}
-            {chartData.map((entry, index) => (
-              entry.event_type === 'soft_reset' && (
+
+            {showTierLines &&
+              visibleTiers.map((tier) => (
                 <ReferenceLine
-                  key={`ref-${index}`}
-                  x={entry.name}
-                  stroke={refLineStroke}
-                  strokeDasharray="3 3"
-                  label={{ value: '賽季重置', position: 'top', fill: tickColor, fontSize: 12, fontWeight: 'bold' }}
+                  key={tier.score}
+                  y={tier.score}
+                  stroke={isDark ? tier.dark : tier.light}
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.55}
+                  label={{
+                    value: tier.label,
+                    position: 'insideTopRight',
+                    fill: isDark ? tier.dark : tier.light,
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
                 />
-              )
-            ))}
+              ))}
+
+            {chartData.map(
+              (entry, index) =>
+                entry.event_type === 'soft_reset' && (
+                  <ReferenceLine
+                    key={`ref-${entry.idx ?? index}`}
+                    x={entry.name}
+                    stroke={refLineStroke}
+                    strokeDasharray="3 3"
+                    label={{
+                      value: '換季重置',
+                      position: 'top',
+                      fill: tickColor,
+                      fontSize: 11,
+                      fontWeight: 'bold',
+                    }}
+                  />
+                ),
+            )}
+
             <Area
               type="monotone"
               dataKey="rating"
               stroke={lineStroke}
-              strokeWidth={3}
+              strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorRating)"
-              animationDuration={1000} // 加入繪製動畫
-              dot={<CustomizedDot isDark={isDark} />}
-              activeDot={{ r: 6, strokeWidth: 2, stroke: isDark ? '#111a2e' : '#ffffff' }}
+              animationDuration={700}
+              dot={
+                <CustomizedDot
+                  isDark={isDark}
+                  selectedIdx={selectedIdx}
+                  onSelectPoint={onSelectPoint}
+                />
+              }
+              activeDot={{
+                r: 6,
+                strokeWidth: 2,
+                stroke: isDark ? '#0f172a' : '#ffffff',
+              }}
             />
           </AreaChart>
         </ResponsiveContainer>

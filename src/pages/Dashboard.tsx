@@ -7,7 +7,7 @@ import { RankingCard } from '@/components/RankingCard';
 import { ClubRightRail } from '@/components/ClubRightRail';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { MatchSeriesItem } from '@/components/MatchItem';
-import { StatsChart } from '@/components/StatsChart';
+import { PlayerAnalyticsHub } from '@/components/PlayerAnalyticsHub';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ReportScore } from '@/components/ReportScore';
@@ -370,13 +370,19 @@ export function Dashboard() {
     refetchInterval: 15000,
   });
 
-  const { data: myStats, isPending: isStatsLoading, isError: isStatsError } = useQuery({
+  const {
+    data: myStats,
+    isPending: isStatsLoading,
+    isFetching: isStatsFetching,
+    isError: isStatsError,
+  } = useQuery({
     queryKey: ['users', 'me', 'stats', chartInterval],
     queryFn: async () => {
       const statsRes = await apiClient.get<PlayerStats>(`/users/me/stats?interval=${chartInterval}`);
       return statsRes.data;
     },
     enabled: isLoggedIn,
+    placeholderData: keepPreviousData,
     refetchInterval: 10000,
     retry: 1,
   });
@@ -433,8 +439,6 @@ export function Dashboard() {
     (isFeedLoading && recentFeed.length === 0) ||
     (isLeaderboardLoading && !seasonLeaderboardData) ||
     (isLoggedIn && isStatsLoading && !myStats && !isStatsError);
-
-  const ptsChange = myStats?.pts_change;
 
   const filteredQuickItems = useMemo(() => {
     if (quickFilter === 'all') return quickMatchItems;
@@ -761,50 +765,16 @@ export function Dashboard() {
                       )}
                     </motion.section>
 
-                    {/* Rating Progression Chart */}
-                    <motion.section
-                      variants={itemVariants}
-                      className="arena-surface p-5 sm:p-6 md:p-8 overflow-hidden min-h-[340px]"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                        <div>
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <h2 className="font-display text-lg sm:text-xl text-foreground font-black tracking-tight">
-                              戰力走勢分析
-                            </h2>
-                            {typeof ptsChange === 'number' && (
-                              <span
-                                className={cn(
-                                  'px-2.5 py-0.5 rounded-full text-xs font-display font-black tabular-nums border',
-                                  ptsChange >= 0
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
-                                    : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
-                                )}
-                              >
-                                最新 {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 uppercase font-sans font-bold tracking-wider">
-                            Rating Progression · Single-Track Elo
-                          </p>
-                        </div>
-                        <Tabs value={chartInterval} onValueChange={setChartInterval} className="w-full sm:w-auto">
-                          <TabsList className="grid w-full grid-cols-5 h-9 bg-card border border-border rounded-xl p-1">
-                            <TabsTrigger value="recent" className="text-xs font-bold rounded-lg">10場</TabsTrigger>
-                            <TabsTrigger value="hour" className="text-xs font-bold rounded-lg">小時</TabsTrigger>
-                            <TabsTrigger value="day" className="text-xs font-bold rounded-lg">日</TabsTrigger>
-                            <TabsTrigger value="month" className="text-xs font-bold rounded-lg">月</TabsTrigger>
-                            <TabsTrigger value="quarter" className="text-xs font-bold rounded-lg">季</TabsTrigger>
-                          </TabsList>
-                        </Tabs>
-                      </div>
-                      <StatsChart
-                        showCard={false}
-                        showHeader={false}
-                        data={myStats?.chart_data || []}
+                    {/* Player Analytics Hub (Progression / Radar / Breakdown) */}
+                    <motion.div variants={itemVariants}>
+                      <PlayerAnalyticsHub
+                        stats={myStats}
+                        chartInterval={chartInterval}
+                        onChartIntervalChange={setChartInterval}
+                        isFetching={isStatsFetching}
+                        onInspectPlayer={openInspect}
                       />
-                    </motion.section>
+                    </motion.div>
 
                     {/* Tabbed Bento Rivalry & Synergy Section */}
                     <motion.section variants={itemVariants} className="space-y-4">

@@ -8,6 +8,7 @@ from services.auth_jwt import (
 )
 from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, Notification, utc_now
 from schemas import MatchPresetCreate, MatchPresetUpdate
+from services.analytics_service import build_player_analytics, build_story_chart_data
 from services.elo_engine import ELO_CONFIG
 from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
@@ -208,7 +209,7 @@ def get_my_stats(
             current_streak = -current_streak
 
     # ==========================================
-    # 🌟 核心修改：歷史軌跡的時間維度分組
+    # 🌟 劇情式走勢曲線 & 區間 KPI + 五維戰力分析
     # ==========================================
     history = session.exec(
         select(PlayerStatHistory)
@@ -216,47 +217,30 @@ def get_my_stats(
         .order_by(PlayerStatHistory.recorded_at.asc())
     ).all()
 
-    chart_data = []
-    pts_change = 0
+    chart_data, progression_summary = build_story_chart_data(
+        session=session,
+        user=current_user,
+        history=history,
+        active_season=active_season,
+        interval=interval,
+    )
 
     if not history:
-        chart_data.append({"name": "Start", "rating": round(current_user.global_mmr)})
-        if round(current_user.global_mmr) != 1000:
-            pts_change = round(current_user.global_mmr - 1000)
+        pts_change = (
+            round(current_user.global_mmr - 1000)
+            if round(current_user.global_mmr) != 1000
+            else 0
+        )
+    elif len(history) >= 2:
+        pts_change = round(history[-1].mmr - history[-2].mmr)
     else:
-        if interval == "recent":
-            for h in history[-10:]:
-                chart_data.append({
-                    "name": h.recorded_at.strftime("%m/%d %H:%M"),
-                    "rating": round(h.mmr)
-                })
-        else:
-            grouped_data = {}
-            for h in history:
-                if interval == "hour":
-                    key = h.recorded_at.strftime("%m/%d %H:00")
-                elif interval == "day":
-                    key = h.recorded_at.strftime("%m/%d")
-                elif interval == "month":
-                    key = h.recorded_at.strftime("%Y/%m")
-                elif interval == "quarter":
-                    q = (h.recorded_at.month - 1) // 3 + 1
-                    key = f"{h.recorded_at.year}-Q{q}"
+        pts_change = round(history[-1].mmr - 1000)
 
-                grouped_data[key] = round(h.mmr)
-
-            for k, v in grouped_data.items():
-                chart_data.append({"name": k, "rating": v})
-
-            if interval == "hour": chart_data = chart_data[-24:]
-            elif interval == "day": chart_data = chart_data[-30:]
-            elif interval == "month": chart_data = chart_data[-12:]
-            elif interval == "quarter": chart_data = chart_data[-10:]
-
-        if len(history) >= 2:
-            pts_change = round(history[-1].mmr - history[-2].mmr)
-        else:
-            pts_change = round(history[-1].mmr - 1000)
+    analytics = build_player_analytics(
+        session=session,
+        user=current_user,
+        settled_matches=settled_matches,
+    )
 
     peak_mmr = round(max([current_user.global_mmr] + [h.mmr for h in history]))
 
@@ -292,6 +276,8 @@ def get_my_stats(
         "wins": wins,
         "losses": losses,
         "chart_data": chart_data,
+        "progression_summary": progression_summary,
+        "analytics": analytics,
         "pts_change": pts_change,
         "recent_form": recent_form,
         "recent_5_delta": recent_5_delta,
@@ -476,22 +462,20 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
     # 防呆：避免除以 0
     win_rate = int((total_wins / total_matches) * 100) if total_matches > 0 else 0
     
-    # 3. 📈 歷史圖表資料
+    # 3. 📈 歷史圖表資料（附帶對戰勝負與對手資訊）
     history = session.exec(
         select(PlayerStatHistory)
         .where(PlayerStatHistory.user_id == user.id)
         .order_by(PlayerStatHistory.recorded_at.asc())
     ).all()
-    
-    chart_data = []
-    if not history:
-        chart_data.append({"name": "Start", "rating": round(user.global_mmr)})
-    else:
-        for h in history[-15:]: # 顯示最近 15 筆軌跡
-            chart_data.append({
-                "name": h.recorded_at.strftime("%m/%d %H:%M"),
-                "rating": round(h.mmr)
-            })
+
+    chart_data, _ = build_story_chart_data(
+        session=session,
+        user=user,
+        history=history,
+        interval="recent",
+        max_points=15,
+    )
             
     # 4. 👿 宿命天敵 & 黃金搭檔（批次查詢避免 N+1）
     rivals_stats = {}
