@@ -4,7 +4,10 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
+  Check,
+  Download,
   Edit3,
+  History,
   Loader2,
   Lock,
   Minus,
@@ -20,12 +23,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi } from '@/lib/admin';
+import { downloadCsv } from '@/lib/csv';
 import type { AdminUserItem } from '@/types/admin';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect, type ResponsiveSelectOption } from '@/components/ui/responsive-select';
+import { AdminUserMmrLogsDrawer } from '@/components/admin/AdminUserMmrLogsDrawer';
 
 interface AdminUsersManagerProps {
   currentUserId?: string;
@@ -65,6 +70,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   const [mmrMode, setMmrMode] = useState<MmrMode>('delta');
   const [mmrInput, setMmrInput] = useState('20');
   const [mmrReason, setMmrReason] = useState('');
+
+  // Multi-select & Batch Department Modal State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchDeptOpen, setBatchDeptOpen] = useState(false);
+  const [batchDepartment, setBatchDepartment] = useState('');
+
+  // User ELO History Drawer State
+  const [logsUser, setLogsUser] = useState<AdminUserItem | null>(null);
 
   const { data: users = [], isLoading } = useQuery<AdminUserItem[]>({
     queryKey: ['admin', 'users'],
@@ -152,6 +165,66 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     return list;
   }, [users, statusFilter, departmentFilter, search, sortBy]);
 
+  const visibleUserIds = useMemo(() => filteredUsers.map((u) => u.id), [filteredUsers]);
+  const selectedValidIds = useMemo(() => {
+    const allowed = new Set(visibleUserIds);
+    return selectedIds.filter((id) => allowed.has(id));
+  }, [selectedIds, visibleUserIds]);
+  const allVisibleSelected =
+    filteredUsers.length > 0 && selectedValidIds.length === filteredUsers.length;
+  const selectedUsersList = useMemo(() => {
+    const picked = new Set(selectedValidIds);
+    return filteredUsers.filter((u) => picked.has(u.id));
+  }, [filteredUsers, selectedValidIds]);
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds(allVisibleSelected ? [] : visibleUserIds);
+  };
+
+  const handleExportUsersCsv = () => {
+    if (filteredUsers.length === 0) return;
+    downloadCsv(
+      `club_members_${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        '姓名',
+        '所屬單位',
+        'Email',
+        '角色',
+        '帳號狀態',
+        '目前 ELO',
+        '出賽場次',
+        '勝場',
+        '敗場',
+        '勝率(%)',
+        '登入方式',
+      ],
+      filteredUsers.map((u) => {
+        const winRate =
+          u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 1000) / 10 : 0;
+        return [
+          u.name,
+          u.department || '未設定單位',
+          u.email || '',
+          u.role === 'admin' ? '管理員' : '一般同仁',
+          u.is_active ? '啟用中' : '已停用',
+          Math.round(u.global_mmr),
+          u.matches_played,
+          u.wins,
+          u.losses,
+          u.matches_played > 0 ? winRate : 0,
+          u.auth_provider,
+        ];
+      })
+    );
+    toast.success(`已匯出 ${filteredUsers.length} 位成員名單 CSV`);
+  };
+
   const updateUserMutation = useMutation({
     mutationFn: ({
       userId,
@@ -187,6 +260,35 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       toast.error('校準積分失敗', { description: err.message });
     },
   });
+
+  const batchDeptMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.batchUpdateDepartment>[0]) =>
+      adminApi.batchUpdateDepartment(payload),
+    onSuccess: (res) => {
+      onUpdate();
+      setBatchDeptOpen(false);
+      setSelectedIds([]);
+      setBatchDepartment('');
+      toast.success(res.message);
+    },
+    onError: (err: Error) => {
+      toast.error('批次設定單位失敗', { description: err.message });
+    },
+  });
+
+  const handleSaveBatchDepartment = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (batchDeptMutation.isPending || selectedValidIds.length === 0) return;
+    const clean = batchDepartment.trim();
+    if (!clean) {
+      toast.error('請輸入或點選目標單位名稱');
+      return;
+    }
+    batchDeptMutation.mutate({
+      user_ids: selectedValidIds,
+      department: clean,
+    });
+  };
 
   const openEditModal = (u: AdminUserItem) => {
     setEditingUser(u);
@@ -355,7 +457,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             })}
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground ml-auto">
+          <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground ml-auto flex-wrap">
             <span>
               顯示 <strong className="text-foreground font-black tabular-nums">{filteredUsers.length}</strong> / {summary.total} 位
             </span>
@@ -373,6 +475,16 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 重設條件
               </button>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={filteredUsers.length === 0}
+              onClick={handleExportUsersCsv}
+              className="h-9 px-3 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs gap-1.5"
+            >
+              <Download size={13} aria-hidden="true" />
+              <span>匯出 CSV ({filteredUsers.length})</span>
+            </Button>
           </div>
         </div>
 
@@ -421,6 +533,43 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             description="調整成員名錄排列順序"
           />
         </div>
+
+        {/* Contextual Multi-Select Bulk Action Bar */}
+        {selectedValidIds.length > 0 && (
+          <div className="rounded-xl bg-sapphire-blue/10 dark:bg-blue-500/15 border border-sapphire-blue/30 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 text-xs font-bold text-foreground">
+              <span>
+                已選取 <strong className="font-display font-black tabular-nums text-sapphire-blue dark:text-blue-300">{selectedValidIds.length}</strong> 位成員
+              </span>
+              <button
+                type="button"
+                onClick={toggleSelectAllVisible}
+                className="text-sapphire-blue dark:text-blue-300 font-black hover:underline"
+              >
+                {allVisibleSelected ? '取消全選' : `全選目前 ${filteredUsers.length} 位`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                className="text-muted-foreground hover:text-foreground font-bold"
+              >
+                清除選取
+              </button>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => {
+                setBatchDepartment('');
+                setBatchDeptOpen(true);
+              }}
+              className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs gap-1.5 border-none"
+            >
+              <Building2 size={14} aria-hidden="true" />
+              <span>批次設定單位 ({selectedValidIds.length})</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Empty State */}
@@ -434,7 +583,22 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         <>
           {/* Desktop Directory Table */}
           <div className="hidden md:block">
-            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[minmax(0,1.55fr)_minmax(0,1.15fr)_136px_88px_118px_148px] items-center gap-3">
+            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.45fr)_minmax(0,1.05fr)_124px_76px_106px_184px] items-center gap-3">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={allVisibleSelected}
+                aria-label="全選目前顯示成員"
+                onClick={toggleSelectAllVisible}
+                className={cn(
+                  'size-5 rounded-md border flex items-center justify-center transition-colors',
+                  allVisibleSelected
+                    ? 'bg-sapphire-blue border-sapphire-blue text-white'
+                    : 'border-border bg-card text-transparent hover:border-sapphire-blue'
+                )}
+              >
+                <Check size={12} strokeWidth={3} aria-hidden="true" />
+              </button>
               <span>成員</span>
               <span>單位 / 信箱</span>
               <span>權限狀態</span>
@@ -446,6 +610,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             <div className="divide-y divide-border/70">
               {filteredUsers.map((u) => {
                 const isSelf = u.id === currentUserId;
+                const isSelected = selectedValidIds.includes(u.id);
                 const winRate =
                   u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
 
@@ -453,10 +618,27 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   <div
                     key={u.id}
                     className={cn(
-                      'px-5 py-3.5 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1.15fr)_136px_88px_118px_148px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
+                      'px-5 py-3.5 grid grid-cols-[24px_minmax(0,1.45fr)_minmax(0,1.05fr)_124px_76px_106px_184px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
+                      isSelected && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/[0.08]',
                       !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-75'
                     )}
                   >
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      aria-label={`選取成員 ${u.name}`}
+                      onClick={() => toggleSelectUser(u.id)}
+                      className={cn(
+                        'size-5 rounded-md border flex items-center justify-center transition-colors shrink-0',
+                        isSelected
+                          ? 'bg-sapphire-blue border-sapphire-blue text-white'
+                          : 'border-border bg-card text-transparent hover:border-sapphire-blue'
+                      )}
+                    >
+                      <Check size={12} strokeWidth={3} aria-hidden="true" />
+                    </button>
+
                     {/* Member Identity */}
                     <button
                       type="button"
@@ -536,6 +718,17 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       <Button
                         type="button"
                         variant="outline"
+                        size="icon"
+                        onClick={() => setLogsUser(u)}
+                        aria-label={`檢視 ${u.name} 的 ELO 異動日誌`}
+                        title="ELO 異動日誌"
+                        className="size-9 rounded-xl border-border text-muted-foreground hover:text-foreground shrink-0"
+                      >
+                        <History size={14} aria-hidden="true" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={() => openMmrModal(u)}
                         className="h-9 px-2.5 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1"
                       >
@@ -562,6 +755,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
           <div className="md:hidden divide-y divide-border/70">
             {filteredUsers.map((u) => {
               const isSelf = u.id === currentUserId;
+              const isSelected = selectedValidIds.includes(u.id);
               const winRate =
                 u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
 
@@ -569,12 +763,29 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 <div
                   key={u.id}
                   className={cn(
-                    'p-4 space-y-2.5',
+                    'p-4 space-y-2.5 transition-colors',
+                    isSelected && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/[0.08]',
                     !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-80'
                   )}
                 >
-                  {/* Row 1: Identity & ELO */}
-                  <div className="flex items-center justify-between gap-3">
+                  {/* Row 1: Checkbox + Identity + ELO */}
+                  <div className="flex items-center justify-between gap-2.5">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      aria-label={`選取成員 ${u.name}`}
+                      onClick={() => toggleSelectUser(u.id)}
+                      className={cn(
+                        'size-5 rounded-md border flex items-center justify-center transition-colors shrink-0',
+                        isSelected
+                          ? 'bg-sapphire-blue border-sapphire-blue text-white'
+                          : 'border-border bg-card text-transparent'
+                      )}
+                    >
+                      <Check size={12} strokeWidth={3} aria-hidden="true" />
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => openInspect(u.id)}
@@ -630,7 +841,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   </div>
 
                   {/* Row 2: Compact Metadata Line */}
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-bold pl-[52px]">
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-bold pl-[82px]">
                     <span className="truncate">
                       {u.department || '未設定單位'}
                       {u.email ? ` · ${u.email}` : ''}
@@ -640,25 +851,34 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     </span>
                   </div>
 
-                  {/* Row 3: Action Pair */}
-                  <div className="grid grid-cols-2 gap-2 pt-0.5">
+                  {/* Row 3: Action Trio */}
+                  <div className="grid grid-cols-3 gap-2 pt-0.5">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => openEditModal(u)}
-                      className="h-10 rounded-xl border-border font-bold text-xs gap-1.5"
+                      onClick={() => setLogsUser(u)}
+                      className="h-10 rounded-xl border-border font-bold text-xs gap-1"
                     >
-                      <Edit3 size={14} aria-hidden="true" />
-                      編輯權限
+                      <History size={14} aria-hidden="true" />
+                      日誌
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => openMmrModal(u)}
-                      className="h-10 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1.5"
+                      className="h-10 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1"
                     >
                       <Scale size={14} aria-hidden="true" />
-                      校準積分
+                      校準
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => openEditModal(u)}
+                      className="h-10 rounded-xl border-border font-bold text-xs gap-1"
+                    >
+                      <Edit3 size={14} aria-hidden="true" />
+                      編輯
                     </Button>
                   </div>
                 </div>
@@ -1076,6 +1296,105 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
           </div>
         )}
       </ResponsiveFormModal>
+
+      {/* Modal 3: Batch Set Department */}
+      <ResponsiveFormModal
+        open={batchDeptOpen}
+        onOpenChange={(open) => {
+          if (!open && !batchDeptMutation.isPending) setBatchDeptOpen(false);
+        }}
+        size="md"
+        tone="default"
+        icon={<Building2 size={18} />}
+        title={`批次設定單位（已選 ${selectedValidIds.length} 人）`}
+        description="將選取成員統一設定為指定處室／部門，適合新人批量報到分組。"
+        onSubmit={handleSaveBatchDepartment}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={batchDeptMutation.isPending}
+              onClick={() => setBatchDeptOpen(false)}
+              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+            >
+              取消
+            </Button>
+            <Button
+              type="submit"
+              disabled={batchDeptMutation.isPending || !batchDepartment.trim()}
+              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+            >
+              {batchDeptMutation.isPending
+                ? '套用中...'
+                : `套用至 ${selectedValidIds.length} 位成員`}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-surface-subtle/70 border border-border p-3 space-y-1.5">
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+              目標成員預覽
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedUsersList.slice(0, 8).map((u) => (
+                <span
+                  key={u.id}
+                  className="px-2 py-0.5 rounded-lg bg-card border border-border text-xs font-bold text-foreground"
+                >
+                  {u.name}
+                </span>
+              ))}
+              {selectedUsersList.length > 8 && (
+                <span className="px-2 py-0.5 rounded-lg bg-secondary text-xs font-black text-muted-foreground">
+                  +{selectedUsersList.length - 8} 人
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="batch-dept-input" className="arena-label">
+              目標處室 / 單位名稱 <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="batch-dept-input"
+              type="text"
+              required
+              value={batchDepartment}
+              onChange={(e) => setBatchDepartment(e.target.value)}
+              placeholder="例如：資訊處、秘書室"
+              className="arena-input"
+            />
+            {existingDepartments.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                  現有單位快選：
+                </span>
+                {existingDepartments.map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setBatchDepartment(dept)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors',
+                      batchDepartment === dept
+                        ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300'
+                        : 'bg-secondary/70 border-border text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </ResponsiveFormModal>
+
+      {/* Slide-Over / Bottom Sheet: Member ELO Change Timeline */}
+      <AdminUserMmrLogsDrawer user={logsUser} onClose={() => setLogsUser(null)} />
     </section>
   );
 }

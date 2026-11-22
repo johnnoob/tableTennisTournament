@@ -1,6 +1,8 @@
 import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import type {
+  AdminAuditLogsResponse,
+  AdminBatchDepartmentPayload,
   AdminBatchForceConfirmPayload,
   AdminCreateMatchPayload,
   AdminEditSettledMatchPayload,
@@ -9,7 +11,9 @@ import type {
   AdminMmrAdjustPayload,
   AdminParticipantResponse,
   AdminSeasonItem,
+  AdminSeasonStandingsResponse,
   AdminUserItem,
+  AdminUserMmrLogsResponse,
   AdminUserUpdatePayload,
   AdminVoidMatchPayload,
   Announcement,
@@ -17,6 +21,8 @@ import type {
   CronStatusResponse,
   DecayPreviewResponse,
   SeasonPrize,
+  SeasonPrizeCopyPayload,
+  SeasonPrizeCopyResponse,
   SystemConfig,
   TournamentEvent,
 } from '@/types/admin';
@@ -264,7 +270,6 @@ export const adminApi = {
     formData.append('file', file);
     try {
       const res = await apiClient.post<{ url: string }>('/admin/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         skipGlobalErrorToast: true,
       });
       return res.data;
@@ -275,4 +280,38 @@ export const adminApi = {
       throw new Error(error instanceof Error ? error.message : "圖片上傳失敗");
     }
   },
+  getAuditLogs: (params?: {
+    category?: string;
+    search?: string;
+    offset?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set("category", params?.category ?? "all");
+    if (params?.search?.trim()) {
+      query.set("search", params.search.trim());
+    }
+    query.set("offset", String(params?.offset ?? 0));
+    query.set("limit", String(params?.limit ?? 30));
+    return adminFetch<AdminAuditLogsResponse>(`/audit-logs?${query.toString()}`);
+  },
+  getUserMmrLogs: (userId: string, includeMatches = false) =>
+    adminFetch<AdminUserMmrLogsResponse>(
+      `/users/${userId}/mmr-logs?include_matches=${includeMatches ? "true" : "false"}`
+    ),
+  batchUpdateDepartment: (data: AdminBatchDepartmentPayload) =>
+    adminFetch<{ message: string; updated_count: number; department: string }>(
+      "/users/batch-department",
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }
+    ),
+  copySeasonPrizes: (data: SeasonPrizeCopyPayload) =>
+    adminFetch<SeasonPrizeCopyResponse>("/season-prizes/copy", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getSeasonStandings: (seasonId: string) =>
+    adminFetch<AdminSeasonStandingsResponse>(`/seasons/${seasonId}/standings`),
 };

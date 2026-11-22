@@ -301,3 +301,19 @@ class MatchPreset(SQLModel, table=True):
     sort_order: int = Field(default=0, description="排序權重，越小越前面")
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+# ==========================================
+# 14. AdminAuditLog 表 (管理員操作稽核日誌)
+# ==========================================
+class AdminAuditLog(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    actor_id: Optional[UUID] = Field(default=None, foreign_key="user.id", index=True)
+    actor_name: str = Field(description="操作管理員姓名快照")
+    category: str = Field(index=True, description="分類：members, matches, seasons, system")
+    action: str = Field(index=True, description="動作代碼，如 mmr.adjust, match.void, config.update")
+    target_type: Optional[str] = Field(default=None, description="目標類型：user, match, season, config, tournament, prize")
+    target_id: Optional[str] = Field(default=None, index=True, description="目標資源 ID")
+    summary: str = Field(description="人類可讀的變更摘要")
+    metadata_json: Optional[str] = Field(default=None, description="變更細節 JSON")
+    created_at: datetime = Field(default_factory=utc_now, index=True)

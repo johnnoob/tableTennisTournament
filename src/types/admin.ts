@@ -123,6 +123,7 @@ export interface AdminSeasonItem {
   participants_count: number;
   total_matches: number;
   pending_matches: number;
+  disputed_matches?: number;
   prizes_count: number;
   top3: AdminSeasonTopPlayer[];
 }
@@ -240,4 +241,85 @@ export interface AdminBatchForceConfirmPayload {
   overdue_only?: boolean;
   season_id?: string;
   reason?: string;
+}
+
+export interface AdminAuditLogItem {
+  id: string;
+  actor_id?: string | null;
+  actor_name: string;
+  category: 'members' | 'matches' | 'seasons' | 'system' | string;
+  action: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  summary: string;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+}
+
+export interface AdminAuditLogsResponse {
+  total: number;
+  has_more: boolean;
+  logs: AdminAuditLogItem[];
+}
+
+export interface AdminUserMmrLogItem {
+  id: string;
+  event_type: 'admin_adjust' | 'decay' | 'soft_reset' | 'match' | string;
+  old_mmr?: number | null;
+  new_mmr: number;
+  delta?: number | null;
+  actor_name?: string | null;
+  reason?: string | null;
+  match_id?: string | null;
+  recorded_at?: string | null;
+}
+
+export interface AdminUserMmrLogsResponse {
+  user: {
+    id: string;
+    name: string;
+    department?: string | null;
+    avatar_url?: string | null;
+    global_mmr: number;
+  };
+  total_count: number;
+  logs: AdminUserMmrLogItem[];
+}
+
+export interface AdminBatchDepartmentPayload {
+  user_ids: string[];
+  department: string;
+}
+
+export interface AdminSeasonStandingItem {
+  rank: number;
+  user_id: string;
+  name: string;
+  department: string;
+  mmr: number;
+  matches_played: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  prize_summary: string;
+}
+
+export interface AdminSeasonStandingsResponse {
+  season_id: string;
+  season_name: string;
+  status: string;
+  total_players: number;
+  standings: AdminSeasonStandingItem[];
+}
+
+export interface SeasonPrizeCopyPayload {
+  source_season_id: string;
+  target_season_id: string;
+  mode: 'append' | 'replace';
+}
+
+export interface SeasonPrizeCopyResponse {
+  message: string;
+  copied_count: number;
+  skipped_count: number;
 }

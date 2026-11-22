@@ -180,3 +180,16 @@ class AdminBatchForceConfirmReq(BaseModel):
     overdue_only: bool = False
     season_id: Optional[str] = None
     reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class AdminBatchDepartmentReq(BaseModel):
+    """管理員多選批次調整成員單位（處室／部門）"""
+    user_ids: list[UUID] = Field(..., min_length=1, max_length=200)
+    department: str = Field(..., min_length=1, max_length=60)
+
+
+class SeasonPrizeCopyReq(BaseModel):
+    """管理員從其他賽季複製獎品配置"""
+    source_season_id: str
+    target_season_id: str
+    mode: str = Field(default="append", description="append 或 replace")

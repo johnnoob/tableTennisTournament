@@ -1,4 +1,4 @@
-import { useId, useState, useEffect, useRef } from 'react';
+import { useId, useState, useRef } from 'react';
 import { addDays, format, parseISO, isValid } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,8 +18,6 @@ import {
     ChevronRight,
     Loader2,
     Image as ImageIcon,
-    UploadCloud,
-    X,
     Clock,
     CheckCircle2,
     AlertTriangle,
@@ -30,10 +28,15 @@ import {
     ArrowRight,
     Scale,
     UserCog,
+    Copy,
+    Download,
+    Lock,
+    Moon,
 } from 'lucide-react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { adminApi, type AnnouncementPayload, type TournamentCreatePayload } from '@/lib/admin';
+import { downloadCsv } from '@/lib/csv';
 import apiClient from '@/utils/apiClient';
 import type {
     SystemConfig,
@@ -54,6 +57,8 @@ import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import { AdminUsersManager } from '@/components/admin/AdminUsersManager';
 import { AdminMatchesManager } from '@/components/admin/AdminMatchesManager';
+import { AdminImageUploadField } from '@/components/admin/AdminImageUploadField';
+import { AdminAuditLogPanel } from '@/components/admin/AdminAuditLogPanel';
 import { toast } from 'sonner';
 
 const VALID_ADMIN_TABS = ['general', 'seasons', 'matches', 'users', 'announcements', 'tournaments'] as const;
@@ -78,7 +83,7 @@ export function AdminDashboard() {
             : 'general';
     const initialMatchStatus = searchParams.get('status') ?? undefined;
 
-    const handleSelectTab = (tabId: string) => {
+    const handleSelectTab = (tabId: string, matchStatus?: string) => {
         const next = new URLSearchParams(searchParams);
         if (tabId === 'general') {
             next.delete('tab');
@@ -87,8 +92,16 @@ export function AdminDashboard() {
         }
         if (tabId !== 'matches') {
             next.delete('status');
+            next.delete('matchId');
+        } else if (matchStatus) {
+            next.set('status', matchStatus);
+            next.delete('matchId');
         }
         setSearchParams(next, { replace: true });
+    };
+
+    const navigateToMatchesFilter = (status: 'disputed' | 'pending') => {
+        handleSelectTab('matches', status);
     };
 
     // Fetch configs & cron status
@@ -143,28 +156,94 @@ export function AdminDashboard() {
     };
 
     const isSeasonPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
+    const isLockOnExpire =
+        (configs.find((c) => c.key === 'season_lock_on_expire')?.value ?? 'true') === 'true';
+    const activeSeason = adminSeasons.find((s) => s.status === 'active');
+
     const disputedCount = cronStatus?.disputed_count ?? 0;
     const pendingCount = cronStatus?.pending_total_count ?? 0;
     const matchesAttentionCount = disputedCount + pendingCount;
 
+    const statusMeta = isSeasonPaused
+        ? {
+              label: '已暫停報分',
+              sub: '管理員手動鎖定新報分',
+              targetTab: 'general',
+              cardClass:
+                  'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30',
+              iconBg: 'bg-rose-100 dark:bg-rose-500/20',
+              Icon: Pause,
+          }
+        : !activeSeason
+          ? {
+                label: '休賽季中',
+                sub: '尚未開啟新季 · 無法報分',
+                targetTab: 'seasons',
+                cardClass:
+                    'bg-secondary/90 text-muted-foreground border-border hover:bg-secondary dark:bg-slate-800/70',
+                iconBg: 'bg-card border border-border/80',
+                Icon: Moon,
+            }
+          : activeSeason.is_expired && isLockOnExpire
+            ? {
+                  label: '已到期鎖定',
+                  sub: `${activeSeason.name} · 待結算封存`,
+                  targetTab: 'seasons',
+                  cardClass:
+                      'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30',
+                  iconBg: 'bg-amber-100 dark:bg-amber-500/20',
+                  Icon: Lock,
+              }
+            : activeSeason.is_expired && !isLockOnExpire
+              ? {
+                    label: '逾期補報中',
+                    sub: `${activeSeason.name} · 待結算`,
+                    targetTab: 'seasons',
+                    cardClass:
+                        'bg-sapphire-blue/10 text-sapphire-blue border-sapphire-blue/25 hover:bg-sapphire-blue/15 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-400/30',
+                    iconBg: 'bg-sapphire-blue/15 dark:bg-blue-500/25',
+                    Icon: Clock,
+                }
+              : {
+                    label: '正常運作中',
+                    sub: activeSeason.name,
+                    targetTab: 'seasons',
+                    cardClass:
+                        'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80 dark:bg-emerald-500/12 dark:text-emerald-300 dark:border-emerald-500/30',
+                    iconBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+                    Icon: Play,
+                };
+
+    const StatusIcon = statusMeta.Icon;
+
     const statusCard = (
-        <Card className={cn(
-            "px-4 py-3 flex items-center gap-3.5 border shadow-xs transition-all duration-500 rounded-2xl w-full md:w-auto",
-            isSeasonPaused
-                ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/30"
-                : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/12 dark:text-emerald-300 dark:border-emerald-500/30"
-        )}>
-            <div className={cn(
-                "size-9 rounded-xl flex items-center justify-center shrink-0",
-                isSeasonPaused ? "bg-rose-100 dark:bg-rose-500/20" : "bg-emerald-100 dark:bg-emerald-500/20"
-            )}>
-                {isSeasonPaused ? <Pause size={18} /> : <Play size={18} />}
+        <button
+            type="button"
+            onClick={() => handleSelectTab(statusMeta.targetTab)}
+            title="點擊前往對應設定頁"
+            className={cn(
+                'px-4 py-2.5 flex items-center gap-3 border shadow-xs transition-all duration-300 rounded-2xl w-full md:w-auto text-left group',
+                statusMeta.cardClass
+            )}
+        >
+            <div className={cn('size-9 rounded-xl flex items-center justify-center shrink-0', statusMeta.iconBg)}>
+                <StatusIcon size={17} aria-hidden="true" />
             </div>
-            <div>
-                <p className="text-xs font-black uppercase tracking-wider opacity-75">賽季狀態</p>
-                <p className="font-bold text-sm">{isSeasonPaused ? '已暫停報分' : '正常運作中'}</p>
+            <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-black uppercase tracking-wider opacity-75">
+                    全站報分狀態
+                </p>
+                <p className="font-display font-black text-sm leading-tight">{statusMeta.label}</p>
+                <p className="text-[11px] font-bold opacity-80 truncate max-w-[190px]">
+                    {statusMeta.sub}
+                </p>
             </div>
-        </Card>
+            <ChevronRight
+                size={15}
+                className="opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0"
+                aria-hidden="true"
+            />
+        </button>
     );
 
     return (
@@ -239,7 +318,13 @@ export function AdminDashboard() {
                             transition={{ duration: 0.3 }}
                         >
                             {activeTab === 'general' && <GeneralConfig configs={configs} cronStatus={cronStatus} onUpdate={handleUpdate} />}
-                            {activeTab === 'seasons' && <SeasonAndPrizeManager seasons={adminSeasons} onUpdate={handleUpdate} />}
+                            {activeTab === 'seasons' && (
+                                <SeasonAndPrizeManager
+                                    seasons={adminSeasons}
+                                    onUpdate={handleUpdate}
+                                    onNavigateToMatches={navigateToMatchesFilter}
+                                />
+                            )}
                             {activeTab === 'matches' && (
                                 <AdminMatchesManager
                                     key={initialMatchStatus || 'default'}
@@ -391,6 +476,7 @@ function GeneralConfig({
     const summary = cronStatus?.summary;
 
     return (
+        <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* 左側：Vercel Cron 健康狀態與手動觸發 */}
             <div className="lg:col-span-5 space-y-6">
@@ -799,6 +885,8 @@ function GeneralConfig({
                 </div>
             </ResponsiveFormModal>
         </div>
+        <AdminAuditLogPanel />
+        </div>
     );
 }
 
@@ -808,9 +896,11 @@ function GeneralConfig({
 function SeasonAndPrizeManager({
     seasons,
     onUpdate,
+    onNavigateToMatches,
 }: {
     seasons: AdminSeasonItem[];
     onUpdate: () => void;
+    onNavigateToMatches: (status: 'disputed' | 'pending') => void;
 }) {
     const activeSeason = seasons.find((s) => s.status === 'active');
     const [selectedPrizeSeason, setSelectedPrizeSeason] = useState('');
@@ -819,12 +909,57 @@ function SeasonAndPrizeManager({
     const [editingSeason, setEditingSeason] = useState<AdminSeasonItem | null>(null);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [rolloverModalOpen, setRolloverModalOpen] = useState(false);
+    const [exportingSeasonId, setExportingSeasonId] = useState<string | null>(null);
 
     const prizeSectionRef = useRef<HTMLDivElement>(null);
 
     const jumpToPrizes = (seasonId: string) => {
         setSelectedPrizeSeason(seasonId);
         prizeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const handleExportStandingsCsv = async (s: AdminSeasonItem) => {
+        if (exportingSeasonId) return;
+        setExportingSeasonId(s.id);
+        try {
+            const res = await adminApi.getSeasonStandings(s.id);
+            if (res.standings.length === 0) {
+                toast.info(`「${s.name}」目前尚無完賽排名資料可匯出`);
+                return;
+            }
+            downloadCsv(
+                `${s.id}_${s.name}_排名與發獎清單.csv`,
+                [
+                    '名次',
+                    '選手姓名',
+                    '所屬單位',
+                    s.status === 'completed' ? '最終 ELO' : '目前 ELO',
+                    '出賽場次',
+                    '勝場',
+                    '敗場',
+                    '勝率(%)',
+                    '對應獎項',
+                ],
+                res.standings.map((row) => [
+                    row.rank,
+                    row.name,
+                    row.department,
+                    row.mmr,
+                    row.matches_played,
+                    row.wins,
+                    row.losses,
+                    row.win_rate,
+                    row.prize_summary,
+                ])
+            );
+            toast.success(`已匯出「${s.name}」排名 CSV（共 ${res.total_players} 位選手）`);
+        } catch (err: unknown) {
+            toast.error('匯出排名失敗', {
+                description: err instanceof Error ? err.message : '請稍後再試',
+            });
+        } finally {
+            setExportingSeasonId(null);
+        }
     };
 
     const seasonSummaryList: SeasonSummary[] = seasons.map((s) => ({
@@ -873,7 +1008,21 @@ function SeasonAndPrizeManager({
                             </p>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">
+                        <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={exportingSeasonId === activeSeason.id}
+                                onClick={() => handleExportStandingsCsv(activeSeason)}
+                                className="h-11 px-3.5 rounded-xl bg-card border-border text-foreground font-display font-black text-xs sm:text-sm gap-1.5"
+                            >
+                                {exportingSeasonId === activeSeason.id ? (
+                                    <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                                ) : (
+                                    <Download size={14} aria-hidden="true" />
+                                )}
+                                匯出排名
+                            </Button>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -881,7 +1030,7 @@ function SeasonAndPrizeManager({
                                 className="h-11 px-4 rounded-xl bg-card border-border text-foreground font-display font-black text-xs sm:text-sm gap-1.5"
                             >
                                 <Edit size={15} aria-hidden="true" />
-                                編輯名稱與起訖
+                                編輯起訖
                             </Button>
                             <Button
                                 type="button"
@@ -896,7 +1045,7 @@ function SeasonAndPrizeManager({
 
                     {/* KPI & Top 3 Preview Strip */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-3 border-t border-blue-200/60 dark:border-white/10">
-                        <div className="lg:col-span-5 grid grid-cols-3 gap-2">
+                        <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
                                 <p className="text-[11px] font-bold text-muted-foreground">參賽人數</p>
                                 <p className="text-xl font-display font-black text-foreground tabular-nums mt-0.5">
@@ -922,9 +1071,22 @@ function SeasonAndPrizeManager({
                                     {activeSeason.pending_matches}
                                 </p>
                             </div>
+                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
+                                <p className="text-[11px] font-bold text-muted-foreground">申訴中</p>
+                                <p
+                                    className={cn(
+                                        'text-xl font-display font-black tabular-nums mt-0.5',
+                                        (activeSeason.disputed_matches ?? 0) > 0
+                                            ? 'text-rose-600 dark:text-rose-400'
+                                            : 'text-foreground'
+                                    )}
+                                >
+                                    {activeSeason.disputed_matches ?? 0}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="lg:col-span-7 rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 flex flex-col justify-center">
+                        <div className="lg:col-span-6 rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 flex flex-col justify-center">
                             <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider mb-2">
                                 目前頒獎台前三強
                             </p>
@@ -1039,24 +1201,38 @@ function SeasonAndPrizeManager({
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 pt-2 border-t border-border/70">
+                                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/70">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={() => setEditingSeason(s)}
-                                        className="flex-1 h-10 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1.5"
+                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
                                     >
                                         <Edit size={13} aria-hidden="true" />
-                                        編輯起訖
+                                        起訖
                                     </Button>
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={() => jumpToPrizes(s.id)}
-                                        className="flex-1 h-10 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1.5"
+                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
                                     >
                                         <Trophy size={13} className="text-olympic-gold" aria-hidden="true" />
                                         獎品 ({s.prizes_count})
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={exportingSeasonId === s.id}
+                                        onClick={() => handleExportStandingsCsv(s)}
+                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
+                                    >
+                                        {exportingSeasonId === s.id ? (
+                                            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                                        ) : (
+                                            <Download size={13} className="text-sapphire-blue" aria-hidden="true" />
+                                        )}
+                                        排名CSV
                                     </Button>
                                 </div>
                             </Card>
@@ -1109,6 +1285,10 @@ function SeasonAndPrizeManager({
                     onSuccess={() => {
                         setRolloverModalOpen(false);
                         onUpdate();
+                    }}
+                    onNavigateToMatches={(matchStatus) => {
+                        setRolloverModalOpen(false);
+                        onNavigateToMatches(matchStatus);
                     }}
                 />
             )}
@@ -1396,15 +1576,19 @@ function SeasonRolloverModal({
     defaultNextName,
     onClose,
     onSuccess,
+    onNavigateToMatches,
 }: {
     activeSeason: AdminSeasonItem;
     defaultNextName: string;
     onClose: () => void;
     onSuccess: () => void;
+    onNavigateToMatches: (status: 'disputed' | 'pending') => void;
 }) {
     const nextNameId = useId();
     const nextEndId = useId();
 
+    const disputedCount = activeSeason.disputed_matches ?? 0;
+    const [acknowledgeDisputed, setAcknowledgeDisputed] = useState(false);
     const [applySoftReset, setApplySoftReset] = useState(true);
     const [startNewSeason, setStartNewSeason] = useState(true);
     const [nextName, setNextName] = useState(defaultNextName);
@@ -1442,6 +1626,10 @@ function SeasonRolloverModal({
             description="將永久封存本季每位選手的最終 ELO 快照"
             onSubmit={(e) => {
                 e.preventDefault();
+                if (disputedCount > 0 && !acknowledgeDisputed) {
+                    toast.error('請先前往裁決爭議比賽，或勾選確認略過未決爭議');
+                    return;
+                }
                 if (startNewSeason && !nextName.trim()) {
                     toast.error('請輸入新賽季名稱');
                     return;
@@ -1460,8 +1648,8 @@ function SeasonRolloverModal({
                     </Button>
                     <Button
                         type="submit"
-                        disabled={mutation.isPending}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5"
+                        disabled={mutation.isPending || (disputedCount > 0 && !acknowledgeDisputed)}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5 disabled:opacity-45"
                     >
                         <span>
                             {mutation.isPending
@@ -1476,13 +1664,55 @@ function SeasonRolloverModal({
             }
         >
             <div className="space-y-4">
+                {/* Severe Guardrail: Disputed Matches */}
+                {disputedCount > 0 && (
+                    <div className="rounded-2xl bg-rose-50/90 dark:bg-rose-500/15 border border-rose-300/80 dark:border-rose-500/35 p-4 space-y-2.5 text-xs font-bold text-rose-800 dark:text-rose-200">
+                        <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+                                <p className="leading-relaxed">
+                                    本季尚有 <strong>{disputedCount} 場「爭議申訴中」對戰</strong>尚未裁決！若此時直接結算，爭議場次不會納入積分且將永久封存現行名次。
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onNavigateToMatches('disputed')}
+                                className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] shrink-0 whitespace-nowrap transition-colors"
+                            >
+                                前往裁決台 →
+                            </button>
+                        </div>
+
+                        <label className="flex items-center gap-2 pt-2 border-t border-rose-200/80 dark:border-rose-500/25 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={acknowledgeDisputed}
+                                onChange={(e) => setAcknowledgeDisputed(e.target.checked)}
+                                className="size-4 rounded accent-rose-600"
+                            />
+                            <span className="font-black text-rose-700 dark:text-rose-200">
+                                我已確認略過上述未決爭議場次，強制封存本季最終排名
+                            </span>
+                        </label>
+                    </div>
+                )}
+
                 {/* Pending Match Guardrail Alert */}
                 {activeSeason.pending_matches > 0 && (
-                    <div className="rounded-2xl bg-amber-50/85 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-500/35 p-3.5 flex items-start gap-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
-                        <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
-                        <span>
-                            本季尚有 <strong>{activeSeason.pending_matches} 場「待確認」比賽</strong>尚未結算，建議先請對手確認或於「系統與排程」執行自動確認後再結算，以免漏計獎項排名。
-                        </span>
+                    <div className="rounded-2xl bg-amber-50/85 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-500/35 p-3.5 flex items-start justify-between gap-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+                            <span>
+                                本季尚有 <strong>{activeSeason.pending_matches} 場「待確認」比賽</strong>尚未結算，建議先請對手確認或於裁決台／排程自動確認後再結算。
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => onNavigateToMatches('pending')}
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] shrink-0 whitespace-nowrap transition-colors"
+                        >
+                            前往處理 →
+                        </button>
                     </div>
                 )}
 
@@ -2006,12 +2236,15 @@ function PrizeManager({
 }) {
     const [extraPrizes, setExtraPrizes] = useState<Partial<SeasonPrize>[]>([]);
     const [deletingPrizeId, setDeletingPrizeId] = useState<string | null>(null);
+    const [copyModalOpen, setCopyModalOpen] = useState(false);
 
     const { data: prizes = [], refetch: fetchPrizes } = useQuery({
         queryKey: ['admin', 'prizes', selectedSeason],
         queryFn: () => adminApi.getSeasonPrizes(selectedSeason),
         enabled: !!selectedSeason
     });
+
+    const otherSeasons = seasons.filter((s) => s.id !== selectedSeason);
 
     const saveMutation = useMutation({
         mutationFn: (p: Partial<SeasonPrize>) => {
@@ -2056,7 +2289,7 @@ function PrizeManager({
                     <h3 className="text-xl font-black text-foreground">賽季獎勵設置</h3>
                     <p className="text-sm text-muted-foreground mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
                     <ResponsiveSelect
                         value={selectedSeason}
                         onValueChange={(val) => {
@@ -2067,7 +2300,7 @@ function PrizeManager({
                         description="選定賽季以設定或修改名次與特別獎項"
                         placeholder="選擇賽季"
                         icon={<Trophy size={15} className="text-olympic-gold shrink-0" aria-hidden="true" />}
-                        triggerClassName="w-full sm:w-60"
+                        triggerClassName="w-full sm:w-56"
                         options={seasons.map((s) => ({
                             value: s.id,
                             label: s.name || s.id,
@@ -2075,6 +2308,17 @@ function PrizeManager({
                             badge: s.status === 'active' ? '進行中' : '已結算',
                         }))}
                     />
+                    {otherSeasons.length > 0 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCopyModalOpen(true)}
+                            className="h-11 px-4 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs sm:text-sm gap-1.5"
+                        >
+                            <Copy size={15} aria-hidden="true" />
+                            <span>從其他季複製</span>
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}
@@ -2088,9 +2332,10 @@ function PrizeManager({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map(rank => {
                     const prize = (prizes as SeasonPrize[]).find((p: SeasonPrize) => p.rank === rank);
+                    const prizeKey = `rank-${rank}-${prize?.id ?? 'new'}-${prize?.item_name ?? ''}-${prize?.quantity ?? ''}-${prize?.image_url ?? ''}-${prize?.label ?? ''}`;
                     return (
                         <PrizeFormCard
-                            key={`rank-${rank}-${prize?.id ?? 'new'}`}
+                            key={prizeKey}
                             rank={rank}
                             prize={prize}
                             onSave={handleSavePrize}
@@ -2099,14 +2344,17 @@ function PrizeManager({
                     );
                 })}
 
-                {(prizes as SeasonPrize[]).filter((p: SeasonPrize) => (p.rank || 0) <= 0 || (p.rank || 0) > 3).map((prize: SeasonPrize) => (
-                    <PrizeFormCard
-                        key={prize.id}
-                        prize={prize}
-                        onSave={handleSavePrize}
-                        onDelete={handleDeletePrize}
-                    />
-                ))}
+                {(prizes as SeasonPrize[]).filter((p: SeasonPrize) => (p.rank || 0) <= 0 || (p.rank || 0) > 3).map((prize: SeasonPrize) => {
+                    const prizeKey = `${prize.id}-${prize.rank}-${prize.item_name}-${prize.quantity}-${prize.image_url ?? ''}-${prize.label ?? ''}`;
+                    return (
+                        <PrizeFormCard
+                            key={prizeKey}
+                            prize={prize}
+                            onSave={handleSavePrize}
+                            onDelete={handleDeletePrize}
+                        />
+                    );
+                })}
 
                 {extraPrizes.map((p, idx: number) => (
                     <PrizeFormCard
@@ -2118,6 +2366,22 @@ function PrizeManager({
                     />
                 ))}
             </div>
+
+            {/* Copy Prizes Modal */}
+            {copyModalOpen && otherSeasons.length > 0 && (
+                <CopyPrizesModal
+                    targetSeasonId={selectedSeason}
+                    targetSeasonName={seasons.find((s) => s.id === selectedSeason)?.name || selectedSeason}
+                    targetExistingCount={(prizes as SeasonPrize[]).length}
+                    otherSeasons={otherSeasons}
+                    onClose={() => setCopyModalOpen(false)}
+                    onCopied={() => {
+                        setCopyModalOpen(false);
+                        fetchPrizes();
+                        onUpdate();
+                    }}
+                />
+            )}
 
             {/* 刪除獎項確認 Modal */}
             <ResponsiveFormModal
@@ -2163,6 +2427,183 @@ function PrizeManager({
     );
 }
 
+function CopyPrizesModal({
+    targetSeasonId,
+    targetSeasonName,
+    targetExistingCount,
+    otherSeasons,
+    onClose,
+    onCopied,
+}: {
+    targetSeasonId: string;
+    targetSeasonName: string;
+    targetExistingCount: number;
+    otherSeasons: SeasonSummary[];
+    onClose: () => void;
+    onCopied: () => void;
+}) {
+    const [sourceSeasonId, setSourceSeasonId] = useState(otherSeasons[0]?.id || '');
+    const [mode, setMode] = useState<'append' | 'replace'>('append');
+
+    const { data: sourcePrizes = [], isLoading: isSourceLoading } = useQuery<SeasonPrize[]>({
+        queryKey: ['admin', 'prizes', sourceSeasonId],
+        queryFn: () => adminApi.getSeasonPrizes(sourceSeasonId),
+        enabled: Boolean(sourceSeasonId),
+    });
+
+    const copyMutation = useMutation({
+        mutationFn: () =>
+            adminApi.copySeasonPrizes({
+                source_season_id: sourceSeasonId,
+                target_season_id: targetSeasonId,
+                mode: targetExistingCount > 0 ? mode : 'append',
+            }),
+        onSuccess: (res) => {
+            toast.success(res.message);
+            onCopied();
+        },
+        onError: (err: Error) => toast.error('複製獎品失敗', { description: err.message }),
+    });
+
+    return (
+        <ResponsiveFormModal
+            open
+            onOpenChange={(open) => !open && !copyMutation.isPending && onClose()}
+            size="md"
+            tone="gold"
+            icon={<Copy size={18} />}
+            title="從其他賽季複製獎品配置"
+            description={`複製後的獎品名稱、名次與 Cloudinary 圖片將立即帶入「${targetSeasonName}」。`}
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (!sourceSeasonId || sourcePrizes.length === 0 || copyMutation.isPending) return;
+                copyMutation.mutate();
+            }}
+            footer={
+                <>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={copyMutation.isPending}
+                        onClick={onClose}
+                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={copyMutation.isPending || isSourceLoading || sourcePrizes.length === 0}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5 disabled:opacity-40"
+                    >
+                        <Copy size={15} aria-hidden="true" />
+                        <span>
+                            {copyMutation.isPending
+                                ? '複製中...'
+                                : `確認複製 ${sourcePrizes.length} 項獎品`}
+                        </span>
+                    </Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                <div>
+                    <span className="arena-label text-muted-foreground">選擇來源賽季</span>
+                    <ResponsiveSelect
+                        value={sourceSeasonId}
+                        onValueChange={setSourceSeasonId}
+                        title="選擇來源賽季"
+                        description="預覽並複製該賽季的獎品設定"
+                        icon={<Trophy size={15} className="text-olympic-gold shrink-0" />}
+                        options={otherSeasons.map((s) => ({
+                            value: s.id,
+                            label: s.name || s.id,
+                            badge: s.status === 'active' ? '進行中' : '已結算',
+                        }))}
+                    />
+                </div>
+
+                {/* Source Prizes Preview */}
+                <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                        來源賽季獎品預覽 ({sourcePrizes.length})
+                    </p>
+                    {isSourceLoading ? (
+                        <div className="py-6 flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+                            <Loader2 size={14} className="animate-spin text-sapphire-blue" />
+                            <span>載入獎品清單中...</span>
+                        </div>
+                    ) : sourcePrizes.length === 0 ? (
+                        <p className="py-5 text-center text-xs font-bold text-muted-foreground">
+                            該來源賽季尚未設定任何獎品。
+                        </p>
+                    ) : (
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                            {sourcePrizes.map((sp) => (
+                                <div
+                                    key={sp.id}
+                                    className="flex items-center justify-between gap-2.5 rounded-xl bg-card border border-border px-3 py-2 text-xs"
+                                >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-display font-black shrink-0">
+                                            {sp.label || (sp.rank > 0 ? `第 ${sp.rank} 名` : '特別獎')}
+                                        </span>
+                                        <span className="font-bold text-foreground truncate">
+                                            {sp.item_name}
+                                        </span>
+                                    </div>
+                                    <span className="font-display font-black text-muted-foreground tabular-nums shrink-0">
+                                        ×{sp.quantity}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {targetExistingCount > 0 && (
+                    <div className="space-y-2">
+                        <span className="arena-label text-muted-foreground">
+                            目標賽季已有 {targetExistingCount} 項獎品，請選擇處理方式
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setMode('append')}
+                                className={cn(
+                                    'p-3 rounded-xl border text-left transition-all',
+                                    mode === 'append'
+                                        ? 'border-sapphire-blue bg-sapphire-blue/10 dark:bg-blue-500/15'
+                                        : 'border-border bg-card hover:bg-secondary/60'
+                                )}
+                            >
+                                <p className="text-xs font-black text-foreground">僅補齊空缺名次</p>
+                                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                    保留既有第 1–3 名，只填入尚未設定的項目
+                                </p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMode('replace')}
+                                className={cn(
+                                    'p-3 rounded-xl border text-left transition-all',
+                                    mode === 'replace'
+                                        ? 'border-rose-500 bg-rose-50/80 dark:bg-rose-500/15'
+                                        : 'border-border bg-card hover:bg-secondary/60'
+                                )}
+                            >
+                                <p className="text-xs font-black text-foreground">覆蓋取代現有配置</p>
+                                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                    清空目標賽季現有獎品後完整匯入
+                                </p>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </ResponsiveFormModal>
+    );
+}
+
 function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
     rank?: number,
     prize?: Partial<SeasonPrize>,
@@ -2174,43 +2615,12 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
     const labelId = useId();
     const itemId = useId();
     const qtyId = useId();
-    const fileId = useId();
 
     const [name, setName] = useState(prize?.item_name || '');
     const [qty, setQty] = useState(prize?.quantity || 1);
     const [url, setUrl] = useState(prize?.image_url || '');
     const [rank, setRank] = useState(prize?.rank ?? initialRank ?? 0);
     const [label, setLabel] = useState(prize?.label || '');
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploading(true);
-        try {
-            const res = await adminApi.uploadImage(file);
-            let uploadedUrl = res.url;
-            if (uploadedUrl.includes("cloudinary.com")) {
-                uploadedUrl = uploadedUrl.replace("/upload/", "/upload/q_auto,f_auto/");
-            }
-            setUrl(uploadedUrl);
-            toast.success("圖片上傳成功！");
-        } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : "上傳失敗");
-        } finally {
-            setUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    useEffect(() => {
-        setName(prize?.item_name || '');
-        setQty(prize?.quantity || 1);
-        setUrl(prize?.image_url || '');
-        setRank(prize?.rank ?? initialRank ?? 0);
-        setLabel(prize?.label || '');
-    }, [prize, initialRank]);
 
     const isStandard = rank >= 1 && rank <= 3;
     const defaultLabel = rank === 1 ? '冠軍' : rank === 2 ? '亞軍' : rank === 3 ? '季軍' : '';
@@ -2301,55 +2711,26 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-1">
-                            <label htmlFor={qtyId} className="arena-label text-muted-foreground">數量</label>
-                            <input
-                                id={qtyId}
-                                name="prizeQty"
-                                type="number"
-                                min={1}
-                                value={qty}
-                                onChange={e => setQty(parseInt(e.target.value) || 0)}
-                                className="arena-input tabular-nums"
-                            />
-                        </div>
-                        <div className="col-span-2">
-                            <label htmlFor={fileId} className="arena-label text-muted-foreground">圖片</label>
-                            <input
-                                id={fileId}
-                                type="file"
-                                accept="image/jpeg, image/png, image/gif"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploading}
-                                className="w-full min-h-11 h-11 rounded-xl bg-card border-input text-xs font-bold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                            >
-                                {uploading ? <Loader2 className="animate-spin mr-1.5" size={15} aria-hidden="true" /> : <UploadCloud className="mr-1.5" size={15} aria-hidden="true" />}
-                                {uploading ? '上傳中...' : url ? '重新上傳' : '上傳圖片'}
-                            </Button>
-                        </div>
+                    <div>
+                        <label htmlFor={qtyId} className="arena-label text-muted-foreground">數量</label>
+                        <input
+                            id={qtyId}
+                            name="prizeQty"
+                            type="number"
+                            min={1}
+                            value={qty}
+                            onChange={e => setQty(parseInt(e.target.value) || 0)}
+                            className="arena-input tabular-nums"
+                        />
                     </div>
 
-                    {url && (
-                        <div className="rounded-xl overflow-hidden border border-border bg-surface-subtle relative flex items-center justify-center p-2 min-h-[112px]">
-                            <img src={url} alt="獎品預覽" className="max-h-28 object-contain" />
-                            <button
-                                type="button"
-                                aria-label="移除獎品圖片"
-                                onClick={() => setUrl('')}
-                                className="absolute top-2 right-2 size-7 flex items-center justify-center bg-slate-900/70 hover:bg-slate-900 text-white rounded-lg transition-colors"
-                            >
-                                <X size={14} aria-hidden="true" />
-                            </button>
-                        </div>
-                    )}
+                    <AdminImageUploadField
+                        value={url}
+                        onChange={setUrl}
+                        label="獎品圖片（選填）"
+                        previewAlt={name || displayLabel || '獎品預覽'}
+                        compact
+                    />
                 </div>
 
                 <Button
@@ -2368,7 +2749,6 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
     const rulesId = useId();
     const startId = useId();
     const endId = useId();
-    const imageId = useId();
     const playerSearchId = useId();
 
     const [isAdding, setIsAdding] = useState(false);
@@ -2575,21 +2955,12 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label htmlFor={imageId} className="arena-label text-muted-foreground">預覽圖 URL</label>
-                                <input
-                                    id={imageId}
-                                    name="imageUrl"
-                                    type="url"
-                                    autoCorrect="off"
-                                    autoCapitalize="none"
-                                    spellCheck={false}
-                                    placeholder="https://..."
-                                    value={formData.image_url}
-                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                                    className="arena-input"
-                                />
-                            </div>
+                            <AdminImageUploadField
+                                value={formData.image_url}
+                                onChange={(nextUrl) => setFormData((prev) => ({ ...prev, image_url: nextUrl }))}
+                                label="賽事封面預覽圖（選填）"
+                                previewAlt={formData.title || '賽事封面預覽'}
+                            />
                             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-3 border-t border-border">
                                 <Button
                                     type="button"
