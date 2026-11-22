@@ -35,6 +35,22 @@ export const getTierBadge = (mmr: number, iconSize: number = 14) => {
   };
 };
 
+export type TierKey = 'elite' | 'gold' | 'silver' | 'bronze';
+
+export const getTierKey = (mmr: number): TierKey => {
+  if (mmr >= 2000) return 'elite';
+  if (mmr >= 1260) return 'gold';
+  if (mmr >= 1210) return 'silver';
+  return 'bronze';
+};
+
+export const getShortTierName = (mmr: number): string => {
+  if (mmr >= 2000) return '菁英';
+  if (mmr >= 1260) return '金牌';
+  if (mmr >= 1210) return '銀牌';
+  return '銅牌';
+};
+
 export interface TierProgress {
   currentTierName: string;
   nextTierName: string | null;
@@ -119,7 +135,8 @@ export const calculateRankings = <
     active[i].rank = currentRank;
   }
 
-  // 4. 設定 Inactive 名次
+  // 4. 依基準分排序並設定 Inactive 名次
+  inactive.sort((a, b) => (b.global_mmr || 0) - (a.global_mmr || 0));
   inactive.forEach((p) => {
     p.rank = "-";
   });
