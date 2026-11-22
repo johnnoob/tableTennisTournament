@@ -151,3 +151,32 @@ class AdminForceConfirmReq(BaseModel):
 class AdminVoidMatchReq(BaseModel):
     """管理員駁回待確認比賽或撤銷回滾已結算比賽"""
     reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class AdminCreateMatchReq(BaseModel):
+    """管理員代為補登單打或雙打對戰"""
+    season_id: Optional[str] = None
+    match_type: str = Field(default="singles", description="singles 或 doubles")
+    team_a_p1_id: UUID
+    team_a_p2_id: Optional[UUID] = None
+    team_b_p1_id: UUID
+    team_b_p2_id: Optional[UUID] = None
+    score_a: int
+    score_b: int
+    auto_settle: bool = True
+    reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class AdminEditSettledMatchReq(BaseModel):
+    """管理員原地修正已結算對戰比分並重算積分"""
+    score_a: int
+    score_b: int
+    reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class AdminBatchForceConfirmReq(BaseModel):
+    """管理員批次強制裁決或一鍵確認所有超時比賽"""
+    match_ids: list[UUID] = Field(default_factory=list, max_length=100)
+    overdue_only: bool = False
+    season_id: Optional[str] = None
+    reason: Optional[str] = Field(default=None, max_length=200)

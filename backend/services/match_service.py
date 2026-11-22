@@ -4,14 +4,23 @@ services/match_service.py
 負責 Match 相關的核心商業邏輯與資料庫操作。
 Router 層不應包含任何 DB 交易細節，只負責呼叫此 Service 並轉換成 HTTP Response。
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from sqlmodel import Session, select
 from sqlalchemy import func
 
-from models import Match, User, SeasonRecord, PlayerStatHistory, MatchParticipation, Notification
+from config import settings
+from models import (
+    Match,
+    MatchParticipation,
+    Notification,
+    PlayerStatHistory,
+    Season,
+    SeasonRecord,
+    User,
+)
 from services.elo_engine import calculate_match_deltas
-from services.season_service import ensure_utc
+from services.season_service import ensure_utc, get_config_value, get_current_season
 
 
 # ── Custom Exceptions（供 Router 捕捉後轉成 HTTPException） ────────────────────
@@ -690,4 +699,493 @@ def admin_void_or_delete_match(
         "mode": "rolled_back_confirmed" if was_settled else "deleted_pending",
         "rolled_back_users": len(rolled_back_deltas) if was_settled else 0,
         "score_label": score_label,
+    }
+
+
+def _sync_completed_season_final_mmr(
+    session: Session,
+    season: Season | None,
+    locked_users: dict[UUID, User],
+    delta_adjustments: dict[UUID, float],
+) -> None:
+    """若操作目標屬於已結算賽季，同步維護 SeasonRecord.final_mmr 快照一致性。"""
+    if not season or season.status != "completed":
+        return
+
+    for uid, adj in delta_adjustments.items():
+        season_rec = session.exec(
+            select(SeasonRecord)
+            .where(
+                SeasonRecord.user_id == uid,
+                SeasonRecord.season_id == season.id,
+            )
+            .with_for_update()
+        ).first()
+        if season_rec:
+            if season_rec.final_mmr is not None:
+                season_rec.final_mmr = float(season_rec.final_mmr) + float(adj)
+            elif uid in locked_users:
+                season_rec.final_mmr = float(locked_users[uid].global_mmr)
+            session.add(season_rec)
+
+
+def admin_create_match(
+    session: Session,
+    admin_user: User,
+    season_id: str | None,
+    match_type: str,
+    team_a_p1_id: UUID,
+    team_a_p2_id: UUID | None,
+    team_b_p1_id: UUID,
+    team_b_p2_id: UUID | None,
+    score_a: int,
+    score_b: int,
+    auto_settle: bool = True,
+    reason: str | None = None,
+) -> dict:
+    """管理員代為補登單／雙打賽果（可選立即原子結算 ELO 或送出待確認）。"""
+    if match_type not in ("singles", "doubles"):
+        raise ValueError("賽制僅支援 singles 或 doubles")
+
+    if match_type == "singles":
+        team_a_p2_id = None
+        team_b_p2_id = None
+    elif team_a_p2_id is None or team_b_p2_id is None:
+        raise ValueError("雙打比賽必須選滿兩隊共 4 位選手")
+
+    raw_ids = [
+        uid
+        for uid in (team_a_p1_id, team_a_p2_id, team_b_p1_id, team_b_p2_id)
+        if uid is not None
+    ]
+    if len(set(raw_ids)) != len(raw_ids):
+        raise ValueError("同一場比賽不能重複選擇相同選手")
+
+    inferred_fmt = _validate_admin_score(score_a, score_b)
+
+    season = (
+        session.get(Season, season_id)
+        if season_id
+        else get_current_season(session)
+    )
+    if not season:
+        raise ValueError(
+            "找不到指定的賽季"
+            if season_id
+            else "目前沒有進行中的賽季，請手動選擇目標賽季"
+        )
+
+    involved_ids = sorted(raw_ids)
+    try:
+        locked_users: dict[UUID, User] = {}
+        for uid in involved_ids:
+            u = session.exec(
+                select(User).where(User.id == uid).with_for_update()
+            ).one_or_none()
+            if not u or u.role == "guest":
+                raise ValueError("找不到部分指定的選手資料")
+            locked_users[uid] = u
+
+        new_match = Match(
+            match_type=match_type,
+            format=inferred_fmt,
+            team_a_p1_id=team_a_p1_id,
+            team_a_p2_id=team_a_p2_id,
+            team_b_p1_id=team_b_p1_id,
+            team_b_p2_id=team_b_p2_id,
+            score_a=score_a,
+            score_b=score_b,
+            reported_by=admin_user.id,
+            season_id=season.id,
+            status="pending",
+        )
+        session.add(new_match)
+        session.flush()
+
+        clean_reason = reason.strip() if reason else ""
+        note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+
+        settled_delta = 0.0
+        if auto_settle:
+            settled = _settle_locked_match(session, new_match, locked_users)
+            settled_delta = round(settled["deltas"]["winner_p1_delta"], 1)
+            _sync_completed_season_final_mmr(
+                session, season, locked_users, settled["delta_map"]
+            )
+            for uid in involved_ids:
+                session.add(
+                    Notification(
+                        user_id=uid,
+                        match_id=new_match.id,
+                        type="match_confirmed",
+                        content=(
+                            f"管理員 {admin_user.name} 已代為補登對戰賽果（{score_a}:{score_b}）"
+                            f"並完成積分結算{note_suffix}。"
+                        ),
+                    )
+                )
+        else:
+            b_ids = [uid for uid in (team_b_p1_id, team_b_p2_id) if uid is not None]
+            for uid in b_ids:
+                session.add(
+                    Notification(
+                        user_id=uid,
+                        match_id=new_match.id,
+                        type="pending_confirm",
+                        content=(
+                            f"管理員 {admin_user.name} 代為補登了一筆 {score_a}:{score_b} 的比分，"
+                            f"請您確認{note_suffix}。"
+                        ),
+                    )
+                )
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return {
+        "match_id": str(new_match.id),
+        "status": new_match.status,
+        "score_a": new_match.score_a,
+        "score_b": new_match.score_b,
+        "format": new_match.format,
+        "season_id": season.id,
+        "season_name": season.name,
+        "delta": settled_delta,
+    }
+
+
+def admin_edit_settled_match(
+    session: Session,
+    match_id: UUID,
+    admin_user: User,
+    score_a: int,
+    score_b: int,
+    reason: str | None = None,
+) -> dict:
+    """
+    管理員原地更正「已結算」對戰比分並重算本場積分：
+    在單一交易內反向扣回舊場次變動 → flush 恢復出賽數 → 套用新比分重算 ELO 並修正歷程快照。
+    """
+    match = session.exec(
+        select(Match).where(Match.id == match_id).with_for_update()
+    ).one_or_none()
+
+    if not match:
+        raise MatchNotFoundError(f"match_id={match_id}")
+    if match.status not in ("confirmed", "completed"):
+        raise ValueError("僅已結算對戰支援原地改分重算；待確認比賽請使用裁決結算")
+
+    new_fmt = _validate_admin_score(score_a, score_b)
+    if score_a == match.score_a and score_b == match.score_b:
+        raise ValueError("新比分與原比分相同，無需變更")
+
+    participations = session.exec(
+        select(MatchParticipation).where(MatchParticipation.match_id == match.id)
+    ).all()
+
+    match_slot_ids = [
+        uid
+        for uid in (
+            match.team_a_p1_id,
+            match.team_a_p2_id,
+            match.team_b_p1_id,
+            match.team_b_p2_id,
+        )
+        if uid is not None
+    ]
+    involved_ids = sorted({*match_slot_ids, *(p.user_id for p in participations)})
+    old_score_label = f"{match.score_a}:{match.score_b}"
+    season = session.get(Season, match.season_id)
+
+    try:
+        locked_users: dict[UUID, User] = {}
+        for uid in involved_ids:
+            u = session.exec(
+                select(User).where(User.id == uid).with_for_update()
+            ).one_or_none()
+            if u:
+                locked_users[uid] = u
+
+        for req_uid in match_slot_ids:
+            if req_uid not in locked_users:
+                raise ValueError("找不到部分參賽選手資料，無法重算該場次")
+
+        old_histories = session.exec(
+            select(PlayerStatHistory).where(PlayerStatHistory.match_id == match.id)
+        ).all()
+        orig_recorded_at = (
+            old_histories[0].recorded_at
+            if old_histories
+            else ensure_utc(match.created_at)
+        )
+
+        # Step A: 撤銷既有結算影響
+        old_deltas: dict[UUID, float] = {}
+        if participations:
+            for part in participations:
+                delta = float(part.mmr_delta or 0.0)
+                player = locked_users.get(part.user_id)
+                if player:
+                    player.global_mmr = float(player.global_mmr) - delta
+                    session.add(player)
+                    old_deltas[player.id] = old_deltas.get(player.id, 0.0) + delta
+
+                season_rec = session.exec(
+                    select(SeasonRecord)
+                    .where(
+                        SeasonRecord.user_id == part.user_id,
+                        SeasonRecord.season_id == match.season_id,
+                    )
+                    .with_for_update()
+                ).first()
+                if season_rec:
+                    season_rec.matches_played = max(0, season_rec.matches_played - 1)
+                    if part.is_winner:
+                        season_rec.wins = max(0, season_rec.wins - 1)
+                    session.add(season_rec)
+
+                session.delete(part)
+        else:
+            old_a_won = match.score_a > match.score_b
+            raw = float(match.mmr_exchanged or 0.0)
+            slots = (
+                (match.team_a_p1_id, True),
+                (match.team_a_p2_id, True),
+                (match.team_b_p1_id, False),
+                (match.team_b_p2_id, False),
+            )
+            for uid, in_team_a in slots:
+                if uid is None:
+                    continue
+                is_winner = old_a_won if in_team_a else (not old_a_won)
+                delta = raw if is_winner else -raw
+                player = locked_users.get(uid)
+                if player:
+                    player.global_mmr = float(player.global_mmr) - delta
+                    session.add(player)
+                    old_deltas[player.id] = old_deltas.get(player.id, 0.0) + delta
+
+                season_rec = session.exec(
+                    select(SeasonRecord)
+                    .where(
+                        SeasonRecord.user_id == uid,
+                        SeasonRecord.season_id == match.season_id,
+                    )
+                    .with_for_update()
+                ).first()
+                if season_rec:
+                    season_rec.matches_played = max(0, season_rec.matches_played - 1)
+                    if is_winner:
+                        season_rec.wins = max(0, season_rec.wins - 1)
+                    session.add(season_rec)
+
+        for hist in old_histories:
+            session.delete(hist)
+
+        # Flush 確保 _settle_locked_match 讀取的是扣回後的場次與 MMR
+        session.flush()
+
+        # Step B: 套用新比分並重新結算
+        match.score_a = score_a
+        match.score_b = score_b
+        match.format = new_fmt
+        session.add(match)
+
+        settled = _settle_locked_match(session, match, locked_users)
+
+        if orig_recorded_at is not None:
+            new_histories = session.exec(
+                select(PlayerStatHistory).where(PlayerStatHistory.match_id == match.id)
+            ).all()
+            for hist in new_histories:
+                hist.recorded_at = orig_recorded_at
+                session.add(hist)
+
+        net_diffs: dict[UUID, float] = {
+            uid: float(new_delta) - float(old_deltas.get(uid, 0.0))
+            for uid, new_delta in settled["delta_map"].items()
+        }
+        _sync_completed_season_final_mmr(session, season, locked_users, net_diffs)
+
+        clean_reason = reason.strip() if reason else ""
+        note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+
+        for uid, net_diff in net_diffs.items():
+            session.add(
+                Notification(
+                    user_id=uid,
+                    match_id=match.id,
+                    type="match_confirmed",
+                    content=(
+                        f"管理員 {admin_user.name} 已更正對戰比分（{old_score_label} → {score_a}:{score_b}）"
+                        f"並重新計算積分（淨變動 {net_diff:+.1f} ELO）{note_suffix}。"
+                    ),
+                )
+            )
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return {
+        "match_id": str(match.id),
+        "old_score": old_score_label,
+        "score_a": score_a,
+        "score_b": score_b,
+        "format": new_fmt,
+        "new_delta": round(settled["deltas"]["winner_p1_delta"], 1),
+    }
+
+
+def admin_batch_force_settle_matches(
+    session: Session,
+    admin_user: User,
+    match_ids: list[UUID] | None = None,
+    overdue_only: bool = False,
+    season_id: str | None = None,
+    reason: str | None = None,
+) -> dict:
+    """
+    管理員在單一交易內批次強制裁決多場待處理比賽（依建立時間順序連貫結算 ELO），
+    或一鍵結算目前所有已超時的待確認比賽。
+    """
+    try:
+        if overdue_only:
+            auto_confirm_hours = int(
+                get_config_value(
+                    session,
+                    "match_auto_confirm_hours",
+                    str(settings.match_auto_confirm_duration),
+                )
+            )
+            now = datetime.now(timezone.utc)
+            cutoff = (
+                now - timedelta(minutes=settings.match_auto_confirm_duration)
+                if settings.cron_test_mode
+                else now - timedelta(hours=auto_confirm_hours)
+            )
+            stmt = select(Match).where(Match.status == "pending")
+            if season_id and season_id != "all":
+                stmt = stmt.where(Match.season_id == season_id)
+
+            candidates = session.exec(stmt.order_by(Match.id).with_for_update()).all()
+            locked_matches = [
+                m
+                for m in candidates
+                if ensure_utc(m.created_at)
+                and ensure_utc(m.created_at) <= cutoff
+                and m.score_a != m.score_b
+            ]
+            if not locked_matches:
+                raise ValueError("目前沒有已超時的待確認比賽")
+        else:
+            unique_ids = list(dict.fromkeys(match_ids or []))
+            if not unique_ids:
+                raise ValueError("請至少選擇一場待處理對戰")
+
+            sorted_ids = sorted(unique_ids)
+            locked_matches = list(
+                session.exec(
+                    select(Match)
+                    .where(Match.id.in_(sorted_ids))
+                    .order_by(Match.id)
+                    .with_for_update()
+                ).all()
+            )
+            if len(locked_matches) != len(unique_ids):
+                found = {m.id for m in locked_matches}
+                missing = [str(mid) for mid in unique_ids if mid not in found]
+                raise MatchNotFoundError(f"missing match_ids={missing}")
+
+            for m in locked_matches:
+                if m.status not in ("pending", "disputed"):
+                    raise MatchAlreadySettledError(f"match {m.id} status is '{m.status}'")
+                if m.score_a == m.score_b:
+                    raise ValueError("選取清單中包含平手比分場次，請先單場改分再結算")
+
+        involved_ids = sorted(
+            {
+                uid
+                for m in locked_matches
+                for uid in (
+                    m.team_a_p1_id,
+                    m.team_a_p2_id,
+                    m.team_b_p1_id,
+                    m.team_b_p2_id,
+                )
+                if uid is not None
+            }
+        )
+        locked_users: dict[UUID, User] = {}
+        for uid in involved_ids:
+            u = session.exec(
+                select(User).where(User.id == uid).with_for_update()
+            ).one_or_none()
+            if not u:
+                raise ValueError("找不到部分參賽選手資料，無法完成批次結算")
+            locked_users[uid] = u
+
+        min_dt = datetime.min.replace(tzinfo=timezone.utc)
+        ordered_matches = sorted(
+            locked_matches,
+            key=lambda m: (ensure_utc(m.created_at) or min_dt, str(m.id)),
+        )
+
+        season_cache: dict[str, Season | None] = {}
+        clean_reason = reason.strip() if reason else ""
+        note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+
+        for m in ordered_matches:
+            settled = _settle_locked_match(session, m, locked_users)
+
+            if m.season_id not in season_cache:
+                season_cache[m.season_id] = session.get(Season, m.season_id)
+            _sync_completed_season_final_mmr(
+                session, season_cache[m.season_id], locked_users, settled["delta_map"]
+            )
+
+            dispute_notifs = session.exec(
+                select(Notification).where(
+                    Notification.match_id == m.id,
+                    Notification.type == "match_disputed",
+                )
+            ).all()
+            for notif in dispute_notifs:
+                notif.is_read = True
+                session.add(notif)
+
+            match_player_ids = [
+                uid
+                for uid in (
+                    m.team_a_p1_id,
+                    m.team_a_p2_id,
+                    m.team_b_p1_id,
+                    m.team_b_p2_id,
+                )
+                if uid is not None
+            ]
+            for uid in match_player_ids:
+                session.add(
+                    Notification(
+                        user_id=uid,
+                        match_id=m.id,
+                        type="match_confirmed",
+                        content=(
+                            f"管理員 {admin_user.name} 已批次裁決確認對戰賽果"
+                            f"（{m.score_a}:{m.score_b}）並完成積分結算{note_suffix}。"
+                        ),
+                    )
+                )
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return {
+        "confirmed_count": len(ordered_matches),
+        "match_ids": [str(m.id) for m in ordered_matches],
     }

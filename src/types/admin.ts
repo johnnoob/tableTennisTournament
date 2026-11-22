@@ -191,9 +191,18 @@ export interface AdminMatchesCounts {
   total: number;
 }
 
+export interface AdminMatchSeasonOption {
+  id: string;
+  name: string;
+  status: 'active' | 'completed' | string;
+}
+
 export interface AdminMatchesResponse {
   counts: AdminMatchesCounts;
+  filtered_total: number;
+  has_more: boolean;
   auto_confirm_hours: number;
+  seasons: AdminMatchSeasonOption[];
   matches: AdminMatchItem[];
 }
 
@@ -204,5 +213,31 @@ export interface AdminForceConfirmPayload {
 }
 
 export interface AdminVoidMatchPayload {
+  reason?: string;
+}
+
+export interface AdminCreateMatchPayload {
+  season_id?: string;
+  match_type: 'singles' | 'doubles';
+  team_a_p1_id: string;
+  team_a_p2_id?: string | null;
+  team_b_p1_id: string;
+  team_b_p2_id?: string | null;
+  score_a: number;
+  score_b: number;
+  auto_settle: boolean;
+  reason?: string;
+}
+
+export interface AdminEditSettledMatchPayload {
+  score_a: number;
+  score_b: number;
+  reason?: string;
+}
+
+export interface AdminBatchForceConfirmPayload {
+  match_ids?: string[];
+  overdue_only?: boolean;
+  season_id?: string;
   reason?: string;
 }

@@ -1,6 +1,9 @@
 import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import type {
+  AdminBatchForceConfirmPayload,
+  AdminCreateMatchPayload,
+  AdminEditSettledMatchPayload,
   AdminForceConfirmPayload,
   AdminMatchesResponse,
   AdminMmrAdjustPayload,
@@ -157,11 +160,59 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  // Phase 4: Match Arbitration & Rollback
-  getMatches: (statusFilter = "attention", limit = 80) =>
-    adminFetch<AdminMatchesResponse>(
-      `/matches?status_filter=${encodeURIComponent(statusFilter)}&limit=${limit}`
-    ),
+  // Phase 4: Match Arbitration, Proxy Reporting & Rollback
+  getMatches: (params?: {
+    statusFilter?: string;
+    seasonId?: string;
+    offset?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set("status_filter", params?.statusFilter ?? "attention");
+    if (params?.seasonId && params.seasonId !== "all") {
+      query.set("season_id", params.seasonId);
+    }
+    query.set("offset", String(params?.offset ?? 0));
+    query.set("limit", String(params?.limit ?? 30));
+    return adminFetch<AdminMatchesResponse>(`/matches?${query.toString()}`);
+  },
+  createMatch: (data: AdminCreateMatchPayload) =>
+    adminFetch<{
+      message: string;
+      match_id: string;
+      status: string;
+      score_a: number;
+      score_b: number;
+      format: string;
+      season_id: string;
+      season_name: string;
+      delta: number;
+    }>("/matches", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  batchForceConfirmMatches: (data: AdminBatchForceConfirmPayload) =>
+    adminFetch<{
+      message: string;
+      confirmed_count: number;
+      match_ids: string[];
+    }>("/matches/batch-force-confirm", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  editSettledMatch: (matchId: string, data: AdminEditSettledMatchPayload) =>
+    adminFetch<{
+      message: string;
+      match_id: string;
+      old_score: string;
+      score_a: number;
+      score_b: number;
+      format: string;
+      new_delta: number;
+    }>(`/matches/${matchId}/score`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   forceConfirmMatch: (matchId: string, data: AdminForceConfirmPayload = {}) =>
     adminFetch<{
       message: string;

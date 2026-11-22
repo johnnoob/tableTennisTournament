@@ -1,18 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
   Edit3,
   Loader2,
+  Lock,
+  Minus,
+  Plus,
   Scale,
   Search,
   Shield,
-  ShieldAlert,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
-  UserCheck,
-  UserX,
   Users,
   X,
 } from 'lucide-react';
@@ -21,7 +23,6 @@ import { adminApi } from '@/lib/admin';
 import type { AdminUserItem } from '@/types/admin';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect, type ResponsiveSelectOption } from '@/components/ui/responsive-select';
@@ -46,6 +47,7 @@ const SORT_OPTIONS: ResponsiveSelectOption[] = [
 ];
 
 export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManagerProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('default');
@@ -68,6 +70,12 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     queryKey: ['admin', 'users'],
     queryFn: () => adminApi.getUsers(),
   });
+
+  const openInspect = (playerId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('inspect', playerId);
+    setSearchParams(next);
+  };
 
   const summary = useMemo(() => {
     let admins = 0;
@@ -111,7 +119,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       existingDepartments: sortedDepts
         .map(([dept]) => dept)
         .filter((dept) => dept !== '未設定單位')
-        .slice(0, 6),
+        .slice(0, 8),
     };
   }, [users]);
 
@@ -145,8 +153,13 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   }, [users, statusFilter, departmentFilter, search, sortBy]);
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ userId, payload }: { userId: string; payload: Parameters<typeof adminApi.updateUser>[1] }) =>
-      adminApi.updateUser(userId, payload),
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: Parameters<typeof adminApi.updateUser>[1];
+    }) => adminApi.updateUser(userId, payload),
     onSuccess: (res) => {
       onUpdate();
       setEditingUser(null);
@@ -158,8 +171,13 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   });
 
   const adjustMmrMutation = useMutation({
-    mutationFn: ({ userId, payload }: { userId: string; payload: Parameters<typeof adminApi.adjustUserMmr>[1] }) =>
-      adminApi.adjustUserMmr(userId, payload),
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: Parameters<typeof adminApi.adjustUserMmr>[1];
+    }) => adminApi.adjustUserMmr(userId, payload),
     onSuccess: (res) => {
       onUpdate();
       setMmrUser(null);
@@ -225,7 +243,17 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     });
   };
 
-  // Live MMR preview calculation
+  const stepMmrInput = (step: number) => {
+    const parsed = Number(mmrInput);
+    const current = Number.isNaN(parsed)
+      ? mmrMode === 'target' && mmrUser
+        ? mmrUser.global_mmr
+        : 0
+      : parsed;
+    const next = mmrMode === 'target' ? Math.max(600, Math.min(3000, current + step)) : current + step;
+    setMmrInput(String(Math.round(next * 10) / 10));
+  };
+
   const mmrPreview = useMemo(() => {
     if (!mmrUser) return null;
     const rawNumber = Number(mmrInput);
@@ -265,51 +293,22 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     });
   };
 
-  const statTiles: Array<{
-    key: StatusFilter;
-    label: string;
-    value: number;
-    icon: typeof Users;
-    accent: string;
-    activeRing: string;
-  }> = [
-    {
-      key: 'all',
-      label: '總成員數',
-      value: summary.total,
-      icon: Users,
-      accent: 'text-sapphire-blue dark:text-blue-400 bg-sapphire-blue/10 dark:bg-blue-500/15',
-      activeRing: 'border-sapphire-blue ring-2 ring-sapphire-blue/20',
-    },
-    {
-      key: 'admin',
-      label: '管理員',
-      value: summary.admins,
-      icon: ShieldCheck,
-      accent: 'text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-500/15',
-      activeRing: 'border-amber-500 ring-2 ring-amber-500/20',
-    },
-    {
-      key: 'active',
-      label: '啟用帳號',
-      value: summary.active,
-      icon: UserCheck,
-      accent: 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-500/15',
-      activeRing: 'border-emerald-500 ring-2 ring-emerald-500/20',
-    },
-    {
-      key: 'inactive',
-      label: '已停用',
-      value: summary.inactive,
-      icon: UserX,
-      accent: 'text-rose-600 dark:text-rose-400 bg-rose-100/80 dark:bg-rose-500/15',
-      activeRing: 'border-rose-500 ring-2 ring-rose-500/20',
-    },
+  const statusTabs: Array<{ key: StatusFilter; label: string; count: number }> = [
+    { key: 'all', label: '全部成員', count: summary.total },
+    { key: 'admin', label: '管理員', count: summary.admins },
+    { key: 'active', label: '啟用中', count: summary.active },
+    { key: 'inactive', label: '已停用', count: summary.inactive },
   ];
+
+  const hasActiveFilter =
+    statusFilter !== 'all' ||
+    departmentFilter !== 'all' ||
+    sortBy !== 'default' ||
+    search.trim().length > 0;
 
   if (isLoading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center gap-3">
+      <div className="rounded-2xl border border-border bg-card py-20 flex flex-col items-center justify-center gap-3">
         <Loader2 className="animate-spin text-sapphire-blue" size={32} />
         <p className="text-xs font-bold text-muted-foreground tracking-wider uppercase">
           載入成員名錄中...
@@ -319,39 +318,66 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* KPI Quick-Filter Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-        {statTiles.map((tile) => {
-          const isSelected = statusFilter === tile.key;
-          return (
-            <button
-              key={tile.key}
-              type="button"
-              onClick={() => setStatusFilter(tile.key)}
-              className={cn(
-                'p-3.5 sm:p-4 rounded-2xl bg-card border text-left transition-all active:scale-[0.98] flex items-center gap-3',
-                isSelected ? tile.activeRing : 'border-border hover:border-border/80'
-              )}
-            >
-              <div className={cn('size-10 rounded-xl flex items-center justify-center shrink-0', tile.accent)}>
-                <tile.icon size={18} aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-muted-foreground truncate">{tile.label}</p>
-                <p className="text-xl font-display font-black text-foreground tabular-nums leading-tight mt-0.5">
-                  {tile.value}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+    <section className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+      {/* Unified Command Header */}
+      <div className="p-3.5 sm:p-4 border-b border-border bg-surface-subtle/40 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1 p-1 rounded-xl bg-secondary/90 border border-border/80 w-full sm:w-fit">
+            {statusTabs.map((tab) => {
+              const active = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={cn(
+                    'min-h-9 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap',
+                    active
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.5 rounded-full text-[11px] font-display font-black tabular-nums leading-none',
+                      active
+                        ? 'bg-primary text-primary-foreground'
+                        : tab.key === 'inactive' && tab.count > 0
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
+                          : 'bg-background/70 text-muted-foreground'
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Filter & Search Toolbar */}
-      <Card className="p-3.5 sm:p-4 rounded-2xl border-border shadow-xs space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)_minmax(0,0.95fr)] gap-2.5">
-          {/* Search Input */}
+          <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground ml-auto">
+            <span>
+              顯示 <strong className="text-foreground font-black tabular-nums">{filteredUsers.length}</strong> / {summary.total} 位
+            </span>
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setDepartmentFilter('all');
+                  setSortBy('default');
+                  setSearch('');
+                }}
+                className="text-sapphire-blue hover:underline font-black"
+              >
+                重設條件
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search & Select Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.9fr)] gap-2.5">
           <div className="relative">
             <Search
               size={16}
@@ -364,7 +390,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜尋姓名、Email 或處室..."
               aria-label="搜尋成員"
-              className="w-full h-11 pl-10 pr-9 rounded-xl border border-input bg-surface-subtle text-base sm:text-sm font-bold text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue"
+              className="arena-input pl-10 pr-9"
             />
             {search && (
               <button
@@ -395,151 +421,254 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             description="調整成員名錄排列順序"
           />
         </div>
+      </div>
 
-        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground pt-0.5">
-          <span>
-            顯示 <strong className="text-foreground font-black tabular-nums">{filteredUsers.length}</strong> 位成員
-          </span>
-          {(statusFilter !== 'all' || departmentFilter !== 'all' || search) && (
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('all');
-                setDepartmentFilter('all');
-                setSearch('');
-              }}
-              className="text-sapphire-blue hover:underline font-black"
-            >
-              重設篩選條件
-            </button>
-          )}
-        </div>
-      </Card>
-
-      {/* Member Cards Grid */}
+      {/* Empty State */}
       {filteredUsers.length === 0 ? (
-        <Card className="p-10 sm:p-12 rounded-2xl border-border text-center space-y-2">
+        <div className="p-12 text-center space-y-2">
           <Users size={36} className="mx-auto text-muted-foreground/40" aria-hidden="true" />
           <p className="text-base font-display font-black text-foreground">找不到符合條件的成員</p>
           <p className="text-xs font-bold text-muted-foreground">請試著放寬搜尋關鍵字或篩選標籤。</p>
-        </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filteredUsers.map((u) => {
-            const isSelf = u.id === currentUserId;
-            const winRate =
-              u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
+        <>
+          {/* Desktop Directory Table */}
+          <div className="hidden md:block">
+            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[minmax(0,1.55fr)_minmax(0,1.15fr)_136px_88px_118px_148px] items-center gap-3">
+              <span>成員</span>
+              <span>單位 / 信箱</span>
+              <span>權限狀態</span>
+              <span className="text-right">ELO</span>
+              <span className="text-right">生涯戰績</span>
+              <span className="text-right">操作</span>
+            </div>
 
-            return (
-              <Card
-                key={u.id}
-                className={cn(
-                  'p-4 rounded-2xl border shadow-xs flex flex-col justify-between gap-3.5 transition-all',
-                  !u.is_active
-                    ? 'border-rose-200/80 dark:border-rose-500/25 bg-rose-50/20 dark:bg-rose-950/10 opacity-85'
-                    : u.role === 'admin'
-                      ? 'border-sapphire-blue/25 bg-card'
-                      : 'border-border bg-card'
-                )}
-              >
-                {/* Member Identity Row */}
-                <div className="flex items-start gap-3 min-w-0">
-                  <PlayerAvatar
-                    src={u.avatar_url}
-                    name={u.name}
+            <div className="divide-y divide-border/70">
+              {filteredUsers.map((u) => {
+                const isSelf = u.id === currentUserId;
+                const winRate =
+                  u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
+
+                return (
+                  <div
+                    key={u.id}
                     className={cn(
-                      'size-12 rounded-2xl border shrink-0 text-base',
-                      u.role === 'admin' ? 'border-sapphire-blue/40' : 'border-border'
+                      'px-5 py-3.5 grid grid-cols-[minmax(0,1.55fr)_minmax(0,1.15fr)_136px_88px_118px_148px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
+                      !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-75'
                     )}
-                  />
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="font-display font-black text-base text-foreground truncate max-w-full">
-                        {u.name}
-                      </h4>
-                      {isSelf && (
-                        <span className="px-2 py-0.5 rounded-md bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[11px] font-black leading-none shrink-0">
-                          YOU
+                  >
+                    {/* Member Identity */}
+                    <button
+                      type="button"
+                      onClick={() => openInspect(u.id)}
+                      className="flex items-center gap-3 min-w-0 text-left group"
+                    >
+                      <PlayerAvatar
+                        src={u.avatar_url}
+                        name={u.name}
+                        className={cn(
+                          'size-10 rounded-xl border shrink-0 text-sm transition-all group-hover:ring-2 group-hover:ring-sapphire-blue/50',
+                          u.role === 'admin' ? 'border-amber-400/60' : 'border-border'
+                        )}
+                      />
+                      <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-display font-black text-sm text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                          {u.name}
                         </span>
-                      )}
-                      {u.role === 'admin' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[11px] font-black leading-none shrink-0">
+                        {isSelf && (
+                          <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Department & Email */}
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">
+                        {u.department || '未設定單位'}
+                      </p>
+                      <p className="text-[11px] font-medium text-muted-foreground truncate mt-0.5">
+                        {u.email || '未綁定信箱'}
+                      </p>
+                    </div>
+
+                    {/* Role & Status */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {!u.is_active ? (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-[11px] font-black leading-none">
+                          已停用
+                        </span>
+                      ) : u.role === 'admin' ? (
+                        <span
+                          title={u.is_env_admin ? '受環境變數 ADMIN_EMAILS 保護' : undefined}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[11px] font-black leading-none"
+                        >
                           <ShieldCheck size={11} aria-hidden="true" />
                           管理員
+                          {u.is_env_admin && <Lock size={10} className="opacity-75" aria-hidden="true" />}
                         </span>
-                      )}
-                      {u.is_env_admin && (
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-[11px] font-black leading-none shrink-0">
-                          環境保護
-                        </span>
-                      )}
-                      {!u.is_active && (
-                        <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-[11px] font-black leading-none shrink-0">
-                          已停用
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[11px] font-bold leading-none">
+                          一般同仁
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs font-bold text-muted-foreground truncate">
+                    {/* ELO */}
+                    <div className="text-right font-display font-black text-base text-foreground tabular-nums">
+                      {Math.round(u.global_mmr)}
+                    </div>
+
+                    {/* Career Stats */}
+                    <div className="text-right tabular-nums">
+                      <p className="text-xs font-display font-black text-foreground">
+                        <span className="text-emerald-600 dark:text-emerald-400">{u.wins}勝</span>{' '}
+                        <span className="text-rose-600 dark:text-rose-400">{u.losses}敗</span>
+                      </p>
+                      <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                        {u.matches_played > 0 ? `勝率 ${winRate}%` : '尚無出賽'}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openMmrModal(u)}
+                        className="h-9 px-2.5 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1"
+                      >
+                        <Scale size={13} aria-hidden="true" />
+                        校準
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openEditModal(u)}
+                        className="h-9 px-2.5 rounded-xl border-border font-bold text-xs gap-1"
+                      >
+                        <Edit3 size={13} aria-hidden="true" />
+                        編輯
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mobile Airy List */}
+          <div className="md:hidden divide-y divide-border/70">
+            {filteredUsers.map((u) => {
+              const isSelf = u.id === currentUserId;
+              const winRate =
+                u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
+
+              return (
+                <div
+                  key={u.id}
+                  className={cn(
+                    'p-4 space-y-2.5',
+                    !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-80'
+                  )}
+                >
+                  {/* Row 1: Identity & ELO */}
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openInspect(u.id)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                    >
+                      <PlayerAvatar
+                        src={u.avatar_url}
+                        name={u.name}
+                        className={cn(
+                          'size-10 rounded-xl border shrink-0 text-sm',
+                          u.role === 'admin' ? 'border-amber-400/60' : 'border-border'
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-display font-black text-base text-foreground truncate">
+                            {u.name}
+                          </span>
+                          {isSelf && (
+                            <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
+                              YOU
+                            </span>
+                          )}
+                          {u.role === 'admin' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-black leading-none shrink-0">
+                              <ShieldCheck size={10} aria-hidden="true" />
+                              管理員
+                            </span>
+                          )}
+                          {u.is_env_admin && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-[10px] font-black leading-none shrink-0">
+                              <Lock size={9} aria-hidden="true" />
+                              環境鎖定
+                            </span>
+                          )}
+                          {!u.is_active && (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-[10px] font-black leading-none shrink-0">
+                              已停用
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="text-right shrink-0 tabular-nums">
+                      <span className="font-display font-black text-lg text-foreground leading-none block">
+                        {Math.round(u.global_mmr)}
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                        ELO
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Compact Metadata Line */}
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-bold pl-[52px]">
+                    <span className="truncate">
                       {u.department || '未設定單位'}
                       {u.email ? ` · ${u.email}` : ''}
-                    </p>
+                    </span>
+                    <span className="shrink-0 tabular-nums font-display">
+                      {u.matches_played > 0 ? `${u.wins}勝${u.losses}敗 (${winRate}%)` : '尚無出賽'}
+                    </span>
                   </div>
-                </div>
 
-                {/* Metrics Strip */}
-                <div className="bg-surface-subtle/80 border border-border/70 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] font-bold text-muted-foreground block">目前 ELO</span>
-                    <span className="text-lg font-display font-black text-foreground tabular-nums leading-tight">
-                      {Math.round(u.global_mmr)}
-                    </span>
-                  </div>
-                  <div className="h-7 w-px bg-border" />
-                  <div className="text-center">
-                    <span className="text-[11px] font-bold text-muted-foreground block">生涯戰績</span>
-                    <span className="text-sm font-display font-black tabular-nums leading-tight text-foreground">
-                      <span className="text-emerald-600 dark:text-emerald-400">{u.wins}勝</span>{' '}
-                      <span className="text-rose-600 dark:text-rose-400">{u.losses}敗</span>
-                    </span>
-                  </div>
-                  <div className="h-7 w-px bg-border" />
-                  <div className="text-right">
-                    <span className="text-[11px] font-bold text-muted-foreground block">生涯勝率</span>
-                    <span className="text-sm font-display font-black text-foreground tabular-nums leading-tight">
-                      {u.matches_played > 0 ? `${winRate}%` : '—'}
-                    </span>
+                  {/* Row 3: Action Pair */}
+                  <div className="grid grid-cols-2 gap-2 pt-0.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => openEditModal(u)}
+                      className="h-10 rounded-xl border-border font-bold text-xs gap-1.5"
+                    >
+                      <Edit3 size={14} aria-hidden="true" />
+                      編輯權限
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => openMmrModal(u)}
+                      className="h-10 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1.5"
+                    >
+                      <Scale size={14} aria-hidden="true" />
+                      校準積分
+                    </Button>
                   </div>
                 </div>
-
-                {/* Action Bar */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => openEditModal(u)}
-                    className="min-h-10 rounded-xl border-border font-bold text-xs sm:text-sm gap-1.5"
-                  >
-                    <Edit3 size={15} aria-hidden="true" />
-                    編輯與權限
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => openMmrModal(u)}
-                    className="min-h-10 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs sm:text-sm gap-1.5"
-                  >
-                    <Scale size={15} aria-hidden="true" />
-                    校準積分
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* Modal 1: Edit User Role / Status / Profile */}
+      {/* Modal 1: Edit Member Profile, Role & Account Status */}
       <ResponsiveFormModal
         open={!!editingUser}
         onOpenChange={(open) => {
@@ -549,7 +678,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         tone="default"
         icon={<Shield size={18} />}
         title={editingUser ? `編輯成員 · ${editingUser.name}` : '編輯成員與權限'}
-        description="調整顯示姓名、所屬單位、管理員權限或停用帳號。"
+        description="調整基本資料、系統管理員權限與帳號啟用狀態。"
         onSubmit={handleSaveUser}
         footer={
           <>
@@ -574,41 +703,69 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       >
         {editingUser && (
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="admin-edit-user-name" className="arena-label">
-                顯示姓名
-              </label>
-              <input
-                id="admin-edit-user-name"
-                type="text"
-                required
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-xl border border-input bg-surface-subtle text-base sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue"
+            {/* Compact Identity Strip */}
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-subtle/70 border border-border/80">
+              <PlayerAvatar
+                src={editingUser.avatar_url}
+                name={editingUser.name}
+                className="size-11 rounded-xl border border-border shrink-0 text-sm"
               />
+              <div className="min-w-0 flex-1">
+                <p className="font-display font-black text-sm text-foreground truncate">
+                  {editingUser.name}
+                </p>
+                <p className="text-xs font-bold text-muted-foreground truncate">
+                  {editingUser.email || '未綁定 Email'}
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl bg-card border border-border text-xs font-display font-black tabular-nums shrink-0">
+                {Math.round(editingUser.global_mmr)} ELO
+              </span>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="admin-edit-user-dept" className="arena-label">
-                所屬處室 / 單位
-              </label>
-              <input
-                id="admin-edit-user-dept"
-                type="text"
-                value={editDepartment}
-                onChange={(e) => setEditDepartment(e.target.value)}
-                placeholder="例如：資訊處、秘書室"
-                className="w-full h-11 px-3.5 rounded-xl border border-input bg-surface-subtle text-base sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue"
-              />
+            {/* Section 1: Basic Info */}
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="admin-edit-user-name" className="arena-label">
+                    顯示姓名
+                  </label>
+                  <input
+                    id="admin-edit-user-name"
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="arena-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="admin-edit-user-dept" className="arena-label">
+                    所屬處室 / 單位
+                  </label>
+                  <input
+                    id="admin-edit-user-dept"
+                    type="text"
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                    placeholder="例如：資訊處、秘書室"
+                    className="arena-input"
+                  />
+                </div>
+              </div>
+
               {existingDepartments.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-1.5 pb-0.5">
+                  <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                    常用單位：
+                  </span>
                   {existingDepartments.map((dept) => (
                     <button
                       key={dept}
                       type="button"
                       onClick={() => setEditDepartment(dept)}
                       className={cn(
-                        'px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors',
+                        'px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors shrink-0 whitespace-nowrap',
                         editDepartment === dept
                           ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300'
                           : 'bg-secondary/70 border-border text-muted-foreground hover:text-foreground'
@@ -621,83 +778,98 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               )}
             </div>
 
-            {/* Role Toggle */}
-            <div className="space-y-2 pt-1">
-              <span className="arena-label">系統角色權限</span>
-              <div className="grid grid-cols-2 gap-2">
-                {(['user', 'admin'] as const).map((r) => {
-                  const selected = editRole === r;
-                  const disabled = Boolean(roleLockReason);
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setEditRole(r)}
-                      className={cn(
-                        'min-h-11 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 disabled:opacity-55 disabled:cursor-not-allowed',
-                        selected
-                          ? r === 'admin'
-                            ? 'bg-amber-50 border-amber-500 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200'
-                            : 'bg-sapphire-blue/10 border-sapphire-blue text-sapphire-blue dark:text-blue-200'
-                          : 'bg-card border-border text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {r === 'admin' ? <ShieldCheck size={16} /> : <Users size={16} />}
-                      {r === 'admin' ? '系統管理員' : '一般同仁'}
-                    </button>
-                  );
-                })}
-              </div>
-              {roleLockReason && (
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-500/12 border border-amber-200 dark:border-amber-500/30 rounded-xl px-3 py-2">
-                  {roleLockReason}
-                </p>
-              )}
-            </div>
+            {/* Section 2: Settings Rows + Toggle Switches */}
+            <div className="rounded-2xl border border-border bg-surface-subtle/40 divide-y divide-border/80">
+              {/* Row A: Admin Role Switch */}
+              <div className="p-3.5 sm:p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-foreground">系統管理員權限</p>
+                    {roleLockReason && (
+                      <Lock size={13} className="text-amber-500 shrink-0" aria-hidden="true" />
+                    )}
+                  </div>
+                  <p
+                    className={cn(
+                      'text-xs mt-0.5 font-medium',
+                      roleLockReason
+                        ? 'text-amber-700 dark:text-amber-300 font-bold'
+                        : 'text-muted-foreground'
+                    )}
+                  >
+                    {roleLockReason || '可管理賽季、成員權限與爭議比賽裁決'}
+                  </p>
+                </div>
 
-            {/* Active Status Toggle */}
-            <div className="space-y-2 pt-1">
-              <span className="arena-label">帳號狀態</span>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { val: true, label: '啟用中（可登入報分）', icon: UserCheck },
-                  { val: false, label: '已停用（禁止登入）', icon: UserX },
-                ].map((opt) => {
-                  const selected = editActive === opt.val;
-                  const disabled = Boolean(activeLockReason);
-                  return (
-                    <button
-                      key={String(opt.val)}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setEditActive(opt.val)}
-                      className={cn(
-                        'min-h-11 px-3 py-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 disabled:opacity-55 disabled:cursor-not-allowed',
-                        selected
-                          ? opt.val
-                            ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200'
-                            : 'bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200'
-                          : 'bg-card border-border text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      <opt.icon size={15} aria-hidden="true" />
-                      {opt.label}
-                    </button>
-                  );
-                })}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={editRole === 'admin'}
+                  aria-label="系統管理員權限"
+                  disabled={Boolean(roleLockReason)}
+                  onClick={() => setEditRole((r) => (r === 'admin' ? 'user' : 'admin'))}
+                  className={cn(
+                    'w-12 h-7 rounded-full transition-colors relative shrink-0 disabled:opacity-50',
+                    editRole === 'admin' ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'
+                  )}
+                >
+                  <motion.div
+                    animate={{ x: editRole === 'admin' ? 22 : 3 }}
+                    className="size-5 bg-white rounded-full absolute top-1 shadow-xs"
+                  />
+                </button>
               </div>
-              {activeLockReason && (
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-500/12 border border-amber-200 dark:border-amber-500/30 rounded-xl px-3 py-2">
-                  {activeLockReason}
-                </p>
-              )}
+
+              {/* Row B: Active Account Switch */}
+              <div className="p-3.5 sm:p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-foreground">帳號啟用狀態</p>
+                    {activeLockReason && (
+                      <Lock size={13} className="text-amber-500 shrink-0" aria-hidden="true" />
+                    )}
+                  </div>
+                  <p
+                    className={cn(
+                      'text-xs mt-0.5 font-medium',
+                      activeLockReason
+                        ? 'text-amber-700 dark:text-amber-300 font-bold'
+                        : editActive
+                          ? 'text-muted-foreground'
+                          : 'text-rose-600 dark:text-rose-400 font-bold'
+                    )}
+                  >
+                    {activeLockReason ||
+                      (editActive
+                        ? '允許正常登入系統、報分與參與排行'
+                        : '已停用：將封鎖登入與新報分，但保留歷史紀錄')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={editActive}
+                  aria-label="帳號啟用狀態"
+                  disabled={Boolean(activeLockReason)}
+                  onClick={() => setEditActive((v) => !v)}
+                  className={cn(
+                    'w-12 h-7 rounded-full transition-colors relative shrink-0 disabled:opacity-50',
+                    editActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                  )}
+                >
+                  <motion.div
+                    animate={{ x: editActive ? 22 : 3 }}
+                    className="size-5 bg-white rounded-full absolute top-1 shadow-xs"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         )}
       </ResponsiveFormModal>
 
-      {/* Modal 2: Calibrate User MMR */}
+      {/* Modal 2: Focused ELO Calibration Stage */}
       <ResponsiveFormModal
         open={!!mmrUser}
         onOpenChange={(open) => {
@@ -706,8 +878,8 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         size="md"
         tone="gold"
         icon={<Scale size={18} />}
-        title={mmrUser ? `校準 ELO 積分 · ${mmrUser.name}` : '校準 ELO 積分'}
-        description="校準結果將寫入選手歷史曲線，並發送透明通知。"
+        title={mmrUser ? `校準積分 · ${mmrUser.name}` : '校準 ELO 積分'}
+        description="調整結果將寫入選手歷史曲線並寄送通知。"
         onSubmit={handleSaveMmr}
         footer={
           <>
@@ -736,44 +908,108 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       >
         {mmrUser && (
           <div className="space-y-4">
-            {/* Mode Switch */}
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-secondary border border-border gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMmrMode('delta');
-                  setMmrInput('20');
-                }}
-                className={cn(
-                  'min-h-10 rounded-lg text-xs sm:text-sm font-black transition-all',
-                  mmrMode === 'delta'
-                    ? 'bg-card text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                調整增減值 (+/-)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMmrMode('target');
-                  setMmrInput(String(Math.round(mmrUser.global_mmr)));
-                }}
-                className={cn(
-                  'min-h-10 rounded-lg text-xs sm:text-sm font-black transition-all',
-                  mmrMode === 'target'
-                    ? 'bg-card text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                直接設定目標分數
-              </button>
-            </div>
+            {/* Section 1: Hero Score Calibration Stage */}
+            <div className="rounded-2xl border border-border bg-surface-subtle/60 p-4 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-bold text-muted-foreground block">
+                    調整前後即時預覽 {mmrPreview?.clamped ? '(已套用 600–3000 上下限)' : ''}
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5 font-display font-black text-base sm:text-lg tabular-nums">
+                    <span className="text-muted-foreground">{Math.round(mmrUser.global_mmr)}</span>
+                    <span className="text-muted-foreground/45">→</span>
+                    <span className="text-foreground">
+                      {Math.round(mmrPreview?.nextMmr ?? mmrUser.global_mmr)} ELO
+                    </span>
+                    {mmrPreview && (
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-xs font-display font-black tabular-nums',
+                          mmrPreview.delta > 0
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
+                            : mmrPreview.delta < 0
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
+                              : 'bg-secondary text-muted-foreground'
+                        )}
+                      >
+                        {mmrPreview.delta > 0 ? (
+                          <TrendingUp size={12} aria-hidden="true" />
+                        ) : mmrPreview.delta < 0 ? (
+                          <TrendingDown size={12} aria-hidden="true" />
+                        ) : null}
+                        {mmrPreview.delta > 0 ? `+${mmrPreview.delta}` : mmrPreview.delta}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-            {/* Quick Delta Chips */}
-            <div className="space-y-1.5">
-              <span className="text-xs font-bold text-muted-foreground block">快速增減幅度</span>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {/* Mode Pill Toggle */}
+                <div className="inline-flex p-0.5 rounded-xl bg-secondary border border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMmrMode('delta');
+                      setMmrInput('20');
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                      mmrMode === 'delta'
+                        ? 'bg-card text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    增減微調
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMmrMode('target');
+                      setMmrInput(String(Math.round(mmrUser.global_mmr)));
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                      mmrMode === 'target'
+                        ? 'bg-card text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    指定目標
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper + Centered Numeric Input */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="減少 5 分"
+                  onClick={() => stepMmrInput(-5)}
+                  className="size-11 rounded-xl bg-card border border-border flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all shrink-0"
+                >
+                  <Minus size={16} strokeWidth={2.5} aria-hidden="true" />
+                </button>
+                <input
+                  id="admin-mmr-input"
+                  type="number"
+                  step="0.5"
+                  inputMode="decimal"
+                  aria-label={mmrMode === 'delta' ? '調整幅度' : '目標 ELO 分數'}
+                  value={mmrInput}
+                  onChange={(e) => setMmrInput(e.target.value)}
+                  className="arena-input text-center font-display font-black text-lg tabular-nums"
+                />
+                <button
+                  type="button"
+                  aria-label="增加 5 分"
+                  onClick={() => stepMmrInput(5)}
+                  className="size-11 rounded-xl bg-card border border-border flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all shrink-0"
+                >
+                  <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+                </button>
+              </div>
+
+              {/* 6 Quick-Adjust Pills */}
+              <div className="grid grid-cols-6 gap-1.5">
                 {QUICK_DELTAS.map((d) => {
                   const active = mmrMode === 'delta' && Number(mmrInput) === d;
                   return (
@@ -785,7 +1021,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         setMmrInput(String(d));
                       }}
                       className={cn(
-                        'min-h-10 rounded-xl border text-xs font-display font-black tabular-nums transition-all active:scale-95',
+                        'min-h-9 rounded-xl border text-xs font-display font-black tabular-nums transition-all active:scale-95',
                         active
                           ? d > 0
                             ? 'bg-emerald-600 border-emerald-600 text-white'
@@ -802,68 +1038,19 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               </div>
             </div>
 
-            {/* Numeric Input */}
-            <div className="space-y-1.5">
-              <label htmlFor="admin-mmr-input" className="arena-label">
-                {mmrMode === 'delta' ? '調整幅度（正數加分、負數扣分）' : '指定目標 ELO 分數（600 – 3000）'}
-              </label>
-              <input
-                id="admin-mmr-input"
-                type="number"
-                step="0.5"
-                inputMode="decimal"
-                value={mmrInput}
-                onChange={(e) => setMmrInput(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-xl border border-input bg-surface-subtle text-base sm:text-sm font-display font-black tabular-nums text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
-              />
-            </div>
-
-            {/* Live Preview Banner */}
-            {mmrPreview && (
-              <div className="bg-surface-subtle border border-border rounded-2xl p-3.5 flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-bold text-muted-foreground block">
-                    調整前後預覽 {mmrPreview.clamped && '(已套用 600–3000 上下限)'}
-                  </span>
-                  <div className="flex items-center gap-2 mt-0.5 font-display font-black text-base sm:text-lg tabular-nums">
-                    <span className="text-muted-foreground">{Math.round(mmrUser.global_mmr)}</span>
-                    <span className="text-muted-foreground/50">→</span>
-                    <span className="text-foreground">{Math.round(mmrPreview.nextMmr)} ELO</span>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    'inline-flex items-center gap-1 px-3 py-1.5 rounded-xl font-display font-black text-sm tabular-nums',
-                    mmrPreview.delta > 0
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-                      : mmrPreview.delta < 0
-                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
-                        : 'bg-secondary text-muted-foreground'
-                  )}
-                >
-                  {mmrPreview.delta > 0 ? (
-                    <TrendingUp size={15} aria-hidden="true" />
-                  ) : mmrPreview.delta < 0 ? (
-                    <TrendingDown size={15} aria-hidden="true" />
-                  ) : null}
-                  {mmrPreview.delta > 0 ? `+${mmrPreview.delta}` : mmrPreview.delta}
-                </div>
-              </div>
-            )}
-
-            {/* Required Reason */}
+            {/* Section 2: Required Calibration Reason */}
             <div className="space-y-2">
               <label htmlFor="admin-mmr-reason" className="arena-label">
-                調整原因 <span className="text-rose-500">*</span>
+                校準原因 <span className="text-rose-500">*</span>
               </label>
               <input
                 id="admin-mmr-reason"
                 type="text"
                 required
-                placeholder="請說明校準原因，選手將於通知中心收到此說明"
+                placeholder="例如：賽事積分誤算補正（必填）"
                 value={mmrReason}
                 onChange={(e) => setMmrReason(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-xl border border-input bg-surface-subtle text-base sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500"
+                className="arena-input"
               />
               <div className="flex flex-wrap gap-1.5">
                 {QUICK_MMR_REASONS.map((preset) => (
@@ -871,21 +1058,24 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     key={preset}
                     type="button"
                     onClick={() => setMmrReason(preset)}
-                    className="px-2.5 py-1 rounded-lg bg-secondary/70 border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors',
+                      mmrReason === preset
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-800 dark:text-amber-300'
+                        : 'bg-secondary/70 border-border text-muted-foreground hover:text-foreground'
+                    )}
                   >
                     {preset}
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-xl bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 px-3 py-2.5 text-xs font-bold text-amber-800 dark:text-amber-300">
-              <ShieldAlert size={15} className="shrink-0 mt-0.5" aria-hidden="true" />
-              <span>所有手動校準皆會紀錄於選手戰績曲線與系統通知，確保排行公開透明。</span>
+              <p className="text-[11px] font-bold text-muted-foreground">
+                將寫入選手戰績曲線並發送系統通知，確保排行公開透明。
+              </p>
             </div>
           </div>
         )}
       </ResponsiveFormModal>
-    </div>
+    </section>
   );
 }

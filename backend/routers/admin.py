@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 import re
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlmodel import Session, select, desc, func
@@ -14,6 +14,9 @@ from services.elo_engine import ELO_CONFIG
 from services.match_service import (
     MatchAlreadySettledError,
     MatchNotFoundError,
+    admin_batch_force_settle_matches,
+    admin_create_match,
+    admin_edit_settled_match,
     admin_force_settle_match,
     admin_void_or_delete_match,
 )
@@ -46,6 +49,9 @@ from schemas import (
     AdminMmrAdjustReq,
     AdminForceConfirmReq,
     AdminVoidMatchReq,
+    AdminCreateMatchReq,
+    AdminEditSettledMatchReq,
+    AdminBatchForceConfirmReq,
 )
 from services.season_service import (
     create_manual_season,
@@ -710,10 +716,12 @@ _DISPUTE_REASON_RE = re.compile(r"（原因：([^）]+)）")
 @router.get("/matches", dependencies=[Depends(require_admin)])
 def list_admin_matches(
     status_filter: str = "attention",
-    limit: int = 80,
+    season_id: Optional[str] = None,
+    offset: int = 0,
+    limit: int = 30,
     session: Session = Depends(get_session),
 ):
-    """取得全站對戰監控清單，支援爭議申訴、待確認、已超時與已結算篩選。"""
+    """取得全站對戰監控清單，支援爭議申訴、待確認、已超時、賽季篩選與分頁載入。"""
     now = datetime.now(timezone.utc)
     auto_confirm_hours = int(
         get_config_value(
@@ -728,9 +736,20 @@ def list_admin_matches(
         else now - timedelta(hours=auto_confirm_hours)
     )
 
-    all_matches = session.exec(
-        select(Match).order_by(Match.created_at.desc())
-    ).all()
+    all_seasons = session.exec(select(Season).order_by(desc(Season.start_date))).all()
+    ordered_seasons = [s for s in all_seasons if s.status == "active"] + [
+        s for s in all_seasons if s.status != "active"
+    ]
+    season_map = {s.id: s for s in ordered_seasons}
+    seasons_payload = [
+        {"id": s.id, "name": s.name, "status": s.status}
+        for s in ordered_seasons
+    ]
+
+    match_stmt = select(Match).order_by(Match.created_at.desc())
+    if season_id and season_id != "all":
+        match_stmt = match_stmt.where(Match.season_id == season_id)
+    all_matches = session.exec(match_stmt).all()
 
     disputed_count = 0
     pending_count = 0
@@ -772,15 +791,16 @@ def list_admin_matches(
 
         filtered.sort(key=_attention_sort_key)
 
-    safe_limit = max(1, min(200, limit))
-    sliced = filtered[:safe_limit]
+    safe_offset = max(0, offset)
+    safe_limit = max(1, min(100, limit))
+    filtered_total = len(filtered)
+    sliced = filtered[safe_offset : safe_offset + safe_limit]
+    has_more = (safe_offset + safe_limit) < filtered_total
 
     user_ids: set[UUID] = set()
-    season_ids: set[str] = set()
     match_ids: list[UUID] = []
     for m in sliced:
         match_ids.append(m.id)
-        season_ids.add(m.season_id)
         for uid in (
             m.team_a_p1_id,
             m.team_a_p2_id,
@@ -795,11 +815,6 @@ def list_admin_matches(
     if user_ids:
         users = session.exec(select(User).where(User.id.in_(list(user_ids)))).all()
         user_map = {u.id: u for u in users}
-
-    season_map: dict[str, Season] = {}
-    if season_ids:
-        seasons = session.exec(select(Season).where(Season.id.in_(list(season_ids)))).all()
-        season_map = {s.id: s for s in seasons}
 
     part_delta_map: dict[tuple[UUID, UUID], float] = {}
     if match_ids:
@@ -887,9 +902,99 @@ def list_admin_matches(
             "confirmed": confirmed_count,
             "total": len(all_matches),
         },
+        "filtered_total": filtered_total,
+        "has_more": has_more,
         "auto_confirm_hours": auto_confirm_hours,
+        "seasons": seasons_payload,
         "matches": serialized,
     }
+
+
+@router.post("/matches")
+def create_admin_match(
+    req: AdminCreateMatchReq,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """管理員代為補登對戰（可選立即結算積分或送出待確認）。"""
+    try:
+        res = admin_create_match(
+            session=session,
+            admin_user=current_user,
+            season_id=req.season_id,
+            match_type=req.match_type,
+            team_a_p1_id=req.team_a_p1_id,
+            team_a_p2_id=req.team_a_p2_id,
+            team_b_p1_id=req.team_b_p1_id,
+            team_b_p2_id=req.team_b_p2_id,
+            score_a=req.score_a,
+            score_b=req.score_b,
+            auto_settle=req.auto_settle,
+            reason=req.reason,
+        )
+        msg = (
+            f"已代為補登賽果（{res['score_a']}:{res['score_b']}）並完成積分結算"
+            if req.auto_settle
+            else f"已代為補登對戰（{res['score_a']}:{res['score_b']}），等待 B 隊確認"
+        )
+        return {"message": msg, **res}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/matches/batch-force-confirm")
+def batch_force_confirm_admin_matches(
+    req: AdminBatchForceConfirmReq,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """管理員批次強制結算多筆選取比賽或一鍵結算所有已超時待確認比賽。"""
+    try:
+        res = admin_batch_force_settle_matches(
+            session=session,
+            admin_user=current_user,
+            match_ids=req.match_ids,
+            overdue_only=req.overdue_only,
+            season_id=req.season_id,
+            reason=req.reason,
+        )
+        return {
+            "message": f"已批次裁決並結算 {res['confirmed_count']} 場對戰！",
+            **res,
+        }
+    except MatchNotFoundError:
+        raise HTTPException(status_code=404, detail="找不到部分選取的對戰紀錄")
+    except MatchAlreadySettledError:
+        raise HTTPException(status_code=400, detail="部分選取的對戰已完成結算或狀態已異動")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.patch("/matches/{match_id}/score")
+def edit_settled_admin_match(
+    match_id: UUID,
+    req: AdminEditSettledMatchReq,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """管理員原地修正已結算對戰比分並原子重算本場積分與歷程快照。"""
+    try:
+        res = admin_edit_settled_match(
+            session=session,
+            match_id=match_id,
+            admin_user=current_user,
+            score_a=req.score_a,
+            score_b=req.score_b,
+            reason=req.reason,
+        )
+        return {
+            "message": f"已將賽果更正為 {res['score_a']}:{res['score_b']} 並完成積分重算！",
+            **res,
+        }
+    except MatchNotFoundError:
+        raise HTTPException(status_code=404, detail="找不到指定的對戰紀錄")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/matches/{match_id}/force-confirm")
