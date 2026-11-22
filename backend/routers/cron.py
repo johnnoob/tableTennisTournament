@@ -62,9 +62,18 @@ def execute_cron_tasks(session: Session, trigger: str = "vercel_cron") -> dict:
             .where(Match.created_at <= cutoff_time)
         ).all()
 
+        unit_zh = "分鐘" if auto_confirm_unit == "minutes" else "小時"
+        threshold_label = f"{auto_confirm_val} {unit_zh}"
+
         for match in pending_matches:
             try:
-                settle_match_transaction(session, match.id, match.team_b_p1_id)
+                settle_match_transaction(
+                    session,
+                    match.id,
+                    match.team_b_p1_id,
+                    auto_confirmed=True,
+                    threshold_label=threshold_label,
+                )
                 auto_confirmed_count += 1
             except Exception as inner_e:
                 logger.error(f"Failed to auto-confirm match {match.id}: {inner_e}")

@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 from models import (
     Match,
     MatchParticipation,
+    Notification,
     PlayerStatHistory,
     Season,
     SeasonRecord,
@@ -314,6 +315,51 @@ def settle_and_rollover_season(
             "start_date": new_season.start_date,
             "end_date": new_season.end_date,
         }
+
+    for old_season in active_seasons:
+        records = session.exec(
+            select(SeasonRecord).where(
+                SeasonRecord.season_id == old_season.id,
+                SeasonRecord.matches_played > 0,
+            )
+        ).all()
+        sorted_records = sorted(
+            records,
+            key=lambda r: float(r.final_mmr if r.final_mmr is not None else 1000.0),
+            reverse=True,
+        )
+        next_clause = (
+            f"（新賽季「{new_season_data['name']}」已正式開打）"
+            if new_season_data
+            else ""
+        )
+        for idx, rec in enumerate(sorted_records):
+            u = session.get(User, rec.user_id)
+            if not u or not u.is_active or u.role == "guest":
+                continue
+            final_score = round(
+                float(rec.final_mmr if rec.final_mmr is not None else u.global_mmr)
+            )
+            new_score = round(float(u.global_mmr))
+            losses = max(0, rec.matches_played - rec.wins)
+            reset_clause = (
+                f"，新季軟重置起始積分為 {new_score} ELO"
+                if apply_soft_reset
+                else ""
+            )
+            session.add(
+                Notification(
+                    user_id=u.id,
+                    match_id=None,
+                    type="match_confirmed",
+                    content=(
+                        f"🏆 賽季「{old_season.name}」已正式結算！您本季排名第 {idx + 1} 名，"
+                        f"最終積分 {final_score} ELO（戰績 {rec.wins}勝{losses}敗）"
+                        f"{reset_clause}{next_clause}。"
+                    ),
+                    created_at=now,
+                )
+            )
 
     session.commit()
     return {

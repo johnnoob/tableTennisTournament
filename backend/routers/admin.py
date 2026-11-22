@@ -477,6 +477,17 @@ def add_participant(id: UUID, participant: ParticipantAdd, session: Session = De
     
     new_part = TournamentParticipant(tournament_id=id, user_id=participant.user_id)
     session.add(new_part)
+
+    evt = session.get(TournamentEvent, id)
+    session.add(
+        Notification(
+            user_id=participant.user_id,
+            match_id=None,
+            type="match_confirmed",
+            content=f"您已被列入獨立錦標賽「{evt.title if evt else '最新賽事'}」參賽名單，可前往賽事中心查看詳情。",
+        )
+    )
+
     session.commit()
     session.refresh(new_part)
     return new_part

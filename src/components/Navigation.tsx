@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, History, Trophy, Crown, Plus, Shield, Settings, LayoutGrid, LogIn } from 'lucide-react';
@@ -7,6 +8,11 @@ import { Button } from './ui/button';
 import { UserProfileSettings } from './UserProfileSettings';
 import { PlayerAvatar } from './PlayerAvatar';
 import { ThemeToggle } from './ThemeToggle';
+import { useNotificationsQuery } from '@/hooks/useNotifications';
+import {
+  NotificationBellButton,
+  NotificationCenterSheet,
+} from './NotificationCenter';
 import { useAuth } from '@/hooks/useAuth';
 import { useScrollHide } from '@/hooks/use-scroll-hide';
 import apiClient from '@/utils/apiClient';
@@ -83,6 +89,15 @@ export function Navigation() {
   const { pathname } = useLocation();
   const isAdmin = user?.role === 'admin';
   const isMobileNavHidden = useScrollHide(pathname, true);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const { data: notificationsData, isLoading: isNotifLoading } = useNotificationsQuery(Boolean(user));
+  const unreadNotifCount = notificationsData?.unread_count ?? 0;
+  const hasUrgentNotif = Boolean(
+    notificationsData?.notifications?.some(
+      (n) => !n.is_read && (n.category === 'disputed' || n.category === 'action_required')
+    )
+  );
 
   const { data: pendingMatches = [] } = useQuery({
     queryKey: ['matches', 'pending'],
@@ -138,6 +153,15 @@ export function Navigation() {
               >
                 <Shield size={17} aria-hidden="true" />
               </NavLink>
+            )}
+
+            {user && (
+              <NotificationBellButton
+                variant="mobile"
+                unreadCount={unreadNotifCount}
+                hasUrgent={hasUrgentNotif}
+                onClick={() => setNotifOpen(true)}
+              />
             )}
 
             <ThemeToggle variant="icon" />
@@ -308,6 +332,14 @@ export function Navigation() {
         </nav>
 
         <div className="mt-auto pt-3 border-t border-border w-full flex flex-col items-center gap-2.5">
+          {user && (
+            <NotificationBellButton
+              variant="rail"
+              unreadCount={unreadNotifCount}
+              hasUrgent={hasUrgentNotif}
+              onClick={() => setNotifOpen(true)}
+            />
+          )}
           <ThemeToggle variant="icon" />
           {user && (
             <UserProfileSettings
@@ -419,8 +451,16 @@ export function Navigation() {
           ))}
         </nav>
 
-        {/* Theme Switcher & User Profile Trigger (Desktop) */}
-        <div className="mt-auto pt-4 border-t border-border space-y-3">
+        {/* Notifications, Theme Switcher & User Profile Trigger (Desktop) */}
+        <div className="mt-auto pt-3.5 border-t border-border space-y-2.5">
+          {user && (
+            <NotificationBellButton
+              variant="sidebar"
+              unreadCount={unreadNotifCount}
+              hasUrgent={hasUrgentNotif}
+              onClick={() => setNotifOpen(true)}
+            />
+          )}
           <ThemeToggle variant="segmented" />
 
           {user ? (
@@ -465,6 +505,16 @@ export function Navigation() {
           )}
         </div>
       </aside>
+
+      {user && (
+        <NotificationCenterSheet
+          open={notifOpen}
+          onOpenChange={setNotifOpen}
+          data={notificationsData}
+          isLoading={isNotifLoading}
+          isAdmin={isAdmin}
+        />
+      )}
     </>
   );
 }

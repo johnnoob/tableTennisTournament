@@ -68,9 +68,24 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     session.add(new_match)
     session.flush()
 
-    # 3. 🔔 建立通知發送給對手
+    # 3. 🔔 建立通知發送給對手與雙打搭檔
     reporter = session.get(User, req.reported_by)
     reporter_name = reporter.name if reporter else "某位同仁"
+
+    if (
+        req.match_type == "doubles"
+        and req.team_a_p2_id
+        and req.team_a_p2_id != real_reporter_id
+    ):
+        session.add(
+            Notification(
+                user_id=req.team_a_p2_id,
+                match_id=new_match.id,
+                type="pending_confirm",
+                content=f"您的搭檔 {reporter_name} 已送出雙打 {req.score_a}:{req.score_b} 報分，正等待對手確認。",
+                is_read=False,
+            )
+        )
 
     notification = Notification(
         user_id=req.team_b_p1_id,
@@ -86,7 +101,7 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
             user_id=req.team_b_p2_id,
             match_id=new_match.id,
             type="pending_confirm",
-            content=f"{reporter_name} 剛剛送出了一筆雙打比分，請您確認。",
+            content=f"{reporter_name} 剛剛送出了一筆雙打比分（{req.score_a}:{req.score_b}），請您確認。",
             is_read=False
         )
         session.add(notification_p2)
@@ -132,7 +147,43 @@ def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(g
     if "score_b" in req:
         match.score_b = int(req["score_b"])
 
+    if match.score_a < 0 or match.score_b < 0:
+        raise HTTPException(status_code=400, detail="比分不得為負數")
+    if match.score_a == match.score_b:
+        raise HTTPException(status_code=400, detail="比分不得為平手，請分出勝負")
+
+    match.format = (
+        "BO5"
+        if (match.score_a + match.score_b >= 5 or max(match.score_a, match.score_b) >= 3)
+        else "BO3"
+    )
     session.add(match)
+
+    old_pending_notifs = session.exec(
+        select(Notification).where(
+            Notification.match_id == match.id,
+            Notification.type == "pending_confirm",
+            Notification.user_id.in_(
+                [uid for uid in (match.team_b_p1_id, match.team_b_p2_id) if uid is not None]
+            ),
+        )
+    ).all()
+    for notif in old_pending_notifs:
+        notif.is_read = True
+        session.add(notif)
+
+    for opp_id in (match.team_b_p1_id, match.team_b_p2_id):
+        if opp_id is not None:
+            session.add(
+                Notification(
+                    user_id=opp_id,
+                    match_id=match.id,
+                    type="pending_confirm",
+                    content=f"{current_user.name} 已將待確認比分修正為 {match.score_a}:{match.score_b}，請您重新核對並確認。",
+                    is_read=False,
+                )
+            )
+
     session.commit()
     return {"message": "比分已更新", "score_a": match.score_a, "score_b": match.score_b}
 

@@ -182,6 +182,8 @@ def settle_match_transaction(
     session: Session,
     match_id: UUID,
     current_user_id: UUID,
+    auto_confirmed: bool = False,
+    threshold_label: str = "",
 ) -> dict:
     """
     執行單場比賽確認的完整 DB 交易（單軌 Elo 系統）。
@@ -213,6 +215,41 @@ def settle_match_transaction(
             locked_users[uid] = user
 
         settled = _settle_locked_match(session, match, locked_users)
+
+        if auto_confirmed:
+            label = threshold_label or "時限"
+            for uid in involved_ids:
+                my_delta = settled["delta_map"].get(uid, 0.0)
+                session.add(
+                    Notification(
+                        user_id=uid,
+                        match_id=match.id,
+                        type="match_confirmed",
+                        content=(
+                            f"對戰（{match.score_a}:{match.score_b}）因超過 {label} 未確認，"
+                            f"已由系統自動完成結算（{my_delta:+.1f} ELO）。"
+                        ),
+                    )
+                )
+        else:
+            confirmer = locked_users.get(current_user_id)
+            confirmer_name = confirmer.name if confirmer else "對手"
+            for uid in involved_ids:
+                if uid == current_user_id:
+                    continue
+                my_delta = settled["delta_map"].get(uid, 0.0)
+                session.add(
+                    Notification(
+                        user_id=uid,
+                        match_id=match.id,
+                        type="match_confirmed",
+                        content=(
+                            f"{confirmer_name} 已確認對戰賽果（{match.score_a}:{match.score_b}），"
+                            f"本場積分結算 {my_delta:+.1f} ELO。"
+                        ),
+                    )
+                )
+
         session.commit()
 
     except Exception:
@@ -284,10 +321,34 @@ def settle_matches_batch_transaction(
         settled_items: list[dict] = []
         current_user_total_delta = 0.0
 
+        confirmer = locked_users.get(current_user_id)
+        confirmer_name = confirmer.name if confirmer else "對手"
+
         for match in ordered_matches:
             settled = _settle_locked_match(session, match, locked_users)
             my_delta = settled["delta_map"][current_user_id]
             current_user_total_delta += my_delta
+
+            for uid in (
+                match.team_a_p1_id,
+                match.team_a_p2_id,
+                match.team_b_p1_id,
+                match.team_b_p2_id,
+            ):
+                if uid is not None and uid != current_user_id:
+                    p_delta = settled["delta_map"].get(uid, 0.0)
+                    session.add(
+                        Notification(
+                            user_id=uid,
+                            match_id=match.id,
+                            type="match_confirmed",
+                            content=(
+                                f"{confirmer_name} 已確認對戰賽果（{match.score_a}:{match.score_b}），"
+                                f"本場積分結算 {p_delta:+.1f} ELO。"
+                            ),
+                        )
+                    )
+
             settled_items.append({
                 "match_id": str(match.id),
                 "my_delta": round(my_delta, 1),

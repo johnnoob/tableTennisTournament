@@ -44,6 +44,7 @@ function invalidateMatchSettlementQueries(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
   queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
   queryClient.invalidateQueries({ queryKey: ['matches', 'history'] });
+  queryClient.invalidateQueries({ queryKey: ['notifications'] });
   queryClient.invalidateQueries({ queryKey: ['users', 'me', 'stats'] });
   queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
   queryClient.invalidateQueries({ queryKey: ['authUser'] });
@@ -992,6 +993,7 @@ function DisputeMatchModal({
       );
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success(res.data.message || '已提交異議，自動結算已暫停並通知管理員處理');
       setIsSubmitting(false);
       onOpenChange(false);
@@ -1098,6 +1100,7 @@ function WaitingOnOthersGroup({
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('已撤回比賽申報');
     } catch (error: unknown) {
       const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -1109,6 +1112,7 @@ function WaitingOnOthersGroup({
 
   const handleEditSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['matches', 'pending'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
   if (matches.length === 0) return null;

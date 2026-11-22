@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, func, or_
 from database import get_session
 from services.auth_jwt import get_current_user # 🌟 引入警衛
-from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, utc_now
+from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, Notification, utc_now
 from schemas import MatchPresetCreate, MatchPresetUpdate
 from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
@@ -903,3 +903,142 @@ def delete_my_match_preset(
     session.delete(preset)
     session.commit()
     return {"message": "已移除常用組合", "id": str(preset_id)}
+
+
+# ==========================================
+# 個人通知中心 (Notifications)
+# ==========================================
+_ARBITRATION_KEYWORDS = (
+    "管理員",
+    "裁決",
+    "撤銷",
+    "駁回",
+    "回滾",
+    "校準",
+    "更正",
+    "補登",
+    "未出賽",
+    "扣除",
+    "角色",
+)
+
+
+def _classify_notification_category(notif: Notification) -> str:
+    content = notif.content or ""
+    if notif.type == "pending_confirm":
+        return "action_required"
+    if notif.type == "match_disputed":
+        return "disputed"
+    if "賽季" in content or "錦標賽" in content:
+        return "season"
+    if any(kw in content for kw in _ARBITRATION_KEYWORDS):
+        return "arbitration"
+    return "match_settled"
+
+
+@router.get("/api/users/me/notifications", summary="取得個人通知中心清單與未讀統計")
+def get_my_notifications(
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    all_notifs = session.exec(
+        select(Notification)
+        .where(Notification.user_id == current_user.id)
+        .order_by(Notification.created_at.desc())
+    ).all()
+
+    unread_count = sum(1 for n in all_notifs if not n.is_read)
+    safe_limit = max(1, min(100, limit))
+    sliced = all_notifs[:safe_limit]
+
+    match_ids = list({n.match_id for n in sliced if n.match_id is not None})
+    match_status_map: dict[UUID, str] = {}
+    if match_ids:
+        matches = session.exec(select(Match).where(Match.id.in_(match_ids))).all()
+        match_status_map = {m.id: m.status for m in matches}
+
+    serialized = []
+    for n in sliced:
+        created_utc = ensure_utc(n.created_at)
+        serialized.append({
+            "id": str(n.id),
+            "type": n.type,
+            "category": _classify_notification_category(n),
+            "content": n.content,
+            "match_id": str(n.match_id) if n.match_id else None,
+            "match_status": match_status_map.get(n.match_id) if n.match_id else None,
+            "is_read": n.is_read,
+            "created_at": created_utc.strftime("%Y-%m-%dT%H:%M:%SZ") if created_utc else None,
+        })
+
+    return {
+        "unread_count": unread_count,
+        "total_count": len(all_notifs),
+        "notifications": serialized,
+    }
+
+
+@router.patch("/api/users/me/notifications/{notification_id}/read", summary="標記單則通知為已讀")
+def mark_notification_read(
+    notification_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    notif = session.get(Notification, notification_id)
+    if not notif or notif.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="找不到此通知")
+
+    if not notif.is_read:
+        notif.is_read = True
+        session.add(notif)
+        session.commit()
+
+    return {"id": str(notif.id), "is_read": True}
+
+
+@router.post("/api/users/me/notifications/read-all", summary="將所有未讀通知標記為已讀")
+def mark_all_notifications_read(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    unread_rows = session.exec(
+        select(Notification).where(
+            Notification.user_id == current_user.id,
+            Notification.is_read == False,
+        )
+    ).all()
+
+    count = 0
+    for notif in unread_rows:
+        notif.is_read = True
+        session.add(notif)
+        count += 1
+
+    if count > 0:
+        session.commit()
+
+    return {"marked_count": count}
+
+
+@router.delete("/api/users/me/notifications/clear-read", summary="清除所有已讀通知")
+def clear_read_notifications(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    read_rows = session.exec(
+        select(Notification).where(
+            Notification.user_id == current_user.id,
+            Notification.is_read == True,
+        )
+    ).all()
+
+    count = 0
+    for notif in read_rows:
+        session.delete(notif)
+        count += 1
+
+    if count > 0:
+        session.commit()
+
+    return {"deleted_count": count}

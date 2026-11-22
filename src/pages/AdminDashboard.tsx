@@ -139,6 +139,7 @@ export function AdminDashboard() {
         queryClient.invalidateQueries({ queryKey: ['matches'] });
         queryClient.invalidateQueries({ queryKey: ['users'] });
         queryClient.invalidateQueries({ queryKey: ['authUser'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
     };
 
     const isSeasonPaused = configs.find((c) => c.key === 'season_paused')?.value === 'true';
