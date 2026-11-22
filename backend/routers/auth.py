@@ -53,6 +53,33 @@ def _normalize_origin(origin: str) -> tuple[str, str]:
     return (parsed.scheme.lower(), parsed.netloc.lower())
 
 
+def _sanitize_next_path(next_path: str | None) -> str:
+    if not next_path:
+        return "/"
+    raw = next_path.strip()
+    if not raw or "\\" in raw:
+        return "/"
+    parsed = urlparse(raw)
+    if parsed.scheme or parsed.netloc:
+        return "/"
+    path = parsed.path or "/"
+    if not path.startswith("/") or path.startswith("//"):
+        return "/"
+    return path
+
+
+def _build_frontend_redirect(path: str = "/", params: dict[str, str] | None = None) -> RedirectResponse:
+    safe_path = _sanitize_next_path(path)
+    url = f"{settings.effective_frontend_url}{safe_path}"
+    if params:
+        filtered = {k: v for k, v in params.items() if v is not None and v != ""}
+        if filtered:
+            url = f"{url}?{urlencode(filtered)}"
+    response = RedirectResponse(url=url, status_code=302)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 def _issue_auth_cookies(response: RedirectResponse, user: User) -> RedirectResponse:
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
