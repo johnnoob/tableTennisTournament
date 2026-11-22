@@ -8,6 +8,25 @@ export type NotificationCategory =
   | 'season'
   | 'match_settled';
 
+export interface NotificationMatchPlayer {
+  id: string;
+  name: string;
+  avatar_url?: string | null;
+}
+
+export interface NotificationMatchContext {
+  id: string;
+  short_id: string;
+  status: string;
+  match_type: 'singles' | 'doubles' | string;
+  format?: string;
+  score_a: number;
+  score_b: number;
+  created_at?: string | null;
+  team_a: NotificationMatchPlayer[];
+  team_b: NotificationMatchPlayer[];
+}
+
 export interface NotificationItem {
   id: string;
   type: 'pending_confirm' | 'match_confirmed' | 'match_rejected' | 'match_disputed' | string;
@@ -15,6 +34,7 @@ export interface NotificationItem {
   content: string;
   match_id?: string | null;
   match_status?: string | null;
+  match_context?: NotificationMatchContext | null;
   is_read: boolean;
   created_at?: string | null;
 }

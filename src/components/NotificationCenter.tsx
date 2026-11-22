@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
+  CalendarClock,
   CheckCheck,
   CheckCircle2,
   ChevronRight,
@@ -20,8 +21,12 @@ import apiClient from '@/utils/apiClient';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import type {
   NotificationItem,
+  NotificationMatchContext,
+  NotificationMatchPlayer,
   NotificationsResponse,
 } from '@/hooks/useNotifications';
+import { inferMatchFormat } from '@/lib/matchScore';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
 import {
   Sheet,
@@ -53,9 +58,208 @@ function formatRelativeNotificationTime(iso?: string | null): string {
   return formatLocalTime(iso, 'MM/dd HH:mm');
 }
 
-// Highlight scores (e.g. 2:1) and ELO/MMR deltas (e.g. +18.5 ELO, -12.0 ELO, 5.0 MMR)
+// Highlight scores (e.g. 2:1), short match IDs (e.g. #a8f3), and ELO/MMR deltas (e.g. +18.5 ELO, -12.0 ELO, 5.0 MMR)
 const TOKEN_REGEX =
-  /([+-]?\d+(?:\.\d+)?\s*(?:ELO|MMR)|\b[0-5]:[0-5]\b)/g;
+  /([+-]?\d+(?:\.\d+)?\s*(?:ELO|MMR)|\b[0-5]:[0-5]\b|#[0-9a-fA-F]{4})/g;
+
+interface ParsedVoidedSnapshot {
+  matchTypeLabel: string;
+  shortId: string;
+  teamALabel: string;
+  teamBLabel: string;
+  scoreLabel: string | null;
+}
+
+const BRIEF_TAG_REGEX = /【(單打|雙打)\s*#([0-9a-fA-F]{4})｜([^】]+)】/;
+
+function extractInlineMatchSnapshot(content: string): ParsedVoidedSnapshot | null {
+  const m = content.match(BRIEF_TAG_REGEX);
+  if (!m) return null;
+  const [, matchTypeLabel, shortId, teamsRaw] = m;
+  const parts = teamsRaw.split(/\s+vs\s+/i);
+  const teamALabel = (parts[0] || '').trim() || 'A隊';
+  const teamBLabel = (parts[1] || '').trim() || 'B隊';
+  const scoreMatch = content.match(/(?:比分\s*|（)([0-5]:[0-5])(?:）|\b)/);
+  return {
+    matchTypeLabel,
+    shortId,
+    teamALabel,
+    teamBLabel,
+    scoreLabel: scoreMatch?.[1] ?? null,
+  };
+}
+
+function formatNotificationProse(content: string, hasVisualCard: boolean): string {
+  if (!hasVisualCard) return content;
+  return content
+    .replace(/\s*【(?:單打|雙打)\s*#([0-9a-fA-F]{4})｜[^】]+】\s*/g, ' #$1 ')
+    .replace(/\s+（/g, '（')
+    .replace(/對\s+#/g, '對 #')
+    .replace(/^\s+/, '')
+    .trim();
+}
+
+function formatMatchupTeamNames(players: NotificationMatchPlayer[]): string {
+  if (players.length === 0) return '待定';
+  if (players.length === 1) return players[0].name;
+  return players.map((p) => p.name.split(' ')[0] || p.name).join(' / ');
+}
+
+function NotificationMatchCard({
+  ctx,
+  voidedSnapshot,
+}: {
+  ctx?: NotificationMatchContext | null;
+  voidedSnapshot: ParsedVoidedSnapshot | null;
+}) {
+  if (ctx) {
+    const aWon = ctx.score_a > ctx.score_b;
+    const bWon = ctx.score_b > ctx.score_a;
+    const isDoubles = ctx.match_type === 'doubles';
+    const matchFormat = ctx.format || inferMatchFormat(ctx.score_a, ctx.score_b);
+
+    const statusBadge =
+      ctx.status === 'disputed' ? (
+        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 leading-none shrink-0">
+          申訴中
+        </span>
+      ) : ctx.status === 'pending' ? (
+        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 leading-none shrink-0">
+          待確認
+        </span>
+      ) : (
+        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 leading-none shrink-0">
+          已結算
+        </span>
+      );
+
+    return (
+      <div className="rounded-xl border border-border/80 bg-surface-subtle/75 px-3 py-2 space-y-1.5">
+        {/* Top Meta Bar */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span
+              className={cn(
+                'px-1.5 py-0.5 rounded text-[10px] font-black leading-none shrink-0',
+                isDoubles
+                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                  : 'bg-secondary text-muted-foreground'
+              )}
+            >
+              {isDoubles ? '雙打' : '單打'}
+            </span>
+            {matchFormat === 'BO5' && (
+              <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none shrink-0">
+                BO5
+              </span>
+            )}
+            <span className="font-display text-[11px] font-black text-muted-foreground tabular-nums">
+              #{ctx.short_id}
+            </span>
+            {ctx.created_at && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground tabular-nums truncate">
+                <CalendarClock size={11} className="shrink-0" aria-hidden="true" />
+                {formatLocalTime(ctx.created_at, 'MM/dd HH:mm')}
+              </span>
+            )}
+          </div>
+          {statusBadge}
+        </div>
+
+        {/* Team A vs Score vs Team B */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <div className="flex items-center justify-end gap-1.5 min-w-0">
+            <span
+              className={cn(
+                'text-xs truncate',
+                aWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+              )}
+            >
+              {formatMatchupTeamNames(ctx.team_a)}
+            </span>
+            <div className={cn('flex shrink-0', ctx.team_a.length > 1 && '-space-x-1.5')}>
+              {ctx.team_a.map((p) => (
+                <PlayerAvatar
+                  key={p.id}
+                  src={p.avatar_url}
+                  name={p.name}
+                  className={cn(
+                    'size-5 rounded-md border border-border text-[9px]',
+                    aWon && 'ring-1 ring-emerald-500/50'
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="px-2 py-0.5 rounded-md bg-card border border-border/80 font-display font-black text-xs tabular-nums flex items-center gap-1 leading-none shrink-0">
+            <span className={aWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+              {ctx.score_a}
+            </span>
+            <span className="text-muted-foreground/40 text-[10px]">:</span>
+            <span className={bWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+              {ctx.score_b}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-start gap-1.5 min-w-0">
+            <div className={cn('flex shrink-0', ctx.team_b.length > 1 && '-space-x-1.5')}>
+              {ctx.team_b.map((p) => (
+                <PlayerAvatar
+                  key={p.id}
+                  src={p.avatar_url}
+                  name={p.name}
+                  className={cn(
+                    'size-5 rounded-md border border-border text-[9px]',
+                    bWon && 'ring-1 ring-emerald-500/50'
+                  )}
+                />
+              ))}
+            </div>
+            <span
+              className={cn(
+                'text-xs truncate',
+                bWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+              )}
+            >
+              {formatMatchupTeamNames(ctx.team_b)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (voidedSnapshot) {
+    return (
+      <div className="rounded-xl border border-rose-200/80 dark:border-rose-500/30 bg-rose-50/50 dark:bg-rose-500/[0.07] px-3 py-2 space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+              {voidedSnapshot.matchTypeLabel}
+            </span>
+            <span className="font-display text-[11px] font-black text-muted-foreground tabular-nums">
+              #{voidedSnapshot.shortId}
+            </span>
+          </div>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 leading-none">
+            已撤銷／移除
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-xs">
+          <span className="font-bold text-foreground truncate">{voidedSnapshot.teamALabel}</span>
+          <span className="px-2 py-0.5 rounded-md bg-card border border-border/80 font-display font-black text-[11px] tabular-nums shrink-0 text-muted-foreground">
+            {voidedSnapshot.scoreLabel || 'VS'}
+          </span>
+          <span className="font-bold text-foreground truncate">{voidedSnapshot.teamBLabel}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 function renderRichNotificationText(content: string): ReactNode {
   const parts = content.split(TOKEN_REGEX);
@@ -63,6 +267,17 @@ function renderRichNotificationText(content: string): ReactNode {
 
   return parts.map((part, idx) => {
     if (!part) return null;
+
+    if (/^#[0-9a-fA-F]{4}$/.test(part)) {
+      return (
+        <span
+          key={idx}
+          className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 font-display font-black tabular-nums text-[11px] leading-none align-baseline"
+        >
+          {part}
+        </span>
+      );
+    }
 
     if (/^[0-5]:[0-5]$/.test(part)) {
       return (
@@ -109,7 +324,7 @@ function getCategoryVisual(item: NotificationItem, isAdmin: boolean) {
     return {
       icon: Clock,
       label: '待確認賽果',
-      hint: item.match_status === 'confirmed' ? '已結算 · 查看紀錄' : '前往確認',
+      hint: item.match_status === 'confirmed' ? '定位此場紀錄' : '前往定位確認',
       borderClass: 'border-l-amber-400',
       iconBg: 'bg-amber-100/90 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
       dotColor: 'bg-amber-500',
@@ -119,7 +334,7 @@ function getCategoryVisual(item: NotificationItem, isAdmin: boolean) {
     return {
       icon: ShieldAlert,
       label: '賽事申訴',
-      hint: isAdmin ? '前往裁決台' : '查看狀態',
+      hint: isAdmin ? '前往定位裁決' : '定位此場狀態',
       borderClass: 'border-l-rose-500',
       iconBg: 'bg-rose-100/90 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
       dotColor: 'bg-rose-500',
@@ -144,7 +359,7 @@ function getCategoryVisual(item: NotificationItem, isAdmin: boolean) {
     return {
       icon: isNegativeAction ? RotateCcw : Gavel,
       label: isNegativeAction ? '異動／回滾' : '裁決與校準',
-      hint: item.match_id ? '查看對戰紀錄' : '查看個人戰績',
+      hint: item.match_id ? '定位此場紀錄' : '查看個人戰績',
       borderClass: isNegativeAction ? 'border-l-rose-400' : 'border-l-sapphire-blue',
       iconBg: isNegativeAction
         ? 'bg-rose-100/90 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300'
@@ -155,7 +370,7 @@ function getCategoryVisual(item: NotificationItem, isAdmin: boolean) {
   return {
     icon: CheckCircle2,
     label: '積分結算',
-    hint: '查看對戰紀錄',
+    hint: '定位對戰紀錄',
     borderClass: 'border-l-emerald-500',
     iconBg: 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
     dotColor: 'bg-emerald-500',
@@ -342,22 +557,38 @@ export function NotificationCenterSheet({
 
     onOpenChange(false);
 
-    if (item.category === 'action_required') {
-      navigate(item.match_status === 'confirmed' ? '/history' : '/');
-      return;
-    }
-    if (item.category === 'disputed') {
-      navigate(isAdmin ? '/admin?tab=matches&status=disputed' : '/history');
-      return;
-    }
     if (item.category === 'season') {
       navigate(item.content.includes('錦標賽') ? '/tournament' : '/leaderboard');
       return;
     }
+
     if (item.match_id) {
+      if (item.category === 'disputed' && isAdmin) {
+        const targetStatus =
+          item.match_status === 'disputed'
+            ? 'disputed'
+            : item.match_status === 'pending'
+              ? 'pending'
+              : 'all';
+        navigate(`/admin?tab=matches&status=${targetStatus}&matchId=${item.match_id}`);
+        return;
+      }
+
+      if (item.match_status === 'pending') {
+        navigate(`/?matchId=${item.match_id}`);
+        return;
+      }
+
+      navigate(`/history?matchId=${item.match_id}`);
+      return;
+    }
+
+    if (item.type === 'match_rejected') {
+      toast.info('此場對戰已被撤銷或駁回移除，相關積分變動已回滾至您的個人戰績。');
       navigate('/history');
       return;
     }
+
     navigate('/');
   };
 
@@ -478,6 +709,11 @@ export function NotificationCenterSheet({
             {filteredList.map((item) => {
               const visual = getCategoryVisual(item, isAdmin);
               const Icon = visual.icon;
+              const voidedSnapshot = item.match_context
+                ? null
+                : extractInlineMatchSnapshot(item.content);
+              const hasVisualCard = Boolean(item.match_context || voidedSnapshot);
+              const displayProse = formatNotificationProse(item.content, hasVisualCard);
 
               return (
                 <button
@@ -499,7 +735,7 @@ export function NotificationCenterSheet({
                     <Icon size={17} aria-hidden="true" />
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] font-black text-muted-foreground tracking-wide">
                         {visual.label}
@@ -526,10 +762,17 @@ export function NotificationCenterSheet({
                         !item.is_read ? 'font-bold text-foreground' : 'font-medium text-foreground/85'
                       )}
                     >
-                      {renderRichNotificationText(item.content)}
+                      {renderRichNotificationText(displayProse)}
                     </p>
 
-                    <div className="flex items-center justify-end pt-0.5">
+                    {hasVisualCard && (
+                      <NotificationMatchCard
+                        ctx={item.match_context}
+                        voidedSnapshot={voidedSnapshot}
+                      />
+                    )}
+
+                    <div className="flex items-center justify-end">
                       <span className="inline-flex items-center gap-0.5 text-[11px] font-black text-sapphire-blue dark:text-blue-300">
                         {visual.hint}
                         <ChevronRight size={12} aria-hidden="true" />

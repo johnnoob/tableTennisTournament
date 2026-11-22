@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
+  Crosshair,
   Gavel,
   Loader2,
   Pencil,
@@ -222,6 +223,27 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
       return true;
     });
   }, [allMatches, typeFilter, search]);
+
+  const highlightMatchId = searchParams.get('matchId');
+  const highlightedMatchFound = Boolean(
+    highlightMatchId &&
+      filteredMatches.some((m) => String(m.id) === String(highlightMatchId)),
+  );
+
+  const clearHighlight = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('matchId');
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!highlightedMatchFound || !highlightMatchId) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`admin-match-${highlightMatchId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [highlightedMatchFound, highlightMatchId]);
 
   const selectableLoadedIds = useMemo(
     () =>
@@ -713,6 +735,66 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         )}
       </div>
 
+      {/* Highlight Deep-Link Status Bar */}
+      {highlightMatchId && !isLoading && (
+        <div
+          className={cn(
+            'px-4 py-2.5 border-b border-border flex flex-wrap items-center justify-between gap-2 text-xs',
+            highlightedMatchFound
+              ? 'bg-sapphire-blue/10 text-foreground dark:bg-blue-500/15'
+              : 'bg-amber-50/85 text-amber-900 dark:bg-amber-500/12 dark:text-amber-200',
+          )}
+        >
+          <div className="flex items-center gap-2 font-bold min-w-0">
+            <Crosshair
+              size={14}
+              className={cn(
+                'shrink-0',
+                highlightedMatchFound
+                  ? 'text-sapphire-blue dark:text-blue-300'
+                  : 'text-amber-600 dark:text-amber-300',
+              )}
+              aria-hidden="true"
+            />
+            <span>
+              {highlightedMatchFound
+                ? `已自動定位通知裁決場次 #${highlightMatchId.slice(0, 4)}`
+                : `目前清單未顯示通知場次 #${highlightMatchId.slice(0, 4)}`}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap ml-auto">
+            {!highlightedMatchFound && statusFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => handleStatusChange('all')}
+                className="h-7 px-2.5 rounded-lg bg-sapphire-blue text-white font-black hover:bg-blue-700 transition-colors"
+              >
+                切換至「全部對戰」
+              </button>
+            )}
+            {!highlightedMatchFound && statusFilter === 'all' && hasNextPage && (
+              <button
+                type="button"
+                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+                className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                {isFetchingNextPage ? '載入中...' : '載入更多對戰'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={clearHighlight}
+              className="h-7 px-2.5 rounded-lg bg-card border border-border font-bold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              <span>清除定位</span>
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Matches Feed */}
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -742,16 +824,21 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               const isSettled = m.status === 'confirmed' || m.status === 'completed';
               const isSelectable = isPending || isDisputed;
               const isSelected = isSelectable && selectedValidIds.includes(m.id);
+              const isHighlighted = Boolean(
+                highlightMatchId && String(m.id) === String(highlightMatchId),
+              );
               const aWon = m.score_a > m.score_b;
               const teamADelta = formatSigned(m.team_a[0]?.mmr_delta);
               const teamBDelta = formatSigned(m.team_b[0]?.mmr_delta);
               const aIsReporter = m.team_a.some((p) => p.id === m.reported_by_id);
 
-              const statusBorderClass = isDisputed
-                ? 'border-l-rose-500'
-                : isPending
-                  ? 'border-l-amber-400'
-                  : 'border-l-emerald-500';
+              const statusBorderClass = isHighlighted
+                ? 'border-l-sapphire-blue'
+                : isDisputed
+                  ? 'border-l-rose-500'
+                  : isPending
+                    ? 'border-l-amber-400'
+                    : 'border-l-emerald-500';
 
               const statusBadge = isDisputed ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 leading-none">
@@ -770,13 +857,32 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               return (
                 <div
                   key={m.id}
+                  id={`admin-match-${m.id}`}
                   className={cn(
-                    'border-l-[3px] transition-colors hover:bg-surface-subtle/35',
+                    'border-l-[3px] transition-all hover:bg-surface-subtle/35',
                     statusBorderClass,
-                    isDisputed && 'bg-rose-50/20 dark:bg-rose-950/10',
-                    isSelected && 'bg-emerald-50/30 dark:bg-emerald-500/8'
+                    isDisputed && !isHighlighted && 'bg-rose-50/20 dark:bg-rose-950/10',
+                    isSelected && !isHighlighted && 'bg-emerald-50/30 dark:bg-emerald-500/8',
+                    isHighlighted &&
+                      'ring-2 ring-inset ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/[0.06] dark:bg-blue-500/[0.12]',
                   )}
                 >
+                  {isHighlighted && (
+                    <div className="px-4 sm:px-5 py-1.5 bg-sapphire-blue/10 dark:bg-blue-500/18 border-b border-sapphire-blue/25 flex items-center justify-between gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1.5 font-black text-sapphire-blue dark:text-blue-300">
+                        <Crosshair size={12} className="animate-pulse" aria-hidden="true" />
+                        通知指定裁決場次 · #{String(m.id).slice(0, 4)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearHighlight}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-card border border-border text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <span>清除定位</span>
+                        <X size={11} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
                   {/* Desktop Row */}
                   <div className="hidden lg:flex items-center gap-4 px-5 py-4">
                     {/* Optional Selection Checkbox */}

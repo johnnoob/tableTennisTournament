@@ -172,6 +172,7 @@ def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(g
         notif.is_read = True
         session.add(notif)
 
+    short_id = str(match.id)[:4]
     for opp_id in (match.team_b_p1_id, match.team_b_p2_id):
         if opp_id is not None:
             session.add(
@@ -179,7 +180,7 @@ def update_match_score(match_id: UUID, req: dict, current_user: User = Depends(g
                     user_id=opp_id,
                     match_id=match.id,
                     type="pending_confirm",
-                    content=f"{current_user.name} 已將待確認比分修正為 {match.score_a}:{match.score_b}，請您重新核對並確認。",
+                    content=f"{current_user.name} 已將待確認比分修正為 {match.score_a}:{match.score_b}（場次 #{short_id}），請您重新核對並確認。",
                     is_read=False,
                 )
             )

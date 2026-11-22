@@ -954,9 +954,56 @@ def get_my_notifications(
 
     match_ids = list({n.match_id for n in sliced if n.match_id is not None})
     match_status_map: dict[UUID, str] = {}
+    match_context_map: dict[UUID, dict] = {}
     if match_ids:
         matches = session.exec(select(Match).where(Match.id.in_(match_ids))).all()
         match_status_map = {m.id: m.status for m in matches}
+
+        involved_user_ids = list({
+            uid
+            for m in matches
+            for uid in (m.team_a_p1_id, m.team_a_p2_id, m.team_b_p1_id, m.team_b_p2_id)
+            if uid is not None
+        })
+        user_map: dict[UUID, User] = {}
+        if involved_user_ids:
+            users_rows = session.exec(select(User).where(User.id.in_(involved_user_ids))).all()
+            user_map = {u.id: u for u in users_rows}
+
+        for m in matches:
+            m_utc = ensure_utc(m.created_at)
+            team_a_players = []
+            for uid in (m.team_a_p1_id, m.team_a_p2_id):
+                u = user_map.get(uid) if uid else None
+                if u:
+                    team_a_players.append({
+                        "id": str(u.id),
+                        "name": u.name,
+                        "avatar_url": u.avatar_url,
+                    })
+
+            team_b_players = []
+            for uid in (m.team_b_p1_id, m.team_b_p2_id):
+                u = user_map.get(uid) if uid else None
+                if u:
+                    team_b_players.append({
+                        "id": str(u.id),
+                        "name": u.name,
+                        "avatar_url": u.avatar_url,
+                    })
+
+            match_context_map[m.id] = {
+                "id": str(m.id),
+                "short_id": str(m.id)[:4],
+                "status": m.status,
+                "match_type": m.match_type,
+                "format": m.format,
+                "score_a": m.score_a,
+                "score_b": m.score_b,
+                "created_at": m_utc.strftime("%Y-%m-%dT%H:%M:%SZ") if m_utc else None,
+                "team_a": team_a_players,
+                "team_b": team_b_players,
+            }
 
     serialized = []
     for n in sliced:
@@ -968,6 +1015,7 @@ def get_my_notifications(
             "content": n.content,
             "match_id": str(n.match_id) if n.match_id else None,
             "match_status": match_status_map.get(n.match_id) if n.match_id else None,
+            "match_context": match_context_map.get(n.match_id) if n.match_id else None,
             "is_read": n.is_read,
             "created_at": created_utc.strftime("%Y-%m-%dT%H:%M:%SZ") if created_utc else None,
         })

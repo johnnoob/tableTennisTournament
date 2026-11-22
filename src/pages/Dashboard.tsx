@@ -1009,6 +1009,7 @@ export function Dashboard() {
                               cluster={cluster}
                               variant="feed"
                               timeDisplay="smart"
+                              enableDeepLinkFocus={false}
                             />
                           ))}
                         </div>
@@ -1020,6 +1021,7 @@ export function Dashboard() {
                               cluster={cluster}
                               variant="personal"
                               timeDisplay="smart"
+                              enableDeepLinkFocus={false}
                             />
                           ))}
                         </div>

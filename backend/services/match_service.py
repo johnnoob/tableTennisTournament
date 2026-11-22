@@ -37,6 +37,27 @@ class ConfirmPermissionError(Exception):
 
 # ── 內部共用結算 Helper ──────────────────────────────────────────────────────
 
+def _format_match_brief(match: Match, users_map: dict[UUID, User]) -> str:
+    """組合精簡但可辨識場次的對戰摘要標籤：【單打/雙打 #xxxx｜A隊 vs B隊】。"""
+    type_label = "雙打" if match.match_type == "doubles" else "單打"
+    short_id = str(match.id)[:4]
+
+    team_a_names = [
+        users_map[uid].name
+        for uid in (match.team_a_p1_id, match.team_a_p2_id)
+        if uid is not None and uid in users_map
+    ]
+    team_b_names = [
+        users_map[uid].name
+        for uid in (match.team_b_p1_id, match.team_b_p2_id)
+        if uid is not None and uid in users_map
+    ]
+
+    a_label = " / ".join(team_a_names) if team_a_names else "A隊"
+    b_label = " / ".join(team_b_names) if team_b_names else "B隊"
+    return f"【{type_label} #{short_id}｜{a_label} vs {b_label}】"
+
+
 def _settle_locked_match(
     session: Session,
     match: Match,
@@ -215,6 +236,7 @@ def settle_match_transaction(
             locked_users[uid] = user
 
         settled = _settle_locked_match(session, match, locked_users)
+        brief = _format_match_brief(match, locked_users)
 
         if auto_confirmed:
             label = threshold_label or "時限"
@@ -226,7 +248,7 @@ def settle_match_transaction(
                         match_id=match.id,
                         type="match_confirmed",
                         content=(
-                            f"對戰（{match.score_a}:{match.score_b}）因超過 {label} 未確認，"
+                            f"{brief} 對戰（{match.score_a}:{match.score_b}）因超過 {label} 未確認，"
                             f"已由系統自動完成結算（{my_delta:+.1f} ELO）。"
                         ),
                     )
@@ -244,7 +266,7 @@ def settle_match_transaction(
                         match_id=match.id,
                         type="match_confirmed",
                         content=(
-                            f"{confirmer_name} 已確認對戰賽果（{match.score_a}:{match.score_b}），"
+                            f"{confirmer_name} 已確認對戰賽果 {brief}（{match.score_a}:{match.score_b}），"
                             f"本場積分結算 {my_delta:+.1f} ELO。"
                         ),
                     )
@@ -326,6 +348,7 @@ def settle_matches_batch_transaction(
 
         for match in ordered_matches:
             settled = _settle_locked_match(session, match, locked_users)
+            brief = _format_match_brief(match, locked_users)
             my_delta = settled["delta_map"][current_user_id]
             current_user_total_delta += my_delta
 
@@ -343,7 +366,7 @@ def settle_matches_batch_transaction(
                             match_id=match.id,
                             type="match_confirmed",
                             content=(
-                                f"{confirmer_name} 已確認對戰賽果（{match.score_a}:{match.score_b}），"
+                                f"{confirmer_name} 已確認對戰賽果 {brief}（{match.score_a}:{match.score_b}），"
                                 f"本場積分結算 {p_delta:+.1f} ELO。"
                             ),
                         )
@@ -419,6 +442,10 @@ def dispute_match_transaction(
     if current_user.id not in involved_ids:
         raise ConfirmPermissionError("僅該場參賽選手可以提出異議")
 
+    involved_users = session.exec(select(User).where(User.id.in_(involved_ids))).all()
+    users_map: dict[UUID, User] = {u.id: u for u in involved_users}
+    brief = _format_match_brief(match, users_map)
+
     try:
         match.status = "disputed"
         session.add(match)
@@ -443,7 +470,7 @@ def dispute_match_transaction(
                     match_id=match.id,
                     type="match_disputed",
                     content=(
-                        f"{current_user.name} 對 {match.score_a}:{match.score_b} "
+                        f"{current_user.name} 對 {brief}（{match.score_a}:{match.score_b}）"
                         f"賽果提出異議（原因：{clean_reason}），自動結算已暫停，等待管理員裁決。"
                     ),
                 )
@@ -462,7 +489,7 @@ def dispute_match_transaction(
                     match_id=match.id,
                     type="match_disputed",
                     content=(
-                        f"【賽事申訴】{current_user.name} 對 {match.score_a}:{match.score_b} "
+                        f"【賽事申訴】{current_user.name} 對 {brief}（{match.score_a}:{match.score_b}）"
                         f"賽果提出異議（原因：{clean_reason}），請前往管理主控台裁決。"
                     ),
                 )
@@ -477,7 +504,7 @@ def dispute_match_transaction(
                     match_id=match.id,
                     type="match_disputed",
                     content=(
-                        f"【賽事申訴】{current_user.name} 對 {match.score_a}:{match.score_b} "
+                        f"【賽事申訴】{current_user.name} 對 {brief}（{match.score_a}:{match.score_b}）"
                         f"賽果提出異議（原因：{clean_reason}）。"
                     ),
                 )
@@ -564,6 +591,7 @@ def admin_force_settle_match(
 
         clean_reason = reason.strip() if reason else ""
         note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+        brief = _format_match_brief(match, locked_users)
         for uid in involved_ids:
             session.add(
                 Notification(
@@ -571,7 +599,7 @@ def admin_force_settle_match(
                     match_id=match.id,
                     type="match_confirmed",
                     content=(
-                        f"管理員 {admin_user.name} 已裁決確認對戰賽果（{match.score_a}:{match.score_b}）"
+                        f"管理員 {admin_user.name} 已裁決確認對戰賽果 {brief}（{match.score_a}:{match.score_b}）"
                         f"並完成積分結算{note_suffix}。"
                     ),
                 )
@@ -726,6 +754,7 @@ def admin_void_or_delete_match(
 
         clean_reason = reason.strip() if reason else ""
         reason_suffix = f"（原因：{clean_reason}）" if clean_reason else ""
+        brief = _format_match_brief(match, locked_users)
 
         for uid in involved_ids:
             if uid not in locked_users:
@@ -734,12 +763,12 @@ def admin_void_or_delete_match(
                 rb = rolled_back_deltas.get(uid, 0.0)
                 rb_str = f"{rb:+.1f}" if abs(rb) >= 0.05 else "0.0"
                 content = (
-                    f"管理員 {admin_user.name} 已撤銷一筆已結算對戰（{score_label}），"
-                    f"並回滾戰績與 ELO（{rb_str}）{reason_suffix}。"
+                    f"管理員 {admin_user.name} 已撤銷已結算對戰 {brief}（比分 {score_label}），"
+                    f"並回滾戰績與 ELO（{rb_str} ELO）{reason_suffix}。"
                 )
             else:
                 content = (
-                    f"管理員 {admin_user.name} 已駁回並移除一筆對戰報分（{score_label}）"
+                    f"管理員 {admin_user.name} 已駁回並移除對戰報分 {brief}（比分 {score_label}）"
                     f"{reason_suffix}。"
                 )
             session.add(
@@ -865,6 +894,7 @@ def admin_create_match(
 
         clean_reason = reason.strip() if reason else ""
         note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+        brief = _format_match_brief(new_match, locked_users)
 
         settled_delta = 0.0
         if auto_settle:
@@ -880,7 +910,7 @@ def admin_create_match(
                         match_id=new_match.id,
                         type="match_confirmed",
                         content=(
-                            f"管理員 {admin_user.name} 已代為補登對戰賽果（{score_a}:{score_b}）"
+                            f"管理員 {admin_user.name} 已代為補登對戰賽果 {brief}（{score_a}:{score_b}）"
                             f"並完成積分結算{note_suffix}。"
                         ),
                     )
@@ -894,7 +924,7 @@ def admin_create_match(
                         match_id=new_match.id,
                         type="pending_confirm",
                         content=(
-                            f"管理員 {admin_user.name} 代為補登了一筆 {score_a}:{score_b} 的比分，"
+                            f"管理員 {admin_user.name} 代為補登了 {brief}（{score_a}:{score_b}）的比分，"
                             f"請您確認{note_suffix}。"
                         ),
                     )
@@ -1072,6 +1102,7 @@ def admin_edit_settled_match(
 
         clean_reason = reason.strip() if reason else ""
         note_suffix = f"（備註：{clean_reason}）" if clean_reason else ""
+        brief = _format_match_brief(match, locked_users)
 
         for uid, net_diff in net_diffs.items():
             session.add(
@@ -1080,7 +1111,7 @@ def admin_edit_settled_match(
                     match_id=match.id,
                     type="match_confirmed",
                     content=(
-                        f"管理員 {admin_user.name} 已更正對戰比分（{old_score_label} → {score_a}:{score_b}）"
+                        f"管理員 {admin_user.name} 已更正對戰比分 {brief}（{old_score_label} → {score_a}:{score_b}）"
                         f"並重新計算積分（淨變動 {net_diff:+.1f} ELO）{note_suffix}。"
                     ),
                 )
@@ -1228,6 +1259,7 @@ def admin_batch_force_settle_matches(
                 )
                 if uid is not None
             ]
+            brief = _format_match_brief(m, locked_users)
             for uid in match_player_ids:
                 session.add(
                     Notification(
@@ -1235,7 +1267,7 @@ def admin_batch_force_settle_matches(
                         match_id=m.id,
                         type="match_confirmed",
                         content=(
-                            f"管理員 {admin_user.name} 已批次裁決確認對戰賽果"
+                            f"管理員 {admin_user.name} 已批次裁決確認對戰賽果 {brief}"
                             f"（{m.score_a}:{m.score_b}）並完成積分結算{note_suffix}。"
                         ),
                     )

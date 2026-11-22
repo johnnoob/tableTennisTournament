@@ -24,6 +24,7 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Crosshair,
   Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -41,12 +42,19 @@ export function MatchHistory() {
   const { data: user, isLoading: isAuthLoading } = useAuth();
 
   const rawScope = searchParams.get('scope');
+  const highlightMatchId = searchParams.get('matchId');
   const scope: 'mine' | 'all' =
     rawScope === 'all' ? 'all' : rawScope === 'mine' ? 'mine' : user ? 'mine' : 'all';
 
   const setScope = (nextScope: 'mine' | 'all') => {
     const next = new URLSearchParams(searchParams);
     next.set('scope', nextScope);
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearHighlightMatch = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('matchId');
     setSearchParams(next, { replace: true });
   };
 
@@ -309,6 +317,24 @@ export function MatchHistory() {
       ? `${filteredMatches.length}+`
       : filteredMatches.length;
 
+  const highlightMatchFound = Boolean(
+    highlightMatchId &&
+      filteredMatches.some((m) => String(m.id) === String(highlightMatchId)),
+  );
+  const allLoadedHasHighlight = Boolean(
+    highlightMatchId &&
+      allBaseQuery.data?.pages.some((page) =>
+        page.matches.some((m) => String(m.id) === String(highlightMatchId)),
+      ),
+  );
+
+  const resetAllFilters = () => {
+    setResultFilter('all');
+    setStatusFilter('all');
+    setMatchTypeFilter('all');
+    setSearchQuery('');
+  };
+
   const headerSubtitle =
     scope === 'mine'
       ? `Personal Match History · ${typeof myTotal === 'number' ? `共 ${displayedTotal} 場` : '與我相關'}`
@@ -533,6 +559,72 @@ export function MatchHistory() {
           </div>
 
           <section className="space-y-4">
+            {highlightMatchId && !isListLoading && (
+              <div
+                className={cn(
+                  'rounded-2xl border px-4 py-3 flex flex-wrap items-center justify-between gap-2.5 text-xs',
+                  highlightMatchFound
+                    ? 'bg-sapphire-blue/8 border-sapphire-blue/30 text-foreground dark:bg-blue-500/12 dark:border-blue-400/30'
+                    : 'bg-amber-50/80 border-amber-200/80 text-amber-900 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-200',
+                )}
+              >
+                <div className="flex items-center gap-2 min-w-0 font-bold">
+                  <Crosshair
+                    size={15}
+                    className={cn(
+                      'shrink-0',
+                      highlightMatchFound ? 'text-sapphire-blue dark:text-blue-300' : 'text-amber-600 dark:text-amber-300',
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    {highlightMatchFound
+                      ? `已自動展開並定位至通知場次 #${highlightMatchId.slice(0, 4)}`
+                      : `尚未在目前清單中找到通知場次 #${highlightMatchId.slice(0, 4)}`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap ml-auto">
+                  {!highlightMatchFound && hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={resetAllFilters}
+                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors"
+                    >
+                      清除篩選條件
+                    </button>
+                  )}
+                  {!highlightMatchFound && scope === 'mine' && allLoadedHasHighlight && (
+                    <button
+                      type="button"
+                      onClick={() => setScope('all')}
+                      className="h-7 px-2.5 rounded-lg bg-sapphire-blue text-white font-black hover:bg-blue-700 transition-colors"
+                    >
+                      切換至全部戰報
+                    </button>
+                  )}
+                  {!highlightMatchFound && hasMorePages && (
+                    <button
+                      type="button"
+                      disabled={isFetchingMore}
+                      onClick={() => handleLoadMore()}
+                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                    >
+                      {isFetchingMore ? '載入中...' : '載入更早對戰'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={clearHighlightMatch}
+                    className="h-7 px-2.5 rounded-lg bg-card/80 border border-border/80 font-bold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>清除定位</span>
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {scope === 'mine' && !isAuthLoading && !user ? (
               <div className="arena-surface p-8 sm:p-12 text-center space-y-4">
                 <div className="size-14 rounded-2xl bg-sapphire-blue/12 text-sapphire-blue flex items-center justify-center mx-auto">
@@ -594,7 +686,13 @@ export function MatchHistory() {
                 )}
 
                 {dateSections.map((dateSection) => {
-                  const isCollapsed = Boolean(collapsedDates[dateSection.key]);
+                  const containsHighlightedMatch = Boolean(
+                    highlightMatchId &&
+                      dateSection.items.some((m) => String(m.id) === String(highlightMatchId)),
+                  );
+                  const isCollapsed = containsHighlightedMatch
+                    ? false
+                    : Boolean(collapsedDates[dateSection.key]);
 
                   return (
                     <div key={dateSection.key} className="space-y-2">

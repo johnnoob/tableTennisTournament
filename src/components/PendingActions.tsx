@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +23,7 @@ import {
   ChevronDown,
   Check,
   CheckCheck,
+  Crosshair,
   Flag,
   X,
   ShieldAlert,
@@ -55,6 +57,14 @@ function invalidateMatchSettlementQueries(queryClient: QueryClient) {
 
 export function PendingActions() {
   const { data: currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const targetMatchId = searchParams.get('matchId');
+
+  const clearTargetHighlight = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('matchId');
+    setSearchParams(next, { replace: true });
+  };
 
   const { data: pendingMatches = [] } = useQuery({
     queryKey: ['matches', 'pending'],
@@ -77,10 +87,20 @@ export function PendingActions() {
   return (
     <div className="space-y-3 md:space-y-4 mb-2 md:mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
       {actionRequired.length > 0 && (
-        <ActionRequiredGroup matches={actionRequired} currentUserId={currentUser?.id} />
+        <ActionRequiredGroup
+          matches={actionRequired}
+          currentUserId={currentUser?.id}
+          targetMatchId={targetMatchId}
+          onClearHighlight={clearTargetHighlight}
+        />
       )}
       {waitingOnOthers.length > 0 && (
-        <WaitingOnOthersGroup matches={waitingOnOthers} currentUserId={currentUser?.id} />
+        <WaitingOnOthersGroup
+          matches={waitingOnOthers}
+          currentUserId={currentUser?.id}
+          targetMatchId={targetMatchId}
+          onClearHighlight={clearTargetHighlight}
+        />
       )}
     </div>
   );
@@ -90,11 +110,16 @@ export function PendingActions() {
 function ActionRequiredGroup({
   matches,
   currentUserId,
+  targetMatchId,
+  onClearHighlight,
 }: {
   matches: PendingMatch[];
   currentUserId?: string;
+  targetMatchId?: string | null;
+  onClearHighlight?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [dismissedHighlightId, setDismissedHighlightId] = useState<string | null>(null);
   const [batchAllOpen, setBatchAllOpen] = useState(false);
 
   const groups = useMemo(
@@ -102,7 +127,19 @@ function ActionRequiredGroup({
     [matches, currentUserId],
   );
 
-  const displayGroups = expanded ? groups : groups.slice(0, 3);
+  const hasHighlightedInHiddenGroups = Boolean(
+    targetMatchId &&
+      groups.slice(3).some((g) => g.matches.some((m) => String(m.id) === String(targetMatchId))),
+  );
+  const effectiveExpanded =
+    expanded ||
+    Boolean(
+      hasHighlightedInHiddenGroups &&
+        targetMatchId &&
+        dismissedHighlightId !== targetMatchId,
+    );
+
+  const displayGroups = effectiveExpanded ? groups : groups.slice(0, 3);
   const hasMore = groups.length > 3;
 
   return (
@@ -155,12 +192,16 @@ function ActionRequiredGroup({
               match={group.matches[0]}
               group={group}
               currentUserId={currentUserId}
+              targetMatchId={targetMatchId}
+              onClearHighlight={onClearHighlight}
             />
           ) : (
             <GroupedActionMatchCard
               key={group.key}
               group={group}
               currentUserId={currentUserId}
+              targetMatchId={targetMatchId}
+              onClearHighlight={onClearHighlight}
             />
           ),
         )}
@@ -169,10 +210,19 @@ function ActionRequiredGroup({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => {
+              if (effectiveExpanded) {
+                setExpanded(false);
+                if (hasHighlightedInHiddenGroups && targetMatchId) {
+                  setDismissedHighlightId(targetMatchId);
+                }
+              } else {
+                setExpanded(true);
+              }
+            }}
             className="w-full text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-500/15 text-xs font-black uppercase tracking-widest mt-1"
           >
-            {expanded ? '折疊顯示' : `查看其餘 ${groups.length - 3} 組對戰`}
+            {effectiveExpanded ? '折疊顯示' : `查看其餘 ${groups.length - 3} 組對戰`}
           </Button>
         )}
       </div>
@@ -185,13 +235,29 @@ function SingleActionMatchCard({
   match,
   group,
   currentUserId,
+  targetMatchId,
+  onClearHighlight,
 }: {
   match: PendingMatch;
   group: MatchupGroup;
   currentUserId?: string;
+  targetMatchId?: string | null;
+  onClearHighlight?: () => void;
 }) {
   const queryClient = useQueryClient();
   const info = getMatchPerspective(match, 'confirm', currentUserId);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const isHighlighted = Boolean(
+    targetMatchId && String(match.id) === String(targetMatchId),
+  );
+
+  useEffect(() => {
+    if (!isHighlighted || !cardRef.current) return;
+    const timer = window.setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [isHighlighted]);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -320,8 +386,22 @@ function SingleActionMatchCard({
   );
 
   return (
-    <div className="bg-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 border border-rose-200/70 dark:border-rose-500/30 shadow-xs relative overflow-hidden group">
-      <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-400 group-hover:bg-rose-500 transition-colors" />
+    <div
+      id={`pending-match-${match.id}`}
+      ref={cardRef}
+      className={cn(
+        'bg-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 border shadow-xs relative overflow-hidden group transition-all',
+        isHighlighted
+          ? 'border-sapphire-blue ring-2 ring-sapphire-blue/60 dark:ring-blue-400/60 shadow-md bg-sapphire-blue/[0.03]'
+          : 'border-rose-200/70 dark:border-rose-500/30',
+      )}
+    >
+      <div
+        className={cn(
+          'absolute top-0 bottom-0 left-0 w-1 transition-colors',
+          isHighlighted ? 'bg-sapphire-blue' : 'bg-rose-400 group-hover:bg-rose-500',
+        )}
+      />
 
       {/* Rival & Score Info */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -336,6 +416,22 @@ function SingleActionMatchCard({
           ))}
         </div>
         <div className="flex-1 min-w-0">
+          {isHighlighted && (
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 mb-1.5 rounded-full bg-sapphire-blue text-white text-[11px] font-black leading-none">
+              <Crosshair size={11} aria-hidden="true" />
+              <span>通知指定待確認場次 · #{String(match.id).slice(0, 4)}</span>
+              {onClearHighlight && (
+                <button
+                  type="button"
+                  onClick={onClearHighlight}
+                  aria-label="清除通知定位"
+                  className="ml-0.5 hover:opacity-80"
+                >
+                  <X size={11} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="font-sans font-black text-foreground truncate text-sm md:text-base tracking-tight">
               對手：{formatTeamNames(group.rivalTeam)}
@@ -490,14 +586,43 @@ function SingleActionMatchCard({
 function GroupedActionMatchCard({
   group,
   currentUserId,
+  targetMatchId,
+  onClearHighlight,
 }: {
   group: MatchupGroup;
   currentUserId?: string;
+  targetMatchId?: string | null;
+  onClearHighlight?: () => void;
 }) {
   const [excludedIds, setExcludedIds] = useState<Record<string, boolean>>({});
   const [showAllRows, setShowAllRows] = useState(false);
+  const [dismissedHighlightId, setDismissedHighlightId] = useState<string | null>(null);
   const [disputeMatch, setDisputeMatch] = useState<PendingMatch | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const containsHighlighted = Boolean(
+    targetMatchId && group.matches.some((m) => String(m.id) === String(targetMatchId)),
+  );
+  const hasHighlightedInHiddenRows = Boolean(
+    targetMatchId &&
+      group.matches.slice(5).some((m) => String(m.id) === String(targetMatchId)),
+  );
+  const effectiveShowAllRows =
+    showAllRows ||
+    Boolean(
+      hasHighlightedInHiddenRows &&
+        targetMatchId &&
+        dismissedHighlightId !== targetMatchId,
+    );
+
+  useEffect(() => {
+    if (!containsHighlighted || !targetMatchId || !effectiveShowAllRows) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`pending-match-${targetMatchId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [containsHighlighted, targetMatchId, effectiveShowAllRows]);
 
   const selectedMatches = useMemo(
     () => group.matches.filter((m) => !excludedIds[m.id]),
@@ -516,12 +641,24 @@ function GroupedActionMatchCard({
     setExcludedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const visibleMatches = showAllRows ? group.matches : group.matches.slice(0, 5);
+  const visibleMatches = effectiveShowAllRows ? group.matches : group.matches.slice(0, 5);
   const allSelected = selectedMatches.length === group.matches.length;
 
   return (
-    <div className="bg-card rounded-2xl border border-rose-200/70 dark:border-rose-500/30 shadow-xs relative overflow-hidden">
-      <div className="absolute top-0 bottom-0 left-0 w-1 bg-rose-400" />
+    <div
+      className={cn(
+        'bg-card rounded-2xl border shadow-xs relative overflow-hidden transition-all',
+        containsHighlighted
+          ? 'border-sapphire-blue ring-2 ring-sapphire-blue/50 dark:ring-blue-400/50'
+          : 'border-rose-200/70 dark:border-rose-500/30',
+      )}
+    >
+      <div
+        className={cn(
+          'absolute top-0 bottom-0 left-0 w-1',
+          containsHighlighted ? 'bg-sapphire-blue' : 'bg-rose-400',
+        )}
+      />
 
       {/* Matchup Header */}
       <div className="p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -587,15 +724,21 @@ function GroupedActionMatchCard({
         {visibleMatches.map((m, idx) => {
           const info = getMatchPerspective(m, 'confirm', currentUserId);
           const isSelected = !excludedIds[m.id];
+          const isRowHighlighted = Boolean(
+            targetMatchId && String(m.id) === String(targetMatchId),
+          );
 
           return (
             <div
               key={m.id}
+              id={`pending-match-${m.id}`}
               className={cn(
-                'flex items-center justify-between gap-2 rounded-xl border px-3 py-2 transition-colors',
-                isSelected
-                  ? 'bg-surface-subtle/70 border-border/80'
-                  : 'bg-background/50 border-border/40 opacity-55',
+                'flex items-center justify-between gap-2 rounded-xl border px-3 py-2 transition-all',
+                isRowHighlighted
+                  ? 'ring-2 ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/10 dark:bg-blue-500/20 border-sapphire-blue/50'
+                  : isSelected
+                    ? 'bg-surface-subtle/70 border-border/80'
+                    : 'bg-background/50 border-border/40 opacity-55',
               )}
             >
               <button
@@ -635,9 +778,26 @@ function GroupedActionMatchCard({
                 <span className="hidden sm:inline text-xs font-bold text-muted-foreground tabular-nums">
                   {formatLocalTime(m.date, 'HH:mm')}
                 </span>
+                {isRowHighlighted && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue text-white text-[10px] font-black leading-none shrink-0">
+                    <Crosshair size={10} aria-hidden="true" />
+                    通知指定
+                  </span>
+                )}
               </button>
 
               <div className="flex items-center gap-2 shrink-0">
+                {isRowHighlighted && onClearHighlight && (
+                  <button
+                    type="button"
+                    onClick={onClearHighlight}
+                    aria-label="清除通知定位"
+                    title="清除通知定位"
+                    className="size-6 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                )}
                 <span
                   className={cn(
                     'text-xs font-display font-black tabular-nums',
@@ -668,10 +828,19 @@ function GroupedActionMatchCard({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setShowAllRows(!showAllRows)}
+            onClick={() => {
+              if (effectiveShowAllRows) {
+                setShowAllRows(false);
+                if (hasHighlightedInHiddenRows && targetMatchId) {
+                  setDismissedHighlightId(targetMatchId);
+                }
+              } else {
+                setShowAllRows(true);
+              }
+            }}
             className="w-full h-8 text-xs font-black text-muted-foreground hover:text-foreground"
           >
-            {showAllRows ? '收合部分場次' : `展開其餘 ${group.matches.length - 5} 場`}
+            {effectiveShowAllRows ? '收合部分場次' : `展開其餘 ${group.matches.length - 5} 場`}
           </Button>
         )}
       </div>
@@ -1080,13 +1249,38 @@ function DisputeMatchModal({
 function WaitingOnOthersGroup({
   matches,
   currentUserId,
+  targetMatchId,
+  onClearHighlight,
 }: {
   matches: PendingMatch[];
   currentUserId?: string;
+  targetMatchId?: string | null;
+  onClearHighlight?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dismissedHighlightId, setDismissedHighlightId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const containsHighlighted = Boolean(
+    targetMatchId && matches.some((m) => String(m.id) === String(targetMatchId)),
+  );
+  const effectiveOpen =
+    isOpen ||
+    Boolean(
+      containsHighlighted &&
+        targetMatchId &&
+        dismissedHighlightId !== targetMatchId,
+    );
+
+  useEffect(() => {
+    if (!containsHighlighted || !targetMatchId || !effectiveOpen) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`pending-match-${targetMatchId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [containsHighlighted, targetMatchId, effectiveOpen]);
 
   const groups = useMemo(
     () => groupPendingMatches(matches, 'waiting', currentUserId),
@@ -1121,8 +1315,17 @@ function WaitingOnOthersGroup({
     <div className="bg-surface-subtle/80 border border-border rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300">
       <button
         type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={effectiveOpen}
+        onClick={() => {
+          if (effectiveOpen) {
+            setIsOpen(false);
+            if (containsHighlighted && targetMatchId) {
+              setDismissedHighlightId(targetMatchId);
+            }
+          } else {
+            setIsOpen(true);
+          }
+        }}
         className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sapphire-blue/25"
       >
         <div className="flex items-center gap-3 flex-wrap">
@@ -1138,18 +1341,24 @@ function WaitingOnOthersGroup({
               {groups.length} 組對戰
             </span>
           )}
+          {containsHighlighted && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sapphire-blue text-white text-[10px] font-black leading-none">
+              <Crosshair size={10} aria-hidden="true" />
+              含通知場次
+            </span>
+          )}
         </div>
         <ChevronDown
           size={20}
           aria-hidden="true"
-          className={cn('text-muted-foreground transition-transform duration-300 shrink-0', isOpen && 'rotate-180')}
+          className={cn('text-muted-foreground transition-transform duration-300 shrink-0', effectiveOpen && 'rotate-180')}
         />
       </button>
 
       <div
         className={cn(
           'grid transition-all duration-300 ease-in-out',
-          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+          effectiveOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
         )}
       >
         <div className="overflow-hidden">
@@ -1160,12 +1369,19 @@ function WaitingOnOthersGroup({
                 const info = getMatchPerspective(match, 'waiting', currentUserId);
                 const isDeleting = deletingId === match.id;
                 const canManage = !currentUserId || match.submittedBy === currentUserId;
+                const isRowHighlighted = Boolean(
+                  targetMatchId && String(match.id) === String(targetMatchId),
+                );
 
                 return (
                   <div
                     key={group.key}
+                    id={`pending-match-${match.id}`}
                     className={cn(
-                      'bg-card rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border border-border gap-3 transition-all',
+                      'bg-card rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs border gap-3 transition-all',
+                      isRowHighlighted
+                        ? 'border-sapphire-blue ring-2 ring-sapphire-blue/60 bg-sapphire-blue/[0.04]'
+                        : 'border-border',
                       isDeleting && 'opacity-40 pointer-events-none',
                     )}
                   >
@@ -1181,7 +1397,7 @@ function WaitingOnOthersGroup({
                         ))}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <span className="text-xs md:text-sm font-bold text-foreground truncate">
                             {formatTeamNames(group.rivalTeam)}
                           </span>
@@ -1198,6 +1414,22 @@ function WaitingOnOthersGroup({
                           <span className="text-sm font-display font-black text-foreground tabular-nums ml-1 shrink-0">
                             {info.myScore} : {info.rivalScore}
                           </span>
+                          {isRowHighlighted && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue text-white text-[10px] font-black leading-none shrink-0">
+                              <Crosshair size={10} aria-hidden="true" />
+                              通知指定
+                              {onClearHighlight && (
+                                <button
+                                  type="button"
+                                  onClick={onClearHighlight}
+                                  aria-label="清除通知定位"
+                                  className="ml-0.5 hover:opacity-80"
+                                >
+                                  <X size={10} aria-hidden="true" />
+                                </button>
+                              )}
+                            </span>
+                          )}
                         </div>
                         {group.type === 'doubles' && group.partner && (
                           <span className="text-[11px] font-bold text-muted-foreground block truncate">
@@ -1281,16 +1513,22 @@ function WaitingOnOthersGroup({
                       const info = getMatchPerspective(match, 'waiting', currentUserId);
                       const isDeleting = deletingId === match.id;
                       const canManage = !currentUserId || match.submittedBy === currentUserId;
+                      const isRowHighlighted = Boolean(
+                        targetMatchId && String(match.id) === String(targetMatchId),
+                      );
 
                       return (
                         <div
                           key={match.id}
+                          id={`pending-match-${match.id}`}
                           className={cn(
-                            'py-1.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 transition-opacity',
+                            'py-1.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 transition-all rounded-xl',
+                            isRowHighlighted &&
+                              'ring-2 ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/10 dark:bg-blue-500/20 px-2 my-1',
                             isDeleting && 'opacity-40 pointer-events-none',
                           )}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                             <span className="w-6 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
                               #{idx + 1}
                             </span>
@@ -1310,6 +1548,22 @@ function WaitingOnOthersGroup({
                             <span className="text-xs font-bold text-muted-foreground tabular-nums">
                               {formatLocalTime(match.date, 'HH:mm')}
                             </span>
+                            {isRowHighlighted && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sapphire-blue text-white text-[10px] font-black leading-none shrink-0">
+                                <Crosshair size={10} aria-hidden="true" />
+                                通知指定
+                                {onClearHighlight && (
+                                  <button
+                                    type="button"
+                                    onClick={onClearHighlight}
+                                    aria-label="清除通知定位"
+                                    className="ml-0.5 hover:opacity-80"
+                                  >
+                                    <X size={10} aria-hidden="true" />
+                                  </button>
+                                )}
+                              </span>
+                            )}
                           </div>
 
                           {canManage ? (

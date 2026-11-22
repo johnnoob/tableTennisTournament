@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronDown, Layers } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Crosshair, Layers, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ interface MatchItemProps {
   match: MatchData;
   variant?: 'feed' | 'personal';
   timeDisplay?: 'smart' | 'clock';
+  enableDeepLinkFocus?: boolean;
 }
 
 function formatDelta(val: number): string {
@@ -168,14 +169,67 @@ function TeamNames({
   );
 }
 
+function HighlightFocusBanner({
+  shortId,
+  label = '通知定位場次',
+  onClear,
+}: {
+  shortId: string;
+  label?: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="bg-sapphire-blue/10 dark:bg-blue-500/18 border-b border-sapphire-blue/25 px-3.5 py-1.5 flex items-center justify-between gap-2 text-xs">
+      <div className="flex items-center gap-1.5 font-black text-sapphire-blue dark:text-blue-300 min-w-0">
+        <Crosshair size={13} className="shrink-0 animate-pulse" aria-hidden="true" />
+        <span className="truncate">
+          {label} · #{shortId}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClear();
+        }}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-card/90 hover:bg-card border border-border/80 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors shrink-0"
+      >
+        <span>清除定位</span>
+        <X size={11} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export function MatchItem({
   match,
   variant = 'feed',
   timeDisplay = 'smart',
+  enableDeepLinkFocus = true,
 }: Readonly<MatchItemProps>) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const highlightMatchId = enableDeepLinkFocus ? searchParams.get('matchId') : null;
+  const isHighlighted = Boolean(
+    highlightMatchId && String(match.id) === String(highlightMatchId),
+  );
+
+  const clearHighlight = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('matchId');
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!isHighlighted || !rootRef.current) return;
+    const timer = window.setTimeout(() => {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 140);
+    return () => window.clearTimeout(timer);
+  }, [isHighlighted]);
 
   const openInspect = (playerId?: string) => {
     if (!playerId) return;
@@ -253,7 +307,21 @@ export function MatchItem({
     ) : null;
 
     return (
-      <div className="transition-colors hover:bg-surface-subtle/60 group">
+      <div
+        id={`match-${match.id}`}
+        ref={rootRef}
+        className={cn(
+          'transition-all hover:bg-surface-subtle/60 group',
+          isHighlighted &&
+            'ring-2 ring-inset ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/[0.06] dark:bg-blue-500/[0.12] relative z-[1]',
+        )}
+      >
+        {isHighlighted && (
+          <HighlightFocusBanner
+            shortId={String(match.id).slice(0, 4)}
+            onClear={clearHighlight}
+          />
+        )}
         {/* Desktop: Unified 3-Column Alignment matching MatchSeriesItem */}
         <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-3.5">
           {/* Left Meta */}
@@ -540,10 +608,25 @@ export function MatchItem({
   );
 
   return (
-    <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch">
+    <div
+      id={`match-${match.id}`}
+      ref={rootRef}
+      className={cn(
+        'rounded-2xl bg-card border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch',
+        isHighlighted
+          ? 'border-sapphire-blue ring-2 ring-sapphire-blue/60 dark:ring-blue-400/60 shadow-md'
+          : 'border-border',
+      )}
+    >
       <div className={cn('w-1.5 shrink-0', railClass)} aria-hidden="true" />
 
       <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
+        {isHighlighted && (
+          <HighlightFocusBanner
+            shortId={String(match.id).slice(0, 4)}
+            onClear={clearHighlight}
+          />
+        )}
         {/* Desktop / Tablet Single Row */}
         <div className="hidden sm:flex items-center justify-between gap-3.5 md:gap-4 px-4 py-3.5">
           {/* 1. Result + ELO Column */}
@@ -743,15 +826,58 @@ export function MatchSeriesItem({
   cluster,
   variant = 'feed',
   timeDisplay = 'smart',
+  enableDeepLinkFocus = true,
 }: Readonly<{
   cluster: MatchSeriesCluster;
   variant?: 'feed' | 'personal';
   timeDisplay?: 'smart' | 'clock';
+  enableDeepLinkFocus?: boolean;
 }>) {
-  const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
+
+  const highlightMatchId = enableDeepLinkFocus ? searchParams.get('matchId') : null;
+  const containsHighlightedMatch = Boolean(
+    highlightMatchId &&
+      cluster.matches.some((m) => String(m.id) === String(highlightMatchId)),
+  );
+
+  const [manualExpanded, setManualExpanded] = useState(false);
+  const [dismissedHighlightId, setDismissedHighlightId] = useState<string | null>(null);
+
+  const isAutoExpanded = Boolean(
+    containsHighlightedMatch &&
+      highlightMatchId &&
+      dismissedHighlightId !== highlightMatchId,
+  );
+  const expanded = manualExpanded || isAutoExpanded;
+
+  const handleToggleExpanded = () => {
+    if (expanded) {
+      setManualExpanded(false);
+      if (containsHighlightedMatch && highlightMatchId) {
+        setDismissedHighlightId(highlightMatchId);
+      }
+    } else {
+      setManualExpanded(true);
+    }
+  };
+
+  const clearHighlight = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('matchId');
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!containsHighlightedMatch || !highlightMatchId || !expanded) return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`match-${highlightMatchId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [containsHighlightedMatch, highlightMatchId, expanded]);
 
   if (cluster.matches.length === 1) {
     return (
@@ -759,6 +885,7 @@ export function MatchSeriesItem({
         match={cluster.matches[0]}
         variant={variant}
         timeDisplay={timeDisplay}
+        enableDeepLinkFocus={enableDeepLinkFocus}
       />
     );
   }
@@ -806,9 +933,15 @@ export function MatchSeriesItem({
     const t2Lead = cluster.team2Wins > cluster.team1Wins;
 
     return (
-      <div className="transition-colors">
+      <div
+        className={cn(
+          'transition-colors',
+          containsHighlightedMatch &&
+            'ring-2 ring-inset ring-sapphire-blue/60 dark:ring-blue-400/60 bg-sapphire-blue/[0.02]',
+        )}
+      >
         <div
-          onClick={() => setExpanded((prev) => !prev)}
+          onClick={handleToggleExpanded}
           className="hover:bg-surface-subtle/60 cursor-pointer"
         >
           {/* Desktop: Unified 3-column grid matching MatchItem and expanded game rows */}
@@ -832,6 +965,12 @@ export function MatchSeriesItem({
                   <Layers size={11} aria-hidden="true" />
                   連打 {cluster.matches.length} 場
                 </span>
+                {containsHighlightedMatch && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue text-white text-[11px] font-black leading-none whitespace-nowrap">
+                    <Crosshair size={10} aria-hidden="true" />
+                    含通知場次
+                  </span>
+                )}
               </div>
             </div>
 
@@ -920,20 +1059,27 @@ export function MatchSeriesItem({
               {/* Chronological Mini Score Pills (hidden when expanded to avoid duplicate scores) */}
               {!expanded && (
                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                  {cluster.games.map((g) => (
-                    <span
-                      key={g.match.id}
-                      className={cn(
-                        'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                        g.isPending
-                          ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                          : 'bg-surface-subtle border-border/70 text-foreground/85',
-                      )}
-                    >
-                      <span className="text-muted-foreground mr-1">#{g.index}</span>
-                      {g.team1Score}:{g.team2Score}
-                    </span>
-                  ))}
+                  {cluster.games.map((g) => {
+                    const isGameHighlighted = Boolean(
+                      highlightMatchId && String(g.match.id) === String(highlightMatchId),
+                    );
+                    return (
+                      <span
+                        key={g.match.id}
+                        className={cn(
+                          'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
+                          isGameHighlighted
+                            ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300 ring-2 ring-sapphire-blue/40'
+                            : g.isPending
+                              ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                              : 'bg-surface-subtle border-border/70 text-foreground/85',
+                        )}
+                      >
+                        <span className="text-muted-foreground mr-1">#{g.index}</span>
+                        {g.team1Score}:{g.team2Score}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -950,7 +1096,7 @@ export function MatchSeriesItem({
                 aria-expanded={expanded}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((prev) => !prev);
+                  handleToggleExpanded();
                 }}
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
               >
@@ -984,6 +1130,12 @@ export function MatchSeriesItem({
                 <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                   · {displayTime}
                 </span>
+                {containsHighlightedMatch && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black leading-none whitespace-nowrap">
+                    <Crosshair size={10} aria-hidden="true" />
+                    通知場次
+                  </span>
+                )}
               </div>
 
               <button
@@ -991,7 +1143,7 @@ export function MatchSeriesItem({
                 aria-expanded={expanded}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((prev) => !prev);
+                  handleToggleExpanded();
                 }}
                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
               >
@@ -1094,20 +1246,27 @@ export function MatchSeriesItem({
 
             {!expanded && (
               <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                {cluster.games.map((g) => (
-                  <span
-                    key={g.match.id}
-                    className={cn(
-                      'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                      g.isPending
-                        ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                        : 'bg-surface-subtle border-border/70 text-foreground/85',
-                    )}
-                  >
-                    <span className="text-muted-foreground mr-1">#{g.index}</span>
-                    {g.team1Score}:{g.team2Score}
-                  </span>
-                ))}
+                {cluster.games.map((g) => {
+                  const isGameHighlighted = Boolean(
+                    highlightMatchId && String(g.match.id) === String(highlightMatchId),
+                  );
+                  return (
+                    <span
+                      key={g.match.id}
+                      className={cn(
+                        'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
+                        isGameHighlighted
+                          ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300 ring-2 ring-sapphire-blue/40'
+                          : g.isPending
+                            ? 'bg-amber-50/70 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                            : 'bg-surface-subtle border-border/70 text-foreground/85',
+                      )}
+                    >
+                      <span className="text-muted-foreground mr-1">#{g.index}</span>
+                      {g.team1Score}:{g.team2Score}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1123,9 +1282,26 @@ export function MatchSeriesItem({
               const leadName = winPlayers[0]?.name?.split(' ')[0] || (g.team1Won ? '左隊' : '右隊');
               const winnerLabel = winPlayers.length > 1 ? `${leadName} 等` : leadName;
               const winnerDelta = g.team1Won ? g.team1Delta : g.team2Delta;
+              const isGameHighlighted = Boolean(
+                highlightMatchId && String(g.match.id) === String(highlightMatchId),
+              );
 
               return (
-                <div key={g.match.id}>
+                <div
+                  key={g.match.id}
+                  id={`match-${g.match.id}`}
+                  className={cn(
+                    isGameHighlighted &&
+                      'ring-2 ring-inset ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/[0.08] dark:bg-blue-500/[0.16]',
+                  )}
+                >
+                  {isGameHighlighted && (
+                    <HighlightFocusBanner
+                      shortId={String(g.match.id).slice(0, 4)}
+                      label={`連打第 ${g.index} 場 · 通知指定場次`}
+                      onClear={clearHighlight}
+                    />
+                  )}
                   {/* Desktop: Score strictly aligned under center matchup column */}
                   <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-2.5">
                     <div className="flex items-center gap-2 min-w-0">
@@ -1329,12 +1505,19 @@ export function MatchSeriesItem({
   );
 
   return (
-    <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch">
+    <div
+      className={cn(
+        'rounded-2xl bg-card border overflow-hidden shadow-xs hover:shadow-sm transition-all flex items-stretch',
+        containsHighlightedMatch
+          ? 'border-sapphire-blue ring-2 ring-sapphire-blue/60 dark:ring-blue-400/60 shadow-md'
+          : 'border-border',
+      )}
+    >
       <div className={cn('w-1.5 shrink-0', railClass)} aria-hidden="true" />
 
       <div className={cn('flex-1 min-w-0', surfaceWashClass)}>
         <div
-          onClick={() => setExpanded((prev) => !prev)}
+          onClick={handleToggleExpanded}
           className="cursor-pointer"
         >
           {/* Desktop Personal Series Header */}
@@ -1409,17 +1592,22 @@ export function MatchSeriesItem({
                       const myScore = useT1AsMe ? g.team1Score : g.team2Score;
                       const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
                       const won = myScore > oppScore;
+                      const isGameHighlighted = Boolean(
+                        highlightMatchId && String(g.match.id) === String(highlightMatchId),
+                      );
 
                       return (
                         <span
                           key={g.match.id}
                           className={cn(
                             'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                            g.isPending
-                              ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                              : won
-                                ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
-                                : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
+                            isGameHighlighted
+                              ? 'bg-sapphire-blue/15 border-sapphire-blue text-sapphire-blue dark:text-blue-300 ring-2 ring-sapphire-blue/40'
+                              : g.isPending
+                                ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                                : won
+                                  ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
+                                  : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
                           )}
                         >
                           <span className="opacity-65 mr-1">#{g.index}</span>
@@ -1441,7 +1629,7 @@ export function MatchSeriesItem({
                 aria-expanded={expanded}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((prev) => !prev);
+                  handleToggleExpanded();
                 }}
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
               >
@@ -1472,6 +1660,12 @@ export function MatchSeriesItem({
                   <Layers size={11} aria-hidden="true" />
                   連打 {cluster.matches.length} 場
                 </span>
+                {containsHighlightedMatch && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue text-white text-[11px] font-black leading-none whitespace-nowrap">
+                    <Crosshair size={10} aria-hidden="true" />
+                    含通知場次
+                  </span>
+                )}
               </div>
 
               <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap shrink-0">
@@ -1521,7 +1715,7 @@ export function MatchSeriesItem({
                 aria-expanded={expanded}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((prev) => !prev);
+                  handleToggleExpanded();
                 }}
                 className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
               >
@@ -1540,17 +1734,22 @@ export function MatchSeriesItem({
                   const myScore = useT1AsMe ? g.team1Score : g.team2Score;
                   const oppScore = useT1AsMe ? g.team2Score : g.team1Score;
                   const won = myScore > oppScore;
+                  const isGameHighlighted = Boolean(
+                    highlightMatchId && String(g.match.id) === String(highlightMatchId),
+                  );
 
                   return (
                     <span
                       key={g.match.id}
                       className={cn(
                         'px-2.5 py-0.5 rounded-lg border text-xs font-display font-black tabular-nums whitespace-nowrap',
-                        g.isPending
-                          ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
-                          : won
-                            ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
-                            : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
+                        isGameHighlighted
+                          ? 'bg-sapphire-blue/15 border-sapphire-blue text-sapphire-blue dark:text-blue-300 ring-2 ring-sapphire-blue/40'
+                          : g.isPending
+                            ? 'bg-amber-50/80 border-amber-200/80 text-amber-700 dark:bg-amber-500/12 dark:border-amber-500/30 dark:text-amber-300'
+                            : won
+                              ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/12 dark:border-emerald-500/30 dark:text-emerald-300'
+                              : 'bg-rose-50/80 border-rose-200/80 text-rose-600 dark:bg-rose-500/12 dark:border-rose-500/30 dark:text-rose-300',
                       )}
                     >
                       <span className="opacity-65 mr-1">#{g.index}</span>
@@ -1573,6 +1772,9 @@ export function MatchSeriesItem({
               const gameDelta = useT1AsMe ? g.team1Delta : g.team2Delta;
               const gameClock = formatMatchClock(g.match.date || g.match.created_at);
               const gameFormat = inferMatchFormat(myGameScore, oppGameScore);
+              const isGameHighlighted = Boolean(
+                highlightMatchId && String(g.match.id) === String(highlightMatchId),
+              );
 
               const dotColor = g.isPending
                 ? 'bg-amber-400'
@@ -1585,8 +1787,20 @@ export function MatchSeriesItem({
               return (
                 <div
                   key={g.match.id}
-                  className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4"
+                  id={`match-${g.match.id}`}
+                  className={cn(
+                    isGameHighlighted &&
+                      'ring-2 ring-inset ring-sapphire-blue dark:ring-blue-400 bg-sapphire-blue/[0.08] dark:bg-blue-500/[0.16]',
+                  )}
                 >
+                  {isGameHighlighted && (
+                    <HighlightFocusBanner
+                      shortId={String(g.match.id).slice(0, 4)}
+                      label={`連打第 ${g.index} 場 · 通知指定場次`}
+                      onClear={clearHighlight}
+                    />
+                  )}
+                  <div className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2.5 sm:gap-4">
                   <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
                     <span className="w-8 text-center py-0.5 rounded-md bg-surface-subtle border border-border/70 text-xs font-display font-black text-muted-foreground tabular-nums shrink-0">
                       #{g.index}
@@ -1668,6 +1882,7 @@ export function MatchSeriesItem({
                       </span>
                     )}
                   </div>
+                </div>
                 </div>
               );
             })}
