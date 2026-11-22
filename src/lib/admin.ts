@@ -165,6 +165,30 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  getTestImpersonationStatus: () =>
+    adminFetch<{ enabled: boolean }>("/test-impersonation/status"),
+  createTestAccount: (data?: { name?: string; department?: string; global_mmr?: number }) =>
+    adminFetch<{
+      message: string;
+      user: {
+        id: string;
+        name: string;
+        department?: string | null;
+        global_mmr: number;
+        auth_provider: string;
+      };
+    }>("/users/test-account", {
+      method: "POST",
+      body: JSON.stringify(data ?? {}),
+    }),
+  impersonateTestUser: (userId: string) =>
+    adminFetch<{
+      message: string;
+      target_id: string;
+      target_name: string;
+    }>(`/impersonate/${userId}`, {
+      method: "POST",
+    }),
 
   // Phase 4: Match Arbitration, Proxy Reporting & Rollback
   getMatches: (params?: {

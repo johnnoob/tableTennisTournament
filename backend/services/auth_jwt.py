@@ -1,5 +1,6 @@
 import jwt
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 from fastapi import Depends, HTTPException, status, Cookie
 from sqlmodel import Session
 from uuid import UUID
@@ -12,6 +13,22 @@ SECRET_KEY = settings.jwt_secret_key
 ALGORITHM = settings.jwt_algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
+IMPERSONATOR_TOKEN_EXPIRE_HOURS = 12
+IMPERSONATOR_COOKIE_NAME = "impersonator_token"
+
+
+def resolve_cookie_samesite() -> str:
+    if not settings.is_production:
+        return "lax"
+    frontend_host = urlparse(settings.effective_frontend_url).hostname
+    backend_host = urlparse(settings.effective_backend_url).hostname
+    if frontend_host and backend_host and frontend_host == backend_host:
+        return "lax"
+    return "none"
+
+
+COOKIE_SAMESITE = resolve_cookie_samesite()
+COOKIE_SECURE = settings.is_production
 
 # 移除 HTTPBearer，改用 Cookie
 # security = HTTPBearer()
@@ -30,6 +47,7 @@ def create_access_token(user_id: UUID) -> str:
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 def create_refresh_token(user_id: UUID) -> str:
     """發行長效型 Refresh Token (7 天)"""
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -42,6 +60,49 @@ def create_refresh_token(user_id: UUID) -> str:
     
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def create_impersonator_token(admin_id: UUID, target_user_id: UUID) -> str:
+    """發行短期管理員模擬測試憑證，用於安全切回原管理員帳號"""
+    expire = datetime.utcnow() + timedelta(hours=IMPERSONATOR_TOKEN_EXPIRE_HOURS)
+    to_encode = {
+        "sub": str(admin_id),
+        "target": str(target_user_id),
+        "exp": expire,
+        "type": "impersonator",
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def resolve_impersonator_admin(
+    impersonator_token: str | None,
+    expected_target_id: UUID | None,
+    session: Session,
+) -> User | None:
+    """驗證模擬憑證並回傳原管理員 User；無效或非管理員則回傳 None。"""
+    if not impersonator_token:
+        return None
+    try:
+        payload = jwt.decode(impersonator_token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        return None
+
+    if payload.get("type") != "impersonator":
+        return None
+    if expected_target_id is not None and payload.get("target") != str(expected_target_id):
+        return None
+
+    admin_id_str = payload.get("sub")
+    if not admin_id_str:
+        return None
+    try:
+        admin = session.get(User, UUID(str(admin_id_str)))
+    except ValueError:
+        return None
+
+    if admin is None or not admin.is_active or admin.role != "admin":
+        return None
+    return admin
 
 def get_current_user(
     auth_token: str = Cookie(None), # 🌟 直接從 Cookie 讀取 auth_token

@@ -18,11 +18,15 @@ from models import User
 from services.auth_jwt import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    IMPERSONATOR_COOKIE_NAME,
     REFRESH_TOKEN_EXPIRE_DAYS,
     SECRET_KEY,
     create_access_token,
     create_refresh_token,
     get_current_user,
+    resolve_impersonator_admin,
 )
 
 router = APIRouter(tags=["Auth"])
@@ -49,47 +53,6 @@ def _normalize_origin(origin: str) -> tuple[str, str]:
     return (parsed.scheme.lower(), parsed.netloc.lower())
 
 
-def _resolve_cookie_samesite() -> str:
-    if not settings.is_production:
-        return "lax"
-    frontend_host = urlparse(settings.effective_frontend_url).hostname
-    backend_host = urlparse(settings.effective_backend_url).hostname
-    if frontend_host and backend_host and frontend_host == backend_host:
-        return "lax"
-    return "none"
-
-
-COOKIE_SAMESITE = _resolve_cookie_samesite()
-COOKIE_SECURE = settings.is_production
-
-
-def _sanitize_next_path(next_path: str | None) -> str:
-    if not next_path:
-        return "/"
-    raw = next_path.strip()
-    if not raw or "\\" in raw:
-        return "/"
-    parsed = urlparse(raw)
-    if parsed.scheme or parsed.netloc:
-        return "/"
-    path = parsed.path or "/"
-    if not path.startswith("/") or path.startswith("//"):
-        return "/"
-    return path
-
-
-def _build_frontend_redirect(path: str = "/", params: dict[str, str] | None = None) -> RedirectResponse:
-    safe_path = _sanitize_next_path(path)
-    url = f"{settings.effective_frontend_url}{safe_path}"
-    if params:
-        filtered = {k: v for k, v in params.items() if v is not None and v != ""}
-        if filtered:
-            url = f"{url}?{urlencode(filtered)}"
-    response = RedirectResponse(url=url, status_code=302)
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
 def _issue_auth_cookies(response: RedirectResponse, user: User) -> RedirectResponse:
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
@@ -109,6 +72,12 @@ def _issue_auth_cookies(response: RedirectResponse, user: User) -> RedirectRespo
         httponly=True,
         samesite=COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        secure=COOKIE_SECURE,
+    )
+    response.delete_cookie(
+        IMPERSONATOR_COOKIE_NAME,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
         secure=COOKIE_SECURE,
     )
     return response
@@ -792,6 +761,55 @@ def unlink_oauth_provider(
     }
 
 
+@router.post("/api/auth/impersonation/stop", summary="結束測試身分模擬並切回原管理員帳號")
+def stop_impersonation(
+    request: Request,
+    response: Response,
+    session: Session = Depends(get_session),
+):
+    token = request.cookies.get(IMPERSONATOR_COOKIE_NAME)
+    admin = resolve_impersonator_admin(token, expected_target_id=None, session=session)
+    if admin is None:
+        response.delete_cookie(
+            IMPERSONATOR_COOKIE_NAME,
+            httponly=True,
+            samesite=COOKIE_SAMESITE,
+            secure=COOKIE_SECURE,
+        )
+        raise HTTPException(status_code=401, detail="找不到有效的管理員模擬憑證，請重新登入")
+
+    new_access_token = create_access_token(admin.id)
+    new_refresh_token = create_refresh_token(admin.id)
+
+    response.set_cookie(
+        key="auth_token",
+        value=new_access_token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=COOKIE_SECURE,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        secure=COOKIE_SECURE,
+    )
+    response.delete_cookie(
+        IMPERSONATOR_COOKIE_NAME,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+    )
+    return {
+        "message": f"已切回管理員帳號「{admin.name}」",
+        "admin_id": str(admin.id),
+        "admin_name": admin.name,
+    }
+
+
 @router.post("/api/auth/logout")
 async def logout(response: Response):
     """清除所有 Auth 相關的 Cookie 登出"""
@@ -803,6 +821,12 @@ async def logout(response: Response):
     )
     response.delete_cookie(
         "refresh_token",
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+    )
+    response.delete_cookie(
+        IMPERSONATOR_COOKIE_NAME,
         httponly=True,
         samesite=COOKIE_SAMESITE,
         secure=COOKIE_SECURE,

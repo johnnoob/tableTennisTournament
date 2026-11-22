@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Cookie, Depends, HTTPException
 from sqlmodel import Session, select, func, or_
 from database import get_session
-from services.auth_jwt import get_current_user # 🌟 引入警衛
+from services.auth_jwt import (
+    IMPERSONATOR_COOKIE_NAME,
+    get_current_user,
+    resolve_impersonator_admin,
+)
 from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, Notification, utc_now
 from schemas import MatchPresetCreate, MatchPresetUpdate
 from services.season_service import get_current_season, ensure_utc
@@ -32,7 +36,7 @@ def get_all_users(session: Session = Depends(get_session)):
 # ==========================================
 # 獲取與更新當前登入者的個人資料
 # ==========================================
-def _serialize_my_profile(user: User) -> dict:
+def _serialize_my_profile(user: User, impersonator: User | None = None) -> dict:
     google_linked = bool(user.google_id or (user.auth_provider == "google" and user.oauth_id))
     line_linked = bool(user.line_user_id or (user.auth_provider == "line" and user.oauth_id))
     return {
@@ -51,12 +55,19 @@ def _serialize_my_profile(user: User) -> dict:
         "rubber_forehand": user.rubber_forehand,
         "rubber_backhand": user.rubber_backhand,
         "gender": user.gender,
+        "is_impersonating": impersonator is not None,
+        "impersonator_name": impersonator.name if impersonator else None,
     }
 
 
 @router.get("/api/users/me", summary="獲取當前登入者的個人資料")
-def get_my_profile(current_user: User = Depends(get_current_user)):
-    return _serialize_my_profile(current_user)
+def get_my_profile(
+    current_user: User = Depends(get_current_user),
+    impersonator_token: str | None = Cookie(default=None, alias=IMPERSONATOR_COOKIE_NAME),
+    session: Session = Depends(get_session),
+):
+    impersonator = resolve_impersonator_admin(impersonator_token, current_user.id, session)
+    return _serialize_my_profile(current_user, impersonator)
 
 
 # ==========================================
@@ -66,6 +77,7 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
 def update_my_profile(
     req: dict,
     current_user: User = Depends(get_current_user),
+    impersonator_token: str | None = Cookie(default=None, alias=IMPERSONATOR_COOKIE_NAME),
     session: Session = Depends(get_session)
 ):
     EDITABLE_FIELDS = {"name", "department", "gender", "dominant_hand", "rubber_forehand", "rubber_backhand"}
@@ -81,7 +93,8 @@ def update_my_profile(
     session.commit()
     session.refresh(current_user)
 
-    return _serialize_my_profile(current_user)
+    impersonator = resolve_impersonator_admin(impersonator_token, current_user.id, session)
+    return _serialize_my_profile(current_user, impersonator)
 
 from services.season_service import get_current_season
 

@@ -3,13 +3,24 @@ import json
 import os
 import re
 from typing import List, Optional
-from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from uuid import UUID, uuid4
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Response
 from sqlmodel import Session, select, desc, func
 
 from config import settings
 from database import get_session
-from services.auth_jwt import get_current_user
+from services.auth_jwt import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    IMPERSONATOR_COOKIE_NAME,
+    IMPERSONATOR_TOKEN_EXPIRE_HOURS,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    create_access_token,
+    create_impersonator_token,
+    create_refresh_token,
+    get_current_user,
+)
 from services.elo_engine import ELO_CONFIG
 from services.match_service import (
     MatchAlreadySettledError,
@@ -50,6 +61,7 @@ from schemas import (
     AdminUserUpdateReq,
     AdminMmrAdjustReq,
     AdminBatchDepartmentReq,
+    AdminTestUserCreateReq,
     AdminForceConfirmReq,
     AdminVoidMatchReq,
     AdminCreateMatchReq,
@@ -1033,6 +1045,147 @@ def list_admin_users(session: Session = Depends(get_session)):
         )
     )
     return result
+
+
+MAX_TEST_ACCOUNTS = 10
+
+
+@router.get("/test-impersonation/status", dependencies=[Depends(require_admin)])
+def get_test_impersonation_status():
+    """回傳目前環境是否開放管理員建立測試帳號與模擬切換身分。"""
+    return {"enabled": settings.enable_test_impersonation}
+
+
+@router.post("/users/test-account")
+def create_test_account(
+    req: AdminTestUserCreateReq | None = None,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """管理員建立專供流程測試用的假人球友帳號（不影響真實 Google/LINE 帳號）。"""
+    if not settings.enable_test_impersonation:
+        raise HTTPException(status_code=403, detail="測試帳號功能目前已於系統設定中關閉")
+
+    existing_tests = session.exec(select(User).where(User.auth_provider == "test")).all()
+    if len(existing_tests) >= MAX_TEST_ACCOUNTS:
+        raise HTTPException(status_code=400, detail=f"測試帳號數量已達上限（{MAX_TEST_ACCOUNTS} 個）")
+
+    raw_name = req.name.strip() if req and req.name else ""
+    if raw_name:
+        final_name = raw_name
+    else:
+        used_names = {u.name for u in existing_tests}
+        candidates = [f"測試球友 {chr(ord('A') + idx)}" for idx in range(MAX_TEST_ACCOUNTS)]
+        final_name = next((c for c in candidates if c not in used_names), f"測試球友 {len(existing_tests) + 1}")
+
+    clean_dept = (req.department.strip() if req and req.department else "") or "測試組"
+    initial_mmr = round(float(req.global_mmr if req and req.global_mmr is not None else 1200.0), 1)
+
+    new_user = User(
+        name=final_name,
+        email=None,
+        department=clean_dept,
+        auth_provider="test",
+        oauth_id=f"test:{uuid4().hex[:12]}",
+        global_mmr=initial_mmr,
+        role="user",
+        is_active=True,
+    )
+    session.add(new_user)
+    session.flush()
+
+    record_admin_audit(
+        session=session,
+        actor=current_user,
+        category="members",
+        action="user.create_test",
+        summary=f"建立測試帳號「{new_user.name}」（初始 ELO {int(round(new_user.global_mmr))}）",
+        target_type="user",
+        target_id=new_user.id,
+        metadata={"name": new_user.name, "department": new_user.department, "initial_mmr": new_user.global_mmr},
+    )
+    session.commit()
+    session.refresh(new_user)
+
+    return {
+        "message": f"已建立測試帳號「{new_user.name}」",
+        "user": {
+            "id": str(new_user.id),
+            "name": new_user.name,
+            "department": new_user.department,
+            "global_mmr": new_user.global_mmr,
+            "auth_provider": new_user.auth_provider,
+        },
+    }
+
+
+@router.post("/impersonate/{user_id}")
+def impersonate_test_user(
+    user_id: UUID,
+    response: Response,
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """管理員安全切換為指定的測試帳號進行雙向流程實測（限 auth_provider='test'）。"""
+    if not settings.enable_test_impersonation:
+        raise HTTPException(status_code=403, detail="測試身分模擬功能目前已於系統設定中關閉")
+
+    target = session.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到指定的成員帳號")
+    if target.auth_provider != "test":
+        raise HTTPException(status_code=403, detail="基於安全考量，僅允許切換至系統建立的「測試帳號」")
+    if target.role == "admin" or target.id == current_user.id:
+        raise HTTPException(status_code=403, detail="無法模擬管理員帳號")
+    if not target.is_active:
+        raise HTTPException(status_code=400, detail="此測試帳號目前已停用，請先啟用後再切換")
+
+    access_token = create_access_token(target.id)
+    refresh_token = create_refresh_token(target.id)
+    impersonator_token = create_impersonator_token(current_user.id, target.id)
+
+    response.set_cookie(
+        key="auth_token",
+        value=access_token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=COOKIE_SECURE,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        secure=COOKIE_SECURE,
+    )
+    response.set_cookie(
+        key=IMPERSONATOR_COOKIE_NAME,
+        value=impersonator_token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        max_age=IMPERSONATOR_TOKEN_EXPIRE_HOURS * 60 * 60,
+        secure=COOKIE_SECURE,
+    )
+
+    record_admin_audit(
+        session=session,
+        actor=current_user,
+        category="members",
+        action="user.impersonate_start",
+        summary=f"切換為測試帳號「{target.name}」進行系統流程模擬測試",
+        target_type="user",
+        target_id=target.id,
+        metadata={"target_name": target.name},
+    )
+    session.commit()
+
+    return {
+        "message": f"已切換為測試帳號「{target.name}」",
+        "target_id": str(target.id),
+        "target_name": target.name,
+    }
 
 
 @router.patch("/users/batch-department")

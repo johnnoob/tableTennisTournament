@@ -12,6 +12,7 @@ import { SeasonDetail } from '@/pages/SeasonDetail';
 import { Leaderboard } from '@/pages/Leaderboard';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { GlobalPlayerDrawer } from './components/GlobalPlayerDrawer';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/theme-context';
@@ -91,7 +92,7 @@ function AppContent() {
   }, []);
 
   // 🌟 改用 React Query Hook 獲取使用者資料
-  const { isLoading: loading } = useAuth();
+  const { data: user, isLoading: loading } = useAuth();
   const { resolvedTheme } = useTheme();
 
   // ──────────────────────────────────────────────
@@ -122,6 +123,7 @@ function AppContent() {
       {/* Main Content Area */}
       <main className="flex-1 w-full min-w-0 md:ml-20 lg:ml-64 transition-all duration-300">
         <div className="min-h-[calc(100dvh-3.5rem)] md:min-h-[calc(100dvh-2rem)] bg-surface-shell md:my-4 md:mr-4 md:rounded-[2rem] md:shadow-sm dark:md:shadow-black/40 relative md:border md:border-border overflow-x-clip">
+          <ImpersonationBanner user={user} />
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
           {loading ? (

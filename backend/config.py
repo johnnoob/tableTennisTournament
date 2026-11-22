@@ -72,6 +72,7 @@ class Settings(BaseSettings):
 
     # ── 其他 ──────────────────────────────────────────────────────
     admin_emails: str = ""               # 逗號分隔的管理員 Google 信箱清單 (ADMIN_EMAILS)
+    enable_test_impersonation: bool = True  # 是否開放管理員建立測試帳號與切換身分模擬測試
 
     # ── 背景任務 (Cron / Scheduler) ─────────────────────────────────
     enable_local_scheduler: bool = False  # 是否在本地啟動 APScheduler

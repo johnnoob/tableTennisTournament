@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+  ArrowLeftRight,
   Building2,
   Check,
   Download,
   Edit3,
+  FlaskConical,
   History,
   Loader2,
   Lock,
@@ -52,6 +54,8 @@ const SORT_OPTIONS: ResponsiveSelectOption[] = [
 ];
 
 export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManagerProps) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
@@ -79,10 +83,23 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   // User ELO History Drawer State
   const [logsUser, setLogsUser] = useState<AdminUserItem | null>(null);
 
+  // Create Test Account Modal State
+  const [createTestOpen, setCreateTestOpen] = useState(false);
+  const [testNameInput, setTestNameInput] = useState('');
+  const [testDeptInput, setTestDeptInput] = useState('測試組');
+  const [testMmrInput, setTestMmrInput] = useState('1200');
+
   const { data: users = [], isLoading } = useQuery<AdminUserItem[]>({
     queryKey: ['admin', 'users'],
     queryFn: () => adminApi.getUsers(),
   });
+
+  const { data: testImpersonationStatus } = useQuery({
+    queryKey: ['admin', 'test-impersonation-status'],
+    queryFn: () => adminApi.getTestImpersonationStatus(),
+    staleTime: 60_000,
+  });
+  const isTestImpersonationEnabled = testImpersonationStatus?.enabled !== false;
 
   const openInspect = (playerId: string) => {
     const next = new URLSearchParams(searchParams);
@@ -290,6 +307,48 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     });
   };
 
+  const createTestMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.createTestAccount>[0]) =>
+      adminApi.createTestAccount(payload),
+    onSuccess: (res) => {
+      onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setCreateTestOpen(false);
+      setTestNameInput('');
+      setTestDeptInput('測試組');
+      setTestMmrInput('1200');
+      toast.success(res.message);
+    },
+    onError: (err: Error) => {
+      toast.error('建立測試帳號失敗', { description: err.message });
+    },
+  });
+
+  const impersonateMutation = useMutation({
+    mutationFn: (userId: string) => adminApi.impersonateTestUser(userId),
+    onSuccess: async (res) => {
+      queryClient.clear();
+      await queryClient.invalidateQueries({ queryKey: ['authUser'] });
+      toast.success(res.message);
+      navigate('/');
+    },
+    onError: (err: Error) => {
+      toast.error('切換測試帳號失敗', { description: err.message });
+    },
+  });
+
+  const handleCreateTestAccount = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (createTestMutation.isPending) return;
+    const parsedMmr = Number(testMmrInput);
+    const safeMmr = Number.isNaN(parsedMmr) ? 1200 : Math.min(3000, Math.max(600, parsedMmr));
+    createTestMutation.mutate({
+      name: testNameInput.trim() || undefined,
+      department: testDeptInput.trim() || '測試組',
+      global_mmr: safeMmr,
+    });
+  };
+
   const openEditModal = (u: AdminUserItem) => {
     setEditingUser(u);
     setEditName(u.name);
@@ -475,6 +534,17 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 重設條件
               </button>
             )}
+            {isTestImpersonationEnabled && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateTestOpen(true)}
+                className="h-9 px-3 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1.5"
+              >
+                <FlaskConical size={13} aria-hidden="true" />
+                <span>建立測試帳號</span>
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -583,7 +653,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         <>
           {/* Desktop Directory Table */}
           <div className="hidden md:block">
-            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.45fr)_minmax(0,1.05fr)_124px_76px_106px_184px] items-center gap-3">
+            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.0fr)_116px_68px_98px_248px] items-center gap-3">
               <button
                 type="button"
                 role="checkbox"
@@ -618,7 +688,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   <div
                     key={u.id}
                     className={cn(
-                      'px-5 py-3.5 grid grid-cols-[24px_minmax(0,1.45fr)_minmax(0,1.05fr)_124px_76px_106px_184px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
+                      'px-5 py-3.5 grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.0fr)_116px_68px_98px_248px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
                       isSelected && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/[0.08]',
                       !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-75'
                     )}
@@ -657,6 +727,11 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         <span className="font-display font-black text-sm text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                           {u.name}
                         </span>
+                        {u.auth_provider === 'test' && (
+                          <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-[10px] font-black leading-none shrink-0">
+                            測試帳號
+                          </span>
+                        )}
                         {isSelf && (
                           <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
                             YOU
@@ -715,6 +790,22 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
 
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-1.5">
+                      {isTestImpersonationEnabled &&
+                        u.auth_provider === 'test' &&
+                        u.is_active &&
+                        u.role !== 'admin' && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={impersonateMutation.isPending}
+                            onClick={() => impersonateMutation.mutate(u.id)}
+                            title="切換為此測試帳號實測雙向流程"
+                            className="h-9 px-2.5 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/60 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1 shrink-0"
+                          >
+                            <ArrowLeftRight size={13} aria-hidden="true" />
+                            切換
+                          </Button>
+                        )}
                       <Button
                         type="button"
                         variant="outline"
@@ -804,6 +895,11 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                           <span className="font-display font-black text-base text-foreground truncate">
                             {u.name}
                           </span>
+                          {u.auth_provider === 'test' && (
+                            <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-[10px] font-black leading-none shrink-0">
+                              測試帳號
+                            </span>
+                          )}
                           {isSelf && (
                             <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
                               YOU
@@ -881,6 +977,22 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       編輯
                     </Button>
                   </div>
+
+                  {isTestImpersonationEnabled &&
+                    u.auth_provider === 'test' &&
+                    u.is_active &&
+                    u.role !== 'admin' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={impersonateMutation.isPending}
+                        onClick={() => impersonateMutation.mutate(u.id)}
+                        className="w-full h-10 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 font-black text-xs gap-1.5"
+                      >
+                        <ArrowLeftRight size={14} aria-hidden="true" />
+                        切換成此測試帳號進行實測
+                      </Button>
+                    )}
                 </div>
               );
             })}
@@ -1389,6 +1501,89 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </ResponsiveFormModal>
+
+      {/* Modal 4: Create Test Account */}
+      <ResponsiveFormModal
+        open={createTestOpen}
+        onOpenChange={(open) => {
+          if (!open && !createTestMutation.isPending) setCreateTestOpen(false);
+        }}
+        size="sm"
+        tone="default"
+        icon={<FlaskConical size={18} />}
+        title="建立測試球友帳號"
+        description="供單一管理員帳號切換身分實測約戰、報分與通知流程，不影響正式會員。"
+        onSubmit={handleCreateTestAccount}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={createTestMutation.isPending}
+              onClick={() => setCreateTestOpen(false)}
+              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+            >
+              取消
+            </Button>
+            <Button
+              type="submit"
+              disabled={createTestMutation.isPending}
+              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-display font-black text-sm"
+            >
+              {createTestMutation.isPending ? '建立中...' : '確認建立測試帳號'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="test-user-name" className="arena-label">
+              顯示姓名（選填）
+            </label>
+            <input
+              id="test-user-name"
+              type="text"
+              maxLength={40}
+              value={testNameInput}
+              onChange={(e) => setTestNameInput(e.target.value)}
+              placeholder="留空將自動命名為 測試球友 A / B…"
+              className="arena-input"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="test-user-dept" className="arena-label">
+                單位 / 組別
+              </label>
+              <input
+                id="test-user-dept"
+                type="text"
+                maxLength={60}
+                value={testDeptInput}
+                onChange={(e) => setTestDeptInput(e.target.value)}
+                placeholder="測試組"
+                className="arena-input"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="test-user-mmr" className="arena-label">
+                初始 ELO 積分
+              </label>
+              <input
+                id="test-user-mmr"
+                type="number"
+                min={600}
+                max={3000}
+                value={testMmrInput}
+                onChange={(e) => setTestMmrInput(e.target.value)}
+                className="arena-input tabular-nums"
+              />
+            </div>
           </div>
         </div>
       </ResponsiveFormModal>

@@ -64,6 +64,8 @@ export interface User {
   rubber_forehand?: string | null;
   rubber_backhand?: string | null;
   gender?: string | null;
+  is_impersonating?: boolean;
+  impersonator_name?: string | null;
 }
 
 export interface AuthProvidersStatus {
