@@ -57,10 +57,18 @@ export interface User {
   global_mmr?: number;
   role?: string;
   auth_provider?: string;
+  google_linked?: boolean;
+  line_linked?: boolean;
+  line_display_name?: string | null;
   dominant_hand?: string | null;
   rubber_forehand?: string | null;
   rubber_backhand?: string | null;
   gender?: string | null;
+}
+
+export interface AuthProvidersStatus {
+  google: boolean;
+  line: boolean;
 }
 
 export interface ChartDataPoint {

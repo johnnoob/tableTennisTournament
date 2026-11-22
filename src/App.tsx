@@ -38,6 +38,46 @@ function AppContent() {
     };
   }, [navigate, queryClient]);
 
+  // 監聽帳號雙綁定結果 (?auth_notice=... / ?auth_error=...) 並安全清理 URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const authNotice = params.get('auth_notice');
+    const authError = params.get('auth_error');
+    if (!authNotice && !authError) return;
+
+    if (authNotice === 'line_linked') {
+      toast.success('已成功綁定 LINE 帳號！之後可直接用 LINE 一鍵登入');
+      queryClient.invalidateQueries({ queryKey: ['authUser'] });
+    } else if (authNotice === 'google_linked') {
+      toast.success('已成功綁定 Google 帳號！之後可直接用 Google 一鍵登入');
+      queryClient.invalidateQueries({ queryKey: ['authUser'] });
+    }
+
+    if (authError) {
+      const errorMessages: Record<string, string> = {
+        line_already_linked: '此 LINE 帳號已綁定其他成員帳號；如需整併請聯繫社團管理員。',
+        google_already_linked: '此 Google 帳號已綁定其他成員帳號；如需整併請聯繫社團管理員。',
+        line_not_configured: '系統尚未完成 LINE 登入金鑰設定，請聯繫管理員。',
+        google_not_configured: '系統尚未完成 Google 登入金鑰設定，請聯繫管理員。',
+        access_denied: '已取消第三方帳號授權。',
+        mismatching_state: '驗證狀態已失效，請重新點擊綁定。',
+      };
+      if (authError === 'access_denied') {
+        toast.info(errorMessages.access_denied);
+      } else {
+        toast.error(errorMessages[authError] || '第三方帳號綁定失敗，請稍後再試。');
+      }
+    }
+
+    params.delete('auth_notice');
+    params.delete('auth_error');
+    const nextSearch = params.toString();
+    navigate(
+      { pathname: location.pathname, search: nextSearch ? `?${nextSearch}` : '' },
+      { replace: true }
+    );
+  }, [location.pathname, location.search, navigate, queryClient]);
+
   // 監聽全局 API 錯誤事件 (api:error)，由 UI 層負責渲染 toast
   useEffect(() => {
     const handleApiError = (e: Event) => {

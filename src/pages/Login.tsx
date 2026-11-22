@@ -2,27 +2,35 @@ import { Trophy, Shield, Target, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { API_BASE_URL } from '@/utils/apiClient';
+import { useAuthProviders } from '@/hooks/useAuth';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  mismatching_state: '登入驗證狀態已失效，請重新點擊 Google 登入。',
-  access_denied: '您已取消 Google 帳號授權，請再試一次。',
-  missing_userinfo: '無法取得 Google 帳號資料，請稍後再試。',
+  mismatching_state: '登入驗證狀態已失效，請重新點擊登入按鈕。',
+  access_denied: '您已取消第三方帳號授權，請再試一次。',
+  missing_userinfo: '無法取得帳號基本資料，請稍後再試。',
   account_disabled: '此帳號已被管理員停用，如有疑問請聯繫社團管理員。',
+  session_expired: '登入狀態已逾時，請重新登入後再進行綁定。',
+  line_not_configured: '系統尚未完成 LINE 登入金鑰設定，請先使用 Google 登入或聯繫管理員。',
+  google_not_configured: '系統尚未完成 Google 登入金鑰設定，請聯繫管理員。',
+  email_already_bound_other_line: '此 Email 對應的帳號已綁定其他 LINE 帳號，請使用原登入方式或聯繫管理員。',
+  email_already_bound_other_google: '此 Email 對應的帳號已綁定其他 Google 帳號，請使用原登入方式或聯繫管理員。',
 };
 
-const handleGoogleLogin = () => {
-  const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.PROD ? '/api' : 'http://localhost:8000/api');
-  window.location.href = `${apiBaseUrl}/auth/google/login`;
+const handleOAuthLogin = (provider: 'google' | 'line') => {
+  window.location.href = `${API_BASE_URL}/auth/${provider}/login`;
 };
 
 export function Login() {
   const [searchParams] = useSearchParams();
+  const { data: providers } = useAuthProviders();
   const authError = searchParams.get('error');
   const authErrorMessage = authError
-    ? OAUTH_ERROR_MESSAGES[authError] || 'Google 登入失敗，請稍後再試。'
+    ? OAUTH_ERROR_MESSAGES[authError] || '登入失敗，請稍後再試。'
     : null;
+
+  const isGoogleDisabled = providers?.google === false;
+  const isLineDisabled = providers?.line === false;
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
@@ -92,7 +100,7 @@ export function Login() {
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-display font-black text-foreground tracking-tight">登入戰情室</h2>
             <p className="text-sm font-bold text-muted-foreground tracking-wide">
-              使用 Google 帳號一鍵驗證進入戰情室
+              使用 Google 或 LINE 帳號一鍵驗證進入戰情室
             </p>
           </div>
 
@@ -112,8 +120,9 @@ export function Login() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-14 rounded-2xl bg-card hover:bg-secondary/80 border-input text-foreground font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
-              onClick={handleGoogleLogin}
+              disabled={isGoogleDisabled}
+              className="w-full h-14 rounded-2xl bg-card hover:bg-secondary/80 border-input text-foreground font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-55"
+              onClick={() => handleOAuthLogin('google')}
             >
               <svg className="size-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -121,21 +130,41 @@ export function Login() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              使用 Google 帳號登入
+              {isGoogleDisabled ? 'Google 帳號登入（尚未設定金鑰）' : '使用 Google 帳號登入'}
             </Button>
 
-            {/* LINE 登入按鈕 (尚未串接，顯示明確狀態避免無回應疑惑) */}
-            <Button
-              type="button"
-              disabled
-              className="w-full h-12 rounded-2xl bg-secondary text-muted-foreground border border-border font-bold tracking-wide flex items-center justify-center gap-2.5 opacity-80"
-            >
-              LINE 帳號登入（即將開放）
-            </Button>
+            {/* LINE 登入按鈕 */}
+            {isLineDisabled ? (
+              <Button
+                type="button"
+                disabled
+                className="w-full h-14 rounded-2xl bg-secondary text-muted-foreground border border-border font-bold tracking-wide flex items-center justify-center gap-2.5 opacity-80"
+              >
+                LINE 帳號登入（尚未設定金鑰）
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="w-full h-14 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] border border-[#05b34c] text-white font-black tracking-wide shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3"
+                onClick={() => handleOAuthLogin('line')}
+              >
+                <svg className="size-6 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 3C6.48 3 2 6.58 2 11c0 3.95 3.51 7.26 8.26 7.89.32.07.76.21.87.49.1.25.06.64.03.9l-.14.84c-.04.25-.2.98.86.53 1.06-.44 5.71-3.36 7.79-5.75C21.14 14.28 22 12.73 22 11c0-4.42-4.48-8-10-8zm-4.18 10.1H5.97a.46.46 0 0 1-.46-.46V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.24h1.39c.25 0 .46.21.46.46s-.21.46-.46.46zm1.93-.46c0 .25-.21.46-.46.46s-.46-.21-.46-.46V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.7zm4.32 0c0 .2-.13.38-.32.44-.05.01-.09.02-.14.02-.15 0-.29-.07-.37-.19l-1.91-2.59v2.32c0 .25-.21.46-.46.46s-.46-.21-.46-.46V8.94c0-.2.13-.38.32-.44.19-.06.4.01.51.17l1.91 2.59V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.7zm3.4-2.31c.25 0 .46.21.46.46s-.21.46-.46.46h-1.39v.93h1.39c.25 0 .46.21.46.46s-.21.46-.46.46h-1.85a.46.46 0 0 1-.46-.46V8.94c0-.25.21-.46.46-.46h1.85c.25 0 .46.21.46.46s-.21.46-.46.46h-1.39v.93h1.39z"
+                  />
+                </svg>
+                使用 LINE 帳號登入
+              </Button>
+            )}
+
+            <p className="text-center text-[11px] font-medium text-muted-foreground leading-relaxed pt-1">
+              既有社員登入後，可在「個人設定」同時綁定 Google 與 LINE，整合同一份戰績。
+            </p>
           </div>
 
           {/* 訪客/純瀏覽入口 */}
-          <div className="pt-8 border-t border-border flex flex-col items-center">
+          <div className="pt-6 border-t border-border flex flex-col items-center">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">或者</p>
             <Link to="/leaderboard">
               <Button variant="ghost" className="text-sapphire-blue font-black tracking-widest hover:bg-sapphire-blue/10 rounded-xl px-6 gap-2">
@@ -149,4 +178,3 @@ export function Login() {
     </div>
   );
 }
-

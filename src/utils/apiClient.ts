@@ -31,10 +31,12 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '/api' : 'http://localhost:8000/api');
+
 const apiClient = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.PROD ? '/api' : 'http://localhost:8000/api'),
+  baseURL: API_BASE_URL,
   withCredentials: true, // 🌟 啟動 Cookie 憑證自動攜帶
 });
 
@@ -43,13 +45,18 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const reqUrl = originalRequest?.url || '';
 
     // 如果是 401 錯誤，且不是登入或刷新 API 本身，且尚未重試過
     if (
       error.response?.status === 401 && 
       !originalRequest._retry && 
-      !originalRequest.url.includes('/auth/refresh') &&
-      !originalRequest.url.includes('/auth/google/login')
+      !reqUrl.includes('/auth/refresh') &&
+      !reqUrl.includes('/auth/google/login') &&
+      !reqUrl.includes('/auth/line/login') &&
+      !reqUrl.includes('/auth/google/link') &&
+      !reqUrl.includes('/auth/line/link') &&
+      !reqUrl.includes('/auth/providers')
     ) {
       
       // 如果已經在登入頁面，則不執行自動刷新邏輯，避免無窮重導向

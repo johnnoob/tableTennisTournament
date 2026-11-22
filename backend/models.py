@@ -16,6 +16,9 @@ class User(SQLModel, table=True):
     # 🌟 新增：第三方登入資訊
     auth_provider: str = Field(default="local", description="google 或 line")
     oauth_id: Optional[str] = Field(default=None, index=True, description="Google/LINE 提供的唯一 ID")
+    google_id: Optional[str] = Field(default=None, index=True, description="Google OAuth sub 唯一 ID")
+    line_user_id: Optional[str] = Field(default=None, index=True, description="LINE Login userId (sub) 唯一 ID")
+    line_display_name: Optional[str] = Field(default=None, description="綁定的 LINE 顯示名稱")
     
     # 2. 個人基本資料
     name: str = Field(index=True, description="同仁顯示姓名")

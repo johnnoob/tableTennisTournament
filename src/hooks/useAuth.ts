@@ -3,7 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import apiClient from '@/utils/apiClient';
-import type { User } from '@/types/api.types';
+import type { AuthProvidersStatus, User } from '@/types/api.types';
+
+/**
+ * 查詢目前後端啟用哪些第三方登入方式
+ */
+export function useAuthProviders(enabled: boolean = true) {
+  return useQuery<AuthProvidersStatus>({
+    queryKey: ['authProviders'],
+    queryFn: async () => {
+      const res = await apiClient.get<AuthProvidersStatus>('/auth/providers', {
+        skipGlobalErrorToast: true,
+      });
+      return res.data;
+    },
+    enabled,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
 
 /**
  * useAuth Hook

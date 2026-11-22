@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # ── LINE Login OAuth ──────────────────────────────────────────
+    line_channel_id: str = ""
+    line_channel_secret: str = ""
+
     # ── 前端 Base URL（用於 OAuth callback 後的轉跳）────────────────
     frontend_url: str = DEFAULT_FRONTEND_URL
     backend_url: str = DEFAULT_BACKEND_URL
@@ -86,6 +90,14 @@ class Settings(BaseSettings):
     @property
     def admin_emails_set(self) -> set[str]:
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
+
+    @property
+    def google_login_enabled(self) -> bool:
+        return bool(self.google_client_id.strip() and self.google_client_secret.strip())
+
+    @property
+    def line_login_enabled(self) -> bool:
+        return bool(self.line_channel_id.strip() and self.line_channel_secret.strip())
 
     @property
     def is_production(self) -> bool:

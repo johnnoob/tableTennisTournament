@@ -1,8 +1,9 @@
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 import {
   User, Building2, LogOut, Shield, Trophy, Settings,
-  CheckCircle2, Target, Hand, Venus, Mars, HelpCircle, Loader2, Palette
+  CheckCircle2, Target, Hand, Venus, Mars, HelpCircle, Loader2, Palette, Link2, Unlink
 } from "lucide-react"
 import { ResponsiveFormModal } from "@/components/ResponsiveFormModal"
 import { Button } from "@/components/ui/button"
@@ -10,9 +11,9 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { getTierBadge } from "@/lib/ranking"
 import { PlayerAvatar } from "@/components/PlayerAvatar"
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, useAuthProviders } from '@/hooks/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/utils/apiClient'
+import apiClient, { API_BASE_URL } from '@/utils/apiClient'
 
 // ===================== 選項常數 =====================
 const RUBBER_OPTIONS = [
@@ -65,6 +66,8 @@ interface UserProfileSettingsProps {
 export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [open, setOpen] = React.useState(false)
   const { data: user, logout } = useAuth()
+  const { data: providers } = useAuthProviders(open)
+  const location = useLocation()
   const queryClient = useQueryClient()
 
   const nameId = React.useId()
@@ -81,6 +84,8 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuccess, setIsSuccess] = React.useState(false)
   const [errorMsg, setErrorMsg] = React.useState("")
+  const [confirmUnlinkProvider, setConfirmUnlinkProvider] = React.useState<'google' | 'line' | null>(null)
+  const [unlinkingProvider, setUnlinkingProvider] = React.useState<'google' | 'line' | null>(null)
   const closeTimerRef = React.useRef<number | null>(null)
 
   React.useEffect(() => {
@@ -98,6 +103,7 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       closeTimerRef.current = null
     }
     setOpen(nextOpen)
+    setConfirmUnlinkProvider(null)
     if (nextOpen && user) {
       setName(user.name || "")
       setDepartment(user.department || "")
@@ -107,6 +113,28 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
       setBackhand(user.rubber_backhand || "")
       setIsSuccess(false)
       setErrorMsg("")
+    }
+  }
+
+  const handleLinkProvider = (provider: 'google' | 'line') => {
+    const nextPath = encodeURIComponent(location.pathname || '/')
+    window.location.href = `${API_BASE_URL}/auth/${provider}/link?next=${nextPath}`
+  }
+
+  const handleUnlinkProvider = async (provider: 'google' | 'line') => {
+    setUnlinkingProvider(provider)
+    try {
+      await apiClient.delete(`/auth/providers/${provider}`, {
+        skipGlobalErrorToast: true,
+      })
+      queryClient.invalidateQueries({ queryKey: ['authUser'] })
+      setConfirmUnlinkProvider(null)
+      toast.success(provider === 'line' ? '已解除 LINE 帳號綁定' : '已解除 Google 帳號綁定')
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      toast.error(detail || '解除綁定失敗，請稍後再試')
+    } finally {
+      setUnlinkingProvider(null)
     }
   }
 
@@ -161,6 +189,9 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
 
   const currentMmr = Math.round(user.global_mmr ?? user.mmr ?? 1000)
   const currentTier = getTierBadge(currentMmr, 14)
+  const googleLinked = Boolean(user.google_linked ?? user.auth_provider === 'google')
+  const lineLinked = Boolean(user.line_linked ?? user.auth_provider === 'line')
+  const canUnlink = googleLinked && lineLinked
 
   return (
     <ResponsiveFormModal
@@ -435,6 +466,189 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           <ThemeToggle variant="cards" />
         </fieldset>
 
+        {/* 登入方式與雙帳號綁定 */}
+        <div className="bg-surface-subtle/80 border border-border rounded-2xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-2">
+            <span className="text-xs font-black text-muted-foreground flex items-center gap-1.5">
+              <Link2 size={13} aria-hidden="true" />
+              登入方式與帳號綁定
+            </span>
+            <span className="text-[11px] font-bold text-muted-foreground">
+              {canUnlink ? "已啟用雙帳號登入" : "可綁定雙登入來源"}
+            </span>
+          </div>
+
+          {/* Google 列 */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-9 rounded-xl bg-card border border-border flex items-center justify-center shrink-0">
+                <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-black text-foreground">Google 帳號</p>
+                  {googleLinked && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[10px] font-black leading-none">
+                      已綁定
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] font-medium text-muted-foreground truncate">
+                  {googleLinked ? (user.email || "已連結 Google 帳號") : "透過 Google 帳號一鍵登入"}
+                </p>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-1.5">
+              {!googleLinked ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={providers?.google === false}
+                  onClick={() => handleLinkProvider('google')}
+                  className="h-8 px-3 rounded-lg text-xs font-black"
+                >
+                  {providers?.google === false ? "尚未啟用" : "綁定"}
+                </Button>
+              ) : !canUnlink ? (
+                <span className="px-2.5 py-1 rounded-full bg-secondary text-muted-foreground text-[11px] font-bold">
+                  唯一登入方式
+                </span>
+              ) : confirmUnlinkProvider === 'google' ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={unlinkingProvider === 'google'}
+                    onClick={() => handleUnlinkProvider('google')}
+                    className="h-8 px-2.5 rounded-lg text-xs font-black"
+                  >
+                    {unlinkingProvider === 'google' ? <Loader2 className="size-3.5 animate-spin" /> : "確定解除"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={unlinkingProvider === 'google'}
+                    onClick={() => setConfirmUnlinkProvider(null)}
+                    className="h-8 px-2 rounded-lg text-xs font-bold"
+                  >
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmUnlinkProvider('google')}
+                  className="h-8 px-2.5 rounded-lg text-xs font-bold text-muted-foreground hover:text-rose-600 gap-1"
+                >
+                  <Unlink size={12} aria-hidden="true" />
+                  解除
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* LINE 列 */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-9 rounded-xl bg-[#06C755] text-white flex items-center justify-center shrink-0">
+                <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 3C6.48 3 2 6.58 2 11c0 3.95 3.51 7.26 8.26 7.89.32.07.76.21.87.49.1.25.06.64.03.9l-.14.84c-.04.25-.2.98.86.53 1.06-.44 5.71-3.36 7.79-5.75C21.14 14.28 22 12.73 22 11c0-4.42-4.48-8-10-8zm-4.18 10.1H5.97a.46.46 0 0 1-.46-.46V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.24h1.39c.25 0 .46.21.46.46s-.21.46-.46.46zm1.93-.46c0 .25-.21.46-.46.46s-.46-.21-.46-.46V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.7zm4.32 0c0 .2-.13.38-.32.44-.05.01-.09.02-.14.02-.15 0-.29-.07-.37-.19l-1.91-2.59v2.32c0 .25-.21.46-.46.46s-.46-.21-.46-.46V8.94c0-.2.13-.38.32-.44.19-.06.4.01.51.17l1.91 2.59V8.94c0-.25.21-.46.46-.46s.46.21.46.46v3.7zm3.4-2.31c.25 0 .46.21.46.46s-.21.46-.46.46h-1.39v.93h1.39c.25 0 .46.21.46.46s-.21.46-.46.46h-1.85a.46.46 0 0 1-.46-.46V8.94c0-.25.21-.46.46-.46h1.85c.25 0 .46.21.46.46s-.21.46-.46.46h-1.39v.93h1.39z"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-black text-foreground">LINE 帳號</p>
+                  {lineLinked && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[10px] font-black leading-none">
+                      已綁定
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] font-medium text-muted-foreground truncate">
+                  {lineLinked ? (user.line_display_name || "已連結 LINE 帳號") : "群組點連結免輸密碼一鍵登入"}
+                </p>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-1.5">
+              {!lineLinked ? (
+                providers?.line === false ? (
+                  <span className="px-2.5 py-1 rounded-full bg-secondary text-muted-foreground text-[11px] font-bold">
+                    尚未啟用
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleLinkProvider('line')}
+                    className="h-8 px-3 rounded-lg bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-black border-none"
+                  >
+                    綁定 LINE
+                  </Button>
+                )
+              ) : !canUnlink ? (
+                <span className="px-2.5 py-1 rounded-full bg-secondary text-muted-foreground text-[11px] font-bold">
+                  唯一登入方式
+                </span>
+              ) : confirmUnlinkProvider === 'line' ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={unlinkingProvider === 'line'}
+                    onClick={() => handleUnlinkProvider('line')}
+                    className="h-8 px-2.5 rounded-lg text-xs font-black"
+                  >
+                    {unlinkingProvider === 'line' ? <Loader2 className="size-3.5 animate-spin" /> : "確定解除"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={unlinkingProvider === 'line'}
+                    onClick={() => setConfirmUnlinkProvider(null)}
+                    className="h-8 px-2 rounded-lg text-xs font-bold"
+                  >
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmUnlinkProvider('line')}
+                  className="h-8 px-2.5 rounded-lg text-xs font-bold text-muted-foreground hover:text-rose-600 gap-1"
+                >
+                  <Unlink size={12} aria-hidden="true" />
+                  解除
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="px-4 py-2 border-t border-border bg-card/50">
+            <p className="text-[11px] font-medium text-muted-foreground">
+              同時綁定 Google 與 LINE 後，兩者皆會登入同一份戰績與積分。
+            </p>
+          </div>
+        </div>
+
         {/* 帳號資訊（唯讀） */}
         <div className="bg-surface-subtle/80 border border-border rounded-2xl overflow-hidden">
           <div className="px-4 py-2 border-b border-border">
@@ -442,7 +656,6 @@ export function UserProfileSettings({ trigger }: UserProfileSettingsProps) {
           </div>
           {[
             { label: "Email", value: user.email || "未綁定" },
-            { label: "登入方式", value: user.auth_provider === "google" ? "Google 帳號" : user.auth_provider || "—" },
             { label: "權限等級", value: user.role === "admin" ? "管理員" : "一般同仁" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between px-4 py-2.5 border-b border-border last:border-b-0">
