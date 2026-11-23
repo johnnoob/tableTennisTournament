@@ -4,18 +4,23 @@ import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiClient from '@/utils/apiClient';
 import { MatchItem, MatchSeriesItem } from '@/components/MatchItem';
+import {
+  MatchHistoryMobileStrip,
+  MatchHistorySidebar,
+} from '@/components/MatchHistoryInspector';
+import {
+  computeClubStats,
+  computePersonalPivots,
+  computePersonalSliceStats,
+} from '@/lib/matchInspector';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Search,
   Trophy,
   XCircle,
   LayoutGrid,
-  Activity,
-  TrendingUp,
-  TrendingDown,
   LogIn,
   X,
   UserCheck,
@@ -289,20 +294,67 @@ export function MatchHistory() {
     [hasMorePages, isListLoading, isFetchingMore, handleLoadMore],
   );
 
-  const stats = useMemo(() => {
-    const recentMatches = myBaseQuery.data?.pages[0]?.matches.slice(0, 5) || [];
-    const wins = recentMatches.filter((m) => m.result === 'win').length;
-    const losses = recentMatches.length - wins;
-    const winRate = recentMatches.length > 0 ? Math.round((wins / recentMatches.length) * 100) : 0;
-    const recentForm = recentMatches.map((m) => (m.result === 'win' ? 'W' : 'L'));
-    const netMmr = recentMatches.reduce((acc, m) => {
-      const isTeamA = m.player1?.some((p) => String(p.id) === String(user?.id));
-      const change = isTeamA ? m.mmrChange?.[0] || 0 : m.mmrChange?.[1] || 0;
-      return acc + change;
-    }, 0);
+  const myBaseMatches = useMemo(
+    () => (myBaseQuery.data ? myBaseQuery.data.pages.flatMap((page) => page.matches) : []),
+    [myBaseQuery.data],
+  );
 
-    return { wins, losses, winRate, recentForm, netMmr, totalMatches: recentMatches.length };
-  }, [myBaseQuery.data, user?.id]);
+  const allBaseMatches = useMemo(
+    () => (allBaseQuery.data ? allBaseQuery.data.pages.flatMap((page) => page.matches) : []),
+    [allBaseQuery.data],
+  );
+
+  const personalSlice = useMemo(
+    () =>
+      computePersonalSliceStats(
+        scope === 'mine' ? filteredMatches : [],
+        currentUserId,
+        searchQuery,
+      ),
+    [scope, filteredMatches, currentUserId, searchQuery],
+  );
+
+  const personalPivots = useMemo(
+    () => computePersonalPivots(myBaseMatches, currentUserId),
+    [myBaseMatches, currentUserId],
+  );
+
+  const clubStats = useMemo(
+    () => computeClubStats(scope === 'all' ? filteredMatches : [], allBaseMatches),
+    [scope, filteredMatches, allBaseMatches],
+  );
+
+  const handleSelectRival = (name: string) => {
+    if (searchQuery.trim().toLowerCase() === name.toLowerCase()) {
+      setSearchQuery('');
+    } else {
+      setSearchQuery(name);
+      setResultFilter('all');
+    }
+  };
+
+  const handleSelectPartner = (name: string) => {
+    if (searchQuery.trim().toLowerCase() === name.toLowerCase() && matchTypeFilter === 'doubles') {
+      setSearchQuery('');
+      setMatchTypeFilter('all');
+    } else {
+      setSearchQuery(name);
+      setMatchTypeFilter('doubles');
+      setResultFilter('all');
+    }
+  };
+
+  const handleSelectClubPlayer = (name: string) => {
+    setSearchQuery((prev) => (prev.trim().toLowerCase() === name.toLowerCase() ? '' : name));
+  };
+
+  const handleToggleMatchType = (type: 'singles' | 'doubles') => {
+    setMatchTypeFilter((prev) => (prev === type ? 'all' : type));
+  };
+
+  const handleTogglePendingFilter = () => {
+    setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'));
+  };
 
   const myTotal = myBaseQuery.data?.pages[0]?.total;
   const allTotal = allBaseQuery.data?.pages[0]?.total;
@@ -347,7 +399,7 @@ export function MatchHistory() {
         subtitle={headerSubtitle}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
         {/* 左側主內容區（搜尋與篩選列固定不卸載，切換條件絕不重新整理頁面） */}
         <div className="flex-1 space-y-5 min-w-0 w-full">
           <div className="arena-surface p-3 sm:p-4 space-y-3">
@@ -551,6 +603,28 @@ export function MatchHistory() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="lg:hidden">
+            <MatchHistoryMobileStrip
+              scope={scope}
+              isLoggedIn={Boolean(user)}
+              isLoading={isListLoading}
+              hasActiveFilters={hasActiveFilters || searchQuery.trim() !== ''}
+              searchQuery={searchQuery}
+              matchTypeFilter={matchTypeFilter}
+              statusFilter={statusFilter}
+              personalSlice={personalSlice}
+              personalPivots={personalPivots}
+              clubStats={clubStats}
+              onSelectRival={handleSelectRival}
+              onSelectPartner={handleSelectPartner}
+              onSelectClubPlayer={handleSelectClubPlayer}
+              onToggleMatchType={handleToggleMatchType}
+              onTogglePendingFilter={handleTogglePendingFilter}
+              onResetFilters={resetAllFilters}
+              onLoginClick={() => navigate('/login')}
+            />
           </div>
 
           <section className="space-y-4">
@@ -858,115 +932,30 @@ export function MatchHistory() {
           )}
         </div>
 
-        {/* 右側近況摘要 */}
-        <div className="w-full lg:w-80 xl:w-96 shrink-0 order-first lg:order-last">
-          <div className="lg:sticky lg:top-8">
-            <Card className="arena-surface overflow-hidden shadow-xs">
-              <CardHeader className="pb-3 border-b border-border">
-                <CardTitle className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Activity size={16} className="text-sapphire-blue" aria-hidden="true" />
-                  個人近況摘要
-                </CardTitle>
-                <p className="text-xs text-muted-foreground font-bold mt-0.5">
-                  {user ? `基於最近 ${stats.totalMatches} 場個人比賽` : '登入後追蹤個人戰績走勢'}
-                </p>
-              </CardHeader>
-              {user ? (
-                <CardContent className="p-5 space-y-6">
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">勝率</span>
-                      <span className="text-2xl font-display font-black text-foreground leading-none tabular-nums">
-                        {stats.winRate}%
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden flex">
-                      <div
-                        className="h-full bg-emerald-500 transition-all duration-700 ease-out"
-                        style={{ width: `${stats.winRate}%` }}
-                      />
-                      <div
-                        className="h-full bg-rose-400 transition-all duration-700 ease-out"
-                        style={{ width: `${100 - stats.winRate}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs font-black tabular-nums">
-                      <span className="text-emerald-600 dark:text-emerald-400">{stats.wins} 勝</span>
-                      <span className="text-rose-500 dark:text-rose-400">{stats.losses} 敗</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <span className="text-xs font-black uppercase tracking-wider text-muted-foreground block">
-                      近期表現 (近 5 場)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {stats.recentForm.length > 0 ? (
-                        stats.recentForm.map((result: string, idx: number) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              'flex-1 py-2 rounded-xl flex items-center justify-center text-sm font-black font-display text-white shadow-xs',
-                              result === 'W' ? 'bg-emerald-500' : 'bg-rose-500',
-                            )}
-                          >
-                            {result === 'W' ? '勝' : '敗'}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-xs text-muted-foreground font-bold">尚無足夠數據</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-card rounded-2xl flex items-center justify-between border border-border">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={cn(
-                          'p-2 rounded-xl',
-                          stats.netMmr >= 0
-                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
-                            : 'bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-400',
-                        )}
-                      >
-                        {stats.netMmr >= 0 ? (
-                          <TrendingUp size={15} aria-hidden="true" />
-                        ) : (
-                          <TrendingDown size={15} aria-hidden="true" />
-                        )}
-                      </div>
-                      <span className="text-xs font-black text-muted-foreground">近 5 場積分變動</span>
-                    </div>
-                    <span
-                      className={cn(
-                        'text-lg font-display font-black tabular-nums',
-                        stats.netMmr >= 0
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-rose-500 dark:text-rose-400',
-                      )}
-                    >
-                      {stats.netMmr > 0 ? `+${stats.netMmr}` : stats.netMmr}
-                    </span>
-                  </div>
-                </CardContent>
-              ) : (
-                <CardContent className="p-5 space-y-3 text-center">
-                  <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                    登入戰情室即可自動統計您的近期勝率、連勝連敗態勢與 ELO 積分浮動。
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    className="w-full h-10 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs gap-1.5"
-                  >
-                    <LogIn size={14} aria-hidden="true" />
-                    登入查看個人摘要
-                  </Button>
-                </CardContent>
-              )}
-            </Card>
+        {/* 右側連動戰報情報欄（Desktop Sticky Rail） */}
+        <aside className="hidden lg:block lg:w-80 xl:w-[340px] shrink-0">
+          <div className="lg:sticky lg:top-8 space-y-4">
+            <MatchHistorySidebar
+              scope={scope}
+              isLoggedIn={Boolean(user)}
+              isLoading={isListLoading}
+              hasActiveFilters={hasActiveFilters}
+              searchQuery={searchQuery}
+              matchTypeFilter={matchTypeFilter}
+              statusFilter={statusFilter}
+              personalSlice={personalSlice}
+              personalPivots={personalPivots}
+              clubStats={clubStats}
+              onSelectRival={handleSelectRival}
+              onSelectPartner={handleSelectPartner}
+              onSelectClubPlayer={handleSelectClubPlayer}
+              onToggleMatchType={handleToggleMatchType}
+              onTogglePendingFilter={handleTogglePendingFilter}
+              onResetFilters={resetAllFilters}
+              onLoginClick={() => navigate('/login')}
+            />
           </div>
-        </div>
+        </aside>
       </div>
     </motion.div>
   );
