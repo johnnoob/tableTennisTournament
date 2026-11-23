@@ -405,9 +405,6 @@ export function Navigation() {
         </div>
 
         {/* Desktop Nav Links */}
-        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] font-sans font-black px-3 mb-2">
-          Main Navigation
-        </p>
         <nav aria-label="主導覽" className="flex-1 space-y-1.5 overflow-y-auto no-scrollbar">
           {displayedNavItems.map((item) => (
             <NavLink

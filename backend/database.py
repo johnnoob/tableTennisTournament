@@ -22,6 +22,38 @@ engine = create_engine(
 
 _user_oauth_columns_ready = False
 _user_oauth_lock = threading.Lock()
+_match_challenge_column_ready = False
+_match_challenge_column_lock = threading.Lock()
+
+
+def ensure_match_challenge_column(target_engine=None) -> None:
+    """確保 Match 資料表具備 challenge_id 欄位與索引（支援 SQLite / PostgreSQL）。"""
+    global _match_challenge_column_ready
+    if target_engine is None and _match_challenge_column_ready:
+        return
+
+    db_engine = target_engine or engine
+    with _match_challenge_column_lock:
+        if target_engine is None and _match_challenge_column_ready:
+            return
+        with db_engine.connect() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("match"):
+                return
+            existing_cols = {col["name"] for col in inspector.get_columns("match")}
+            has_col = "challenge_id" in existing_cols
+
+        if not has_col:
+            with db_engine.begin() as conn:
+                is_pg = conn.dialect.name == "postgresql"
+                if is_pg:
+                    conn.execute(text('ALTER TABLE "match" ADD COLUMN IF NOT EXISTS challenge_id UUID'))
+                else:
+                    conn.execute(text('ALTER TABLE "match" ADD COLUMN challenge_id CHAR(32)'))
+                conn.execute(text('CREATE INDEX IF NOT EXISTS ix_match_challenge_id ON "match" (challenge_id)'))
+
+        if target_engine is None:
+            _match_challenge_column_ready = True
 
 
 def ensure_user_oauth_columns(target_engine=None) -> None:
@@ -77,6 +109,7 @@ def ensure_user_oauth_columns(target_engine=None) -> None:
 def get_session():
     """依賴注入 (Dependency Injection) 用，負責提供資料庫 Session 給每個 API"""
     ensure_user_oauth_columns()
+    ensure_match_challenge_column()
     with Session(engine) as session:
         yield session
 
@@ -88,3 +121,4 @@ def create_db_and_tables():
     import models
     SQLModel.metadata.create_all(engine)
     ensure_user_oauth_columns()
+    ensure_match_challenge_column()

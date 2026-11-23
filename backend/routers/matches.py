@@ -84,6 +84,8 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
                 challenge.challenged_partner_id,
             )
         ):
+            new_match.challenge_id = challenge.id
+            session.add(new_match)
             challenge.reported_matches_count = (challenge.reported_matches_count or 0) + 1
             challenge.last_match_id = new_match.id
             challenge.updated_at = utc_now()
@@ -148,6 +150,21 @@ def retract_match(match_id: UUID, current_user: User = Depends(get_current_user)
     notifs = session.exec(select(Notification).where(Notification.match_id == match.id)).all()
     for n in notifs:
         session.delete(n)
+
+    if match.challenge_id:
+        ensure_challenge_table()
+        challenge = session.get(MatchChallenge, match.challenge_id)
+        if challenge is not None:
+            challenge.reported_matches_count = max(0, (challenge.reported_matches_count or 1) - 1)
+            if challenge.last_match_id == match.id:
+                prev_match = session.exec(
+                    select(Match)
+                    .where(Match.challenge_id == challenge.id, Match.id != match.id)
+                    .order_by(Match.created_at.desc())
+                ).first()
+                challenge.last_match_id = prev_match.id if prev_match else None
+            challenge.updated_at = utc_now()
+            session.add(challenge)
 
     session.delete(match)
     session.commit()
@@ -359,6 +376,7 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
 
         result.append({
             "id": str(m.id),
+            "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
@@ -468,6 +486,7 @@ def get_my_matches(
 
         result.append({
             "id": str(m.id),
+            "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
@@ -546,6 +565,7 @@ def get_all_matches_history(
 
         result.append({
             "id": str(m.id),
+            "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],
@@ -628,6 +648,7 @@ def get_recent_matches(limit: int = 8, session: Session = Depends(get_session)):
 
         result.append({
             "id": str(m.id),
+            "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"), 
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "score": [m.score_a, m.score_b],

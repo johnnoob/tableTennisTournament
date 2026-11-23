@@ -26,6 +26,7 @@ export interface MatchPlayer {
 
 export interface MatchFeedItem {
   id: string;
+  challenge_id?: string | null;
   date?: string;
   created_at: string;
   score: [number, number];
@@ -430,6 +431,20 @@ export interface ChallengeReportPrefill {
   opponent2_id?: string | null;
 }
 
+export interface ChallengeReportedMatch {
+  id: string;
+  created_at: string | null;
+  status: 'pending' | 'confirmed' | 'completed' | 'disputed';
+  match_type: 'singles' | 'doubles';
+  format: 'BO1' | 'BO3' | 'BO5' | 'BO7';
+  score_a: number;
+  score_b: number;
+  team_a: ChallengePlayer[];
+  team_b: ChallengePlayer[];
+  winner_team: 'A' | 'B';
+  mmr_exchanged?: number | null;
+}
+
 export interface ChallengeItem {
   id: string;
   match_type: 'singles' | 'doubles';
@@ -443,6 +458,7 @@ export interface ChallengeItem {
   is_public: boolean;
   reported_matches_count: number;
   last_match_id?: string | null;
+  reported_matches?: ChallengeReportedMatch[];
   created_at?: string | null;
   updated_at?: string | null;
   challenger: ChallengePlayer | null;

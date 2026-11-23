@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
+  ArrowUpRight,
   CalendarPlus,
   Check,
   CheckCircle2,
@@ -28,6 +29,7 @@ import {
   downloadChallengeIcs,
   formatChallengeDateTimeLabel,
 } from '@/lib/challengeUtils';
+import { formatSmartMatchTime } from '@/lib/matchDate';
 import {
   useAcceptChallenge,
   useCancelChallenge,
@@ -36,7 +38,11 @@ import {
   useMyChallenges,
 } from '@/hooks/useChallenges';
 import apiClient from '@/utils/apiClient';
-import type { ChallengeItem, ChallengePlayer } from '@/types/api.types';
+import type {
+  ChallengeItem,
+  ChallengePlayer,
+  ChallengeReportedMatch,
+} from '@/types/api.types';
 
 interface SimpleUserOption {
   id: string;
@@ -86,11 +92,192 @@ const HISTORY_STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   expired: { label: '已過期', cls: 'bg-secondary text-muted-foreground' },
 };
 
+function InlineTeamNames({
+  players,
+  won,
+  onInspect,
+}: {
+  players: ChallengePlayer[];
+  won: boolean;
+  onInspect: (id: string) => void;
+}) {
+  if (players.length === 0) {
+    return <span className="text-muted-foreground">待定</span>;
+  }
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center flex-wrap gap-0.5 min-w-0',
+        won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+      )}
+    >
+      {players.map((p, idx) => (
+        <span key={p.id} className="inline-flex items-center min-w-0">
+          {idx > 0 && <span className="text-muted-foreground/50 mx-0.5">/</span>}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspect(p.id);
+            }}
+            className="hover:text-sapphire-blue transition-colors truncate max-w-[110px]"
+          >
+            {p.name}
+          </button>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ChallengeReportedMatchesPanel({
+  matches,
+  expectedCount,
+  currentUserId,
+  onInspectPlayer,
+  onNavigateMatch,
+  onNavigateHistory,
+}: {
+  matches?: ChallengeReportedMatch[];
+  expectedCount: number;
+  currentUserId?: string;
+  onInspectPlayer: (id: string) => void;
+  onNavigateMatch: (matchId: string) => void;
+  onNavigateHistory: () => void;
+}) {
+  const list = matches ?? [];
+
+  if (list.length === 0) {
+    return (
+      <div className="rounded-xl bg-card/85 border border-border/80 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="text-muted-foreground font-bold">
+          此約戰累計已報 {expectedCount} 場，無法自動比對到對應歷史場次（可能已被管理員刪除）。
+        </span>
+        <button
+          type="button"
+          onClick={onNavigateHistory}
+          className="inline-flex items-center gap-1 text-sapphire-blue hover:underline font-black shrink-0"
+        >
+          <span>前往對戰歷史</span>
+          <ArrowUpRight size={12} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-card/90 border border-border/80 overflow-hidden">
+      <div className="px-3 py-1.5 bg-surface-subtle/70 border-b border-border/60 flex items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
+        <span>已關聯約戰場次明細（共 {list.length} 場）</span>
+        <span className="hidden sm:inline">點擊「定位」可在對戰歷史查看完整紀錄</span>
+      </div>
+      <div className="divide-y divide-border/60">
+        {list.map((m, idx) => {
+          const aWon = m.winner_team === 'A';
+          const isPending = m.status === 'pending';
+          const isDisputed = m.status === 'disputed';
+          const inA = currentUserId
+            ? m.team_a.some((p) => String(p.id) === String(currentUserId))
+            : false;
+          const inB = currentUserId
+            ? m.team_b.some((p) => String(p.id) === String(currentUserId))
+            : false;
+          const viewerInMatch = inA || inB;
+          const viewerWon = (inA && aWon) || (inB && !aWon);
+          const absElo = m.mmr_exchanged != null ? Math.round(m.mmr_exchanged) : null;
+
+          return (
+            <div
+              key={m.id}
+              className="px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs hover:bg-surface-subtle/40 transition-colors"
+            >
+              {/* 左：場次編號與對戰時間 */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-1.5 py-0.5 rounded-md bg-secondary border border-border/70 text-[11px] font-display font-black text-muted-foreground tabular-nums">
+                  #{idx + 1}
+                </span>
+                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                  {formatSmartMatchTime(m.created_at)}
+                </span>
+                {m.format === 'BO5' && (
+                  <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                    BO5
+                  </span>
+                )}
+              </div>
+
+              {/* 中：對陣雙方與比分 */}
+              <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                <InlineTeamNames players={m.team_a} won={aWon} onInspect={onInspectPlayer} />
+                <span className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border/80 font-display font-black text-xs sm:text-sm tabular-nums shrink-0 leading-none">
+                  <span className={aWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {m.score_a}
+                  </span>
+                  <span className="text-muted-foreground/45 mx-1">:</span>
+                  <span className={!aWon ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {m.score_b}
+                  </span>
+                </span>
+                <InlineTeamNames players={m.team_b} won={!aWon} onInspect={onInspectPlayer} />
+              </div>
+
+              {/* 右：結算狀態與跳轉定位 */}
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {isPending ? (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 border border-amber-500/25 text-[10px] font-black">
+                    待確認
+                  </span>
+                ) : isDisputed ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/12 text-rose-700 dark:text-rose-300 border border-rose-500/25 text-[10px] font-black">
+                    申訴中
+                  </span>
+                ) : absElo !== null && absElo > 0 ? (
+                  viewerInMatch ? (
+                    <span
+                      className={cn(
+                        'font-display font-black text-[11px] tabular-nums whitespace-nowrap',
+                        viewerWon
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400',
+                      )}
+                    >
+                      {viewerWon ? `+${absElo}` : `-${absElo}`} ELO
+                    </span>
+                  ) : (
+                    <span className="font-display font-black text-[11px] text-muted-foreground tabular-nums">
+                      ±{absElo} ELO
+                    </span>
+                  )
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                    已確認
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateMatch(m.id)}
+                  className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg bg-card hover:bg-secondary border border-border text-[11px] font-black text-sapphire-blue dark:text-blue-300 transition-colors shrink-0"
+                >
+                  <span>定位</span>
+                  <ArrowUpRight size={11} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ChallengeHub({
   currentUserId,
   onInspectPlayer,
   onReportChallenge,
 }: ChallengeHubProps) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const sectionRef = useRef<HTMLElement | null>(null);
   const [isFocusHighlighted, setIsFocusHighlighted] = useState(false);
@@ -102,6 +289,18 @@ export function ChallengeHub({
   const [confirmCompleteId, setConfirmCompleteId] = useState<string | null>(null);
   const [selectedAcceptPartners, setSelectedAcceptPartners] = useState<Record<string, string>>({});
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedChallengeIds, setExpandedChallengeIds] = useState<Record<string, boolean>>({});
+
+  const toggleChallengeMatches = (challengeId: string) => {
+    setExpandedChallengeIds((prev) => ({
+      ...prev,
+      [challengeId]: !prev[challengeId],
+    }));
+  };
+
+  const navigateToMatch = (matchId: string) => {
+    navigate(`/history?matchId=${encodeURIComponent(matchId)}`);
+  };
 
   const { data } = useMyChallenges(Boolean(currentUserId));
   const acceptMutation = useAcceptChallenge();
@@ -244,6 +443,9 @@ export function ChallengeHub({
             const acceptPartnerChoices = userOptions.filter((u) => !takenSlotIds.has(u.id));
             const pickedPartnerId = selectedAcceptPartners[ch.id] || '';
             const isDeclineOpen = declineOpenId === ch.id;
+            const hasReportedMatches =
+              ch.reported_matches_count > 0 || (ch.reported_matches?.length ?? 0) > 0;
+            const isMatchesExpanded = Boolean(expandedChallengeIds[ch.id]);
 
             return (
               <div
@@ -260,9 +462,28 @@ export function ChallengeHub({
                 {/* 頂部狀態與約定時間列 */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className={cn('px-2 py-0.5 rounded-full border text-[11px] font-black', statusBadge.cls)}>
-                      {statusBadge.text}
-                    </span>
+                    {isAccepted && hasReportedMatches ? (
+                      <button
+                        type="button"
+                        aria-expanded={isMatchesExpanded}
+                        onClick={() => toggleChallengeMatches(ch.id)}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-black hover:bg-emerald-500/20 transition-colors cursor-pointer',
+                          statusBadge.cls,
+                        )}
+                      >
+                        <span>{statusBadge.text}</span>
+                        {isMatchesExpanded ? (
+                          <ChevronUp size={12} aria-hidden="true" />
+                        ) : (
+                          <ChevronDown size={12} aria-hidden="true" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className={cn('px-2 py-0.5 rounded-full border text-[11px] font-black', statusBadge.cls)}>
+                        {statusBadge.text}
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 rounded-md bg-secondary text-[11px] font-black text-foreground">
                       {ch.match_type === 'doubles' ? '雙打' : '單打'} · {ch.format}
                     </span>
@@ -591,6 +812,17 @@ export function ChallengeHub({
                       </Button>
                     ))}
                 </div>
+
+                {hasReportedMatches && isMatchesExpanded && (
+                  <ChallengeReportedMatchesPanel
+                    matches={ch.reported_matches}
+                    expectedCount={ch.reported_matches_count}
+                    currentUserId={currentUserId}
+                    onInspectPlayer={onInspectPlayer}
+                    onNavigateMatch={navigateToMatch}
+                    onNavigateHistory={() => navigate('/history')}
+                  />
+                )}
               </div>
             );
           })}
@@ -607,27 +839,85 @@ export function ChallengeHub({
                 label: ch.status,
                 cls: 'bg-secondary text-muted-foreground',
               };
+              const reportedCount = ch.reported_matches?.length || ch.reported_matches_count || 0;
+              const hasMatches = reportedCount > 0;
+              const isExpanded = Boolean(expandedChallengeIds[ch.id]);
+              const teamALabel =
+                ch.match_type === 'doubles' && ch.challenger_partner
+                  ? `${ch.challenger?.name} / ${ch.challenger_partner.name}`
+                  : ch.challenger?.name;
+              const teamBLabel =
+                ch.match_type === 'doubles' && ch.challenged_partner
+                  ? `${ch.challenged?.name} / ${ch.challenged_partner.name}`
+                  : ch.challenged?.name;
+
               return (
                 <div
                   key={ch.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-surface-subtle/60 border border-border/70 text-xs"
+                  className={cn(
+                    'rounded-xl border transition-colors overflow-hidden',
+                    hasMatches
+                      ? isExpanded
+                        ? 'bg-card border-emerald-500/35 shadow-xs'
+                        : 'bg-surface-subtle/60 border-border/70 hover:border-emerald-500/35 hover:bg-surface-subtle'
+                      : 'bg-surface-subtle/60 border-border/70',
+                  )}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black shrink-0', badge.cls)}>
-                      {badge.label}
-                    </span>
-                    <span className="font-bold text-foreground truncate">
-                      {ch.challenger?.name} vs {ch.challenged?.name}
-                    </span>
-                    {ch.reported_matches_count > 0 && (
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                        ({ch.reported_matches_count} 場)
+                  {hasMatches ? (
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleChallengeMatches(ch.id)}
+                      className="w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-left text-xs cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black shrink-0', badge.cls)}>
+                          {badge.label}
+                        </span>
+                        <span className="font-bold text-foreground truncate">
+                          {teamALabel} vs {teamBLabel}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 text-[11px] font-black shrink-0">
+                          <span>{reportedCount} 場</span>
+                          {isExpanded ? (
+                            <ChevronUp size={12} aria-hidden="true" />
+                          ) : (
+                            <ChevronDown size={12} aria-hidden="true" />
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0 ml-auto">
+                        {formatChallengeDateTimeLabel(ch.proposed_at)}
                       </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0">
-                    {formatChallengeDateTimeLabel(ch.proposed_at)}
-                  </span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black shrink-0', badge.cls)}>
+                          {badge.label}
+                        </span>
+                        <span className="font-bold text-foreground truncate">
+                          {teamALabel} vs {teamBLabel}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0">
+                        {formatChallengeDateTimeLabel(ch.proposed_at)}
+                      </span>
+                    </div>
+                  )}
+
+                  {hasMatches && isExpanded && (
+                    <div className="px-2.5 pb-2.5 pt-1 border-t border-border/60 bg-surface-subtle/35">
+                      <ChallengeReportedMatchesPanel
+                        matches={ch.reported_matches}
+                        expectedCount={ch.reported_matches_count}
+                        currentUserId={currentUserId}
+                        onInspectPlayer={onInspectPlayer}
+                        onNavigateMatch={navigateToMatch}
+                        onNavigateHistory={() => navigate('/history')}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}

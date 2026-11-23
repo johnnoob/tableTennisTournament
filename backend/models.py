@@ -127,6 +127,7 @@ class Match(SQLModel, table=True):
     
     # 6. 時間與關聯 ID
     season_id: str = Field(foreign_key="season.id", index=True)
+    challenge_id: Optional[UUID] = Field(default=None, foreign_key="matchchallenge.id", index=True)
     created_at: datetime = Field(default_factory=utc_now)
 
     # ==========================================

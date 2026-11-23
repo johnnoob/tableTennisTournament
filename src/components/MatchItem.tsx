@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Crosshair, Layers, X } from 'lucide-react';
+import { ChevronDown, Crosshair, Layers, Swords, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ interface MatchPlayer {
 
 interface MatchData {
   id: string;
+  challenge_id?: string | null;
   date?: string;
   created_at?: string;
   score: [number, number];
@@ -42,6 +43,21 @@ interface MatchItemProps {
 function formatDelta(val: number): string {
   const rounded = Math.round(val * 10) / 10;
   return rounded > 0 ? `+${rounded}` : `${rounded}`;
+}
+
+function ChallengeTag({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      title="此場比賽源自約戰戰帖"
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md bg-smash-orange/12 text-smash-orange dark:bg-orange-500/15 dark:text-orange-300 border border-smash-orange/25 font-black leading-none whitespace-nowrap shrink-0',
+        compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs',
+      )}
+    >
+      <Swords size={compact ? 10 : 11} aria-hidden="true" />
+      約戰
+    </span>
+  );
 }
 
 function TeamAvatars({
@@ -329,8 +345,9 @@ export function MatchItem({
             <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
               {displayTime}
             </p>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {typePill}
+              {Boolean(match?.challenge_id) && <ChallengeTag compact />}
               {matchFormat === 'BO5' && (
                 <span className="px-2 py-0.5 rounded-md bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap shrink-0">
                   BO5
@@ -428,8 +445,9 @@ export function MatchItem({
         {/* Mobile: Apple Sports Stacked 2-Row Scoreboard */}
         <div className="md:hidden px-3.5 py-3 space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground min-w-0">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground min-w-0 flex-wrap">
               {typePill}
+              {Boolean(match?.challenge_id) && <ChallengeTag compact />}
               {matchFormat === 'BO5' && (
                 <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap">
                   BO5
@@ -691,6 +709,7 @@ export function MatchItem({
                     單打
                   </span>
                 )}
+                {Boolean(match?.challenge_id) && <ChallengeTag />}
                 {isDoubles && myPartner && (
                   <button
                     type="button"
@@ -749,6 +768,7 @@ export function MatchItem({
                   單打
                 </span>
               )}
+              {Boolean(match?.challenge_id) && <ChallengeTag compact />}
               {matchFormat === 'BO5' && (
                 <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-black text-muted-foreground leading-none whitespace-nowrap">
                   BO5
@@ -906,6 +926,7 @@ export function MatchSeriesItem({
   };
 
   const isDoubles = cluster.type === 'doubles';
+  const hasChallengeMatch = cluster.matches.some((m) => Boolean((m as MatchData).challenge_id));
   const rawDate = cluster.latestMatch?.date || cluster.latestMatch?.created_at;
   const displayTime =
     timeDisplay === 'clock' ? formatMatchClock(rawDate) : formatSmartMatchTime(rawDate);
@@ -965,6 +986,7 @@ export function MatchSeriesItem({
                   <Layers size={11} aria-hidden="true" />
                   連打 {cluster.matches.length} 場
                 </span>
+                {hasChallengeMatch && <ChallengeTag compact />}
                 {containsHighlightedMatch && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue text-white text-[11px] font-black leading-none whitespace-nowrap">
                     <Crosshair size={10} aria-hidden="true" />
@@ -1316,6 +1338,7 @@ export function MatchSeriesItem({
                           BO5
                         </span>
                       )}
+                      {Boolean((g.match as MatchData).challenge_id) && <ChallengeTag compact />}
                     </div>
 
                     <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
@@ -1395,13 +1418,14 @@ export function MatchSeriesItem({
 
                   {/* Mobile: Ultra-clean single-line breakdown */}
                   <div className="md:hidden px-3.5 py-2.5 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                       <span className="px-2 py-0.5 rounded-md bg-card border border-border/80 text-xs font-display font-black text-muted-foreground tabular-nums">
                         #{g.index}
                       </span>
                       <span className="text-xs font-bold text-muted-foreground tabular-nums">
                         {gameClock}
                       </span>
+                      {Boolean((g.match as MatchData).challenge_id) && <ChallengeTag compact />}
                       {gameFormat === 'BO5' && (
                         <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
                           BO5
@@ -1571,6 +1595,7 @@ export function MatchSeriesItem({
                       單打
                     </span>
                   )}
+                  {hasChallengeMatch && <ChallengeTag />}
                   {isDoubles && myPartner && (
                     <button
                       type="button"
@@ -1660,6 +1685,7 @@ export function MatchSeriesItem({
                   <Layers size={11} aria-hidden="true" />
                   連打 {cluster.matches.length} 場
                 </span>
+                {hasChallengeMatch && <ChallengeTag compact />}
                 {containsHighlightedMatch && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sapphire-blue text-white text-[11px] font-black leading-none whitespace-nowrap">
                     <Crosshair size={10} aria-hidden="true" />
@@ -1851,6 +1877,7 @@ export function MatchSeriesItem({
                           BO5
                         </span>
                       )}
+                      {Boolean((g.match as MatchData).challenge_id) && <ChallengeTag compact />}
                     </div>
                   </div>
 
