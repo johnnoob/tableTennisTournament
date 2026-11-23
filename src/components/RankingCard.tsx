@@ -115,11 +115,11 @@ export function RankingCard({
                 </p>
                 <div className="flex items-center justify-end gap-1 text-xs sm:text-sm font-display font-black tabular-nums">
                   <span className="text-emerald-600 dark:text-emerald-400">
-                    {displayStats.wins || 0}W
+                    {displayStats.wins || 0}勝
                   </span>
-                  <span className="text-muted-foreground/50">-</span>
+                  <span className="text-muted-foreground/50">·</span>
                   <span className="text-rose-500 dark:text-rose-400">
-                    {displayStats.losses || 0}L
+                    {displayStats.losses || 0}敗
                   </span>
                 </div>
               </div>
@@ -335,9 +335,9 @@ export function RankingCard({
                   {winRateNum}%
                 </span>
                 <span className="text-xs font-display font-black tabular-nums whitespace-nowrap mt-0.5 sm:mt-0">
-                  <span className="text-emerald-600 dark:text-emerald-400">{wins}W</span>
-                  <span className="text-muted-foreground/50 mx-0.5">-</span>
-                  <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{wins}勝</span>
+                  <span className="mx-1" />
+                  <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
                 </span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden mt-2 flex">
@@ -376,6 +376,7 @@ export function RankingCard({
             <div className="grid grid-cols-5 gap-2 sm:gap-1.5">
               {Array.from({ length: 5 }).map((_, idx) => {
                 const res = recentForm[idx];
+                const label = res === 'W' ? '勝' : res === 'L' ? '敗' : '-';
                 return (
                   <div
                     key={idx}
@@ -388,7 +389,7 @@ export function RankingCard({
                           : 'border border-dashed border-border bg-surface-subtle/70 text-muted-foreground/40',
                     )}
                   >
-                    {res || '-'}
+                    {label}
                   </div>
                 );
               })}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   Building2,
   Check,
+  ChevronDown,
   Download,
   Edit3,
   FlaskConical,
@@ -52,6 +53,193 @@ const SORT_OPTIONS: ResponsiveSelectOption[] = [
   { value: 'mmr_asc', label: 'ELO 積分由低到高' },
   { value: 'matches_desc', label: '生涯出賽場次最多' },
 ];
+
+interface DepartmentChoice {
+  name: string;
+  count: number;
+}
+
+interface DepartmentComboboxProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  choices: DepartmentChoice[];
+  placeholder?: string;
+  required?: boolean;
+}
+
+function DepartmentCombobox({
+  id,
+  value,
+  onChange,
+  choices,
+  placeholder = '搜尋或選擇單位，亦可直接輸入名稱',
+  required = false,
+}: Readonly<DepartmentComboboxProps>) {
+  const [open, setOpen] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+        setIsFiltering(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [open]);
+
+  const trimmed = value.trim();
+  const filteredChoices = useMemo(() => {
+    if (!isFiltering || !trimmed) return choices;
+    const query = trimmed.toLowerCase();
+    return choices.filter((choice) => choice.name.toLowerCase().includes(query));
+  }, [choices, isFiltering, trimmed]);
+
+  const hasExactMatch = choices.some((choice) => choice.name === trimmed);
+
+  const handleSelect = (dept: string) => {
+    onChange(dept);
+    setOpen(false);
+    setIsFiltering(false);
+  };
+
+  return (
+    <div ref={containerRef} className="space-y-1.5">
+      <div className="relative">
+        <Search
+          size={15}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          id={id}
+          type="text"
+          required={required}
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          value={value}
+          onFocus={() => {
+            setOpen(true);
+            setIsFiltering(false);
+          }}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+            setIsFiltering(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpen(false);
+              setIsFiltering(false);
+            }
+          }}
+          placeholder={placeholder}
+          className="arena-input pl-9 pr-16"
+        />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+          {value.length > 0 && (
+            <button
+              type="button"
+              aria-label="清除單位欄位"
+              onClick={() => {
+                onChange('');
+                setOpen(true);
+                setIsFiltering(false);
+              }}
+              className="size-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label={open ? '收合單位清單' : '展開單位清單'}
+            onClick={() => {
+              setOpen((prev) => !prev);
+              setIsFiltering(false);
+            }}
+            className="size-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+          >
+            <ChevronDown
+              size={15}
+              aria-hidden="true"
+              className={cn('transition-transform duration-150', open && 'rotate-180')}
+            />
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="rounded-xl border border-border bg-card shadow-md overflow-hidden">
+          {choices.length > 0 && (
+            <div className="px-3 py-1.5 bg-surface-subtle/70 border-b border-border/70 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+              <span>
+                {isFiltering && trimmed
+                  ? `符合「${trimmed}」的單位`
+                  : '現有處室 / 單位快速選擇'}
+              </span>
+              <span className="tabular-nums">{filteredChoices.length} 項</span>
+            </div>
+          )}
+          <div className="max-h-48 overflow-y-auto overscroll-contain divide-y divide-border/50">
+            {trimmed && !hasExactMatch && (
+              <button
+                type="button"
+                onClick={() => handleSelect(trimmed)}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-left text-xs font-black text-sapphire-blue dark:text-blue-300 bg-sapphire-blue/[0.06] hover:bg-sapphire-blue/12 transition-colors"
+              >
+                <Plus size={14} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">使用新單位「{trimmed}」</span>
+              </button>
+            )}
+            {filteredChoices.map((choice) => {
+              const selected = trimmed === choice.name;
+              return (
+                <button
+                  key={choice.name}
+                  type="button"
+                  onClick={() => handleSelect(choice.name)}
+                  className={cn(
+                    'w-full px-3 py-2 flex items-center justify-between gap-2 text-left transition-colors',
+                    selected
+                      ? 'bg-sapphire-blue/10 text-sapphire-blue dark:text-blue-300'
+                      : 'hover:bg-secondary/70 text-foreground',
+                  )}
+                >
+                  <span className="inline-flex items-center gap-2 min-w-0">
+                    <Building2 size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span className="text-xs sm:text-sm font-bold truncate">{choice.name}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-black text-muted-foreground tabular-nums">
+                      {choice.count} 人
+                    </span>
+                    {selected && <Check size={14} className="shrink-0" aria-hidden="true" />}
+                  </span>
+                </button>
+              );
+            })}
+            {filteredChoices.length === 0 && !trimmed && (
+              <p className="px-3 py-3 text-xs font-bold text-muted-foreground text-center">
+                目前尚無已建檔單位，請直接於上方輸入名稱
+              </p>
+            )}
+            {filteredChoices.length === 0 && trimmed && hasExactMatch && null}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManagerProps) {
   const queryClient = useQueryClient();
@@ -127,7 +315,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     };
   }, [users]);
 
-  const { departmentOptions, existingDepartments } = useMemo(() => {
+  const { departmentOptions, departmentChoices } = useMemo(() => {
     const counts = new Map<string, number>();
     for (const u of users) {
       const dept = (u.department || '未設定單位').trim() || '未設定單位';
@@ -146,10 +334,9 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
 
     return {
       departmentOptions: options,
-      existingDepartments: sortedDepts
-        .map(([dept]) => dept)
-        .filter((dept) => dept !== '未設定單位')
-        .slice(0, 8),
+      departmentChoices: sortedDepts
+        .filter(([dept]) => dept !== '未設定單位' && dept !== '未設定處室')
+        .map(([name, count]) => ({ name, count })),
     };
   }, [users]);
 
@@ -516,45 +703,47 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             })}
           </div>
 
-          <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground ml-auto flex-wrap">
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 text-xs font-bold text-muted-foreground sm:ml-auto flex-wrap">
             <span>
               顯示 <strong className="text-foreground font-black tabular-nums">{filteredUsers.length}</strong> / {summary.total} 位
             </span>
-            {hasActiveFilter && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setDepartmentFilter('all');
-                  setSortBy('default');
-                  setSearch('');
-                }}
-                className="text-sapphire-blue hover:underline font-black"
-              >
-                重設條件
-              </button>
-            )}
-            {isTestImpersonationEnabled && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {hasActiveFilter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setDepartmentFilter('all');
+                    setSortBy('default');
+                    setSearch('');
+                  }}
+                  className="text-sapphire-blue hover:underline font-black"
+                >
+                  重設條件
+                </button>
+              )}
+              {isTestImpersonationEnabled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateTestOpen(true)}
+                  className="h-9 px-2.5 sm:px-3 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1.5"
+                >
+                  <FlaskConical size={13} aria-hidden="true" />
+                  <span>建立測試帳號</span>
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setCreateTestOpen(true)}
-                className="h-9 px-3 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1.5"
+                disabled={filteredUsers.length === 0}
+                onClick={handleExportUsersCsv}
+                className="h-9 px-2.5 sm:px-3 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs gap-1.5"
               >
-                <FlaskConical size={13} aria-hidden="true" />
-                <span>建立測試帳號</span>
+                <Download size={13} aria-hidden="true" />
+                <span>匯出 CSV ({filteredUsers.length})</span>
               </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={filteredUsers.length === 0}
-              onClick={handleExportUsersCsv}
-              className="h-9 px-3 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs gap-1.5"
-            >
-              <Download size={13} aria-hidden="true" />
-              <span>匯出 CSV ({filteredUsers.length})</span>
-            </Button>
+            </div>
           </div>
         </div>
 
@@ -651,9 +840,9 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         </div>
       ) : (
         <>
-          {/* Desktop Directory Table */}
-          <div className="hidden md:block">
-            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.0fr)_116px_68px_98px_248px] items-center gap-3">
+          {/* Desktop Directory Table (1024px+ so tablet never cramps 6 columns) */}
+          <div className="hidden lg:block overflow-x-auto">
+            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.15fr)_116px_68px_248px] items-center gap-3">
               <button
                 type="button"
                 role="checkbox"
@@ -673,7 +862,6 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               <span>單位 / 信箱</span>
               <span>權限狀態</span>
               <span className="text-right">ELO</span>
-              <span className="text-right">生涯戰績</span>
               <span className="text-right">操作</span>
             </div>
 
@@ -681,14 +869,12 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               {filteredUsers.map((u) => {
                 const isSelf = u.id === currentUserId;
                 const isSelected = selectedValidIds.includes(u.id);
-                const winRate =
-                  u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
 
                 return (
                   <div
                     key={u.id}
                     className={cn(
-                      'px-5 py-3.5 grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.0fr)_116px_68px_98px_248px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
+                      'px-5 py-3.5 grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.15fr)_116px_68px_248px] items-center gap-3 hover:bg-surface-subtle/40 transition-colors',
                       isSelected && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/[0.08]',
                       !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-75'
                     )}
@@ -777,17 +963,6 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       {Math.round(u.global_mmr)}
                     </div>
 
-                    {/* Career Stats */}
-                    <div className="text-right tabular-nums">
-                      <p className="text-xs font-display font-black text-foreground">
-                        <span className="text-emerald-600 dark:text-emerald-400">{u.wins}勝</span>{' '}
-                        <span className="text-rose-600 dark:text-rose-400">{u.losses}敗</span>
-                      </p>
-                      <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
-                        {u.matches_played > 0 ? `勝率 ${winRate}%` : '尚無出賽'}
-                      </p>
-                    </div>
-
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-1.5">
                       {isTestImpersonationEnabled &&
@@ -842,25 +1017,23 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             </div>
           </div>
 
-          {/* Mobile Airy List */}
-          <div className="md:hidden divide-y divide-border/70">
+          {/* Mobile & Tablet Clean Card List */}
+          <div className="lg:hidden divide-y divide-border/70">
             {filteredUsers.map((u) => {
               const isSelf = u.id === currentUserId;
               const isSelected = selectedValidIds.includes(u.id);
-              const winRate =
-                u.matches_played > 0 ? Math.round((u.wins / u.matches_played) * 100) : 0;
 
               return (
                 <div
                   key={u.id}
                   className={cn(
-                    'p-4 space-y-2.5 transition-colors',
+                    'p-3.5 sm:p-4 space-y-2.5 min-w-0 transition-colors',
                     isSelected && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/[0.08]',
                     !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-80'
                   )}
                 >
                   {/* Row 1: Checkbox + Identity + ELO */}
-                  <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2.5 min-w-0">
                     <button
                       type="button"
                       role="checkbox"
@@ -880,7 +1053,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     <button
                       type="button"
                       onClick={() => openInspect(u.id)}
-                      className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
                     >
                       <PlayerAvatar
                         src={u.avatar_url}
@@ -891,8 +1064,8 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         )}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-display font-black text-base text-foreground truncate">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          <span className="font-display font-black text-sm sm:text-base text-foreground truncate max-w-full">
                             {u.name}
                           </span>
                           {u.auth_provider === 'test' && (
@@ -923,6 +1096,10 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                             </span>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground font-bold truncate mt-0.5">
+                          {u.department || '未設定單位'}
+                          {u.email ? ` · ${u.email}` : ''}
+                        </p>
                       </div>
                     </button>
 
@@ -934,17 +1111,6 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         ELO
                       </span>
                     </div>
-                  </div>
-
-                  {/* Row 2: Compact Metadata Line */}
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-bold pl-[82px]">
-                    <span className="truncate">
-                      {u.department || '未設定單位'}
-                      {u.email ? ` · ${u.email}` : ''}
-                    </span>
-                    <span className="shrink-0 tabular-nums font-display">
-                      {u.matches_played > 0 ? `${u.wins}勝${u.losses}敗 (${winRate}%)` : '尚無出賽'}
-                    </span>
                   </div>
 
                   {/* Row 3: Action Trio */}
@@ -1075,39 +1241,15 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   <label htmlFor="admin-edit-user-dept" className="arena-label">
                     所屬處室 / 單位
                   </label>
-                  <input
+                  <DepartmentCombobox
                     id="admin-edit-user-dept"
-                    type="text"
                     value={editDepartment}
-                    onChange={(e) => setEditDepartment(e.target.value)}
-                    placeholder="例如：資訊處、秘書室"
-                    className="arena-input"
+                    onChange={setEditDepartment}
+                    choices={departmentChoices}
+                    placeholder="搜尋或選擇單位，亦可直接輸入"
                   />
                 </div>
               </div>
-
-              {existingDepartments.length > 0 && (
-                <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-1.5 pb-0.5">
-                  <span className="text-[11px] font-bold text-muted-foreground shrink-0">
-                    常用單位：
-                  </span>
-                  {existingDepartments.map((dept) => (
-                    <button
-                      key={dept}
-                      type="button"
-                      onClick={() => setEditDepartment(dept)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors shrink-0 whitespace-nowrap',
-                        editDepartment === dept
-                          ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300'
-                          : 'bg-secondary/70 border-border text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {dept}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Section 2: Settings Rows + Toggle Switches */}
@@ -1470,37 +1612,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             <label htmlFor="batch-dept-input" className="arena-label">
               目標處室 / 單位名稱 <span className="text-rose-500">*</span>
             </label>
-            <input
+            <DepartmentCombobox
               id="batch-dept-input"
-              type="text"
-              required
               value={batchDepartment}
-              onChange={(e) => setBatchDepartment(e.target.value)}
-              placeholder="例如：資訊處、秘書室"
-              className="arena-input"
+              onChange={setBatchDepartment}
+              choices={departmentChoices}
+              placeholder="搜尋現有單位，或直接輸入新處室名稱"
+              required
             />
-            {existingDepartments.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-muted-foreground shrink-0">
-                  現有單位快選：
-                </span>
-                {existingDepartments.map((dept) => (
-                  <button
-                    key={dept}
-                    type="button"
-                    onClick={() => setBatchDepartment(dept)}
-                    className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors',
-                      batchDepartment === dept
-                        ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300'
-                        : 'bg-secondary/70 border-border text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {dept}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </ResponsiveFormModal>

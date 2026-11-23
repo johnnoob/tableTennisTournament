@@ -121,11 +121,13 @@ function TeamNames({
   onInspect,
   className,
   align = 'left',
+  stacked = false,
 }: {
   players: MatchPlayer[];
   onInspect: (id?: string) => void;
   className?: string;
   align?: 'left' | 'right';
+  stacked?: boolean;
 }) {
   if (players.length === 0) {
     return (
@@ -145,7 +147,7 @@ function TeamNames({
         }}
         disabled={!players[0]?.id}
         className={cn(
-          'truncate leading-tight transition-colors hover:text-sapphire-blue max-w-full',
+          'leading-snug transition-colors hover:text-sapphire-blue break-words',
           align === 'right' ? 'text-right' : 'text-left',
           className,
         )}
@@ -155,16 +157,46 @@ function TeamNames({
     );
   }
 
+  if (stacked) {
+    return (
+      <div
+        className={cn(
+          'flex flex-col gap-0.5 min-w-0',
+          align === 'right' ? 'items-end' : 'items-start',
+        )}
+      >
+        {players.map((p, idx) => (
+          <button
+            key={p.id || idx}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspect(p.id);
+            }}
+            disabled={!p.id}
+            className={cn(
+              'leading-tight transition-colors hover:text-sapphire-blue whitespace-nowrap',
+              align === 'right' ? 'text-right' : 'text-left',
+              className,
+            )}
+          >
+            {p.name || '?'}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        'flex items-center min-w-0 max-w-full overflow-hidden',
+        'flex items-center flex-wrap gap-x-1 gap-y-0.5 min-w-0',
         align === 'right' && 'justify-end',
       )}
     >
       {players.map((p, idx) => (
         <span key={p.id || idx} className="inline-flex items-center min-w-0">
-          {idx > 0 && <span className="text-muted-foreground/45 mx-1 shrink-0">/</span>}
+          {idx > 0 && <span className="text-muted-foreground/45 mr-1 shrink-0">/</span>}
           <button
             type="button"
             onClick={(e) => {
@@ -173,11 +205,11 @@ function TeamNames({
             }}
             disabled={!p.id}
             className={cn(
-              'truncate leading-tight transition-colors hover:text-sapphire-blue',
+              'leading-tight transition-colors hover:text-sapphire-blue whitespace-nowrap',
               className,
             )}
           >
-            {p.name?.split(' ')[0] || '?'}
+            {p.name || '?'}
           </button>
         </span>
       ))}
@@ -338,14 +370,14 @@ export function MatchItem({
             onClear={clearHighlight}
           />
         )}
-        {/* Desktop: Unified 3-Column Alignment matching MatchSeriesItem */}
-        <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-3.5">
-          {/* Left Meta */}
-          <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
-              {displayTime}
-            </p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+        {/* Desktop: Top Meta Strip + Full-Width Broadcast Matchup Stage (never truncates names) */}
+        <div className="hidden md:block px-5 py-3.5 space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <span className="text-foreground/85 tabular-nums whitespace-nowrap">
+                {displayTime}
+              </span>
+              <span className="text-muted-foreground/40" aria-hidden="true">·</span>
               {typePill}
               {Boolean(match?.challenge_id) && <ChallengeTag compact />}
               {matchFormat === 'BO5' && (
@@ -354,12 +386,12 @@ export function MatchItem({
                 </span>
               )}
             </div>
+            {statusBadge && <div className="flex items-center gap-2 shrink-0">{statusBadge}</div>}
           </div>
 
-          {/* Center Tight Matchup Stage (Fixed w-[96px] score axis) */}
-          <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
             {/* Team 1 */}
-            <div className="flex items-center justify-end gap-2.5 min-w-0">
+            <div className="flex items-center justify-end gap-3 min-w-0">
               {isSettled && p1Change !== 0 && (
                 <span
                   className={cn(
@@ -376,6 +408,7 @@ export function MatchItem({
                 players={player1}
                 onInspect={openInspect}
                 align="right"
+                stacked={isDoubles}
                 className={cn(
                   'font-display text-sm sm:text-base',
                   p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
@@ -392,7 +425,7 @@ export function MatchItem({
             </div>
 
             {/* Center Score Pill */}
-            <div className="w-[96px] py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1.5 font-display font-black text-xl sm:text-2xl tabular-nums shrink-0 leading-none">
+            <div className="min-w-[84px] px-3.5 py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1.5 font-display font-black text-xl sm:text-2xl tabular-nums shrink-0 leading-none">
               <span className={p1Won ? 'text-foreground' : 'text-muted-foreground/60'}>
                 {score[0]}
               </span>
@@ -403,7 +436,7 @@ export function MatchItem({
             </div>
 
             {/* Team 2 */}
-            <div className="flex items-center justify-start gap-2.5 min-w-0">
+            <div className="flex items-center justify-start gap-3 min-w-0">
               <TeamAvatars
                 players={opponent}
                 onInspect={openInspect}
@@ -416,6 +449,7 @@ export function MatchItem({
                 players={opponent}
                 onInspect={openInspect}
                 align="left"
+                stacked={isDoubles}
                 className={cn(
                   'font-display text-sm sm:text-base',
                   p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
@@ -434,11 +468,6 @@ export function MatchItem({
                 </span>
               )}
             </div>
-          </div>
-
-          {/* Right Status */}
-          <div className="flex items-center justify-end gap-2 shrink-0">
-            {statusBadge}
           </div>
         </div>
 
@@ -476,6 +505,7 @@ export function MatchItem({
                   players={player1}
                   onInspect={openInspect}
                   align="left"
+                  stacked={isDoubles}
                   className={cn(
                     'font-display text-sm sm:text-base',
                     p1Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
@@ -527,6 +557,7 @@ export function MatchItem({
                   players={opponent}
                   onInspect={openInspect}
                   align="left"
+                  stacked={isDoubles}
                   className={cn(
                     'font-display text-sm sm:text-base',
                     p2Won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
@@ -591,8 +622,8 @@ export function MatchItem({
     : isDisputed
       ? '申訴中'
       : iWon
-        ? 'WIN'
-        : 'LOSS';
+        ? '勝'
+        : '敗';
 
   const resultColorClass = isPending
     ? 'text-amber-600 dark:text-amber-400'
@@ -799,6 +830,7 @@ export function MatchItem({
                     players={rivalTeam}
                     onInspect={openInspect}
                     align="left"
+                    stacked={isDoubles}
                     className="text-base font-display font-black text-foreground"
                   />
                 </div>
@@ -965,14 +997,15 @@ export function MatchSeriesItem({
           onClick={handleToggleExpanded}
           className="hover:bg-surface-subtle/60 cursor-pointer"
         >
-          {/* Desktop: Unified 3-column grid matching MatchItem and expanded game rows */}
-          <div className="hidden md:grid md:grid-cols-[152px_minmax(0,1fr)_144px] items-center gap-4 px-5 py-3.5">
-            {/* Left Meta */}
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap truncate">
-                {displayTime}
-              </p>
-              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {/* Desktop: Top Meta & Actions Strip + Full-Width Broadcast Matchup Stage */}
+          <div className="hidden md:block px-5 py-4 space-y-3">
+            {/* Row 1: Top Meta Strip + Status & Expand Action */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <span className="text-xs sm:text-sm font-bold text-foreground/85 tabular-nums whitespace-nowrap">
+                  {displayTime}
+                </span>
+                <span className="text-muted-foreground/35 text-xs">·</span>
                 {isDoubles ? (
                   <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-xs font-black leading-none whitespace-nowrap">
                     雙打
@@ -994,12 +1027,36 @@ export function MatchSeriesItem({
                   </span>
                 )}
               </div>
+
+              <div className="flex items-center justify-end gap-2 shrink-0">
+                {cluster.hasPending && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
+                    待確認
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleExpanded();
+                  }}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
+                >
+                  <span>{expanded ? '收合' : '明細'}</span>
+                  <ChevronDown
+                    size={14}
+                    aria-hidden="true"
+                    className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+                  />
+                </button>
+              </div>
             </div>
 
-            {/* Center Alignment Axis (Exact [minmax(0,1fr)_96px_minmax(0,1fr)]) */}
-            <div className="space-y-2 min-w-0">
-              <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3.5 min-w-0">
-                <div className="flex items-center justify-end gap-2.5 min-w-0">
+            {/* Row 2: Full-Width Center Alignment Axis */}
+            <div className="space-y-2.5 min-w-0">
+              <div className="grid grid-cols-[minmax(0,1fr)_104px_minmax(0,1fr)] items-center gap-4 min-w-0 px-2">
+                <div className="flex items-center justify-end gap-3 min-w-0">
                   {cluster.team1NetDelta !== 0 && (
                     <span
                       className={cn(
@@ -1016,6 +1073,7 @@ export function MatchSeriesItem({
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
                     align="right"
+                    stacked={isDoubles}
                     className={cn(
                       'font-display text-sm sm:text-base',
                       t1Lead || !t2Lead
@@ -1026,14 +1084,14 @@ export function MatchSeriesItem({
                   <TeamAvatars
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
-                    avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
+                    avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
                     overlapClassName="-space-x-2.5"
-                    placeholderClassName="size-9 sm:size-10"
+                    placeholderClassName="size-10 sm:size-11"
                     wonRing={t1Lead && cluster.allSettled}
                   />
                 </div>
 
-                <div className="w-[96px] py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1 font-display font-black text-sm sm:text-base tabular-nums whitespace-nowrap shrink-0 leading-none">
+                <div className="w-[104px] py-1.5 rounded-xl bg-surface-subtle border border-border/80 flex items-center justify-center gap-1 font-display font-black text-sm sm:text-base tabular-nums whitespace-nowrap shrink-0 leading-none">
                   <span className={t1Lead ? 'text-foreground' : 'text-muted-foreground/70'}>
                     {cluster.team1Wins}勝
                   </span>
@@ -1043,19 +1101,20 @@ export function MatchSeriesItem({
                   </span>
                 </div>
 
-                <div className="flex items-center justify-start gap-2.5 min-w-0">
+                <div className="flex items-center justify-start gap-3 min-w-0">
                   <TeamAvatars
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
-                    avatarClassName="size-9 sm:size-10 rounded-xl text-xs sm:text-sm"
+                    avatarClassName="size-10 sm:size-11 rounded-xl text-xs sm:text-sm"
                     overlapClassName="-space-x-2.5"
-                    placeholderClassName="size-9 sm:size-10"
+                    placeholderClassName="size-10 sm:size-11"
                     wonRing={t2Lead && cluster.allSettled}
                   />
                   <TeamNames
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
                     align="left"
+                    stacked={isDoubles}
                     className={cn(
                       'font-display text-sm sm:text-base',
                       t2Lead || !t1Lead
@@ -1104,31 +1163,6 @@ export function MatchSeriesItem({
                   })}
                 </div>
               )}
-            </div>
-
-            {/* Right Status + Expand Button */}
-            <div className="flex items-center justify-end gap-2 shrink-0">
-              {cluster.hasPending && (
-                <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
-                  待確認
-                </span>
-              )}
-              <button
-                type="button"
-                aria-expanded={expanded}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleExpanded();
-                }}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
-              >
-                <span>{expanded ? '收合' : '明細'}</span>
-                <ChevronDown
-                  size={14}
-                  aria-hidden="true"
-                  className={cn('transition-transform duration-200', expanded && 'rotate-180')}
-                />
-              </button>
             </div>
           </div>
 
@@ -1192,6 +1226,7 @@ export function MatchSeriesItem({
                     players={cluster.anchorTeam1}
                     onInspect={openInspect}
                     align="left"
+                    stacked={isDoubles}
                     className={cn(
                       'font-display text-sm sm:text-base',
                       t1Lead || !t2Lead
@@ -1235,6 +1270,7 @@ export function MatchSeriesItem({
                     players={cluster.anchorTeam2}
                     onInspect={openInspect}
                     align="left"
+                    stacked={isDoubles}
                     className={cn(
                       'font-display text-sm sm:text-base',
                       t2Lead || !t1Lead
@@ -1717,6 +1753,7 @@ export function MatchSeriesItem({
                       players={rivalTeam}
                       onInspect={openInspect}
                       align="left"
+                      stacked={isDoubles}
                       className="text-base font-display font-black text-foreground"
                     />
                   </div>

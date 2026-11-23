@@ -447,7 +447,7 @@ function SingleActionMatchCard({
                   : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300',
               )}
             >
-              {info.isLoss ? 'LOSS' : 'WIN'}
+              {info.isLoss ? '敗' : '勝'}
             </span>
           </div>
           {group.type === 'doubles' && group.partner && (
@@ -773,7 +773,7 @@ function GroupedActionMatchCard({
                       : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300',
                   )}
                 >
-                  {info.isLoss ? 'LOSS' : 'WIN'}
+                  {info.isLoss ? '敗' : '勝'}
                 </span>
                 <span className="hidden sm:inline text-xs font-bold text-muted-foreground tabular-nums">
                   {formatLocalTime(m.date, 'HH:mm')}
@@ -1409,7 +1409,7 @@ function WaitingOnOthersGroup({
                                 : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
                             )}
                           >
-                            {info.isLoss ? 'LOSS' : 'WIN'}
+                            {info.isLoss ? '敗' : '勝'}
                           </span>
                           <span className="text-sm font-display font-black text-foreground tabular-nums ml-1 shrink-0">
                             {info.myScore} : {info.rivalScore}
@@ -1543,7 +1543,7 @@ function WaitingOnOthersGroup({
                                   : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
                               )}
                             >
-                              {info.isLoss ? 'LOSS' : 'WIN'}
+                              {info.isLoss ? '敗' : '勝'}
                             </span>
                             <span className="text-xs font-bold text-muted-foreground tabular-nums">
                               {formatLocalTime(match.date, 'HH:mm')}
@@ -1696,7 +1696,7 @@ function DeleteConfirmButton({
                     : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
                 )}
               >
-                {isLoss ? 'LOSS' : 'WIN'}
+                {isLoss ? '敗' : '勝'}
               </span>
             </div>
             <span className="text-xs font-bold text-muted-foreground">待確認賽果</span>

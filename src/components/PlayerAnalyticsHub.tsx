@@ -20,7 +20,6 @@ import {
   Calendar,
   Loader2,
   Star,
-  Zap,
   ChevronRight,
   Target,
 } from 'lucide-react';
@@ -86,7 +85,6 @@ export function PlayerAnalyticsHub({
   const chartData = useMemo(() => stats?.chart_data ?? [], [stats?.chart_data]);
   const summary = stats?.progression_summary;
   const analytics = stats?.analytics;
-  const ptsChange = stats?.pts_change;
 
   const activePinnedPoint: ChartDataPoint | undefined = useMemo(() => {
     if (chartData.length === 0) return undefined;
@@ -97,10 +95,6 @@ export function PlayerAnalyticsHub({
     return chartData[chartData.length - 1];
   }, [chartData, pinnedSelection, chartInterval]);
 
-  const archetype = analytics?.archetype;
-  const badgeToneClass =
-    BADGE_TONE_CLASSES[archetype?.badge_tone || 'blue'] || BADGE_TONE_CLASSES.blue;
-
   return (
     <section
       aria-label="個人戰力分析艙"
@@ -109,34 +103,9 @@ export function PlayerAnalyticsHub({
       {/* Top Header + View Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="font-display text-lg sm:text-xl text-foreground font-black tracking-tight">
-              個人戰力分析艙
-            </h2>
-            {typeof ptsChange === 'number' && (
-              <span
-                className={cn(
-                  'px-2.5 py-0.5 rounded-full text-xs font-display font-black tabular-nums border',
-                  ptsChange >= 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
-                    : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30',
-                )}
-              >
-                最新 {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
-              </span>
-            )}
-            {archetype && (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-black',
-                  badgeToneClass,
-                )}
-              >
-                <Zap size={10} aria-hidden="true" />
-                {archetype.title}
-              </span>
-            )}
-          </div>
+          <h2 className="font-display text-lg sm:text-xl text-foreground font-black tracking-tight">
+            個人戰力分析艙
+          </h2>
           <p className="text-[11px] text-muted-foreground uppercase font-sans font-bold tracking-wider">
             Player Analytics Hub · Single-Track Elo
           </p>
@@ -244,7 +213,7 @@ export function PlayerAnalyticsHub({
                   {summary.matches > 0 ? `${summary.win_rate}%` : '-'}
                   {summary.matches > 0 && (
                     <span className="hidden sm:inline text-xs font-bold text-muted-foreground ml-1.5">
-                      ({summary.wins}W-{summary.losses}L)
+                      ({summary.wins}勝 {summary.losses}敗)
                     </span>
                   )}
                 </p>
@@ -465,28 +434,23 @@ function RadarAnalyticsView({
 
   return (
     <div className="space-y-4">
-      {/* Archetype Hero Strip */}
-      <div className="rounded-2xl border border-border bg-surface-subtle/75 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="space-y-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black',
-                toneClass,
-              )}
-            >
-              {unlocked ? <Sparkles size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
-              {archetype.title}
-            </span>
-            {!unlocked && (
-              <span className="text-[11px] font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
-                進度 {settled_count} / {unlock_required} 場
-              </span>
+      {/* Compact Archetype Header Strip */}
+      <div className="rounded-2xl border border-border bg-surface-subtle/75 px-3.5 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black',
+              toneClass,
             )}
-          </div>
-          <p className="text-xs sm:text-sm font-bold text-foreground/90 leading-snug">
-            {archetype.tagline}
-          </p>
+          >
+            {unlocked ? <Sparkles size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
+            {archetype.title}
+          </span>
+          {!unlocked && (
+            <span className="text-[11px] font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
+              進度 {settled_count} / {unlock_required} 場
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -518,20 +482,20 @@ function RadarAnalyticsView({
         </div>
       )}
 
-      {/* Radar + 5 Axis Detail Grid */}
+      {/* Enlarged Radar + 5 Axis Detail Grid */}
       <div
         className={cn(
-          'grid grid-cols-1 md:grid-cols-12 gap-4 items-center',
+          'grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch',
           !unlocked && 'opacity-75',
         )}
       >
-        <div className="md:col-span-6 h-[240px] sm:h-[260px] rounded-2xl border border-border bg-card/60 dark:bg-slate-950/35 p-2">
+        <div className="md:col-span-6 h-[300px] sm:h-[340px] md:h-auto md:min-h-[360px] rounded-2xl border border-border bg-card/60 dark:bg-slate-950/35 p-2 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="52%" outerRadius="70%" data={radar}>
+            <RadarChart cx="50%" cy="50%" outerRadius="78%" data={radar}>
               <PolarGrid stroke={gridStroke} />
               <PolarAngleAxis
                 dataKey="label"
-                tick={{ fill: labelColor, fontSize: 11, fontWeight: 800 }}
+                tick={{ fill: labelColor, fontSize: 12, fontWeight: 800 }}
               />
               <PolarRadiusAxis
                 angle={90}
@@ -565,11 +529,11 @@ function RadarAnalyticsView({
           </ResponsiveContainer>
         </div>
 
-        <div className="md:col-span-6 space-y-2.5">
+        <div className="md:col-span-6 flex flex-col justify-between gap-2">
           {radar.map((axis) => (
             <div
               key={axis.key}
-              className="rounded-xl border border-border bg-card p-3 space-y-1.5"
+              className="rounded-xl border border-border bg-card px-3.5 py-2.5 space-y-1.5"
             >
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-display font-black text-foreground">{axis.label}</span>
@@ -714,11 +678,11 @@ function BreakdownAnalyticsView({
                 </span>
                 <span className="text-xs font-display font-black tabular-nums whitespace-nowrap">
                   <span className="text-emerald-600 dark:text-emerald-400">
-                    {card.stats.wins}W
+                    {card.stats.wins}勝
                   </span>
-                  <span className="text-muted-foreground/45 mx-0.5">-</span>
+                  <span className="text-muted-foreground/45 mx-0.5">·</span>
                   <span className="text-rose-500 dark:text-rose-400">
-                    {card.stats.losses}L
+                    {card.stats.losses}敗
                   </span>
                   <span className="text-[11px] font-sans font-bold text-muted-foreground ml-1">
                     ({card.stats.matches})
@@ -808,7 +772,7 @@ function BreakdownAnalyticsView({
                     <span className="font-display font-black text-foreground tabular-nums">
                       {tier.win_rate}%{' '}
                       <span className="text-muted-foreground font-sans font-bold">
-                        ({tier.wins}W-{tier.losses}L)
+                        ({tier.wins}勝 {tier.losses}敗)
                       </span>
                     </span>
                   ) : (

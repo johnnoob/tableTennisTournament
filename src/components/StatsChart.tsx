@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { Star } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import type { ChartDataPoint } from '@/types/api.types';
 
 interface StatsChartProps {
@@ -109,7 +110,7 @@ interface TooltipEntry {
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: TooltipEntry[];
+  payload?: readonly TooltipEntry[];
   label?: string | number;
 }
 
@@ -154,11 +155,11 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
       {oppText && (
         <div className="text-xs space-y-0.5">
-          <p className="font-bold text-foreground truncate">
+          <p className="font-bold text-foreground">
             {data.match_type === 'doubles' ? '雙打' : '單打'} {data.format || ''} · vs {oppText}
           </p>
           {data.partner && (
-            <p className="text-[11px] font-bold text-muted-foreground truncate">
+            <p className="text-[11px] font-bold text-muted-foreground">
               搭檔：{data.partner.name}
             </p>
           )}
@@ -187,6 +188,49 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   );
 };
 
+const CompactMobileTooltip = ({ active, payload }: CustomTooltipProps) => {
+  const data = payload?.[0]?.payload;
+  if (!active || !data) return null;
+  const deltaNum = typeof data.delta === 'number' ? data.delta : null;
+  const oppText =
+    data.opponents && data.opponents.length > 0
+      ? data.opponents.map((o) => o.name).join(' / ')
+      : null;
+
+  return (
+    <div className="bg-popover/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-md border border-border text-[11px] flex items-center gap-2 whitespace-nowrap">
+      {data.result && (
+        <span
+          className={cn(
+            'font-black',
+            data.result === 'W'
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-rose-500 dark:text-rose-400',
+          )}
+        >
+          {data.result === 'W' ? '勝' : '敗'} {data.score || ''}
+        </span>
+      )}
+      {oppText && <span className="font-bold text-foreground max-w-[90px] truncate">{oppText}</span>}
+      <span className="font-display font-black text-foreground tabular-nums">
+        {Math.round(data.rating)}
+      </span>
+      {deltaNum !== null && deltaNum !== 0 && (
+        <span
+          className={cn(
+            'font-display font-black tabular-nums',
+            deltaNum > 0
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-rose-500 dark:text-rose-400',
+          )}
+        >
+          {deltaNum > 0 ? `+${deltaNum}` : deltaNum}
+        </span>
+      )}
+    </div>
+  );
+};
+
 export function StatsChart({
   showCard = true,
   showHeader = true,
@@ -199,6 +243,7 @@ export function StatsChart({
 }: StatsChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const isSmUp = useMediaQuery('(min-width: 640px)');
 
   const gridStroke = isDark ? 'rgba(148, 163, 184, 0.14)' : '#eceef0';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
@@ -250,13 +295,21 @@ export function StatsChart({
     };
   }, [chartData]);
 
-  const handleChartClick = (state: { activeTooltipIndex?: number | string | null }) => {
+  const handleChartPointSelect = (state: { activeTooltipIndex?: number | string | null }) => {
     if (!onSelectPoint) return;
     const rawIdx = state?.activeTooltipIndex;
     const idxNum = typeof rawIdx === 'number' ? rawIdx : Number(rawIdx);
     if (!Number.isNaN(idxNum) && idxNum >= 0 && idxNum < chartData.length) {
       onSelectPoint(chartData[idxNum]);
     }
+  };
+
+  // 手機端在下方已有焦點賽果條 (onSelectPoint) 時完全隱藏浮層，避免手指觸控遮住線圖
+  const renderTooltip = (props: CustomTooltipProps) => {
+    if (!isSmUp) {
+      return onSelectPoint ? null : <CompactMobileTooltip {...props} />;
+    }
+    return <CustomTooltip {...props} />;
   };
 
   const content = (
@@ -287,7 +340,8 @@ export function StatsChart({
           <AreaChart
             data={chartData}
             margin={{ top: 18, right: 14, left: -16, bottom: 2 }}
-            onClick={handleChartClick}
+            onClick={handleChartPointSelect}
+            onMouseMove={!isSmUp ? handleChartPointSelect : undefined}
           >
             <defs>
               <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
@@ -320,8 +374,8 @@ export function StatsChart({
               allowDecimals={false}
             />
             <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ stroke: lineStroke, strokeWidth: 1, strokeDasharray: '4 4' }}
+              content={renderTooltip}
+              cursor={{ stroke: lineStroke, strokeWidth: 1.5, strokeDasharray: '4 4' }}
             />
 
             {showTierLines &&

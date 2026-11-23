@@ -141,7 +141,7 @@ function RecentFormStrip({
                 : 'border border-dashed border-border bg-surface-subtle/80 text-muted-foreground/45',
           )}
         >
-          {res || '-'}
+          {res === 'W' ? '勝' : res === 'L' ? '敗' : '-'}
         </span>
       ))}
     </div>
@@ -201,7 +201,7 @@ function MedalBadge({
   if (isRanked) {
     return (
       <span className="font-display font-black text-base text-muted-foreground tabular-nums leading-none">
-        #{numRank}
+        {numRank}
       </span>
     );
   }
@@ -225,7 +225,7 @@ function MedalBadge({
       title="季前依基準積分預排"
       className="size-7 rounded-full border border-dashed border-border bg-surface-subtle/80 flex items-center justify-center font-display font-black text-[11px] text-muted-foreground tabular-nums"
     >
-      {previewIndex !== undefined ? `#${previewIndex}` : '-'}
+      {previewIndex !== undefined ? `${previewIndex}` : '-'}
     </span>
   );
 }
@@ -247,6 +247,7 @@ function WeeklyDeltaBadge({
   }
   return (
     <span
+      title="近 7 日積分漲跌"
       className={cn(
         'inline-flex items-center font-display font-black tabular-nums whitespace-nowrap',
         compact
@@ -261,7 +262,7 @@ function WeeklyDeltaBadge({
             : 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
       )}
     >
-      7D {val > 0 ? `+${val}` : val}
+      {val > 0 ? `▲ +${val}` : `▼ ${val}`}
     </span>
   );
 }
@@ -482,16 +483,6 @@ export function Leaderboard() {
 
   const showPodium = !hasActiveFilters && podiumPlayers.length > 0;
 
-  // Logged-in player's live standing anchor
-  const myStanding = useMemo(() => {
-    if (!currentUser?.id || realLeaderboard.length === 0) return null;
-    const idx = realLeaderboard.findIndex((p) => p.player_id === currentUser.id);
-    if (idx < 0) return null;
-    const me = realLeaderboard[idx];
-    const above = idx > 0 ? realLeaderboard[idx - 1] : undefined;
-    return { me, idx, above };
-  }, [currentUser, realLeaderboard]);
-
   const seasonStatusBadge = (
     <span
       className={cn(
@@ -564,19 +555,6 @@ export function Leaderboard() {
               actions={countAction}
             />
           </motion.div>
-
-          {/* 模組 3：個人多巴胺即時定位條 */}
-          {myStanding && (
-            <motion.section variants={fadeInUp} aria-label="我的排名定位">
-              <MyStandingBanner
-                me={myStanding.me}
-                index={myStanding.idx}
-                above={myStanding.above}
-                isAllTime={isAllTime}
-                onSelect={openInspect}
-              />
-            </motion.section>
-          )}
 
           {/* 模組 4：多維度排序、處室與段位篩選控制列 */}
           <motion.section
@@ -866,7 +844,7 @@ export function Leaderboard() {
                             scope="col"
                             className="py-3.5 px-4 text-xs font-black text-foreground uppercase tracking-wider text-right"
                           >
-                            積分 &amp; 7D 動能
+                            積分 &amp; 近 7 日漲跌
                           </th>
                         </tr>
                       </thead>
@@ -966,13 +944,13 @@ export function Leaderboard() {
                                       </span>
                                       <span className="font-display font-black">
                                         <span className="text-emerald-600 dark:text-emerald-400">
-                                          {player.wins}W
+                                          {player.wins}勝
                                         </span>
                                         <span className="text-muted-foreground/45 mx-0.5">
-                                          -
+                                          ·
                                         </span>
                                         <span className="text-rose-500 dark:text-rose-400">
-                                          {losses}L
+                                          {losses}敗
                                         </span>
                                         <span className="text-muted-foreground font-sans font-bold ml-1">
                                           ({player.matches_played})
@@ -1099,7 +1077,7 @@ export function Leaderboard() {
                           )}
                         >
                           <span className="text-[11px] font-display font-black text-muted-foreground w-7 text-center tabular-nums shrink-0">
-                            #{realIndexMap.get(player.player_id) ?? rankedCount + idx + 1}
+                            {realIndexMap.get(player.player_id) ?? rankedCount + idx + 1}
                           </span>
                           <PlayerAvatar
                             src={player.avatar_url}
@@ -1160,155 +1138,7 @@ export function Leaderboard() {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * 模組 3：個人即時戰力定位條（MyStandingBanner）
- * ─────────────────────────────────────────────────────────────────────────── */
-function MyStandingBanner({
-  me,
-  index,
-  above,
-  isAllTime,
-  onSelect,
-}: Readonly<{
-  me: RawLeaderboardItem;
-  index: number;
-  above?: RawLeaderboardItem;
-  isAllTime: boolean;
-  onSelect: (id: string) => void;
-}>) {
-  const tier = getTierBadge(me.global_mmr, 12);
-  const isRanked = me.rank !== '-' && me.rank !== '';
-  const isInPlacement =
-    !isRanked &&
-    !isAllTime &&
-    me.matches_played > 0 &&
-    me.matches_played < SEASON_PLACEMENT_MATCHES;
-  const { losses, winRateRounded } = getWinRateStats(me);
-  const streak = me.current_streak ?? 0;
-  const gapToAbove = above
-    ? Math.max(1, Math.round(above.global_mmr) - Math.round(me.global_mmr) + 1)
-    : 0;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(me.player_id)}
-      className="w-full text-left arena-hero-surface rounded-2xl md:rounded-3xl p-4 sm:p-5 border border-blue-200/85 dark:border-slate-700/80 shadow-xs hover:shadow-md transition-all group"
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-5">
-        {/* Left Identity & Overtake Motivation */}
-        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-          <div className="relative shrink-0">
-            <PlayerAvatar
-              src={me.avatar_url}
-              name={me.player_name}
-              className="size-12 rounded-2xl border-2 border-sapphire-blue/40 bg-card text-sm"
-            />
-            <span className="absolute -top-2 -left-2 min-w-6 h-6 px-1.5 rounded-full bg-sapphire-blue text-white font-display font-black text-[11px] flex items-center justify-center shadow-sm ring-2 ring-card tabular-nums">
-              {isRanked
-                ? `#${me.rank}`
-                : isInPlacement
-                  ? `${me.matches_played}/${SEASON_PLACEMENT_MATCHES}`
-                  : `#${index + 1}`}
-            </span>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-black uppercase tracking-wider text-sapphire-blue dark:text-blue-300">
-                我的目前定位
-              </span>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-black',
-                  tier.color,
-                )}
-              >
-                {tier.icon}
-                {getShortTierName(me.global_mmr)}
-              </span>
-              {streak >= 2 && (
-                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[11px] font-black tabular-nums">
-                  <Flame size={10} aria-hidden="true" />
-                  {streak} 連勝
-                </span>
-              )}
-            </div>
-
-            <p className="text-xs sm:text-sm font-bold text-foreground/90 mt-1 leading-snug">
-              {isRanked && Number(me.rank) === 1 ? (
-                <span>👑 穩居榜首王座！持續守住全場最高積分</span>
-              ) : isRanked && above ? (
-                <span>
-                  🎯 距離前一名{' '}
-                  <strong className="font-black text-foreground">
-                    #{above.rank !== '-' ? above.rank : index} {above.player_name}
-                  </strong>{' '}
-                  還差{' '}
-                  <strong className="font-display font-black text-smash-orange tabular-nums">
-                    {gapToAbove}
-                  </strong>{' '}
-                  分即可超車
-                </span>
-              ) : isInPlacement ? (
-                <span>
-                  ⚡ 定級賽進行中（已完成{' '}
-                  <strong className="font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
-                    {me.matches_played}/{SEASON_PLACEMENT_MATCHES}
-                  </strong>{' '}
-                  場，享有 K=32 加速）· 再打{' '}
-                  <strong className="font-display font-black text-foreground tabular-nums">
-                    {SEASON_PLACEMENT_MATCHES - me.matches_played}
-                  </strong>{' '}
-                  場即可正式取得賽季排名
-                </span>
-              ) : (
-                <span>
-                  ⚡ 依基準積分暫居預排第 #{index + 1} · 完成{' '}
-                  {SEASON_PLACEMENT_MATCHES} 場本季對戰即可正式定級（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Right KPI Strip (3 crisp columns on mobile, inline on desktop) */}
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-200/60 dark:border-white/10 sm:pt-0 sm:border-0 sm:flex sm:items-center sm:gap-5 shrink-0">
-          <div className="rounded-xl bg-white/75 dark:bg-slate-900/55 sm:bg-transparent dark:sm:bg-transparent px-2.5 py-2 sm:p-0 text-center sm:text-right border border-blue-100/80 dark:border-white/10 sm:border-0 min-w-0">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-              目前積分
-            </p>
-            <p className="text-lg sm:text-2xl font-display font-black text-foreground tabular-nums leading-tight">
-              {Math.round(me.global_mmr)}
-            </p>
-          </div>
-
-          <div className="rounded-xl bg-white/75 dark:bg-slate-900/55 sm:bg-transparent dark:sm:bg-transparent px-2.5 py-2 sm:p-0 text-center sm:text-right border border-blue-100/80 dark:border-white/10 sm:border-0 min-w-0">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-              本季勝率
-            </p>
-            <p className="text-lg sm:text-2xl font-display font-black text-foreground tabular-nums leading-tight">
-              {me.matches_played > 0 ? `${winRateRounded}%` : '待首戰'}
-            </p>
-          </div>
-
-          <div className="rounded-xl bg-white/75 dark:bg-slate-900/55 sm:bg-transparent dark:sm:bg-transparent px-2.5 py-2 sm:p-0 text-center sm:text-right border border-blue-100/80 dark:border-white/10 sm:border-0 min-w-0">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-              本季戰績
-            </p>
-            <p className="text-sm sm:text-base font-display font-black tabular-nums leading-tight mt-0.5 sm:mt-1 whitespace-nowrap">
-              <span className="text-emerald-600 dark:text-emerald-400">{me.wins}W</span>
-              <span className="text-muted-foreground/50 mx-0.5">-</span>
-              <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
-            </p>
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
- * 模組 2A：#1 榜首榮耀巨頭卡（手機全寬焦點橫幅 / 桌面置中冠軍卡）
+ * 模組 2A：第 1 名榜首榮耀巨頭卡（手機全寬焦點橫幅 / 桌面置中冠軍卡）
  * ─────────────────────────────────────────────────────────────────────────── */
 function PodiumChampionCard({
   player,
@@ -1357,7 +1187,7 @@ function PodiumChampionCard({
       <div className="flex items-center justify-between gap-2 w-full">
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-olympic-gold text-white text-xs font-display font-black shadow-xs whitespace-nowrap">
           <Crown size={12} aria-hidden="true" />
-          {isPreseason ? '預排 #1' : isPlacementOnly ? '暫居 #1' : '#1 榜首王者'}
+          {isPreseason ? '預排第 1 名' : isPlacementOnly ? '暫居第 1 名' : '第 1 名 · 榜首王者'}
         </span>
         <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
       </div>
@@ -1424,9 +1254,9 @@ function PodiumChampionCard({
             <div className="flex items-center justify-between text-xs font-display font-black tabular-nums">
               <span className="text-foreground">勝率 {winRateRounded}%</span>
               <span>
-                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}W</span>
-                <span className="text-muted-foreground/50 mx-0.5">-</span>
-                <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
+                <span className="text-muted-foreground/50 mx-0.5">·</span>
+                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
               </span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
@@ -1447,7 +1277,7 @@ function PodiumChampionCard({
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * 模組 2B：#2 亞軍 / #3 季軍卡（手機並排 2 欄不擠壓）
+ * 模組 2B：第 2 名亞軍 / 第 3 名季軍卡（手機並排 2 欄不擠壓）
  * ─────────────────────────────────────────────────────────────────────────── */
 function PodiumRunnerCard({
   place,
@@ -1468,12 +1298,12 @@ function PodiumRunnerCard({
 }>) {
   const isSilver = place === 2;
   const label = isPreseason
-    ? `預排 #${place}`
+    ? `預排第 ${place} 名`
     : isPlacementOnly
-      ? `暫居 #${place}`
+      ? `暫居第 ${place} 名`
       : isSilver
-        ? '#2 亞軍'
-        : '#3 季軍';
+        ? '第 2 名 · 亞軍'
+        : '第 3 名 · 季軍';
 
   if (!player) {
     return (
@@ -1577,9 +1407,9 @@ function PodiumRunnerCard({
             <div className="flex items-center justify-between text-[11px] font-display font-black tabular-nums">
               <span className="text-foreground">{winRateRounded}%</span>
               <span>
-                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}W</span>
-                <span className="text-muted-foreground/45 mx-0.5">-</span>
-                <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
+                <span className="text-muted-foreground/45 mx-0.5">·</span>
+                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
               </span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
@@ -1704,9 +1534,9 @@ function MobilePlayerRowCard({
             <div className="flex items-baseline justify-between gap-1 text-[11px] font-display font-black tabular-nums">
               <span className="text-foreground">{winRateRounded}%</span>
               <span className="whitespace-nowrap">
-                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}W</span>
-                <span className="text-muted-foreground/45 mx-0.5">-</span>
-                <span className="text-rose-500 dark:text-rose-400">{losses}L</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
+                <span className="text-muted-foreground/45 mx-0.5">·</span>
+                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
               </span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
@@ -1839,7 +1669,7 @@ function RankingRulesDialog({
               <li>
                 • <strong className="text-foreground">每季前 {SEASON_PLACEMENT_MATCHES} 場（定級賽 · K=32）</strong>
                 ：享較高權重快速校準當季實力，榜單標示「定級 X/{SEASON_PLACEMENT_MATCHES}」，打滿 {SEASON_PLACEMENT_MATCHES} 場即正式取得{' '}
-                <strong className="text-foreground">#1, #2, #3</strong> 賽季名次。
+                <strong className="text-foreground">第 1、2、3 名</strong>賽季名次。
               </li>
               <li>
                 • <strong className="text-foreground">每季第 {SEASON_PLACEMENT_MATCHES + 1} 場起（常態期 · K=24）</strong>

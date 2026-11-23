@@ -392,7 +392,7 @@ function TopRivalsCard({
                       <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5 tabular-nums">
                         {player.matches_played > 0 ? (
                           <>
-                            {winRateRounded}% 勝率 · {player.wins}W-{losses}L
+                            {winRateRounded}% 勝率 · {player.wins}勝 {losses}敗
                           </>
                         ) : (
                           <>{dept ? `${dept} · ` : ''}等待開季首戰</>
@@ -407,6 +407,7 @@ function TopRivalsCard({
                       </p>
                       {weeklyDelta !== 0 ? (
                         <p
+                          title="近 7 日積分漲跌"
                           className={cn(
                             'text-[10px] font-display font-black tabular-nums mt-1',
                             weeklyDelta > 0
@@ -414,7 +415,7 @@ function TopRivalsCard({
                               : 'text-rose-500 dark:text-rose-400',
                           )}
                         >
-                          7D {weeklyDelta > 0 ? `+${weeklyDelta}` : weeklyDelta}
+                          {weeklyDelta > 0 ? `▲ +${weeklyDelta}` : `▼ ${weeklyDelta}`}
                         </p>
                       ) : (
                         <p className="text-[10px] uppercase tracking-wider font-black text-muted-foreground mt-1">

@@ -231,11 +231,6 @@ export function MatchHistory() {
     });
   }, [filteredMatches, scope, currentUserId]);
 
-  const totalClusterCount = useMemo(
-    () => dateSections.reduce((sum, s) => sum + s.clusters.length, 0),
-    [dateSections],
-  );
-
   const allDatesCollapsed =
     dateSections.length > 0 && dateSections.every((s) => Boolean(collapsedDates[s.key]));
 
@@ -319,13 +314,13 @@ export function MatchHistory() {
 
   const highlightMatchFound = Boolean(
     highlightMatchId &&
-      filteredMatches.some((m) => String(m.id) === String(highlightMatchId)),
+    filteredMatches.some((m) => String(m.id) === String(highlightMatchId)),
   );
   const allLoadedHasHighlight = Boolean(
     highlightMatchId &&
-      allBaseQuery.data?.pages.some((page) =>
-        page.matches.some((m) => String(m.id) === String(highlightMatchId)),
-      ),
+    allBaseQuery.data?.pages.some((page) =>
+      page.matches.some((m) => String(m.id) === String(highlightMatchId)),
+    ),
   );
 
   const resetAllFilters = () => {
@@ -679,16 +674,16 @@ export function MatchHistory() {
               </div>
             ) : (
               <div className={cn('space-y-3.5 transition-opacity duration-200', isSyncingOlderMatches && 'opacity-70')}>
-                {clusterSeriesEnabled && totalClusterCount < filteredMatches.length && (
+                {/* {clusterSeriesEnabled && totalClusterCount < filteredMatches.length && (
                   <p className="text-xs font-bold text-muted-foreground px-1">
                     已為您將同日同組連打收疊為 {totalClusterCount} 組（原 {filteredMatches.length} 場），點擊任一日期標題亦可折疊。
                   </p>
-                )}
+                )} */}
 
                 {dateSections.map((dateSection) => {
                   const containsHighlightedMatch = Boolean(
                     highlightMatchId &&
-                      dateSection.items.some((m) => String(m.id) === String(highlightMatchId)),
+                    dateSection.items.some((m) => String(m.id) === String(highlightMatchId)),
                   );
                   const isCollapsed = containsHighlightedMatch
                     ? false
@@ -915,7 +910,7 @@ export function MatchHistory() {
                               result === 'W' ? 'bg-emerald-500' : 'bg-rose-500',
                             )}
                           >
-                            {result}
+                            {result === 'W' ? '勝' : '敗'}
                           </div>
                         ))
                       ) : (

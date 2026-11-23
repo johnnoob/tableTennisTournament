@@ -503,9 +503,9 @@ function H2HComparisonCard({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-display font-black text-foreground tabular-nums">
-                  <span className="text-emerald-600 dark:text-emerald-400">{bucket.wins}W</span>
-                  <span className="text-muted-foreground/45 mx-1">-</span>
-                  <span className="text-rose-500 dark:text-rose-400">{bucket.losses}L</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{bucket.wins}勝</span>
+                  <span className="text-muted-foreground/45 mx-1">·</span>
+                  <span className="text-rose-500 dark:text-rose-400">{bucket.losses}敗</span>
                 </span>
                 <span className="text-xs font-black text-muted-foreground tabular-nums">
                   {isPartnerTab ? '搭檔勝率' : '對戰勝率'} {bucket.win_rate}%
