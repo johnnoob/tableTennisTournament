@@ -96,7 +96,11 @@ function RecentFormCircles({
 }>) {
   return (
     <div
-      className={cn('flex items-center', size === 'sm' ? 'gap-1.5' : 'justify-between gap-1.5')}
+      className={cn(
+        size === 'sm'
+          ? 'flex items-center gap-1.5'
+          : 'grid grid-cols-5 gap-1 xl:gap-1.5 items-center justify-items-center w-full py-1 px-0.5',
+      )}
       aria-label="近 5 場勝負（由左至右為最新到較舊）"
     >
       {Array.from({ length: 5 }).map((_, idx) => {
@@ -118,7 +122,9 @@ function RecentFormCircles({
             }
             className={cn(
               'rounded-full shrink-0 flex items-center justify-center font-display font-black leading-none select-none',
-              size === 'sm' ? 'size-6 text-[11px]' : 'size-7 text-xs',
+              size === 'sm'
+                ? 'size-6 text-[11px]'
+                : 'w-full max-w-[26px] aspect-square text-[10px] xl:text-[11px]',
               res === 'W'
                 ? cn('bg-emerald-500 text-white shadow-2xs', idx === 0 && 'ring-2 ring-emerald-500/35')
                 : res === 'L'
@@ -563,15 +569,15 @@ export function RankingCard({
           </div>
 
           {/* Pod 2: Recent 5 Form & Net Delta (True Circles matching Leaderboard) */}
-          <div className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2.5">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
+          <div className="min-w-0 rounded-2xl p-3 xl:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="text-xs font-black text-muted-foreground whitespace-nowrap truncate">
                 近 5 場手感
               </span>
               {recentForm.length > 0 && recent5Delta !== 0 && (
                 <span
                   className={cn(
-                    'text-[11px] font-display font-black tabular-nums whitespace-nowrap',
+                    'text-[11px] font-display font-black tabular-nums whitespace-nowrap shrink-0',
                     recent5Delta > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : 'text-rose-500 dark:text-rose-400',
@@ -581,7 +587,7 @@ export function RankingCard({
                 </span>
               )}
             </div>
-            <div className="py-1">
+            <div>
               <RecentFormCircles recentForm={recentForm} size="md" />
             </div>
           </div>

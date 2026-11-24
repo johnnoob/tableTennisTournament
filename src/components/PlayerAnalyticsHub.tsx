@@ -12,16 +12,13 @@ import {
   TrendingUp,
   Radar as RadarIcon,
   BarChart3,
-  Flame,
   Swords,
   Users,
   Lock,
-  Sparkles,
   Calendar,
   Loader2,
   Star,
   ChevronRight,
-  Target,
 } from 'lucide-react';
 import { StatsChart } from '@/components/StatsChart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,17 +39,6 @@ const INTERVAL_OPTIONS: ReadonlyArray<{ id: string; label: string }> = [
   { id: 'season', label: '本季' },
   { id: 'all', label: '生涯' },
 ];
-
-const BADGE_TONE_CLASSES: Record<string, string> = {
-  amber:
-    'bg-amber-500/15 text-amber-700 border-amber-400/50 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-400/40',
-  rose: 'bg-rose-500/15 text-rose-700 border-rose-400/50 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-400/40',
-  emerald:
-    'bg-emerald-500/15 text-emerald-700 border-emerald-400/50 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-400/40',
-  blue: 'bg-sapphire-blue/12 text-sapphire-blue border-sapphire-blue/35 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-400/40',
-  violet:
-    'bg-violet-500/15 text-violet-700 border-violet-400/50 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-400/40',
-};
 
 const TIER_PILL_COLOR: Record<string, string> = {
   elite: 'bg-slate-900 text-amber-400 dark:bg-amber-500/20 dark:text-amber-300',
@@ -427,46 +413,11 @@ function RadarAnalyticsView({
     );
   }
 
-  const { unlocked, settled_count, unlock_required, radar, archetype } = analytics;
+  const { unlocked, settled_count, unlock_required, radar } = analytics;
   const remaining = Math.max(0, unlock_required - settled_count);
-  const toneClass =
-    BADGE_TONE_CLASSES[archetype.badge_tone] || BADGE_TONE_CLASSES.blue;
 
   return (
     <div className="space-y-4">
-      {/* Compact Archetype Header Strip */}
-      <div className="rounded-2xl border border-border bg-surface-subtle/75 px-3.5 py-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black',
-              toneClass,
-            )}
-          >
-            {unlocked ? <Sparkles size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
-            {archetype.title}
-          </span>
-          {!unlocked && (
-            <span className="text-[11px] font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
-              進度 {settled_count} / {unlock_required} 場
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/12 border border-emerald-500/25 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
-            <Flame size={11} aria-hidden="true" />
-            強項：{archetype.strength_label}
-          </span>
-          {unlocked && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/12 border border-amber-500/25 text-[11px] font-black text-amber-700 dark:text-amber-300">
-              <Target size={11} aria-hidden="true" />
-              突破點：{archetype.focus_label}
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Lock Progress Callout if < 5 matches */}
       {!unlocked && (
         <div className="rounded-2xl border border-dashed border-sapphire-blue/40 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 px-4 py-3 flex items-center justify-between gap-3">
@@ -491,10 +442,17 @@ function RadarAnalyticsView({
       >
         <div className="md:col-span-6 h-[300px] sm:h-[340px] md:h-auto md:min-h-[360px] rounded-2xl border border-border bg-card/60 dark:bg-slate-950/35 p-2 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="78%" data={radar}>
+            <RadarChart
+              cx="50%"
+              cy="50%"
+              outerRadius="64%"
+              margin={{ top: 18, right: 36, bottom: 18, left: 36 }}
+              data={radar}
+            >
               <PolarGrid stroke={gridStroke} />
               <PolarAngleAxis
                 dataKey="label"
+                tickLine={false}
                 tick={{ fill: labelColor, fontSize: 12, fontWeight: 800 }}
               />
               <PolarRadiusAxis
