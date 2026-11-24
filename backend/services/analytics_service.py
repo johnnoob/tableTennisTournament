@@ -307,41 +307,14 @@ def build_story_chart_data(
     return points, summary
 
 
-def build_player_analytics(
-    session: Session,
+def _compute_slice_metrics(
     user: User,
-    settled_matches: list[Match],
-) -> dict:
-    """
-    計算五維球風雷達、個人戰術稱號、單雙打對照、比分結構 (Scoreline DNA)、
-    對戰段位階梯以及近 8 週出勤節奏。
-    """
-    unlock_required = 5
-    settled_count = len(settled_matches)
-    unlocked = settled_count >= unlock_required
-
-    match_ids = [m.id for m in settled_matches]
-    part_delta_map: dict[UUID, float] = {}
-    users_map: dict[UUID, User] = {}
-
-    if match_ids:
-        my_parts = session.exec(
-            select(MatchParticipation).where(
-                MatchParticipation.match_id.in_(match_ids),
-                MatchParticipation.user_id == user.id,
-            )
-        ).all()
-        for mp in my_parts:
-            part_delta_map[mp.match_id] = float(mp.mmr_delta or 0.0)
-
-        opp_uids: set[UUID] = set()
-        for m in settled_matches:
-            for uid in (m.team_a_p1_id, m.team_a_p2_id, m.team_b_p1_id, m.team_b_p2_id):
-                if uid is not None and uid != user.id:
-                    opp_uids.add(uid)
-        if opp_uids:
-            opp_rows = session.exec(select(User).where(User.id.in_(list(opp_uids)))).all()
-            users_map = {u.id: u for u in opp_rows}
+    target_matches: list[Match],
+    part_delta_map: dict[UUID, float],
+    users_map: dict[UUID, User],
+) -> tuple[list[dict], dict]:
+    """對指定的已結算場次切片計算五維雷達、單雙打拆解、比分結構與段位勝率階梯。"""
+    slice_count = len(target_matches)
 
     singles = {"matches": 0, "wins": 0, "losses": 0, "net_mmr": 0.0}
     doubles = {"matches": 0, "wins": 0, "losses": 0, "net_mmr": 0.0}
@@ -367,24 +340,9 @@ def build_player_analytics(
         "bronze": {"key": "bronze", "label": "銅牌", "range": "<1050", "matches": 0, "wins": 0, "losses": 0},
     }
 
-    # 建立近 8 週 (以週一 00:00 UTC+8 為準) 的空桶
-    now_tw = datetime.now(TW_TZ)
-    current_monday = (now_tw - timedelta(days=now_tw.weekday())).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    week_starts = [current_monday - timedelta(weeks=offset) for offset in range(7, -1, -1)]
-    week_map: dict[str, dict] = {
-        ws.strftime("%Y-%m-%d"): {
-            "label": ws.strftime("%m/%d"),
-            "matches": 0,
-            "wins": 0,
-        }
-        for ws in week_starts
-    }
-
     user_mmr = float(user.global_mmr)
 
-    for m in settled_matches:
+    for m in target_matches:
         in_a = user.id in (m.team_a_p1_id, m.team_a_p2_id)
         a_won = m.score_a > m.score_b
         i_won = (in_a and a_won) or (not in_a and not a_won)
@@ -431,7 +389,7 @@ def build_player_analytics(
             if i_won:
                 clutch_wins += 1
 
-        # 對手平均 ELO 與段位分級
+        # 對手平均積分與段位分級
         opp_ids = [
             uid
             for uid in ((m.team_b_p1_id, m.team_b_p2_id) if in_a else (m.team_a_p1_id, m.team_a_p2_id))
@@ -453,16 +411,6 @@ def build_player_analytics(
                 if i_won:
                     giant_wins += 1
 
-        # 出勤週期統計
-        m_dt = ensure_utc(m.created_at)
-        if m_dt is not None:
-            m_tw = m_dt.astimezone(TW_TZ)
-            m_monday = (m_tw - timedelta(days=m_tw.weekday())).strftime("%Y-%m-%d")
-            if m_monday in week_map:
-                week_map[m_monday]["matches"] += 1
-                if i_won:
-                    week_map[m_monday]["wins"] += 1
-
     # 計算五維雷達指標 (0..100)
     s_total = singles["matches"]
     s_wins = singles["wins"]
@@ -478,13 +426,12 @@ def build_player_analytics(
 
     total_sets = my_sets_total + opp_sets_total
     set_wr = round((my_sets_total / total_sets) * 100) if total_sets > 0 else 50
-    sweep_ratio = (sweep_win / settled_count) if settled_count > 0 else 0.3
+    sweep_ratio = (sweep_win / slice_count) if slice_count > 0 else 0.3
     dom_raw = (set_wr * 0.65) + (sweep_ratio * 100.0 * 0.35)
-    if settled_count == 0:
+    if slice_count == 0:
         dom_score = 50
     else:
-        # 少量樣本時溫和向 50 收斂
-        weight = min(1.0, settled_count / 6.0)
+        weight = min(1.0, slice_count / 6.0)
         dom_score = max(18, min(99, round(dom_raw * weight + 50.0 * (1.0 - weight))))
 
     clutch_losses = clutch_matches - clutch_wins
@@ -517,8 +464,8 @@ def build_player_analytics(
             "key": "dominance",
             "label": "完封壓制",
             "score": dom_score,
-            "detail": f"完封 {sweep_win} 場 · 局勝率 {set_wr}%" if settled_count > 0 else "尚無對戰紀錄",
-            "sample": settled_count,
+            "detail": f"完封 {sweep_win} 場 · 局勝率 {set_wr}%" if slice_count > 0 else "尚無對戰紀錄",
+            "sample": slice_count,
         },
         {
             "key": "clutch",
@@ -536,7 +483,168 @@ def build_player_analytics(
         },
     ]
 
-    # 推導個人專屬稱號
+    def _pct(cnt: int) -> int:
+        return round((cnt / slice_count) * 100) if slice_count > 0 else 0
+
+    vs_tiers = []
+    for key in ("elite", "gold", "silver", "bronze"):
+        tb = tier_buckets[key]
+        m_cnt = tb["matches"]
+        vs_tiers.append({
+            **tb,
+            "win_rate": round((tb["wins"] / m_cnt) * 100) if m_cnt > 0 else 0,
+        })
+
+    breakdown_core = {
+        "singles": {
+            "matches": s_total,
+            "wins": s_wins,
+            "losses": s_losses,
+            "win_rate": s_wr,
+            "net_mmr": round(singles["net_mmr"], 1),
+        },
+        "doubles": {
+            "matches": d_total,
+            "wins": d_wins,
+            "losses": d_losses,
+            "win_rate": d_wr,
+            "net_mmr": round(doubles["net_mmr"], 1),
+        },
+        "scorelines": {
+            "total": slice_count,
+            "sweep_win": {"count": sweep_win, "pct": _pct(sweep_win)},
+            "close_win": {"count": close_win, "pct": _pct(close_win)},
+            "close_loss": {"count": close_loss, "pct": _pct(close_loss)},
+            "sweep_loss": {"count": sweep_loss, "pct": _pct(sweep_loss)},
+        },
+        "vs_tiers": vs_tiers,
+        "_meta": {
+            "s_total": s_total,
+            "s_score": s_score,
+            "d_total": d_total,
+            "d_score": d_score,
+            "sweep_win": sweep_win,
+            "dom_score": dom_score,
+            "clutch_matches": clutch_matches,
+            "clutch_score": clutch_score,
+            "giant_matches": giant_matches,
+            "gs_score": gs_score,
+        },
+    }
+
+    return radar, breakdown_core
+
+
+def build_player_analytics(
+    session: Session,
+    user: User,
+    settled_matches: list[Match],
+    interval: str = "all",
+    active_season: Optional[Season] = None,
+) -> dict:
+    """
+    計算五維球風雷達（含非生涯區間時的生涯基準對照）、個人戰術稱號、單雙打對照、
+    比分結構 (Scoreline DNA)、對戰段位階梯以及固定近 8 週出勤。
+    """
+    unlock_required = 5
+    career_settled_count = len(settled_matches)
+    unlocked = career_settled_count >= unlock_required
+
+    # 依選擇區間切出目標對戰場次（settled_matches 已依 created_at DESC 排序）
+    if interval == "recent":
+        sliced_matches = settled_matches[:10]
+    elif interval == "recent30":
+        sliced_matches = settled_matches[:30]
+    elif interval == "season":
+        if active_season is not None:
+            sliced_matches = [m for m in settled_matches if m.season_id == active_season.id]
+        else:
+            sliced_matches = settled_matches
+    else:
+        interval = "all"
+        sliced_matches = settled_matches
+
+    settled_count = len(sliced_matches)
+
+    # 一次批次查詢全部關聯資料，避免計算生涯基準時產生額外查詢
+    match_ids = [m.id for m in settled_matches]
+    part_delta_map: dict[UUID, float] = {}
+    users_map: dict[UUID, User] = {}
+
+    if match_ids:
+        my_parts = session.exec(
+            select(MatchParticipation).where(
+                MatchParticipation.match_id.in_(match_ids),
+                MatchParticipation.user_id == user.id,
+            )
+        ).all()
+        for mp in my_parts:
+            part_delta_map[mp.match_id] = float(mp.mmr_delta or 0.0)
+
+        opp_uids: set[UUID] = set()
+        for m in settled_matches:
+            for uid in (m.team_a_p1_id, m.team_a_p2_id, m.team_b_p1_id, m.team_b_p2_id):
+                if uid is not None and uid != user.id:
+                    opp_uids.add(uid)
+        if opp_uids:
+            opp_rows = session.exec(select(User).where(User.id.in_(list(opp_uids)))).all()
+            users_map = {u.id: u for u in opp_rows}
+
+    radar, breakdown_core = _compute_slice_metrics(
+        user=user,
+        target_matches=sliced_matches,
+        part_delta_map=part_delta_map,
+        users_map=users_map,
+    )
+    meta = breakdown_core.pop("_meta")
+
+    has_career_baseline = interval != "all" and career_settled_count > 0
+    if has_career_baseline:
+        career_radar, _ = _compute_slice_metrics(
+            user=user,
+            target_matches=settled_matches,
+            part_delta_map=part_delta_map,
+            users_map=users_map,
+        )
+        career_score_map = {ax["key"]: ax["score"] for ax in career_radar}
+        for ax in radar:
+            base_score = career_score_map.get(ax["key"])
+            ax["baseline_score"] = base_score
+            ax["delta_vs_career"] = (ax["score"] - base_score) if base_score is not None else 0
+    else:
+        for ax in radar:
+            ax["baseline_score"] = None
+            ax["delta_vs_career"] = 0
+
+    # 近 8 週出勤（固定以真實日曆近 8 週計算，不受場次區間截斷）
+    now_tw = datetime.now(TW_TZ)
+    current_monday = (now_tw - timedelta(days=now_tw.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    week_starts = [current_monday - timedelta(weeks=offset) for offset in range(7, -1, -1)]
+    week_map: dict[str, dict] = {
+        ws.strftime("%Y-%m-%d"): {
+            "label": ws.strftime("%m/%d"),
+            "matches": 0,
+            "wins": 0,
+        }
+        for ws in week_starts
+    }
+    for m in settled_matches:
+        m_dt = ensure_utc(m.created_at)
+        if m_dt is None:
+            continue
+        m_tw = m_dt.astimezone(TW_TZ)
+        m_monday = (m_tw - timedelta(days=m_tw.weekday())).strftime("%Y-%m-%d")
+        if m_monday in week_map:
+            in_a = user.id in (m.team_a_p1_id, m.team_a_p2_id)
+            a_won = m.score_a > m.score_b
+            i_won = (in_a and a_won) or (not in_a and not a_won)
+            week_map[m_monday]["matches"] += 1
+            if i_won:
+                week_map[m_monday]["wins"] += 1
+
+    # 推導個人專屬稱號（保留 API 向下相容欄位）
     sampled_axes = [ax for ax in radar if ax["sample"] > 0]
     strongest_axis = max(sampled_axes, key=lambda a: (a["score"], a["sample"])) if sampled_axes else radar[0]
     weakest_axis = min(sampled_axes, key=lambda a: (a["score"], -a["sample"])) if sampled_axes else radar[1]
@@ -544,12 +652,12 @@ def build_player_analytics(
     if not unlocked:
         archetype = {
             "title": "定級探索新星",
-            "tagline": f"再完成 {unlock_required - settled_count} 場已結算對戰即可解鎖個人五維球風稱號",
+            "tagline": f"再完成 {unlock_required - career_settled_count} 場已結算對戰即可解鎖個人五維球風稱號",
             "badge_tone": "blue",
             "strength_label": strongest_axis["label"] if sampled_axes else "等待實戰累積",
             "focus_label": "完成 5 場定級賽",
         }
-    elif clutch_matches >= 2 and clutch_score >= 64 and clutch_score >= strongest_axis["score"] - 4:
+    elif meta["clutch_matches"] >= 2 and meta["clutch_score"] >= 64 and meta["clutch_score"] >= strongest_axis["score"] - 4:
         archetype = {
             "title": "決勝局大心臟",
             "tagline": "打到決勝局反而越沉著冷靜，關鍵時刻得分把握度極高",
@@ -557,7 +665,11 @@ def build_player_analytics(
             "strength_label": "決勝心臟",
             "focus_label": weakest_axis["label"],
         }
-    elif giant_matches >= 2 and gs_score >= 58 and gs_score >= strongest_axis["score"] - 5:
+    elif (
+        meta["giant_matches"] >= 2
+        and meta["gs_score"] >= 58
+        and meta["gs_score"] >= strongest_axis["score"] - 5
+    ):
         archetype = {
             "title": "巨人殺手",
             "tagline": "遇強則強的抗壓型選手，擅長上演爆冷逆襲好戲",
@@ -565,7 +677,7 @@ def build_player_analytics(
             "strength_label": "強敵抗衡",
             "focus_label": weakest_axis["label"],
         }
-    elif sweep_win >= 3 and dom_score >= 66:
+    elif meta["sweep_win"] >= 3 and meta["dom_score"] >= 66:
         archetype = {
             "title": "直落完封機器",
             "tagline": "開局搶攻節奏犀利，經常不給對手翻盤機會直接橫掃收官",
@@ -573,7 +685,7 @@ def build_player_analytics(
             "strength_label": "完封壓制",
             "focus_label": weakest_axis["label"],
         }
-    elif d_total >= 2 and d_score - s_score >= 10:
+    elif meta["d_total"] >= 2 and meta["d_score"] - meta["s_score"] >= 10:
         archetype = {
             "title": "雙打戰術核心",
             "tagline": "善於跑位補位與帶動搭檔節奏，雙打場上的穩定推進器",
@@ -581,7 +693,7 @@ def build_player_analytics(
             "strength_label": "雙打默契",
             "focus_label": weakest_axis["label"],
         }
-    elif s_total >= 2 and s_score - d_score >= 10:
+    elif meta["s_total"] >= 2 and meta["s_score"] - meta["d_score"] >= 10:
         archetype = {
             "title": "孤膽單打戰神",
             "tagline": "一對一正面拆招極具威脅，靠個人技術主導戰局",
@@ -598,50 +710,20 @@ def build_player_analytics(
             "focus_label": weakest_axis["label"],
         }
 
-    def _pct(cnt: int) -> int:
-        return round((cnt / settled_count) * 100) if settled_count > 0 else 0
-
-    vs_tiers = []
-    for key in ("elite", "gold", "silver", "bronze"):
-        tb = tier_buckets[key]
-        m_cnt = tb["matches"]
-        vs_tiers.append({
-            **tb,
-            "win_rate": round((tb["wins"] / m_cnt) * 100) if m_cnt > 0 else 0,
-        })
-
     activity_weeks = [week_map[ws.strftime("%Y-%m-%d")] for ws in week_starts]
     activity_8w_total = sum(w["matches"] for w in activity_weeks)
 
     return {
+        "interval": interval,
         "unlocked": unlocked,
         "settled_count": settled_count,
+        "career_settled_count": career_settled_count,
         "unlock_required": unlock_required,
+        "has_career_baseline": has_career_baseline,
         "radar": radar,
         "archetype": archetype,
         "breakdown": {
-            "singles": {
-                "matches": s_total,
-                "wins": s_wins,
-                "losses": s_losses,
-                "win_rate": s_wr,
-                "net_mmr": round(singles["net_mmr"], 1),
-            },
-            "doubles": {
-                "matches": d_total,
-                "wins": d_wins,
-                "losses": d_losses,
-                "win_rate": d_wr,
-                "net_mmr": round(doubles["net_mmr"], 1),
-            },
-            "scorelines": {
-                "total": settled_count,
-                "sweep_win": {"count": sweep_win, "pct": _pct(sweep_win)},
-                "close_win": {"count": close_win, "pct": _pct(close_win)},
-                "close_loss": {"count": close_loss, "pct": _pct(close_loss)},
-                "sweep_loss": {"count": sweep_loss, "pct": _pct(sweep_loss)},
-            },
-            "vs_tiers": vs_tiers,
+            **breakdown_core,
             "activity_weeks": activity_weeks,
             "activity_8w_total": activity_8w_total,
         },

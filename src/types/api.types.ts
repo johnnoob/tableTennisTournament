@@ -117,6 +117,8 @@ export interface RadarAxisItem {
   key: string;
   label: string;
   score: number;
+  baseline_score?: number | null;
+  delta_vs_career?: number;
   detail: string;
   sample: number;
 }
@@ -167,9 +169,12 @@ export interface WeeklyActivityItem {
 }
 
 export interface PlayerAnalytics {
+  interval?: string;
   unlocked: boolean;
   settled_count: number;
+  career_settled_count?: number;
   unlock_required: number;
+  has_career_baseline?: boolean;
   radar: RadarAxisItem[];
   archetype: PlayerArchetype;
   breakdown: {

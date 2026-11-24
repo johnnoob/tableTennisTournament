@@ -240,6 +240,8 @@ def get_my_stats(
         session=session,
         user=current_user,
         settled_matches=settled_matches,
+        interval=interval,
+        active_season=active_season,
     )
 
     peak_mmr = round(max([current_user.global_mmr] + [h.mmr for h in history]))

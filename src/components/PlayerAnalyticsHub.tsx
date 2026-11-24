@@ -129,46 +129,55 @@ export function PlayerAnalyticsHub({
         </Tabs>
       </div>
 
-      {/* View 1: 劇情式 ELO 走勢曲線 */}
+      {/* Shared Interval Filter Control Across All 3 Analytics Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div
+          role="group"
+          aria-label="選擇戰力分析區間"
+          className="grid grid-cols-4 sm:inline-flex items-center gap-1 p-1 rounded-xl bg-surface-subtle border border-border"
+        >
+          {INTERVAL_OPTIONS.map((opt) => {
+            const active = chartInterval === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  setPinnedSelection(null);
+                  onChartIntervalChange(opt.id);
+                }}
+                className={cn(
+                  'min-h-8 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                  active
+                    ? 'bg-card text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+          {analytics && (
+            <span className="px-2.5 py-1 rounded-lg bg-surface-subtle border border-border text-[11px] font-bold text-muted-foreground tabular-nums">
+              已結算 {analytics.settled_count} 場
+            </span>
+          )}
+          {isFetching && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+              <Loader2 size={12} className="animate-spin text-sapphire-blue" aria-hidden="true" />
+              更新中…
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* View 1: 劇情式積分走勢曲線 */}
       {activeView === 'progression' && (
         <div className="space-y-3.5">
-          {/* Interval Selector + Quick KPI Strip */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div
-              role="group"
-              aria-label="選擇走勢圖區間"
-              className="grid grid-cols-4 sm:inline-flex items-center gap-1 p-1 rounded-xl bg-surface-subtle border border-border"
-            >
-              {INTERVAL_OPTIONS.map((opt) => {
-                const active = chartInterval === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      setPinnedSelection(null);
-                      onChartIntervalChange(opt.id);
-                    }}
-                    className={cn(
-                      'min-h-8 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
-                      active
-                        ? 'bg-card text-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {isFetching && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                <Loader2 size={12} className="animate-spin text-sapphire-blue" aria-hidden="true" />
-                更新數據中…
-              </span>
-            )}
-          </div>
 
           {/* 3-Col Interval KPI Strip */}
           {summary && (
@@ -264,14 +273,22 @@ export function PlayerAnalyticsHub({
         </div>
       )}
 
-      {/* View 2: 五維球風雷達 & 戰術稱號 */}
+      {/* View 2: 五維球風雷達 */}
       {activeView === 'radar' && (
-        <RadarAnalyticsView analytics={analytics} />
+        <RadarAnalyticsView
+          analytics={analytics}
+          chartInterval={chartInterval}
+          onSwitchToAll={() => onChartIntervalChange('all')}
+        />
       )}
 
       {/* View 3: 單雙打 & 勝負結構拆解 */}
       {activeView === 'breakdown' && (
-        <BreakdownAnalyticsView analytics={analytics} />
+        <BreakdownAnalyticsView
+          analytics={analytics}
+          chartInterval={chartInterval}
+          onSwitchToAll={() => onChartIntervalChange('all')}
+        />
       )}
     </section>
   );
@@ -383,7 +400,7 @@ function PinnedMatchStoryStrip({
                 : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
             )}
           >
-            {deltaVal > 0 ? `+${deltaVal}` : deltaVal} ELO
+            {deltaVal > 0 ? `+${deltaVal}` : deltaVal} 分
           </span>
         )}
       </div>
@@ -392,11 +409,17 @@ function PinnedMatchStoryStrip({
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * View 2: 五維球風雷達 & 戰術稱號
+ * View 2: 五維球風雷達（含非生涯區間時的生涯基準對照輪廓）
  * ─────────────────────────────────────────────────────────────────────────── */
 function RadarAnalyticsView({
   analytics,
-}: Readonly<{ analytics?: PlayerAnalytics }>) {
+  chartInterval,
+  onSwitchToAll,
+}: Readonly<{
+  analytics?: PlayerAnalytics;
+  chartInterval: string;
+  onSwitchToAll: () => void;
+}>) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
@@ -404,6 +427,7 @@ function RadarAnalyticsView({
   const labelColor = isDark ? '#e2e8f0' : '#334155';
   const strokeColor = isDark ? '#60a5fa' : '#2563eb';
   const fillColor = isDark ? '#3b82f6' : '#2563eb';
+  const baselineStroke = isDark ? '#94a3b8' : '#64748b';
 
   if (!analytics) {
     return (
@@ -413,12 +437,23 @@ function RadarAnalyticsView({
     );
   }
 
-  const { unlocked, settled_count, unlock_required, radar } = analytics;
-  const remaining = Math.max(0, unlock_required - settled_count);
+  const {
+    unlocked,
+    settled_count,
+    career_settled_count,
+    unlock_required,
+    has_career_baseline,
+    radar,
+  } = analytics;
+  const careerCount = career_settled_count ?? settled_count;
+  const remaining = Math.max(0, unlock_required - careerCount);
+  const showBaselineOverlay = Boolean(has_career_baseline && settled_count > 0);
+  const activeIntervalLabel =
+    INTERVAL_OPTIONS.find((o) => o.id === chartInterval)?.label || '當前區間';
 
   return (
     <div className="space-y-4">
-      {/* Lock Progress Callout if < 5 matches */}
+      {/* 新手尚未達成生涯 5 場解鎖門檻 */}
       {!unlocked && (
         <div className="rounded-2xl border border-dashed border-sapphire-blue/40 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -428,102 +463,208 @@ function RadarAnalyticsView({
             </p>
           </div>
           <span className="font-display font-black text-xs text-sapphire-blue dark:text-blue-300 tabular-nums shrink-0">
-            {Math.min(100, Math.round((settled_count / unlock_required) * 100))}%
+            {Math.min(100, Math.round((careerCount / unlock_required) * 100))}%
           </span>
         </div>
       )}
 
-      {/* Enlarged Radar + 5 Axis Detail Grid */}
-      <div
-        className={cn(
-          'grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch',
-          !unlocked && 'opacity-75',
-        )}
-      >
-        <div className="md:col-span-6 h-[300px] sm:h-[340px] md:h-auto md:min-h-[360px] rounded-2xl border border-border bg-card/60 dark:bg-slate-950/35 p-2 flex items-center justify-center">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart
-              cx="50%"
-              cy="50%"
-              outerRadius="64%"
-              margin={{ top: 18, right: 36, bottom: 18, left: 36 }}
-              data={radar}
+      {/* 已解鎖但目前切換的區間無場次 */}
+      {unlocked && settled_count === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-subtle/70 py-12 px-4 text-center space-y-2.5">
+          <p className="text-sm font-display font-black text-foreground">
+            {activeIntervalLabel}尚無已結算對戰
+          </p>
+          <p className="text-xs font-bold text-muted-foreground">
+            完成本區間比賽後將自動繪製對應球風雷達，您可先切回生涯查看整體輪廓。
+          </p>
+          {chartInterval !== 'all' && (
+            <button
+              type="button"
+              onClick={onSwitchToAll}
+              className="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white text-xs font-black transition-colors"
             >
-              <PolarGrid stroke={gridStroke} />
-              <PolarAngleAxis
-                dataKey="label"
-                tickLine={false}
-                tick={{ fill: labelColor, fontSize: 12, fontWeight: 800 }}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 100]}
-                tick={false}
-                axisLine={false}
-              />
-              <RechartsTooltip
-                content={({ active, payload }) => {
-                  const axis = payload?.[0]?.payload as RadarAxisItem | undefined;
-                  if (!active || !axis) return null;
-                  return (
-                    <div className="bg-popover p-3 rounded-xl shadow-lg border border-border text-xs space-y-1">
-                      <p className="font-display font-black text-foreground">
-                        {axis.label}：{axis.score} 分
-                      </p>
-                      <p className="font-bold text-muted-foreground">{axis.detail}</p>
-                    </div>
-                  );
-                }}
-              />
-              <Radar
-                name="球風戰力"
-                dataKey="score"
-                stroke={strokeColor}
-                strokeWidth={2.5}
-                fill={fillColor}
-                fillOpacity={0.28}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+              切換至生涯
+            </button>
+          )}
         </div>
-
-        <div className="md:col-span-6 flex flex-col justify-between gap-2">
-          {radar.map((axis) => (
-            <div
-              key={axis.key}
-              className="rounded-xl border border-border bg-card px-3.5 py-2.5 space-y-1.5"
-            >
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-display font-black text-foreground">{axis.label}</span>
-                <span className="text-[11px] font-bold text-muted-foreground truncate">
-                  {axis.detail}
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-sapphire-blue to-indigo-500 transition-all duration-500"
-                    style={{ width: `${axis.score}%` }}
-                  />
-                </div>
-                <span className="font-display font-black text-xs text-foreground tabular-nums w-8 text-right">
-                  {axis.score}
-                </span>
-              </div>
+      ) : (
+        <>
+          {/* 已解鎖老手切換到樣本數 < 5 的區間時提供輕量提示（不鎖定圖表） */}
+          {unlocked && settled_count > 0 && settled_count < unlock_required && (
+            <div className="rounded-2xl border border-border bg-surface-subtle/75 px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-muted-foreground">
+                {activeIntervalLabel}目前僅 {settled_count} 場，數值波動較大僅供參考
+              </span>
+              {chartInterval !== 'all' && (
+                <button
+                  type="button"
+                  onClick={onSwitchToAll}
+                  className="font-black text-sapphire-blue dark:text-blue-300 hover:underline shrink-0"
+                >
+                  看生涯
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
+          )}
+
+          {/* Enlarged Radar + 5 Axis Detail Grid */}
+          <div
+            className={cn(
+              'grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch',
+              !unlocked && 'opacity-75',
+            )}
+          >
+            <div className="md:col-span-6 rounded-2xl border border-border bg-card/60 dark:bg-slate-950/35 p-2 flex flex-col justify-between">
+              <div className="h-[290px] sm:h-[330px] md:flex-1 md:min-h-[340px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart
+                    cx="50%"
+                    cy="50%"
+                    outerRadius="64%"
+                    margin={{ top: 18, right: 36, bottom: 18, left: 36 }}
+                    data={radar}
+                  >
+                    <PolarGrid stroke={gridStroke} />
+                    <PolarAngleAxis
+                      dataKey="label"
+                      tickLine={false}
+                      tick={{ fill: labelColor, fontSize: 12, fontWeight: 800 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 100]}
+                      tick={false}
+                      axisLine={false}
+                    />
+                    <RechartsTooltip
+                      content={({ active, payload }) => {
+                        const axis = payload?.[0]?.payload as RadarAxisItem | undefined;
+                        if (!active || !axis) return null;
+                        const delta = axis.delta_vs_career ?? 0;
+                        return (
+                          <div className="bg-popover p-3 rounded-xl shadow-lg border border-border text-xs space-y-1">
+                            <p className="font-display font-black text-foreground">
+                              {axis.label}：{axis.score} 分
+                              {showBaselineOverlay && axis.baseline_score != null && (
+                                <span
+                                  className={cn(
+                                    'ml-1.5',
+                                    delta > 0
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : delta < 0
+                                        ? 'text-rose-500 dark:text-rose-400'
+                                        : 'text-muted-foreground',
+                                  )}
+                                >
+                                  ({delta > 0 ? `+${delta}` : delta} vs 生涯 {axis.baseline_score})
+                                </span>
+                              )}
+                            </p>
+                            <p className="font-bold text-muted-foreground">{axis.detail}</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    {showBaselineOverlay && (
+                      <Radar
+                        name="生涯基準"
+                        dataKey="baseline_score"
+                        stroke={baselineStroke}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                        fill={baselineStroke}
+                        fillOpacity={0.08}
+                      />
+                    )}
+                    <Radar
+                      name={activeIntervalLabel}
+                      dataKey="score"
+                      stroke={strokeColor}
+                      strokeWidth={2.5}
+                      fill={fillColor}
+                      fillOpacity={0.28}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {showBaselineOverlay && (
+                <div className="px-3 pb-1.5 flex items-center justify-center gap-4 text-[11px] font-bold text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-4 h-0.5 bg-sapphire-blue rounded-full" />
+                    實線：{activeIntervalLabel}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-4 h-0 border-t-2 border-dashed border-slate-400 dark:border-slate-500" />
+                    虛線：生涯基準
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="md:col-span-6 flex flex-col justify-between gap-2">
+              {radar.map((axis) => {
+                const delta = axis.delta_vs_career ?? 0;
+                return (
+                  <div
+                    key={axis.key}
+                    className="rounded-xl border border-border bg-card px-3.5 py-2.5 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-display font-black text-foreground">{axis.label}</span>
+                      <span className="text-[11px] font-bold text-muted-foreground truncate">
+                        {axis.detail}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-sapphire-blue to-indigo-500 transition-all duration-500"
+                          style={{ width: `${axis.score}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-end gap-1 shrink-0 tabular-nums">
+                        <span className="font-display font-black text-xs text-foreground w-6 text-right">
+                          {axis.score}
+                        </span>
+                        {showBaselineOverlay && delta !== 0 && (
+                          <span
+                            title={`相較生涯基準 (${axis.baseline_score} 分)`}
+                            className={cn(
+                              'text-[10px] font-display font-black px-1 py-0.5 rounded leading-none',
+                              delta > 0
+                                ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-rose-500/12 text-rose-500 dark:text-rose-400',
+                            )}
+                          >
+                            {delta > 0 ? `+${delta}` : delta}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * View 3: 單雙打對照 & 比分結構拆解 & 段位勝率 & 出勤脈動
+ * View 3: 單雙打對照 & 比分結構拆解 & 段位勝率 & 近 8 週出勤
  * ─────────────────────────────────────────────────────────────────────────── */
 function BreakdownAnalyticsView({
   analytics,
-}: Readonly<{ analytics?: PlayerAnalytics }>) {
+  chartInterval,
+  onSwitchToAll,
+}: Readonly<{
+  analytics?: PlayerAnalytics;
+  chartInterval: string;
+  onSwitchToAll: () => void;
+}>) {
   if (!analytics) {
     return (
       <div className="py-12 text-center text-xs font-bold text-muted-foreground">
@@ -532,6 +673,8 @@ function BreakdownAnalyticsView({
     );
   }
 
+  const activeIntervalLabel =
+    INTERVAL_OPTIONS.find((o) => o.id === chartInterval)?.label || '此區間';
   const { singles, doubles, scorelines, vs_tiers, activity_weeks, activity_8w_total } =
     analytics.breakdown;
   const maxWeekMatches = Math.max(1, ...activity_weeks.map((w) => w.matches));
@@ -590,6 +733,21 @@ function BreakdownAnalyticsView({
 
   return (
     <div className="space-y-3.5">
+      {scorelines.total === 0 && chartInterval !== 'all' && (
+        <div className="rounded-2xl border border-dashed border-border bg-surface-subtle/75 px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
+          <span className="font-bold text-muted-foreground">
+            {activeIntervalLabel}尚無已結算場次可供拆解
+          </span>
+          <button
+            type="button"
+            onClick={onSwitchToAll}
+            className="font-black text-sapphire-blue dark:text-blue-300 hover:underline shrink-0"
+          >
+            切換至生涯
+          </button>
+        </div>
+      )}
+
       {/* Row 1: Singles vs Doubles Split */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
         {formatCards.map((card) => {
@@ -626,7 +784,7 @@ function BreakdownAnalyticsView({
                         : 'text-muted-foreground',
                   )}
                 >
-                  {net > 0 ? `+${net}` : net} ELO
+                  {net > 0 ? `+${net}` : net} 分
                 </span>
               </div>
 
@@ -752,7 +910,7 @@ function BreakdownAnalyticsView({
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-display font-black text-foreground flex items-center gap-1.5">
               <Calendar size={13} className="text-sapphire-blue" aria-hidden="true" />
-              近 8 週出勤節奏
+              近 8 週出勤
             </p>
             <span className="px-2 py-0.5 rounded-full bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-[11px] font-black tabular-nums">
               近8週 {activity_8w_total} 場
