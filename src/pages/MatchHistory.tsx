@@ -121,6 +121,35 @@ export function MatchHistory() {
     return () => window.clearTimeout(timer);
   }, [effectiveSearchTerm]);
 
+  useEffect(() => {
+    const playerNameParam = searchParams.get('playerName')?.trim();
+    if (!playerNameParam) return;
+
+    const playerIdParam = searchParams.get('playerId')?.trim() || undefined;
+    const rawRole = searchParams.get('role');
+    const nextRole: 'any' | 'rival' | 'partner' =
+      rawRole === 'rival' || rawRole === 'partner' ? rawRole : 'any';
+    const rawMatchType = searchParams.get('matchType');
+    const nextMatchType: 'all' | 'singles' | 'doubles' =
+      rawMatchType === 'singles' || rawMatchType === 'doubles' ? rawMatchType : 'all';
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('playerId');
+    nextParams.delete('playerName');
+    nextParams.delete('role');
+    nextParams.delete('matchType');
+
+    const timer = window.setTimeout(() => {
+      setSelectedPlayer({ id: playerIdParam, name: playerNameParam, role: nextRole });
+      setPlayerRoleFilter(nextRole);
+      setMatchTypeFilter(nextMatchType);
+      setSearchQuery('');
+      setSearchParams(nextParams, { replace: true });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, setSearchParams]);
+
   const { data: seasons = [] } = useQuery<SeasonSummary[]>({
     queryKey: ['seasons', 'list'],
     queryFn: async () => {

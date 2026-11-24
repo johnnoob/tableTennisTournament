@@ -9,7 +9,7 @@ from services.auth_jwt import (
 from models import User, Season, SeasonRecord, PlayerStatHistory, MatchParticipation, Match, MatchPreset, Notification, utc_now
 from schemas import MatchPresetCreate, MatchPresetUpdate
 from services.analytics_service import build_player_analytics, build_story_chart_data
-from services.elo_engine import ELO_CONFIG
+from services.elo_engine import ELO_CONFIG, calculate_match_deltas, get_team_mmr
 from services.season_service import get_current_season, ensure_utc
 from uuid import UUID
 
@@ -559,13 +559,106 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
     nemesis_list = [item for item in (_serialize_relation(r) for r in sorted_rivals) if item]
     golden_list = [item for item in (_serialize_relation(g) for g in sorted_partners) if item]
 
-    # 5. 📦 打包成前端需要的格式
+    # 5. 🏆 名次、近 5 場手感、連勝/連敗、生涯巔峰與五維球風雷達
+    active_season = get_current_season(session)
+    placement_required = int(ELO_CONFIG.get("SEASON_PLACEMENT_MATCHES", 5))
+    rank: int | str = "-"
+    season_matches_played = 0
+
+    if active_season:
+        target_record = session.exec(
+            select(SeasonRecord).where(
+                SeasonRecord.user_id == user.id,
+                SeasonRecord.season_id == active_season.id,
+            )
+        ).first()
+        if target_record:
+            season_matches_played = target_record.matches_played
+            if season_matches_played >= placement_required:
+                higher_scores_count = session.exec(
+                    select(func.count(User.id))
+                    .join(SeasonRecord, User.id == SeasonRecord.user_id)
+                    .where(
+                        User.role != "guest",
+                        User.is_active == True,
+                        SeasonRecord.season_id == active_season.id,
+                        SeasonRecord.matches_played >= placement_required,
+                        User.global_mmr > user.global_mmr,
+                    )
+                ).one()
+                rank = higher_scores_count + 1
+    elif total_matches > 0 or round(user.global_mmr) != 1000:
+        higher_count = session.exec(
+            select(func.count(User.id)).where(
+                User.role != "guest",
+                User.is_active == True,
+                User.id != user.id,
+                User.global_mmr > user.global_mmr,
+            )
+        ).one()
+        rank = higher_count + 1
+
+    is_placement = bool(active_season and 0 < season_matches_played < placement_required)
+
+    settled_matches = session.exec(
+        select(Match)
+        .where(
+            Match.status.in_(["confirmed", "completed"]),
+            or_(
+                Match.team_a_p1_id == user.id,
+                Match.team_a_p2_id == user.id,
+                Match.team_b_p1_id == user.id,
+                Match.team_b_p2_id == user.id,
+            ),
+        )
+        .order_by(Match.created_at.desc())
+    ).all()
+
+    settled_outcomes: list[bool] = []
+    for m in settled_matches:
+        in_a = user.id in (m.team_a_p1_id, m.team_a_p2_id)
+        a_won = m.score_a > m.score_b
+        settled_outcomes.append((in_a and a_won) or (not in_a and not a_won))
+
+    # 近 5 場走勢（左新右舊，與 Leaderboard 一致）
+    recent_form = ["W" if won else "L" for won in settled_outcomes[:5]]
+
+    current_streak = 0
+    if settled_outcomes:
+        first_won = settled_outcomes[0]
+        for won in settled_outcomes:
+            if won == first_won:
+                current_streak += 1
+            else:
+                break
+        if not first_won:
+            current_streak = -current_streak
+
+    peak_rating = round(max([float(user.global_mmr)] + [float(h.mmr) for h in history]))
+
+    analytics = build_player_analytics(
+        session=session,
+        user=user,
+        settled_matches=settled_matches,
+        interval="all",
+        active_season=active_season,
+    )
+
+    # 6. 📦 打包成前端需要的格式
     return {
         "id": str(user.id),
         "name": user.name,
         "department": user.department,
         "avatar": user.avatar_url,
         "rating": round(user.global_mmr),
+        "rank": rank,
+        "is_placement": is_placement,
+        "season_matches_played": season_matches_played,
+        "placement_matches_required": placement_required,
+        "peak_rating": peak_rating,
+        "recent_form": recent_form,
+        "current_streak": current_streak,
+        "dominant_hand": user.dominant_hand,
         "stats": {
             "winRate": win_rate,     # 🌟 現在會給出真實的勝率了
             "wins": total_wins,      # 🌟 真實勝場
@@ -575,10 +668,31 @@ def get_user_profile(target_id: UUID, session: Session = Depends(get_session)):
             "forehand": user.rubber_forehand or "未設定",
             "backhand": user.rubber_backhand or "未設定",
         },
+        "radar": {
+            "unlocked": analytics["unlocked"],
+            "settled_count": analytics["settled_count"],
+            "unlock_required": analytics["unlock_required"],
+            "axes": analytics["radar"],
+        },
+        "format_split": {
+            "singles": analytics["breakdown"]["singles"],
+            "doubles": analytics["breakdown"]["doubles"],
+        },
         "goldenPartner": golden_list,
         "nemesis": nemesis_list,
         "chart_data": chart_data
     }
+
+
+def _hand_side(hand_value: str | None) -> str | None:
+    if not hand_value:
+        return None
+    lower = hand_value.lower()
+    if "左" in lower or "left" in lower:
+        return "L"
+    if "右" in lower or "right" in lower:
+        return "R"
+    return None
 
 
 @router.get("/api/users/{target_id}/h2h", summary="取得我與指定選手的單/雙打交手與搭檔對比")
@@ -598,6 +712,7 @@ def get_user_h2h(
             "losses": 0,
             "win_rate": 0,
             "net_mmr": 0,
+            "streak": 0,
             "recent": [],
         }
 
@@ -612,8 +727,51 @@ def get_user_h2h(
             "is_self": True,
             "total_matches": 0,
             "total_vs_matches": 0,
+            "matchup_preview": None,
             **buckets,
         }
+
+    # 規則盤口與雙打合體戰力預覽（100% 依 ELO_CONFIG 與真實 K 值計算，即使 0 場交手也回傳）
+    active_season = get_current_season(session)
+    placement_required = int(ELO_CONFIG.get("SEASON_PLACEMENT_MATCHES", 5))
+    my_sm = 0
+    tgt_sm = 0
+    if active_season:
+        season_recs = session.exec(
+            select(SeasonRecord)
+            .where(SeasonRecord.season_id == active_season.id)
+            .where(SeasonRecord.user_id.in_([current_user.id, target_user.id]))
+        ).all()
+        for sr in season_recs:
+            if sr.user_id == current_user.id:
+                my_sm = sr.matches_played
+            elif sr.user_id == target_user.id:
+                tgt_sm = sr.matches_played
+
+    my_mmr = float(current_user.global_mmr)
+    tgt_mmr = float(target_user.global_mmr)
+    win_2_1 = round(calculate_match_deltas(my_mmr, None, tgt_mmr, None, my_sm, None, tgt_sm, None, 2, 1, "BO3")["winner_p1_delta"])
+    win_2_0 = round(calculate_match_deltas(my_mmr, None, tgt_mmr, None, my_sm, None, tgt_sm, None, 2, 0, "BO3")["winner_p1_delta"])
+    lose_1_2 = round(calculate_match_deltas(tgt_mmr, None, my_mmr, None, tgt_sm, None, my_sm, None, 2, 1, "BO3")["loser_p1_delta"])
+    lose_0_2 = round(calculate_match_deltas(tgt_mmr, None, my_mmr, None, tgt_sm, None, my_sm, None, 2, 0, "BO3")["loser_p1_delta"])
+
+    my_hand = _hand_side(current_user.dominant_hand)
+    tgt_hand = _hand_side(target_user.dominant_hand)
+    matchup_preview = {
+        "my_mmr": round(my_mmr),
+        "target_mmr": round(tgt_mmr),
+        "mmr_gap": round(tgt_mmr - my_mmr),
+        "combined_team_mmr": round(get_team_mmr(my_mmr, tgt_mmr)),
+        "hand_synergy": bool(my_hand and tgt_hand and my_hand != tgt_hand),
+        "my_is_placement": bool(active_season and my_sm < placement_required),
+        "target_is_placement": bool(active_season and tgt_sm < placement_required),
+        "singles_bo3": {
+            "win_2_1": win_2_1,
+            "win_2_0": win_2_0,
+            "lose_1_2": lose_1_2,
+            "lose_0_2": lose_0_2,
+        },
+    }
 
     my_rows = session.exec(
         select(MatchParticipation, Match)
@@ -628,6 +786,7 @@ def get_user_h2h(
             "is_self": False,
             "total_matches": 0,
             "total_vs_matches": 0,
+            "matchup_preview": matchup_preview,
             **buckets,
         }
 
@@ -638,6 +797,9 @@ def get_user_h2h(
         .where(MatchParticipation.match_id.in_(my_match_ids))
     ).all()
     target_by_match = {tp.match_id: tp for tp in target_parts}
+
+    streak_locked = {"singles_vs": False, "doubles_vs": False, "doubles_with": False}
+    recent_match_meta: dict[UUID, str] = {}
 
     for my_p, match in my_rows:
         target_p = target_by_match.get(match.id)
@@ -663,8 +825,17 @@ def get_user_h2h(
             b["losses"] += 1
         b["net_mmr"] += my_p.mmr_delta
 
-        if len(b["recent"]) < 3:
+        if not streak_locked[key]:
+            if b["streak"] == 0:
+                b["streak"] = 1 if my_p.is_winner else -1
+            elif (b["streak"] > 0 and my_p.is_winner) or (b["streak"] < 0 and not my_p.is_winner):
+                b["streak"] += 1 if b["streak"] > 0 else -1
+            else:
+                streak_locked[key] = True
+
+        if len(b["recent"]) < 5:
             is_team_a = my_p.team == "A"
+            recent_match_meta[match.id] = my_p.team
             b["recent"].append({
                 "id": str(match.id),
                 "date": ensure_utc(match.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -673,7 +844,45 @@ def get_user_h2h(
                 "is_winner": my_p.is_winner,
                 "mmr_delta": round(my_p.mmr_delta),
                 "format": match.format or "BO3",
+                "my_partner": None,
+                "opponents": [],
             })
+
+    # 批次補齊最近交手場次的雙打搭檔與對手姓名（避免 N+1）
+    if recent_match_meta:
+        recent_match_ids = list(recent_match_meta.keys())
+        recent_parts = session.exec(
+            select(MatchParticipation).where(MatchParticipation.match_id.in_(recent_match_ids))
+        ).all()
+        participant_user_ids = list({rp.user_id for rp in recent_parts if rp.user_id != current_user.id})
+        participant_users: dict[UUID, User] = {}
+        if participant_user_ids:
+            u_rows = session.exec(select(User).where(User.id.in_(participant_user_ids))).all()
+            participant_users = {u.id: u for u in u_rows}
+
+        parts_grouped: dict[UUID, list[MatchParticipation]] = {}
+        for rp in recent_parts:
+            parts_grouped.setdefault(rp.match_id, []).append(rp)
+
+        for b in buckets.values():
+            for item in b["recent"]:
+                m_uuid = UUID(item["id"])
+                my_team = recent_match_meta.get(m_uuid)
+                opps = []
+                partner_ref = None
+                for rp in parts_grouped.get(m_uuid, ()):
+                    if rp.user_id == current_user.id:
+                        continue
+                    u_obj = participant_users.get(rp.user_id)
+                    if not u_obj:
+                        continue
+                    ref = {"id": str(u_obj.id), "name": u_obj.name}
+                    if rp.team == my_team:
+                        partner_ref = ref
+                    else:
+                        opps.append(ref)
+                item["my_partner"] = partner_ref
+                item["opponents"] = opps
 
     for b in buckets.values():
         total = b["wins"] + b["losses"]
@@ -688,6 +897,7 @@ def get_user_h2h(
         "is_self": False,
         "total_matches": total_all,
         "total_vs_matches": total_vs,
+        "matchup_preview": matchup_preview,
         **buckets,
     }
 

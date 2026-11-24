@@ -218,6 +218,11 @@ export interface PlayerStats {
   analytics?: PlayerAnalytics;
 }
 
+export interface H2HPlayerRef {
+  id: string;
+  name: string;
+}
+
 export interface H2HRecentMatch {
   id: string;
   date: string;
@@ -226,6 +231,8 @@ export interface H2HRecentMatch {
   is_winner: boolean;
   mmr_delta: number;
   format: string;
+  my_partner?: H2HPlayerRef | null;
+  opponents?: H2HPlayerRef[];
 }
 
 export interface H2HBucket {
@@ -234,16 +241,84 @@ export interface H2HBucket {
   losses: number;
   win_rate: number;
   net_mmr: number;
+  streak?: number;
   recent: H2HRecentMatch[];
+}
+
+export interface H2HMatchupPreview {
+  my_mmr: number;
+  target_mmr: number;
+  mmr_gap: number;
+  combined_team_mmr: number;
+  hand_synergy: boolean;
+  my_is_placement: boolean;
+  target_is_placement: boolean;
+  singles_bo3: {
+    win_2_1: number;
+    win_2_0: number;
+    lose_1_2: number;
+    lose_0_2: number;
+  };
 }
 
 export interface H2HResponse {
   is_self: boolean;
   total_matches: number;
   total_vs_matches: number;
+  matchup_preview?: H2HMatchupPreview | null;
   singles_vs: H2HBucket;
   doubles_vs: H2HBucket;
   doubles_with: H2HBucket;
+}
+
+export interface PlayerPartnerItem {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  winRate: number;
+  wins?: number;
+  losses?: number;
+  matches?: number;
+}
+
+export interface PlayerProfileRadar {
+  unlocked: boolean;
+  settled_count: number;
+  unlock_required: number;
+  axes: RadarAxisItem[];
+}
+
+export interface PlayerProfileData {
+  id: string;
+  name: string;
+  department?: string | null;
+  avatar?: string | null;
+  rating: number;
+  rank?: number | string;
+  is_placement?: boolean;
+  season_matches_played?: number;
+  placement_matches_required?: number;
+  peak_rating?: number;
+  recent_form?: string[];
+  current_streak?: number;
+  dominant_hand?: string | null;
+  stats: {
+    winRate: number;
+    wins: number;
+    losses: number;
+  };
+  racketConfig: {
+    forehand: string;
+    backhand: string;
+  };
+  radar?: PlayerProfileRadar;
+  format_split?: {
+    singles: FormatSplitStats;
+    doubles: FormatSplitStats;
+  };
+  goldenPartner: PlayerPartnerItem[];
+  nemesis: PlayerPartnerItem[];
+  chart_data: ChartDataPoint[];
 }
 
 export interface RivalryItem {
