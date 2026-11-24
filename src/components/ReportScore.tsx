@@ -3,7 +3,7 @@ import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
-import { Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star, Zap } from 'lucide-react';
+import { ChevronDown, Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star, Zap } from 'lucide-react';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
 import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/matchScore';
@@ -719,10 +719,27 @@ export function ReportScore({
                 {hasMoreQuickItems && (
                   <button
                     type="button"
+                    aria-expanded={showAllQuickItems}
+                    aria-label="切換全部快速帶入項目"
+                    title={
+                      showAllQuickItems
+                        ? '收合'
+                        : `顯示全部 (${filteredQuickItems.length})`
+                    }
                     onClick={() => setShowAllQuickItems((prev) => !prev)}
-                    className="text-xs font-black text-sapphire-blue hover:underline shrink-0"
+                    className="inline-flex items-center gap-1 h-7 px-2 rounded-lg text-xs font-black text-sapphire-blue hover:bg-sapphire-blue/10 transition-colors shrink-0"
                   >
-                    {showAllQuickItems ? '收合' : `顯示全部 (${filteredQuickItems.length})`}
+                    {!showAllQuickItems && (
+                      <span>+{filteredQuickItems.length - visibleQuickItems.length}</span>
+                    )}
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className={cn(
+                        'transition-transform duration-200',
+                        showAllQuickItems && 'rotate-180',
+                      )}
+                    />
                   </button>
                 )}
               </div>

@@ -1037,15 +1037,16 @@ export function MatchSeriesItem({
                 <button
                   type="button"
                   aria-expanded={expanded}
+                  aria-label="切換連打場次明細"
+                  title={expanded ? '收合明細' : '展開明細'}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleToggleExpanded();
                   }}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
+                  className="size-8 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 >
-                  <span>{expanded ? '收合' : '明細'}</span>
                   <ChevronDown
-                    size={14}
+                    size={15}
                     aria-hidden="true"
                     className={cn('transition-transform duration-200', expanded && 'rotate-180')}
                   />
@@ -1197,15 +1198,16 @@ export function MatchSeriesItem({
               <button
                 type="button"
                 aria-expanded={expanded}
+                aria-label="切換連打場次明細"
+                title={expanded ? '收合明細' : '展開明細'}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleToggleExpanded();
                 }}
-                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
+                className="size-7 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
-                <span>{expanded ? '收合' : '明細'}</span>
                 <ChevronDown
-                  size={13}
+                  size={14}
                   aria-hidden="true"
                   className={cn('transition-transform duration-200', expanded && 'rotate-180')}
                 />
@@ -1688,15 +1690,16 @@ export function MatchSeriesItem({
               <button
                 type="button"
                 aria-expanded={expanded}
+                aria-label="切換連打場次明細"
+                title={expanded ? '收合明細' : '展開明細'}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleToggleExpanded();
                 }}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-foreground transition-colors whitespace-nowrap shrink-0"
+                className="size-8 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
-                <span>{expanded ? '收合' : '明細'}</span>
                 <ChevronDown
-                  size={14}
+                  size={15}
                   aria-hidden="true"
                   className={cn('transition-transform duration-200', expanded && 'rotate-180')}
                 />
@@ -1776,15 +1779,16 @@ export function MatchSeriesItem({
               <button
                 type="button"
                 aria-expanded={expanded}
+                aria-label="切換連打場次明細"
+                title={expanded ? '收合明細' : '展開明細'}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleToggleExpanded();
                 }}
-                className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-black text-foreground shrink-0 whitespace-nowrap"
+                className="size-7 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
-                <span>{expanded ? '收合' : '明細'}</span>
                 <ChevronDown
-                  size={13}
+                  size={14}
                   aria-hidden="true"
                   className={cn('transition-transform duration-200', expanded && 'rotate-180')}
                 />

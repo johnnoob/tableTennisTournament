@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
-import { Trophy, ArrowLeft, Crown, ExternalLink, Timer } from 'lucide-react';
+import { Trophy, ArrowLeft, Crown, ExternalLink, History, Timer } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { containerVariants, itemVariants, fadeInUp, pageVariants } from '@/lib/animations';
@@ -99,13 +99,23 @@ export function SeasonDetail() {
           title={season.name}
           subtitle={isCompleted ? 'Completed League Season' : 'Active League Season Detail'}
           actions={
-            <Button
-              variant="outline"
-              onClick={() => navigate('/tournament')}
-              className="rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground w-fit"
-            >
-              <ArrowLeft size={16} className="mr-2" aria-hidden="true" /> 返回賽事中心
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/history?scope=all&season_id=${encodeURIComponent(season.id)}`)}
+                className="rounded-xl border-sapphire-blue/30 bg-sapphire-blue/8 text-sapphire-blue dark:text-blue-300 font-black hover:bg-sapphire-blue/15 w-fit gap-1.5"
+              >
+                <History size={15} aria-hidden="true" />
+                查看本季戰報
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/tournament')}
+                className="rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground w-fit"
+              >
+                <ArrowLeft size={16} className="mr-2" aria-hidden="true" /> 返回賽事中心
+              </Button>
+            </div>
           }
         />
       </motion.div>

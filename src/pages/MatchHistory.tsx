@@ -1,23 +1,28 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiClient from '@/utils/apiClient';
 import { MatchItem, MatchSeriesItem } from '@/components/MatchItem';
 import {
-  MatchHistoryMobileStrip,
-  MatchHistorySidebar,
+  MatchHistorySearchCombobox,
+  MatchHistorySummaryBar,
 } from '@/components/MatchHistoryInspector';
 import {
   computeClubStats,
   computePersonalPivots,
   computePersonalSliceStats,
+  matchesSelectedPlayerFilter,
+  type SelectedPlayerFilter,
 } from '@/lib/matchInspector';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
+import {
+  ResponsiveSelect,
+  type ResponsiveSelectOption,
+} from '@/components/ui/responsive-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Search,
   Trophy,
   XCircle,
   LayoutGrid,
@@ -28,16 +33,23 @@ import {
   CheckCircle2,
   Clock,
   ChevronDown,
-  ChevronUp,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Crosshair,
+  History,
   Layers,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageVariants } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
-import { clusterMatchesIntoSeries, groupMatchesByDate } from '@/lib/matchDate';
-import type { MatchFeedItem, MatchHistoryResponse } from '@/types/api.types';
+import { clusterMatchesIntoSeries, getMatchDateGroup } from '@/lib/matchDate';
+import type {
+  MatchFeedItem,
+  MatchHistoryResponse,
+  SeasonSummary,
+} from '@/types/api.types';
 
 const PAGE_SIZE = 50;
 
@@ -47,6 +59,8 @@ export function MatchHistory() {
   const { data: user, isLoading: isAuthLoading } = useAuth();
 
   const rawScope = searchParams.get('scope');
+  const rawSeasonId = searchParams.get('season_id');
+  const selectedSeasonId = rawSeasonId || 'all';
   const highlightMatchId = searchParams.get('matchId');
   const scope: 'mine' | 'all' =
     rawScope === 'all' ? 'all' : rawScope === 'mine' ? 'mine' : user ? 'mine' : 'all';
@@ -54,6 +68,19 @@ export function MatchHistory() {
   const setScope = (nextScope: 'mine' | 'all') => {
     const next = new URLSearchParams(searchParams);
     next.set('scope', nextScope);
+    setSearchParams(next, { replace: true });
+    if (nextScope === 'all') {
+      setSelectedPlayer((prev) => (prev ? { ...prev, role: 'any' } : null));
+    }
+  };
+
+  const setSeasonId = (nextSeasonId: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (!nextSeasonId || nextSeasonId === 'all') {
+      next.delete('season_id');
+    } else {
+      next.set('season_id', nextSeasonId);
+    }
     setSearchParams(next, { replace: true });
   };
 
@@ -63,28 +90,72 @@ export function MatchHistory() {
     setSearchParams(next, { replace: true });
   };
 
+  const openInspectPlayer = (playerId: string) => {
+    if (!playerId) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('inspect', playerId);
+    setSearchParams(next);
+  };
+
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'loss'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'pending'>('all');
   const [matchTypeFilter, setMatchTypeFilter] = useState<'all' | 'singles' | 'doubles'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayerFilter | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [clusterSeriesEnabled, setClusterSeriesEnabled] = useState(true);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  const effectiveSearchTerm = useMemo(
+    () => (selectedPlayer ? selectedPlayer.name : searchQuery.trim()),
+    [selectedPlayer, searchQuery],
+  );
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedSearch(searchQuery.trim());
+      setDebouncedSearch(effectiveSearchTerm);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [searchQuery]);
+  }, [effectiveSearchTerm]);
+
+  const { data: seasons = [] } = useQuery<SeasonSummary[]>({
+    queryKey: ['seasons', 'list'],
+    queryFn: async () => {
+      const res = await apiClient.get<SeasonSummary[]>('/seasons');
+      return res.data;
+    },
+  });
+
+  const seasonMap = useMemo(() => {
+    const map = new Map<string, SeasonSummary>();
+    for (const s of seasons) {
+      map.set(s.id, s);
+    }
+    return map;
+  }, [seasons]);
+
+  const seasonOptions = useMemo<ResponsiveSelectOption[]>(() => {
+    return [
+      { value: 'all', label: '全部賽季', prefix: '📚', badge: '全部' },
+      ...seasons.map((s) => ({
+        value: s.id,
+        label: s.name,
+        prefix: s.status === 'active' ? '🟢' : '🏆',
+        badge: s.status === 'active' ? '進行中' : '已結算',
+      })),
+    ];
+  }, [seasons]);
+
+  const seasonQueryParam =
+    selectedSeasonId !== 'all' ? `&season_id=${encodeURIComponent(selectedSeasonId)}` : '';
 
   // 1. 個人戰績基底快取 (一次載入 50 筆，切換篩選 0ms 秒切)
   const myBaseQuery = useInfiniteQuery<MatchHistoryResponse>({
-    queryKey: ['matches', 'history', 'mine-base', user?.id],
+    queryKey: ['matches', 'history', 'mine-base', user?.id, selectedSeasonId],
     queryFn: async ({ pageParam }) => {
       const res = await apiClient.get<MatchHistoryResponse>(
-        `/users/me/matches?limit=${PAGE_SIZE}&offset=${pageParam}&result_filter=all&match_type=all`,
+        `/users/me/matches?limit=${PAGE_SIZE}&offset=${pageParam}&result_filter=all&match_type=all${seasonQueryParam}`,
       );
       return res.data;
     },
@@ -96,10 +167,10 @@ export function MatchHistory() {
 
   // 2. 全部戰報基底快取 (同時預熱，切換「個人戰績 / 全部戰報」也 0ms 秒切)
   const allBaseQuery = useInfiniteQuery<MatchHistoryResponse>({
-    queryKey: ['matches', 'history', 'all-base'],
+    queryKey: ['matches', 'history', 'all-base', selectedSeasonId],
     queryFn: async ({ pageParam }) => {
       const res = await apiClient.get<MatchHistoryResponse>(
-        `/matches/history?limit=${PAGE_SIZE}&offset=${pageParam}&status_filter=all&match_type=all`,
+        `/matches/history?limit=${PAGE_SIZE}&offset=${pageParam}&status_filter=all&match_type=all${seasonQueryParam}`,
       );
       return res.data;
     },
@@ -118,7 +189,10 @@ export function MatchHistory() {
   // 當總場次超過已載入頁數 (> 50 場) 且使用者套用篩選/搜尋時，才在背景向後端補齊更早的符合場次
   const activeOutcomeFilter = scope === 'mine' ? resultFilter : statusFilter;
   const hasActiveFilters =
-    activeOutcomeFilter !== 'all' || matchTypeFilter !== 'all' || debouncedSearch !== '';
+    activeOutcomeFilter !== 'all' ||
+    matchTypeFilter !== 'all' ||
+    debouncedSearch !== '' ||
+    selectedSeasonId !== 'all';
   const needsServerFallback = Boolean(activeBaseQuery.hasNextPage && hasActiveFilters);
 
   const filteredQuery = useInfiniteQuery<MatchHistoryResponse>({
@@ -128,6 +202,7 @@ export function MatchHistory() {
       'filtered',
       scope,
       scope === 'mine' ? user?.id : 'public',
+      selectedSeasonId,
       activeOutcomeFilter,
       matchTypeFilter,
       debouncedSearch,
@@ -138,6 +213,9 @@ export function MatchHistory() {
         offset: String(pageParam),
         match_type: matchTypeFilter,
       });
+      if (selectedSeasonId !== 'all') {
+        params.set('season_id', selectedSeasonId);
+      }
       if (debouncedSearch) {
         params.set('search', debouncedSearch);
       }
@@ -172,6 +250,8 @@ export function MatchHistory() {
     needsServerFallback && Boolean(filteredQuery.data) && !filteredQuery.isPlaceholderData;
   const sourceMatches = usingServerResults ? serverMatches : baseMatches;
 
+  const currentUserId = user?.id ? String(user.id) : null;
+
   const filteredMatches = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return sourceMatches.filter((m) => {
@@ -186,6 +266,13 @@ export function MatchHistory() {
 
       if (matchTypeFilter !== 'all' && m.type !== matchTypeFilter) return false;
 
+      if (
+        selectedPlayer &&
+        !matchesSelectedPlayerFilter(m, selectedPlayer, scope, currentUserId)
+      ) {
+        return false;
+      }
+
       if (q) {
         const players = [...(m.player1 || []), ...(m.opponent || [])];
         const hit = players.some(
@@ -198,13 +285,39 @@ export function MatchHistory() {
 
       return true;
     });
-  }, [sourceMatches, scope, resultFilter, statusFilter, matchTypeFilter, searchQuery]);
+  }, [
+    sourceMatches,
+    scope,
+    resultFilter,
+    statusFilter,
+    matchTypeFilter,
+    selectedPlayer,
+    currentUserId,
+    searchQuery,
+  ]);
 
-  const currentUserId = user?.id ? String(user.id) : null;
-
-  // Mechanism 1 + 2: 依日期分段並計算當日戰績與同組連打收疊
+  // Mechanism 1 + 2: 依賽季邊界與日期分段，並計算當日戰績與同組連打收疊
   const dateSections = useMemo(() => {
-    const groups = groupMatchesByDate(filteredMatches);
+    const groups: Array<{ key: string; label: string; seasonId: string | null; items: MatchFeedItem[] }> = [];
+    const indexByKey = new Map<string, number>();
+
+    for (const match of filteredMatches) {
+      const dateGroup = getMatchDateGroup(match.date || match.created_at);
+      const seasonId = match.season_id ?? null;
+      const compoundKey = `${seasonId || 'unknown'}::${dateGroup.key}`;
+      const existingIndex = indexByKey.get(compoundKey);
+      if (existingIndex === undefined) {
+        indexByKey.set(compoundKey, groups.length);
+        groups.push({
+          key: compoundKey,
+          label: dateGroup.label,
+          seasonId,
+          items: [match],
+        });
+      } else {
+        groups[existingIndex].items.push(match);
+      }
+    }
 
     return groups.map((group) => {
       const clusters = clusterMatchesIntoSeries(group.items);
@@ -235,6 +348,15 @@ export function MatchHistory() {
       };
     });
   }, [filteredMatches, scope, currentUserId]);
+
+  const hasMultipleSeasonsInView = useMemo(() => {
+    const seen = new Set<string>();
+    for (const m of filteredMatches) {
+      if (m.season_id) seen.add(m.season_id);
+      if (seen.size >= 2) return true;
+    }
+    return false;
+  }, [filteredMatches]);
 
   const allDatesCollapsed =
     dateSections.length > 0 && dateSections.every((s) => Boolean(collapsedDates[s.key]));
@@ -310,8 +432,9 @@ export function MatchHistory() {
         scope === 'mine' ? filteredMatches : [],
         currentUserId,
         searchQuery,
+        selectedPlayer,
       ),
-    [scope, filteredMatches, currentUserId, searchQuery],
+    [scope, filteredMatches, currentUserId, searchQuery, selectedPlayer],
   );
 
   const personalPivots = useMemo(
@@ -324,28 +447,20 @@ export function MatchHistory() {
     [scope, filteredMatches, allBaseMatches],
   );
 
-  const handleSelectRival = (name: string) => {
-    if (searchQuery.trim().toLowerCase() === name.toLowerCase()) {
-      setSearchQuery('');
-    } else {
-      setSearchQuery(name);
+  const handleSelectComboboxPlayer = (player: SelectedPlayerFilter) => {
+    setSelectedPlayer(player);
+    setSearchQuery('');
+    if (scope === 'mine') {
       setResultFilter('all');
+      if (player.role === 'partner') {
+        setMatchTypeFilter('doubles');
+      }
     }
   };
 
-  const handleSelectPartner = (name: string) => {
-    if (searchQuery.trim().toLowerCase() === name.toLowerCase() && matchTypeFilter === 'doubles') {
-      setSearchQuery('');
-      setMatchTypeFilter('all');
-    } else {
-      setSearchQuery(name);
-      setMatchTypeFilter('doubles');
-      setResultFilter('all');
-    }
-  };
-
-  const handleSelectClubPlayer = (name: string) => {
-    setSearchQuery((prev) => (prev.trim().toLowerCase() === name.toLowerCase() ? '' : name));
+  const handleClearSearch = () => {
+    setSelectedPlayer(null);
+    setSearchQuery('');
   };
 
   const handleToggleMatchType = (type: 'singles' | 'doubles') => {
@@ -360,7 +475,7 @@ export function MatchHistory() {
   const allTotal = allBaseQuery.data?.pages[0]?.total;
   const displayedTotal = usingServerResults
     ? filteredQuery.data?.pages[0]?.total ?? filteredMatches.length
-    : activeBaseQuery.hasNextPage && (hasActiveFilters || searchQuery.trim() !== '')
+    : activeBaseQuery.hasNextPage && (hasActiveFilters || Boolean(selectedPlayer) || searchQuery.trim() !== '')
       ? `${filteredMatches.length}+`
       : filteredMatches.length;
 
@@ -379,13 +494,21 @@ export function MatchHistory() {
     setResultFilter('all');
     setStatusFilter('all');
     setMatchTypeFilter('all');
+    setSelectedPlayer(null);
     setSearchQuery('');
+    if (selectedSeasonId !== 'all') {
+      setSeasonId('all');
+    }
   };
+
+  const selectedSeasonObj =
+    selectedSeasonId !== 'all' ? seasonMap.get(selectedSeasonId) : undefined;
+  const seasonSubtitleSegment = selectedSeasonObj ? ` · ${selectedSeasonObj.name}` : '';
 
   const headerSubtitle =
     scope === 'mine'
-      ? `Personal Match History · ${typeof myTotal === 'number' ? `共 ${displayedTotal} 場` : '與我相關'}`
-      : `All-Club Match Feed · ${typeof allTotal === 'number' ? `共 ${displayedTotal} 場` : '全部戰報'}`;
+      ? `Personal Match History${seasonSubtitleSegment} · ${typeof myTotal === 'number' ? `共 ${displayedTotal} 場` : '與我相關'}`
+      : `All-Club Match Feed${seasonSubtitleSegment} · ${typeof allTotal === 'number' ? `共 ${displayedTotal} 場` : '全部戰報'}`;
 
   return (
     <motion.div
@@ -399,9 +522,8 @@ export function MatchHistory() {
         subtitle={headerSubtitle}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-        {/* 左側主內容區（搜尋與篩選列固定不卸載，切換條件絕不重新整理頁面） */}
-        <div className="flex-1 space-y-5 min-w-0 w-full">
+      <div className="space-y-5 min-w-0 w-full">
+        <search aria-label="搜尋與篩選對戰紀錄" className="block">
           <div className="arena-surface p-3 sm:p-4 space-y-3">
             {/* Scope + Folding Controls Row */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border/70">
@@ -453,6 +575,30 @@ export function MatchHistory() {
               </div>
 
               <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+                {seasons.length >= 2 ? (
+                  <ResponsiveSelect
+                    value={selectedSeasonId}
+                    onValueChange={setSeasonId}
+                    options={seasonOptions}
+                    title="選擇檢視賽季"
+                    description="切換單一賽季或檢視全部歷史場次"
+                    placeholder="全部賽季"
+                    triggerClassName="h-9 w-full sm:w-48 shrink-0 rounded-xl text-xs sm:text-sm"
+                    icon={
+                      <History
+                        size={14}
+                        className="text-muted-foreground shrink-0"
+                        aria-hidden="true"
+                      />
+                    }
+                  />
+                ) : seasons.length === 1 ? (
+                  <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground whitespace-nowrap">
+                    <Timer size={13} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    {seasons[0].name}
+                  </span>
+                ) : null}
+
                 <button
                   type="button"
                   aria-pressed={clusterSeriesEnabled}
@@ -471,56 +617,32 @@ export function MatchHistory() {
                 {dateSections.length > 0 && (
                   <button
                     type="button"
+                    aria-expanded={!allDatesCollapsed}
+                    aria-label="切換全部日期分組"
+                    title={allDatesCollapsed ? '展開全部日期' : '收合全部日期'}
                     onClick={toggleAllDates}
-                    className="inline-flex items-center gap-1 h-9 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs sm:text-sm font-black text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+                    className="size-9 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
                   >
                     {allDatesCollapsed ? (
-                      <>
-                        <ChevronDown size={14} aria-hidden="true" />
-                        <span>展開全部日期</span>
-                      </>
+                      <ChevronsUpDown size={16} aria-hidden="true" />
                     ) : (
-                      <>
-                        <ChevronUp size={14} aria-hidden="true" />
-                        <span>收合全部日期</span>
-                      </>
+                      <ChevronsDownUp size={16} aria-hidden="true" />
                     )}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="relative group">
-              <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-sapphire-blue transition-colors pointer-events-none"
-                size={16}
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                aria-label={scope === 'mine' ? '搜尋對手或隊友姓名、單位' : '搜尋參賽同仁姓名、單位'}
-                autoComplete="off"
-                spellCheck={false}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  scope === 'mine'
-                    ? '搜尋對手或隊友姓名、單位...'
-                    : '搜尋參賽同仁姓名、單位...'
-                }
-                className="arena-input pl-10 pr-10"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  aria-label="清除搜尋"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary"
-                >
-                  <X size={15} aria-hidden="true" />
-                </button>
-              )}
-            </div>
+            <MatchHistorySearchCombobox
+              scope={scope}
+              searchQuery={searchQuery}
+              selectedPlayer={selectedPlayer}
+              personalPivots={personalPivots}
+              clubStats={clubStats}
+              onSearchChange={setSearchQuery}
+              onSelectPlayer={handleSelectComboboxPlayer}
+              onClear={handleClearSearch}
+            />
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               {scope === 'mine' ? (
@@ -604,28 +726,22 @@ export function MatchHistory() {
               </div>
             </div>
           </div>
+        </search>
 
-          <div className="lg:hidden">
-            <MatchHistoryMobileStrip
-              scope={scope}
-              isLoggedIn={Boolean(user)}
-              isLoading={isListLoading}
-              hasActiveFilters={hasActiveFilters || searchQuery.trim() !== ''}
-              searchQuery={searchQuery}
-              matchTypeFilter={matchTypeFilter}
-              statusFilter={statusFilter}
-              personalSlice={personalSlice}
-              personalPivots={personalPivots}
-              clubStats={clubStats}
-              onSelectRival={handleSelectRival}
-              onSelectPartner={handleSelectPartner}
-              onSelectClubPlayer={handleSelectClubPlayer}
-              onToggleMatchType={handleToggleMatchType}
-              onTogglePendingFilter={handleTogglePendingFilter}
-              onResetFilters={resetAllFilters}
-              onLoginClick={() => navigate('/login')}
-            />
-          </div>
+        <MatchHistorySummaryBar
+          scope={scope}
+          isLoggedIn={Boolean(user)}
+          isLoading={isListLoading}
+          hasActiveFilters={hasActiveFilters || Boolean(selectedPlayer) || searchQuery.trim() !== ''}
+          statusFilter={statusFilter}
+          matchTypeFilter={matchTypeFilter}
+          personalSlice={personalSlice}
+          clubStats={clubStats}
+          onToggleMatchType={handleToggleMatchType}
+          onTogglePendingFilter={handleTogglePendingFilter}
+          onInspectPlayer={openInspectPlayer}
+          onResetFilters={resetAllFilters}
+        />
 
           <section className="space-y-4">
             {highlightMatchId && !isListLoading && (
@@ -654,6 +770,15 @@ export function MatchHistory() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap ml-auto">
+                  {!highlightMatchFound && selectedSeasonId !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSeasonId('all')}
+                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors"
+                    >
+                      切換至全部賽季
+                    </button>
+                  )}
                   {!highlightMatchFound && hasActiveFilters && (
                     <button
                       type="button"
@@ -754,7 +879,7 @@ export function MatchHistory() {
                   </p>
                 )} */}
 
-                {dateSections.map((dateSection) => {
+                {dateSections.map((dateSection, sectionIdx) => {
                   const containsHighlightedMatch = Boolean(
                     highlightMatchId &&
                     dateSection.items.some((m) => String(m.id) === String(highlightMatchId)),
@@ -763,24 +888,72 @@ export function MatchHistory() {
                     ? false
                     : Boolean(collapsedDates[dateSection.key]);
 
+                  const prevSeasonId = sectionIdx > 0 ? dateSections[sectionIdx - 1]?.seasonId : null;
+                  const showSeasonDivider =
+                    selectedSeasonId === 'all' &&
+                    hasMultipleSeasonsInView &&
+                    Boolean(dateSection.seasonId) &&
+                    (sectionIdx === 0 || dateSection.seasonId !== prevSeasonId);
+                  const dividerSeason = dateSection.seasonId
+                    ? seasonMap.get(dateSection.seasonId)
+                    : undefined;
+                  const isDividerSeasonActive = dividerSeason?.status === 'active';
+
                   return (
                     <div key={dateSection.key} className="space-y-2">
+                      {showSeasonDivider && dateSection.seasonId && (
+                        <div className="flex items-center gap-2.5 pt-2 first:pt-0">
+                          <div className="flex-1 h-px bg-border/80" />
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card border border-border shadow-2xs text-xs">
+                            {isDividerSeasonActive ? (
+                              <Timer
+                                size={13}
+                                className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <Trophy
+                                size={13}
+                                className="text-amber-600 dark:text-amber-400 shrink-0"
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span className="font-display font-black text-foreground">
+                              {dividerSeason?.name || dateSection.seasonId}
+                            </span>
+                            {dividerSeason && (
+                              <span
+                                className={cn(
+                                  'px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none',
+                                  isDividerSeasonActive
+                                    ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+                                    : 'bg-secondary text-muted-foreground',
+                                )}
+                              >
+                                {isDividerSeasonActive ? '進行中' : '已結算'}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSeasonId(dateSection.seasonId)}
+                              className="text-[11px] font-black text-sapphire-blue dark:text-blue-300 hover:underline pl-0.5"
+                            >
+                              只看此季
+                            </button>
+                          </div>
+                          <div className="flex-1 h-px bg-border/80" />
+                        </div>
+                      )}
+
                       {/* Mechanism 2: Clickable Date Accordion Header */}
                       <button
                         type="button"
                         aria-expanded={!isCollapsed}
+                        aria-label={`切換 ${dateSection.label} 對戰明細`}
                         onClick={() => toggleDateCollapsed(dateSection.key)}
                         className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 transition-colors text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <ChevronDown
-                            size={16}
-                            aria-hidden="true"
-                            className={cn(
-                              'text-muted-foreground transition-transform duration-200 shrink-0',
-                              isCollapsed && '-rotate-90',
-                            )}
-                          />
                           <span className="text-sm sm:text-base font-display font-black tracking-wide text-foreground whitespace-nowrap">
                             {dateSection.label}
                           </span>
@@ -823,9 +996,14 @@ export function MatchHistory() {
                               )}
                             </div>
                           )}
-                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
-                            {isCollapsed ? '展開' : '收合'}
-                          </span>
+                          <ChevronDown
+                            size={16}
+                            aria-hidden="true"
+                            className={cn(
+                              'text-muted-foreground transition-transform duration-200 shrink-0',
+                              !isCollapsed && 'rotate-180',
+                            )}
+                          />
                         </div>
                       </button>
 
@@ -930,32 +1108,6 @@ export function MatchHistory() {
               )}
             </div>
           )}
-        </div>
-
-        {/* 右側連動戰報情報欄（Desktop Sticky Rail） */}
-        <aside className="hidden lg:block lg:w-80 xl:w-[340px] shrink-0">
-          <div className="lg:sticky lg:top-8 space-y-4">
-            <MatchHistorySidebar
-              scope={scope}
-              isLoggedIn={Boolean(user)}
-              isLoading={isListLoading}
-              hasActiveFilters={hasActiveFilters}
-              searchQuery={searchQuery}
-              matchTypeFilter={matchTypeFilter}
-              statusFilter={statusFilter}
-              personalSlice={personalSlice}
-              personalPivots={personalPivots}
-              clubStats={clubStats}
-              onSelectRival={handleSelectRival}
-              onSelectPartner={handleSelectPartner}
-              onSelectClubPlayer={handleSelectClubPlayer}
-              onToggleMatchType={handleToggleMatchType}
-              onTogglePendingFilter={handleTogglePendingFilter}
-              onResetFilters={resetAllFilters}
-              onLoginClick={() => navigate('/login')}
-            />
-          </div>
-        </aside>
       </div>
     </motion.div>
   );

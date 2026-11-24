@@ -828,6 +828,13 @@ function GroupedActionMatchCard({
           <Button
             type="button"
             variant="ghost"
+            aria-expanded={effectiveShowAllRows}
+            aria-label="切換顯示其餘待確認場次"
+            title={
+              effectiveShowAllRows
+                ? '收合部分場次'
+                : `顯示其餘 ${group.matches.length - 5} 場`
+            }
             onClick={() => {
               if (effectiveShowAllRows) {
                 setShowAllRows(false);
@@ -838,9 +845,17 @@ function GroupedActionMatchCard({
                 setShowAllRows(true);
               }
             }}
-            className="w-full h-8 text-xs font-black text-muted-foreground hover:text-foreground"
+            className="w-full h-8 inline-flex items-center justify-center gap-1 text-xs font-black text-muted-foreground hover:text-foreground"
           >
-            {effectiveShowAllRows ? '收合部分場次' : `展開其餘 ${group.matches.length - 5} 場`}
+            {!effectiveShowAllRows && <span>+{group.matches.length - 5} 場</span>}
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className={cn(
+                'transition-transform duration-200',
+                effectiveShowAllRows && 'rotate-180',
+              )}
+            />
           </Button>
         )}
       </div>

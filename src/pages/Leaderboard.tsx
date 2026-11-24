@@ -15,7 +15,6 @@ import {
   Swords,
   Building2,
   ChevronDown,
-  ChevronUp,
   RotateCcw,
   Loader2,
   Hourglass,
@@ -1047,16 +1046,14 @@ export function Leaderboard() {
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-black text-muted-foreground shrink-0">
-                    <span className="hidden sm:inline">
-                      {showUnrankedSection ? '收合' : '展開'}
-                    </span>
-                    {showUnrankedSection ? (
-                      <ChevronUp size={16} aria-hidden="true" />
-                    ) : (
-                      <ChevronDown size={16} aria-hidden="true" />
+                  <ChevronDown
+                    size={16}
+                    aria-hidden="true"
+                    className={cn(
+                      'text-muted-foreground transition-transform duration-200 shrink-0',
+                      showUnrankedSection && 'rotate-180',
                     )}
-                  </span>
+                  />
                 </button>
 
                 {showUnrankedSection && (

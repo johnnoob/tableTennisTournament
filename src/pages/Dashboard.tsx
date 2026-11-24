@@ -24,7 +24,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   Trophy,
   Timer,
   History,
@@ -187,16 +186,16 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
             <button
               type="button"
               aria-expanded={expanded}
-              aria-label={expanded ? '收合公告詳情' : '展開公告詳情'}
+              aria-label="切換公告詳情"
+              title={expanded ? '收合公告' : '展開公告'}
               onClick={() => setExpanded((prev) => !prev)}
-              className="h-8 px-2.5 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center gap-1 text-xs font-bold text-foreground dark:text-slate-200 transition-colors"
+              className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-slate-200 transition-colors shrink-0"
             >
-              <span className="hidden sm:inline">{expanded ? '收合' : '詳情'}</span>
-              {expanded ? (
-                <ChevronUp size={14} aria-hidden="true" />
-              ) : (
-                <ChevronDown size={14} aria-hidden="true" />
-              )}
+              <ChevronDown
+                size={15}
+                aria-hidden="true"
+                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+              />
             </button>
           </div>
         </div>
@@ -725,20 +724,27 @@ export function Dashboard() {
                             <div className="flex justify-center pt-0.5">
                               <button
                                 type="button"
+                                aria-expanded={showAllQuickItems}
+                                aria-label="切換全部快速約戰組合"
+                                title={
+                                  showAllQuickItems
+                                    ? '收合清單'
+                                    : `顯示全部 (${filteredQuickItems.length} 組)`
+                                }
                                 onClick={() => setShowAllQuickItems((prev) => !prev)}
-                                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                                className="inline-flex items-center gap-1 h-8 px-3 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
                               >
-                                {showAllQuickItems ? (
-                                  <>
-                                    <span>收合顯示</span>
-                                    <ChevronUp size={13} aria-hidden="true" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>展開全部 (共 {filteredQuickItems.length} 組)</span>
-                                    <ChevronDown size={13} aria-hidden="true" />
-                                  </>
+                                {!showAllQuickItems && (
+                                  <span>+{filteredQuickItems.length - 6}</span>
                                 )}
+                                <ChevronDown
+                                  size={14}
+                                  aria-hidden="true"
+                                  className={cn(
+                                    'transition-transform duration-200',
+                                    showAllQuickItems && 'rotate-180',
+                                  )}
+                                />
                               </button>
                             </div>
                           )}
@@ -966,15 +972,19 @@ export function Dashboard() {
                       <button
                         type="button"
                         aria-expanded={!isFeedSectionCollapsed}
+                        aria-label="切換近期對戰紀錄"
+                        title={isFeedSectionCollapsed ? '展開近期戰報' : '收合近期戰報'}
                         onClick={() => setIsFeedSectionCollapsed((prev) => !prev)}
-                        className="inline-flex items-center gap-1 h-8 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+                        className="size-8 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
                       >
-                        <span>{isFeedSectionCollapsed ? '展開' : '收合'}</span>
-                        {isFeedSectionCollapsed ? (
-                          <ChevronDown size={13} aria-hidden="true" />
-                        ) : (
-                          <ChevronUp size={13} aria-hidden="true" />
-                        )}
+                        <ChevronDown
+                          size={15}
+                          aria-hidden="true"
+                          className={cn(
+                            'transition-transform duration-200',
+                            !isFeedSectionCollapsed && 'rotate-180',
+                          )}
+                        />
                       </button>
                       <Button
                         type="button"
@@ -992,11 +1002,13 @@ export function Dashboard() {
                   {isFeedSectionCollapsed ? (
                     <button
                       type="button"
+                      aria-expanded={false}
+                      aria-label="顯示近期對戰紀錄"
                       onClick={() => setIsFeedSectionCollapsed(false)}
                       className="w-full py-3 px-4 rounded-2xl border border-dashed border-border bg-surface-subtle/60 hover:bg-secondary text-xs font-bold text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
                     >
                       <span>
-                        已收合 {activeFeedMatches.length} 場{feedScope === 'mine' ? '個人' : '全部'}近期戰報（點擊展開）
+                        已隱藏 {activeFeedMatches.length} 場{feedScope === 'mine' ? '個人' : '全部'}近期戰報
                       </span>
                       <ChevronDown size={14} aria-hidden="true" />
                     </button>
@@ -1036,22 +1048,25 @@ export function Dashboard() {
                         <div className="flex justify-center pt-0.5">
                           <button
                             type="button"
+                            aria-expanded={showAllFeedClusters}
+                            aria-label="切換顯示全部近期戰報"
+                            title={
+                              showAllFeedClusters
+                                ? '收合部分戰報'
+                                : `顯示其餘 ${hiddenClusterCount} 組戰報`
+                            }
                             onClick={() => setShowAllFeedClusters((prev) => !prev)}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-black text-muted-foreground hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1 h-8 px-3.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-black text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            {showAllFeedClusters ? (
-                              <>
-                                <span>收合部分戰報（僅顯示最新 {DEFAULT_VISIBLE_CLUSTERS} 組）</span>
-                                <ChevronUp size={13} aria-hidden="true" />
-                              </>
-                            ) : (
-                              <>
-                                <span>
-                                  展開其餘 {hiddenClusterCount} 組戰報（共 {feedClusters.length} 組 / {activeFeedMatches.length} 場）
-                                </span>
-                                <ChevronDown size={13} aria-hidden="true" />
-                              </>
-                            )}
+                            {!showAllFeedClusters && <span>+{hiddenClusterCount} 組</span>}
+                            <ChevronDown
+                              size={14}
+                              aria-hidden="true"
+                              className={cn(
+                                'transition-transform duration-200',
+                                showAllFeedClusters && 'rotate-180',
+                              )}
+                            />
                           </button>
                         </div>
                       )}

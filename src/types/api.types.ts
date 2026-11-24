@@ -26,6 +26,7 @@ export interface MatchPlayer {
 
 export interface MatchFeedItem {
   id: string;
+  season_id?: string | null;
   challenge_id?: string | null;
   date?: string;
   created_at: string;

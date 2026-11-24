@@ -10,6 +10,19 @@ export interface PivotPlayerStats {
   losses: number;
   winRate: number;
   netMmr: number;
+  lastPlayedAt: number;
+}
+
+export interface RecentCompanionStats extends PivotPlayerStats {
+  lastRole: 'rival' | 'partner';
+}
+
+export interface SelectedPlayerFilter {
+  id?: string;
+  name: string;
+  avatar?: string | null;
+  department?: string | null;
+  role: 'any' | 'rival' | 'partner';
 }
 
 export type H2HContext = {
@@ -43,6 +56,7 @@ export interface PersonalSliceStats {
 }
 
 export interface PersonalPivots {
+  recentPlayers: RecentCompanionStats[];
   topRivals: PivotPlayerStats[];
   topPartners: PivotPlayerStats[];
 }
@@ -57,6 +71,7 @@ export interface ClubInspectorStats {
   pendingCount: number;
   activePlayersCount: number;
   totalPendingInBase: number;
+  recentPlayers: PivotPlayerStats[];
   topActivePlayers: PivotPlayerStats[];
 }
 
@@ -70,7 +85,14 @@ export const getNormalizedDept = (dept?: string | null): string => {
   return trimmed;
 };
 
-function getPlayerPerspective(match: MatchFeedItem, currentUserId: string | null) {
+function getMatchTimestamp(match: MatchFeedItem): number {
+  const raw = match.date || match.created_at;
+  if (!raw) return 0;
+  const ts = new Date(raw).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
+export function getPlayerPerspective(match: MatchFeedItem, currentUserId: string | null) {
   const isTeamA = Boolean(
     currentUserId && match.player1?.some((p) => String(p.id) === currentUserId),
   );
@@ -94,10 +116,39 @@ function getPlayerPerspective(match: MatchFeedItem, currentUserId: string | null
   };
 }
 
+export function matchesSelectedPlayerFilter(
+  match: MatchFeedItem,
+  selected: SelectedPlayerFilter,
+  scope: 'mine' | 'all',
+  currentUserId: string | null,
+): boolean {
+  const targetId = selected.id ? String(selected.id) : null;
+  const targetName = selected.name.trim().toLowerCase();
+
+  const playerMatches = (p: MatchPlayer) => {
+    if (targetId && p.id && String(p.id) === targetId) return true;
+    return (p.name || '').trim().toLowerCase() === targetName;
+  };
+
+  if (scope === 'mine' && currentUserId && selected.role !== 'any') {
+    const { rivalTeam, myPartners } = getPlayerPerspective(match, currentUserId);
+    if (selected.role === 'rival') {
+      return rivalTeam.some(playerMatches);
+    }
+    if (selected.role === 'partner') {
+      return myPartners.some(playerMatches);
+    }
+  }
+
+  const allPlayers = [...(match.player1 || []), ...(match.opponent || [])];
+  return allPlayers.some(playerMatches);
+}
+
 export function computePersonalSliceStats(
   filteredMatches: MatchFeedItem[],
   currentUserId: string | null,
   searchQuery: string,
+  selectedPlayer?: SelectedPlayerFilter | null,
 ): PersonalSliceStats {
   let wins = 0;
   let netSum = 0;
@@ -164,7 +215,23 @@ export function computePersonalSliceStats(
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
   let h2hContext: H2HContext = null;
-  if (trimmedQuery && total > 0) {
+  if (selectedPlayer) {
+    const resolvedPlayer: MatchPlayer = {
+      id: selectedPlayer.id || '',
+      name: selectedPlayer.name,
+      avatar: selectedPlayer.avatar,
+      department: selectedPlayer.department,
+    };
+    if (selectedPlayer.role === 'partner') {
+      h2hContext = { role: 'partner', player: resolvedPlayer };
+    } else if (selectedPlayer.role === 'rival') {
+      h2hContext = { role: 'rival', player: resolvedPlayer };
+    } else if (matchedRivals.size === 0 && matchedPartners.size >= 1) {
+      h2hContext = { role: 'partner', player: Array.from(matchedPartners.values())[0] };
+    } else {
+      h2hContext = { role: 'rival', player: resolvedPlayer };
+    }
+  } else if (trimmedQuery && total > 0) {
     if (matchedRivals.size === 1) {
       const rival = Array.from(matchedRivals.values())[0];
       h2hContext = { role: 'rival', player: rival };
@@ -206,6 +273,11 @@ interface PivotAccumulator {
   wins: number;
   losses: number;
   netMmr: number;
+  lastPlayedAt: number;
+}
+
+interface RecentAccumulator extends PivotAccumulator {
+  lastRole: 'rival' | 'partner';
 }
 
 function finalizePivots(accMap: Map<string, PivotAccumulator>): PivotPlayerStats[] {
@@ -219,6 +291,7 @@ function finalizePivots(accMap: Map<string, PivotAccumulator>): PivotPlayerStats
     losses: item.losses,
     winRate: item.matches > 0 ? Math.round((item.wins / item.matches) * 100) : 0,
     netMmr: round1(item.netMmr),
+    lastPlayedAt: item.lastPlayedAt,
   }));
 }
 
@@ -228,9 +301,11 @@ export function computePersonalPivots(
 ): PersonalPivots {
   const rivalMap = new Map<string, PivotAccumulator>();
   const partnerMap = new Map<string, PivotAccumulator>();
+  const recentMap = new Map<string, RecentAccumulator>();
 
   for (const m of myBaseMatches) {
     const isWin = m.result === 'win';
+    const matchTs = getMatchTimestamp(m);
     const { rivalTeam, myPartners, myDelta } = getPlayerPerspective(m, currentUserId);
 
     for (const rival of rivalTeam) {
@@ -245,14 +320,40 @@ export function computePersonalPivots(
         wins: 0,
         losses: 0,
         netMmr: 0,
+        lastPlayedAt: 0,
       };
       existing.matches += 1;
       if (isWin) existing.wins += 1;
       else existing.losses += 1;
       existing.netMmr += myDelta;
+      if (matchTs > existing.lastPlayedAt) existing.lastPlayedAt = matchTs;
       if (!existing.avatar && rival.avatar) existing.avatar = rival.avatar;
       if (!existing.department && rival.department) existing.department = rival.department;
       rivalMap.set(key, existing);
+
+      const recent = recentMap.get(key) ?? {
+        id: key,
+        name: rival.name,
+        avatar: rival.avatar,
+        department: rival.department,
+        matches: 0,
+        wins: 0,
+        losses: 0,
+        netMmr: 0,
+        lastPlayedAt: -1,
+        lastRole: 'rival' as const,
+      };
+      recent.matches += 1;
+      if (isWin) recent.wins += 1;
+      else recent.losses += 1;
+      recent.netMmr += myDelta;
+      if (matchTs >= recent.lastPlayedAt) {
+        recent.lastPlayedAt = matchTs;
+        recent.lastRole = 'rival';
+      }
+      if (!recent.avatar && rival.avatar) recent.avatar = rival.avatar;
+      if (!recent.department && rival.department) recent.department = rival.department;
+      recentMap.set(key, recent);
     }
 
     if (m.type === 'doubles') {
@@ -268,27 +369,70 @@ export function computePersonalPivots(
           wins: 0,
           losses: 0,
           netMmr: 0,
+          lastPlayedAt: 0,
         };
         existing.matches += 1;
         if (isWin) existing.wins += 1;
         else existing.losses += 1;
         existing.netMmr += myDelta;
+        if (matchTs > existing.lastPlayedAt) existing.lastPlayedAt = matchTs;
         if (!existing.avatar && partner.avatar) existing.avatar = partner.avatar;
         if (!existing.department && partner.department) existing.department = partner.department;
         partnerMap.set(key, existing);
+
+        const recent = recentMap.get(key) ?? {
+          id: key,
+          name: partner.name,
+          avatar: partner.avatar,
+          department: partner.department,
+          matches: 0,
+          wins: 0,
+          losses: 0,
+          netMmr: 0,
+          lastPlayedAt: -1,
+          lastRole: 'partner' as const,
+        };
+        recent.matches += 1;
+        if (isWin) recent.wins += 1;
+        else recent.losses += 1;
+        recent.netMmr += myDelta;
+        if (matchTs >= recent.lastPlayedAt) {
+          recent.lastPlayedAt = matchTs;
+          recent.lastRole = 'partner';
+        }
+        if (!recent.avatar && partner.avatar) recent.avatar = partner.avatar;
+        if (!recent.department && partner.department) recent.department = partner.department;
+        recentMap.set(key, recent);
       }
     }
   }
 
+  const recentPlayers: RecentCompanionStats[] = Array.from(recentMap.values())
+    .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt || b.matches - a.matches)
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      avatar: item.avatar,
+      department: item.department,
+      matches: item.matches,
+      wins: item.wins,
+      losses: item.losses,
+      winRate: item.matches > 0 ? Math.round((item.wins / item.matches) * 100) : 0,
+      netMmr: round1(item.netMmr),
+      lastPlayedAt: item.lastPlayedAt,
+      lastRole: item.lastRole,
+    }));
+
   const topRivals = finalizePivots(rivalMap)
-    .sort((a, b) => b.matches - a.matches || b.wins - a.wins)
-    .slice(0, 4);
+    .sort((a, b) => b.matches - a.matches || b.lastPlayedAt - a.lastPlayedAt)
+    .slice(0, 6);
 
   const topPartners = finalizePivots(partnerMap)
     .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate)
-    .slice(0, 3);
+    .slice(0, 5);
 
-  return { topRivals, topPartners };
+  return { recentPlayers, topRivals, topPartners };
 }
 
 export function computeClubStats(
@@ -323,6 +467,7 @@ export function computeClubStats(
 
   for (const m of allBaseMatches) {
     if (m.status === 'pending') totalPendingInBase += 1;
+    const matchTs = getMatchTimestamp(m);
 
     const s1 = m.score?.[0] ?? 0;
     const s2 = m.score?.[1] ?? 0;
@@ -341,10 +486,12 @@ export function computeClubStats(
         wins: 0,
         losses: 0,
         netMmr: 0,
+        lastPlayedAt: 0,
       };
       existing.matches += 1;
       if (team1Won) existing.wins += 1;
       else if (team2Won) existing.losses += 1;
+      if (matchTs > existing.lastPlayedAt) existing.lastPlayedAt = matchTs;
       if (!existing.avatar && p.avatar) existing.avatar = p.avatar;
       if (!existing.department && p.department) existing.department = p.department;
       playerMap.set(key, existing);
@@ -362,19 +509,27 @@ export function computeClubStats(
         wins: 0,
         losses: 0,
         netMmr: 0,
+        lastPlayedAt: 0,
       };
       existing.matches += 1;
       if (team2Won) existing.wins += 1;
       else if (team1Won) existing.losses += 1;
+      if (matchTs > existing.lastPlayedAt) existing.lastPlayedAt = matchTs;
       if (!existing.avatar && p.avatar) existing.avatar = p.avatar;
       if (!existing.department && p.department) existing.department = p.department;
       playerMap.set(key, existing);
     }
   }
 
-  const topActivePlayers = finalizePivots(playerMap)
-    .sort((a, b) => b.matches - a.matches || b.wins - a.wins)
+  const allClubPlayers = finalizePivots(playerMap);
+
+  const recentPlayers = [...allClubPlayers]
+    .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt || b.matches - a.matches)
     .slice(0, 5);
+
+  const topActivePlayers = [...allClubPlayers]
+    .sort((a, b) => b.matches - a.matches || b.wins - a.wins)
+    .slice(0, 6);
 
   return {
     total,
@@ -386,6 +541,7 @@ export function computeClubStats(
     pendingCount,
     activePlayersCount: activeIds.size,
     totalPendingInBase,
+    recentPlayers,
     topActivePlayers,
   };
 }

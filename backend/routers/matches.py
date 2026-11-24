@@ -376,6 +376,7 @@ def get_pending_matches(current_user: User = Depends(get_current_user), session:
 
         result.append({
             "id": str(m.id),
+            "season_id": m.season_id,
             "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -424,6 +425,7 @@ def get_my_matches(
     offset: int = 0,
     result_filter: str = "all",
     match_type: str = "all",
+    season_id: str = "all",
     search: str = ""
 ):
     statement = select(Match).where(
@@ -433,7 +435,10 @@ def get_my_matches(
             Match.team_b_p1_id == current_user.id,
             Match.team_b_p2_id == current_user.id
         )
-    ).order_by(Match.created_at.desc())
+    )
+    if season_id and season_id != "all":
+        statement = statement.where(Match.season_id == season_id)
+    statement = statement.order_by(Match.created_at.desc())
 
     all_matches = session.exec(statement).all()
     user_map = _load_users_for_matches(session, all_matches)
@@ -486,6 +491,7 @@ def get_my_matches(
 
         result.append({
             "id": str(m.id),
+            "season_id": m.season_id,
             "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -511,9 +517,13 @@ def get_all_matches_history(
     offset: int = 0,
     status_filter: str = "all",
     match_type: str = "all",
+    season_id: str = "all",
     search: str = ""
 ):
-    statement = select(Match).order_by(Match.created_at.desc())
+    statement = select(Match)
+    if season_id and season_id != "all":
+        statement = statement.where(Match.season_id == season_id)
+    statement = statement.order_by(Match.created_at.desc())
     all_matches = session.exec(statement).all()
     user_map = _load_users_for_matches(session, all_matches)
     q = search.strip().lower()
@@ -565,6 +575,7 @@ def get_all_matches_history(
 
         result.append({
             "id": str(m.id),
+            "season_id": m.season_id,
             "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -648,6 +659,7 @@ def get_recent_matches(limit: int = 8, session: Session = Depends(get_session)):
 
         result.append({
             "id": str(m.id),
+            "season_id": m.season_id,
             "challenge_id": str(m.challenge_id) if m.challenge_id else None,
             "date": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"), 
             "created_at": ensure_utc(m.created_at).strftime("%Y-%m-%dT%H:%M:%SZ"),
