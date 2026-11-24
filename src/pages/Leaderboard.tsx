@@ -125,8 +125,8 @@ function RecentFormStrip({
                 : '尚無紀錄'
           }
           className={cn(
-            'rounded-md flex items-center justify-center font-display font-black leading-none select-none',
-            compact ? 'size-5 text-[10px]' : 'size-6 text-[11px] rounded-lg',
+            'rounded-full shrink-0 flex items-center justify-center font-display font-black leading-none select-none',
+            compact ? 'size-5 text-[10px]' : 'size-6 text-[11px]',
             res === 'W'
               ? cn(
                   'bg-emerald-500 text-white shadow-2xs',

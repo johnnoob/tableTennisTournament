@@ -32,6 +32,108 @@ function getTierAvatarRing(mmr: number): string {
   return 'from-sapphire-blue via-sky-400 to-indigo-500';
 }
 
+function getLeaderboardRankBadgeStyle(
+  rank: string | number,
+  isInPlacement: boolean,
+): { containerClass: string; textLabel: string; isNumeric: boolean } {
+  const isRanked = rank !== '-' && rank !== '';
+  const numRank = isRanked ? Number(rank) : undefined;
+
+  if (isRanked && numRank === 1) {
+    return {
+      containerClass:
+        'bg-amber-100 text-amber-700 border-amber-400/80 dark:bg-amber-950/90 dark:text-amber-300 dark:border-amber-400/60',
+      textLabel: '1',
+      isNumeric: true,
+    };
+  }
+  if (isRanked && numRank === 2) {
+    return {
+      containerClass:
+        'bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-500/70',
+      textLabel: '2',
+      isNumeric: true,
+    };
+  }
+  if (isRanked && numRank === 3) {
+    return {
+      containerClass:
+        'bg-orange-100 text-orange-700 border-orange-400/75 dark:bg-orange-950/90 dark:text-orange-300 dark:border-orange-400/60',
+      textLabel: '3',
+      isNumeric: true,
+    };
+  }
+  if (isRanked && numRank !== undefined && !Number.isNaN(numRank)) {
+    return {
+      containerClass:
+        'bg-secondary text-muted-foreground border-border dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600',
+      textLabel: String(numRank),
+      isNumeric: true,
+    };
+  }
+  if (isInPlacement) {
+    return {
+      containerClass:
+        'bg-blue-50 text-sapphire-blue border-sapphire-blue/40 dark:bg-blue-950/90 dark:text-blue-300 dark:border-blue-400/50',
+      textLabel: '定級',
+      isNumeric: false,
+    };
+  }
+  return {
+    containerClass:
+      'bg-surface-subtle text-muted-foreground border-dashed border-border dark:bg-slate-900 dark:text-slate-400',
+    textLabel: '-',
+    isNumeric: false,
+  };
+}
+
+function RecentFormCircles({
+  recentForm,
+  size = 'md',
+}: Readonly<{
+  recentForm: string[];
+  size?: 'sm' | 'md';
+}>) {
+  return (
+    <div
+      className={cn('flex items-center', size === 'sm' ? 'gap-1.5' : 'justify-between gap-1.5')}
+      aria-label="近 5 場勝負（由左至右為最新到較舊）"
+    >
+      {Array.from({ length: 5 }).map((_, idx) => {
+        const res = recentForm[idx];
+        const label = res === 'W' ? '勝' : res === 'L' ? '敗' : '-';
+        return (
+          <span
+            key={idx}
+            title={
+              res === 'W'
+                ? idx === 0
+                  ? '最新一場：勝'
+                  : '勝'
+                : res === 'L'
+                  ? idx === 0
+                    ? '最新一場：敗'
+                    : '敗'
+                  : '尚無紀錄'
+            }
+            className={cn(
+              'rounded-full shrink-0 flex items-center justify-center font-display font-black leading-none select-none',
+              size === 'sm' ? 'size-6 text-[11px]' : 'size-7 text-xs',
+              res === 'W'
+                ? cn('bg-emerald-500 text-white shadow-2xs', idx === 0 && 'ring-2 ring-emerald-500/35')
+                : res === 'L'
+                  ? cn('bg-rose-500 text-white shadow-2xs', idx === 0 && 'ring-2 ring-rose-500/35')
+                  : 'border border-dashed border-border bg-surface-subtle/80 text-muted-foreground/45',
+            )}
+          >
+            {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function RankingCard({
   player,
   variant = 'standard',
@@ -45,14 +147,20 @@ export function RankingCard({
   const tier = getTierBadge(displayRating);
 
   if (!isFeatured) {
+    const stdBadge = getLeaderboardRankBadgeStyle(displayRank, false);
     return (
       <Card className="group relative transition-all duration-300 overflow-visible rounded-2xl bg-card hover:bg-secondary/60 p-4 mt-3 border border-border shadow-xs">
         <Link
           to={`?inspect=${player.id}`}
           className="block rounded-xl focus-visible:outline-2 focus-visible:outline-sapphire-blue"
         >
-          <div className="absolute -left-2 -top-2.5 sm:-left-3 sm:-top-3 flex items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-10 sm:size-11 text-base sm:text-lg bg-sapphire-blue text-white">
-            {displayRank}
+          <div
+            className={cn(
+              'absolute -left-2 -top-2.5 sm:-left-3 sm:-top-3 flex items-center justify-center font-display font-black rounded-full shadow-md z-20 border-2 ring-4 ring-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-9 sm:size-10 text-sm sm:text-base',
+              stdBadge.containerClass,
+            )}
+          >
+            {stdBadge.textLabel}
           </div>
 
           <CardContent className="p-0 flex flex-col pt-2 pl-5 sm:pl-6">
@@ -85,8 +193,8 @@ export function RankingCard({
                 <div className="font-display font-black tracking-tight tabular-nums leading-none text-xl sm:text-2xl text-foreground">
                   {Math.round(displayRating)}
                 </div>
-                <p className="text-xs uppercase tracking-wider font-sans font-black mt-1.5 flex items-center gap-1 justify-end text-muted-foreground">
-                  ELO
+                <p className="text-xs tracking-wider font-sans font-black mt-1.5 flex items-center gap-1 justify-end text-muted-foreground">
+                  分
                   <TrendingUp size={11} aria-hidden="true" className="text-sapphire-blue" />
                 </p>
               </div>
@@ -130,7 +238,7 @@ export function RankingCard({
     );
   }
 
-  // Featured: Dopamine Pro Player Card (Crisp Daylight Aurora in Light Mode + Cyber Navy in Dark Mode)
+  // Featured: Personal Hero Card (Sleek Single-Panel Mobile + 4-Pod Bento Desktop)
   const tierProgress = getTierProgress(displayRating);
   const wins = Number(displayStats.wins || 0);
   const losses = Number(displayStats.losses || 0);
@@ -158,109 +266,124 @@ export function RankingCard({
 
   const hasNumericRank = displayRank !== '-' && displayRank !== '';
   const seasonMatches = player.seasonMatchesPlayed ?? 0;
-  const isInPlacement = !hasNumericRank && seasonMatches > 0 && seasonMatches < SEASON_PLACEMENT_MATCHES;
-  const rankBadgeLabel = hasNumericRank
-    ? `#${displayRank}`
-    : isInPlacement
-      ? `${seasonMatches}/${SEASON_PLACEMENT_MATCHES}`
-      : 'NEW';
+  const isInPlacement =
+    !hasNumericRank && seasonMatches > 0 && seasonMatches < SEASON_PLACEMENT_MATCHES;
+  const rankBadge = getLeaderboardRankBadgeStyle(displayRank, isInPlacement);
 
   return (
-    <Card className="group relative transition-all duration-300 overflow-hidden sm:overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-4 sm:p-6 mt-1 sm:mt-3 border border-blue-200/85 dark:border-slate-700/80 shadow-md shadow-sapphire-blue/8 dark:shadow-primary-navy/30">
-      {/* Floating Rank Badge (Tablet / Desktop) */}
+    <Card className="group relative transition-all duration-300 overflow-hidden sm:overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-3.5 sm:p-6 mt-1 sm:mt-3 border border-blue-200/85 dark:border-slate-700/80 shadow-md shadow-sapphire-blue/8 dark:shadow-primary-navy/30">
+      {/* Floating Rank Badge (Tablet / Desktop — matches Leaderboard MedalBadge) */}
       <div
+        title={
+          isInPlacement
+            ? `定級賽進行中（${seasonMatches}/${SEASON_PLACEMENT_MATCHES} 場）`
+            : hasNumericRank
+              ? `目前積分榜第 ${displayRank} 名`
+              : '尚未完成本季定級'
+        }
         className={cn(
-          'hidden sm:flex absolute -left-3 -top-3 items-center justify-center font-display font-black rounded-full shadow-lg z-20 border-4 border-surface-shell transform transition-transform group-hover:scale-105 tabular-nums size-14',
-          hasNumericRank
-            ? 'bg-olympic-gold text-white text-xl'
-            : isInPlacement
-              ? 'bg-sapphire-blue text-white text-sm tracking-tight'
-              : 'bg-olympic-gold text-white text-xs tracking-wider',
+          'hidden sm:flex absolute -left-3 -top-3 items-center justify-center font-display font-black shadow-md z-20 border-2 ring-4 ring-surface-shell transform transition-transform group-hover:scale-105 tabular-nums',
+          isInPlacement
+            ? 'flex-col rounded-2xl px-2 py-1.5 min-w-12 leading-none'
+            : 'rounded-full size-12 text-lg',
+          rankBadge.containerClass,
         )}
       >
-        {rankBadgeLabel}
+        {isInPlacement ? (
+          <>
+            <span className="text-[10px] font-sans font-black tracking-tight opacity-85">定級</span>
+            <span className="text-xs mt-0.5">
+              {seasonMatches}/{SEASON_PLACEMENT_MATCHES}
+            </span>
+          </>
+        ) : (
+          rankBadge.textLabel
+        )}
       </div>
 
-      <CardContent className="p-0 space-y-4 sm:space-y-5">
-        {/* Zone 1: Player Identity, Loadout Strip & Live ELO Momentum */}
+      <CardContent className="p-0 space-y-3 sm:space-y-5">
+        {/* Zone 1: Player Identity & Live Score (Unified Single-Row on Mobile + Spacious Header on Desktop) */}
         <Link
           to={`?inspect=${player.id}`}
           className="block rounded-2xl pt-0 sm:pt-1 pl-0 sm:pl-6 focus-visible:outline-2 focus-visible:outline-sapphire-blue"
         >
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3.5 sm:gap-4 w-full">
-            <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3 sm:gap-4 w-full">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               <div
                 className={cn(
-                  'relative shrink-0 p-[2.5px] rounded-2xl bg-gradient-to-br shadow-md',
+                  'relative shrink-0 p-[2px] sm:p-[2.5px] rounded-2xl bg-gradient-to-br shadow-md',
                   getTierAvatarRing(displayRating),
                 )}
               >
+                {/* Mobile Rank Badge (matches Leaderboard MedalBadge colors & text) */}
                 <span
                   className={cn(
-                    'sm:hidden absolute -top-2 -left-2 z-10 min-w-6 h-6 px-1.5 rounded-full text-white font-display font-black flex items-center justify-center shadow-md ring-2 ring-card tabular-nums',
-                    hasNumericRank
-                      ? 'bg-olympic-gold text-[11px]'
-                      : isInPlacement
-                        ? 'bg-sapphire-blue text-[10px]'
-                        : 'bg-olympic-gold text-[9px] tracking-wider',
+                    'sm:hidden absolute -top-2 -left-2 z-10 font-display font-black flex items-center justify-center shadow-sm border ring-2 ring-card tabular-nums leading-none',
+                    isInPlacement
+                      ? 'rounded-lg px-1.5 h-5 text-[10px]'
+                      : 'rounded-full size-6 text-xs',
+                    rankBadge.containerClass,
                   )}
                 >
-                  {rankBadgeLabel}
+                  {isInPlacement ? `${seasonMatches}/${SEASON_PLACEMENT_MATCHES}` : rankBadge.textLabel}
                 </span>
                 <PlayerAvatar
                   src={player.avatar}
                   name={player.name}
-                  className="size-14 sm:size-18 rounded-[14px] bg-card text-xl"
+                  className="size-12 sm:size-18 rounded-[13px] sm:rounded-[14px] bg-card text-lg sm:text-xl"
                 />
                 {player.isVerified && (
-                  <div className="absolute -bottom-1 -right-1 rounded-full p-1 shadow-md bg-sapphire-blue text-white ring-2 ring-card">
-                    <ShieldCheck size={12} aria-hidden="true" />
+                  <div className="absolute -bottom-1 -right-1 rounded-full p-0.5 sm:p-1 shadow-md bg-sapphire-blue text-white ring-2 ring-card">
+                    <ShieldCheck size={11} aria-hidden="true" />
                   </div>
                 )}
               </div>
 
               <div className="flex flex-col min-w-0 flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 min-w-0">
-                  <h3 className="font-display font-black truncate leading-tight transition-colors text-lg sm:text-2xl text-foreground group-hover:text-sapphire-blue dark:group-hover:text-blue-300">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h3 className="font-display font-black truncate leading-tight transition-colors text-base sm:text-2xl text-foreground group-hover:text-sapphire-blue dark:group-hover:text-blue-300">
                     {player.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <div
-                      className={cn(
-                        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-black shadow-2xs whitespace-nowrap',
-                        tier.color,
-                      )}
-                    >
-                      {tier.icon} {tier.name}
-                    </div>
-                    {isInPlacement && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 border border-sapphire-blue/25 text-xs font-black whitespace-nowrap tabular-nums">
-                        定級賽 {seasonMatches}/{SEASON_PLACEMENT_MATCHES} · K=32
-                      </span>
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full border text-[11px] sm:text-xs font-black shadow-2xs whitespace-nowrap',
+                      tier.color,
                     )}
-                    {currentStreak >= 2 && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-black shadow-xs whitespace-nowrap">
-                        <Flame size={12} aria-hidden="true" />
-                        {currentStreak} 連勝中
-                      </span>
-                    )}
-                    {currentStreak === 1 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/25 text-xs font-black whitespace-nowrap">
-                        <Zap size={11} aria-hidden="true" />
-                        近期獲勝
-                      </span>
-                    )}
-                    {currentStreak <= -2 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/12 text-muted-foreground border border-border text-xs font-black whitespace-nowrap">
-                        <Swords size={11} aria-hidden="true" />
-                        蓄力反擊
-                      </span>
-                    )}
+                  >
+                    {tier.icon} {tier.name}
                   </div>
+                  {isInPlacement && (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 border border-sapphire-blue/25 text-xs font-black whitespace-nowrap tabular-nums">
+                      定級賽 {seasonMatches}/{SEASON_PLACEMENT_MATCHES} · K=32
+                    </span>
+                  )}
+                  {currentStreak >= 2 && (
+                    <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[11px] sm:text-xs font-black shadow-xs whitespace-nowrap">
+                      <Flame size={11} aria-hidden="true" />
+                      {currentStreak} 連勝
+                    </span>
+                  )}
+                  {currentStreak === 1 && (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/25 text-xs font-black whitespace-nowrap">
+                      <Zap size={11} aria-hidden="true" />
+                      近期獲勝
+                    </span>
+                  )}
+                  {currentStreak <= -2 && (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-500/12 text-muted-foreground border border-border text-xs font-black whitespace-nowrap">
+                      <Swords size={11} aria-hidden="true" />
+                      蓄力反擊
+                    </span>
+                  )}
                 </div>
 
-                {/* Loadout & Identity Badges */}
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {/* Mobile Compact Meta Line (Eliminates bulky multi-row loadout chips on phone) */}
+                <p className="sm:hidden text-[11px] font-bold text-muted-foreground truncate mt-1">
+                  {departmentLabel} · {handLabel}持拍
+                </p>
+
+                {/* Tablet / Desktop Full Loadout Strip */}
+                <div className="hidden sm:flex flex-wrap items-center gap-1.5 mt-2">
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/85 dark:bg-white/10 border border-blue-100 dark:border-white/10 text-xs font-bold text-foreground/85 whitespace-nowrap">
                     <Building2 size={11} className="text-sapphire-blue shrink-0" aria-hidden="true" />
                     {departmentLabel}
@@ -269,7 +392,7 @@ export function RankingCard({
                     {handLabel}持拍
                   </span>
                   {rubbersLabel && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/85 dark:bg-white/10 border border-blue-100 dark:border-white/10 text-xs font-bold text-foreground/85 truncate max-w-full sm:max-w-[220px]">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/85 dark:bg-white/10 border border-blue-100 dark:border-white/10 text-xs font-bold text-foreground/85 truncate max-w-[220px]">
                       {rubbersLabel}
                     </span>
                   )}
@@ -277,24 +400,21 @@ export function RankingCard({
               </div>
             </div>
 
-            {/* Live ELO Spotlight Strip (Mobile) / Score Block (Desktop) */}
-            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-900/55 border border-blue-100/90 dark:border-white/10 shadow-2xs sm:block sm:p-0 sm:rounded-none sm:bg-transparent dark:sm:bg-transparent sm:border-0 sm:shadow-none sm:text-right shrink-0">
-              <div className="flex items-baseline sm:justify-end">
-                <span className="font-display font-black tracking-tight tabular-nums leading-none text-3xl sm:text-5xl text-foreground">
+            {/* Live Rating Block (Inline right on both Mobile and Desktop) */}
+            <div className="text-right shrink-0">
+              <div className="flex items-baseline justify-end gap-1">
+                <span className="font-display font-black tracking-tight tabular-nums leading-none text-2xl sm:text-5xl text-foreground">
                   {currentRounded}
                 </span>
-                <span className="sm:hidden text-xs uppercase tracking-wider font-sans font-black text-muted-foreground ml-1.5">
-                  ELO
+                <span className="text-xs sm:text-sm font-sans font-black text-muted-foreground">
+                  分
                 </span>
               </div>
-              <div className="flex items-center justify-end gap-1.5 sm:mt-2">
-                <span className="hidden sm:inline text-xs uppercase tracking-wider font-sans font-black text-muted-foreground">
-                  ELO
-                </span>
+              <div className="flex items-center justify-end gap-1 mt-1 sm:mt-2">
                 {ptsChange !== 0 ? (
                   <span
                     className={cn(
-                      'inline-flex items-center gap-0.5 px-2.5 py-1 sm:px-2 sm:py-0.5 rounded-full text-xs font-display font-black tabular-nums whitespace-nowrap',
+                      'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-display font-black tabular-nums whitespace-nowrap',
                       ptsChange > 0
                         ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                         : 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
@@ -305,11 +425,11 @@ export function RankingCard({
                     ) : (
                       <TrendingDown size={11} aria-hidden="true" />
                     )}
-                    {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
+                    {ptsChange > 0 ? `+${ptsChange}` : ptsChange} 分
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full sm:p-0 sm:bg-transparent bg-secondary/70 text-xs font-bold text-muted-foreground">
-                    基準 1000
+                  <span className="text-[11px] sm:text-xs font-bold text-muted-foreground whitespace-nowrap">
+                    基準 1000 分
                   </span>
                 )}
               </div>
@@ -317,45 +437,85 @@ export function RankingCard({
           </div>
         </Link>
 
-        {/* Zone 2: Mobile-First 1-2-1 Bento Grid (Tablet 2x2 / Desktop 4-col) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pl-0 sm:pl-6">
-          {/* Pod 1: Win Rate & W-L Split */}
-          <div className="col-span-1 order-1 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
-                勝率<span className="hidden sm:inline"> &amp; 戰績</span>
-              </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] font-display font-black text-foreground tabular-nums whitespace-nowrap">
-                {totalMatches} 場
-              </span>
+        {/* Zone 2A (Mobile Only): Unified Compact Segmented Glass Panel (No Card-in-Card Bloat) */}
+        <div className="sm:hidden rounded-2xl bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs overflow-hidden divide-y divide-blue-100/80 dark:divide-white/10">
+          {/* Top 3-Column KPI Strip */}
+          <div className="grid grid-cols-3 divide-x divide-blue-100/80 dark:divide-white/10">
+            <div className="px-2.5 py-2.5 min-w-0">
+              <p className="text-[11px] font-black text-muted-foreground leading-none">
+                勝率 · {totalMatches}場
+              </p>
+              <p className="text-lg font-display font-black text-foreground tabular-nums leading-tight mt-1">
+                {winRateNum}%
+              </p>
+              <p className="text-[10px] font-display font-black tabular-nums leading-none mt-0.5">
+                <span className="text-emerald-600 dark:text-emerald-400">{wins}勝</span>
+                <span className="text-muted-foreground/40 mx-0.5">·</span>
+                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
+              </p>
             </div>
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-                <span className="text-2xl font-display font-black text-foreground tabular-nums leading-none">
-                  {winRateNum}%
-                </span>
-                <span className="text-xs font-display font-black tabular-nums whitespace-nowrap mt-0.5 sm:mt-0">
-                  <span className="text-emerald-600 dark:text-emerald-400">{wins}勝</span>
-                  <span className="mx-1" />
-                  <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
-                </span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden mt-2 flex">
-                <div
-                  className="h-full bg-emerald-500 transition-all duration-500"
-                  style={{ width: `${winBarPercent}%` }}
-                />
-              </div>
+
+            <div className="px-2.5 py-2.5 min-w-0">
+              <p className="text-[11px] font-black text-muted-foreground leading-none flex items-center gap-1">
+                <Trophy size={10} className="text-olympic-gold shrink-0" aria-hidden="true" />
+                <span className="truncate">巔峰</span>
+              </p>
+              <p className="text-lg font-display font-black text-foreground tabular-nums leading-tight mt-1">
+                {peakMmr}
+                <span className="text-[10px] font-bold text-muted-foreground ml-0.5">分</span>
+              </p>
+              <p className="text-[10px] font-bold text-muted-foreground truncate leading-none mt-0.5">
+                {isAtPeak ? '歷史新高' : peakGap > 0 ? `差 ${peakGap} 分` : '首戰新高'}
+              </p>
             </div>
+
+            {nextRival ? (
+              <Link
+                to={`?inspect=${nextRival.id}`}
+                className="px-2.5 py-2.5 min-w-0 block hover:bg-sapphire-blue/5 transition-colors"
+              >
+                <p className="text-[11px] font-black text-muted-foreground leading-none flex items-center justify-between gap-0.5">
+                  <span className="inline-flex items-center gap-0.5 truncate">
+                    <Target size={10} className="text-smash-orange shrink-0" aria-hidden="true" />
+                    超車 #{nextRival.target_rank}
+                  </span>
+                  <ChevronRight size={11} className="text-muted-foreground/70 shrink-0" aria-hidden="true" />
+                </p>
+                <p className="text-lg font-display font-black text-smash-orange tabular-nums leading-tight mt-1">
+                  -{nextRival.mmr_gap}
+                  <span className="text-[10px] font-bold ml-0.5">分</span>
+                </p>
+                <p className="text-[10px] font-black text-foreground/85 truncate leading-none mt-0.5">
+                  {nextRival.name}
+                </p>
+              </Link>
+            ) : (
+              <div className="px-2.5 py-2.5 min-w-0">
+                <p className="text-[11px] font-black text-muted-foreground leading-none flex items-center gap-0.5">
+                  <Target size={10} className="text-olympic-gold shrink-0" aria-hidden="true" />
+                  排名
+                </p>
+                <p className="text-sm font-display font-black text-foreground leading-tight mt-1.5 truncate">
+                  {hasNumericRank
+                    ? '👑 榜首'
+                    : isInPlacement
+                      ? `定級 ${seasonMatches}/${SEASON_PLACEMENT_MATCHES}`
+                      : '待定級'}
+                </p>
+                <p className="text-[10px] font-bold text-muted-foreground truncate leading-none mt-1">
+                  {hasNumericRank ? '全場領先' : 'K=32 加速'}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Pod 2: Recent 5 Form & Net Delta */}
-          <div className="col-span-2 sm:col-span-1 order-3 sm:order-2 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
-                近 5 場手感
+          {/* Bottom Single-Row Recent 5 Form */}
+          <div className="px-3 py-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[11px] font-black text-muted-foreground whitespace-nowrap">
+                近 5 場
               </span>
-              {recentForm.length > 0 && recent5Delta !== 0 ? (
+              {recentForm.length > 0 && recent5Delta !== 0 && (
                 <span
                   className={cn(
                     'text-[11px] font-display font-black tabular-nums whitespace-nowrap',
@@ -364,35 +524,65 @@ export function RankingCard({
                       : 'text-rose-500 dark:text-rose-400',
                   )}
                 >
-                  <span className="sm:hidden">淨變動 </span>
                   {recent5Delta > 0 ? `+${recent5Delta}` : recent5Delta} 分
                 </span>
-              ) : recentForm.length === 0 ? (
-                <span className="text-[11px] font-bold text-muted-foreground sm:hidden">
-                  尚無紀錄
-                </span>
-              ) : null}
+              )}
             </div>
-            <div className="grid grid-cols-5 gap-2 sm:gap-1.5">
-              {Array.from({ length: 5 }).map((_, idx) => {
-                const res = recentForm[idx];
-                const label = res === 'W' ? '勝' : res === 'L' ? '敗' : '-';
-                return (
-                  <div
-                    key={idx}
-                    className={cn(
-                      'h-9 sm:h-7 rounded-xl sm:rounded-lg flex items-center justify-center text-sm sm:text-xs font-display font-black',
-                      res === 'W'
-                        ? 'bg-emerald-500 text-white shadow-2xs'
-                        : res === 'L'
-                          ? 'bg-rose-500 text-white shadow-2xs'
-                          : 'border border-dashed border-border bg-surface-subtle/70 text-muted-foreground/40',
-                    )}
-                  >
-                    {label}
-                  </div>
-                );
-              })}
+            <RecentFormCircles recentForm={recentForm} size="sm" />
+          </div>
+        </div>
+
+        {/* Zone 2B (Tablet / Desktop): 4-Column Balanced Bento Grid */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:pl-6">
+          {/* Pod 1: Win Rate & W-L Split (Overflow-Proof Vertical Rhythm) */}
+          <div className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
+                勝率 &amp; 戰績
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] font-display font-black text-foreground tabular-nums whitespace-nowrap">
+                {totalMatches} 場
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-2xl font-display font-black text-foreground tabular-nums leading-none">
+                {winRateNum}%
+              </p>
+              <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${winBarPercent}%` }}
+                />
+              </div>
+              <p className="text-[11px] font-display font-black tabular-nums leading-none">
+                <span className="text-emerald-600 dark:text-emerald-400">{wins}勝</span>
+                <span className="text-muted-foreground/40 mx-1">·</span>
+                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Pod 2: Recent 5 Form & Net Delta (True Circles matching Leaderboard) */}
+          <div className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2.5">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-black text-muted-foreground whitespace-nowrap">
+                近 5 場手感
+              </span>
+              {recentForm.length > 0 && recent5Delta !== 0 && (
+                <span
+                  className={cn(
+                    'text-[11px] font-display font-black tabular-nums whitespace-nowrap',
+                    recent5Delta > 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-500 dark:text-rose-400',
+                  )}
+                >
+                  {recent5Delta > 0 ? `+${recent5Delta}` : recent5Delta} 分
+                </span>
+              )}
+            </div>
+            <div className="py-1">
+              <RecentFormCircles recentForm={recentForm} size="md" />
             </div>
           </div>
 
@@ -400,7 +590,7 @@ export function RankingCard({
           {nextRival ? (
             <Link
               to={`?inspect=${nextRival.id}`}
-              className="col-span-2 sm:col-span-1 order-4 sm:order-3 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900/80 border border-blue-100/90 dark:border-white/10 hover:border-sapphire-blue/50 shadow-2xs flex flex-col justify-between gap-2 transition-colors"
+              className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900/80 border border-blue-100/90 dark:border-white/10 hover:border-sapphire-blue/50 shadow-2xs flex flex-col justify-between gap-2 transition-colors"
             >
               <div className="flex items-center justify-between gap-1">
                 <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
@@ -411,31 +601,24 @@ export function RankingCard({
                   差 {nextRival.mmr_gap} 分
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2.5 sm:gap-2 min-w-0">
-                  <PlayerAvatar
-                    src={nextRival.avatar}
-                    name={nextRival.name}
-                    className="size-9 sm:size-7 rounded-xl sm:rounded-lg text-xs sm:text-[10px] shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-display font-black text-foreground truncate leading-tight">
-                      #{nextRival.target_rank} {nextRival.name}
-                    </p>
-                    <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
-                      {nextRival.mmr} ELO
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="sm:hidden text-muted-foreground shrink-0"
-                  aria-hidden="true"
+              <div className="flex items-center gap-2 min-w-0">
+                <PlayerAvatar
+                  src={nextRival.avatar}
+                  name={nextRival.name}
+                  className="size-8 rounded-xl text-xs shrink-0"
                 />
+                <div className="min-w-0">
+                  <p className="text-sm font-display font-black text-foreground truncate leading-tight">
+                    #{nextRival.target_rank} {nextRival.name}
+                  </p>
+                  <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                    {nextRival.mmr} 分
+                  </p>
+                </div>
               </div>
             </Link>
           ) : (
-            <div className="col-span-2 sm:col-span-1 order-4 sm:order-3 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-amber-200/80 dark:border-amber-500/30 shadow-2xs flex flex-col justify-between gap-2">
+            <div className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 border border-amber-200/80 dark:border-amber-500/30 shadow-2xs flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                   <Target size={12} className="text-olympic-gold shrink-0" aria-hidden="true" />
@@ -461,8 +644,8 @@ export function RankingCard({
             </div>
           )}
 
-          {/* Pod 4: Career Peak ELO */}
-          <div className="col-span-1 order-2 sm:order-4 min-w-0 overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
+          {/* Pod 4: Career Peak Rating */}
+          <div className="min-w-0 overflow-hidden rounded-2xl p-3.5 bg-white/85 dark:bg-slate-900/60 border border-blue-100/90 dark:border-white/10 shadow-2xs flex flex-col justify-between gap-2">
             <div className="flex items-center justify-between gap-1">
               <span className="text-xs font-black text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                 <Trophy size={12} className="text-olympic-gold shrink-0" aria-hidden="true" />
@@ -471,15 +654,14 @@ export function RankingCard({
               {isAtPeak && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black whitespace-nowrap shrink-0">
                   <Sparkles size={10} aria-hidden="true" />
-                  <span className="sm:hidden">新高</span>
-                  <span className="hidden sm:inline">紀錄中</span>
+                  紀錄中
                 </span>
               )}
             </div>
             <div>
               <p className="text-2xl font-display font-black text-foreground tabular-nums leading-none">
                 {peakMmr}
-                <span className="text-[11px] font-bold text-muted-foreground ml-1">ELO</span>
+                <span className="text-xs font-bold text-muted-foreground ml-1">分</span>
               </p>
               <p className="text-[11px] font-bold text-muted-foreground mt-1.5 truncate">
                 {isAtPeak
@@ -493,21 +675,21 @@ export function RankingCard({
         </div>
 
         {/* Zone 3: Tier Promotion Bar + Report Score Action */}
-        <div className="pt-3.5 sm:pt-4 border-t border-blue-200/60 dark:border-white/10 pl-0 sm:pl-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4">
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-start sm:items-center justify-between gap-2 text-xs">
-              <div className="min-w-0 leading-snug">
+        <div className="pt-2.5 sm:pt-4 border-t border-blue-200/60 dark:border-white/10 pl-0 sm:pl-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between gap-2 text-[11px] sm:text-xs">
+              <div className="min-w-0 truncate leading-snug">
                 {tierProgress.nextTierName ? (
                   <>
                     <span className="font-black text-foreground">
-                      距離 {tierProgress.nextTierName} ({tierProgress.targetMmr})
+                      距 {tierProgress.nextTierName} ({tierProgress.targetMmr})
                     </span>
-                    <span className="block sm:inline text-muted-foreground sm:text-foreground/85 font-bold mt-0.5 sm:mt-0 sm:ml-1.5">
+                    <span className="text-muted-foreground sm:text-foreground/85 font-bold ml-1.5">
                       還差{' '}
                       <span className="text-foreground font-black tabular-nums">
                         {tierProgress.remainingMmr}
                       </span>{' '}
-                      ELO · 約再贏{' '}
+                      分 · 約再贏{' '}
                       <span className="text-sapphire-blue dark:text-blue-300 font-black tabular-nums">
                         {estimatedWinsToNextTier}
                       </span>{' '}
@@ -518,12 +700,12 @@ export function RankingCard({
                   <span className="font-black text-foreground">已登頂最高段位 · 菁英殿堂</span>
                 )}
               </div>
-              <span className="font-display font-black text-sm sm:text-xs text-sapphire-blue dark:text-olympic-gold tabular-nums shrink-0">
+              <span className="font-display font-black text-xs text-sapphire-blue dark:text-olympic-gold tabular-nums shrink-0">
                 {tierProgress.progressPercent}%
               </span>
             </div>
             <div
-              className="h-2.5 w-full rounded-full bg-slate-200/80 dark:bg-white/10 overflow-hidden"
+              className="h-2 sm:h-2.5 w-full rounded-full bg-slate-200/80 dark:bg-white/10 overflow-hidden"
               role="progressbar"
               aria-label="段位晉級進度"
               aria-valuenow={tierProgress.progressPercent}

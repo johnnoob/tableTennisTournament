@@ -71,6 +71,7 @@ export function MatchHistory() {
     setSearchParams(next, { replace: true });
     if (nextScope === 'all') {
       setSelectedPlayer((prev) => (prev ? { ...prev, role: 'any' } : null));
+      setPlayerRoleFilter('any');
     }
   };
 
@@ -102,6 +103,7 @@ export function MatchHistory() {
   const [matchTypeFilter, setMatchTypeFilter] = useState<'all' | 'singles' | 'doubles'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayerFilter | null>(null);
+  const [playerRoleFilter, setPlayerRoleFilter] = useState<'any' | 'rival' | 'partner'>('any');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [clusterSeriesEnabled, setClusterSeriesEnabled] = useState(true);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
@@ -268,19 +270,37 @@ export function MatchHistory() {
 
       if (
         selectedPlayer &&
-        !matchesSelectedPlayerFilter(m, selectedPlayer, scope, currentUserId)
+        !matchesSelectedPlayerFilter(
+          m,
+          { ...selectedPlayer, role: scope === 'mine' ? playerRoleFilter : 'any' },
+          scope,
+          currentUserId,
+        )
       ) {
         return false;
       }
 
       if (q) {
-        const players = [...(m.player1 || []), ...(m.opponent || [])];
-        const hit = players.some(
-          (p) =>
-            (p.name || '').toLowerCase().includes(q) ||
-            (p.department || '').toLowerCase().includes(q),
-        );
-        if (!hit) return false;
+        if (scope === 'mine' && !selectedPlayer && playerRoleFilter !== 'any') {
+          if (
+            !matchesSelectedPlayerFilter(
+              m,
+              { name: q, role: playerRoleFilter },
+              scope,
+              currentUserId,
+            )
+          ) {
+            return false;
+          }
+        } else {
+          const players = [...(m.player1 || []), ...(m.opponent || [])];
+          const hit = players.some(
+            (p) =>
+              (p.name || '').toLowerCase().includes(q) ||
+              (p.department || '').toLowerCase().includes(q),
+          );
+          if (!hit) return false;
+        }
       }
 
       return true;
@@ -292,6 +312,7 @@ export function MatchHistory() {
     statusFilter,
     matchTypeFilter,
     selectedPlayer,
+    playerRoleFilter,
     currentUserId,
     searchQuery,
   ]);
@@ -426,15 +447,23 @@ export function MatchHistory() {
     [allBaseQuery.data],
   );
 
+  const effectiveSelectedPlayer = useMemo<SelectedPlayerFilter | null>(() => {
+    if (!selectedPlayer) return null;
+    return {
+      ...selectedPlayer,
+      role: scope === 'mine' ? playerRoleFilter : 'any',
+    };
+  }, [selectedPlayer, scope, playerRoleFilter]);
+
   const personalSlice = useMemo(
     () =>
       computePersonalSliceStats(
         scope === 'mine' ? filteredMatches : [],
         currentUserId,
         searchQuery,
-        selectedPlayer,
+        effectiveSelectedPlayer,
       ),
-    [scope, filteredMatches, currentUserId, searchQuery, selectedPlayer],
+    [scope, filteredMatches, currentUserId, searchQuery, effectiveSelectedPlayer],
   );
 
   const personalPivots = useMemo(
@@ -448,18 +477,33 @@ export function MatchHistory() {
   );
 
   const handleSelectComboboxPlayer = (player: SelectedPlayerFilter) => {
-    setSelectedPlayer(player);
+    const nextRole = scope === 'mine' ? player.role : 'any';
+    setSelectedPlayer({ ...player, role: nextRole });
+    setPlayerRoleFilter(nextRole);
     setSearchQuery('');
     if (scope === 'mine') {
       setResultFilter('all');
-      if (player.role === 'partner') {
+      if (nextRole === 'partner') {
         setMatchTypeFilter('doubles');
+      } else if (matchTypeFilter === 'doubles') {
+        setMatchTypeFilter('all');
       }
+    }
+  };
+
+  const handleChangePlayerRole = (nextRole: 'any' | 'rival' | 'partner') => {
+    setPlayerRoleFilter(nextRole);
+    setSelectedPlayer((prev) => (prev ? { ...prev, role: nextRole } : null));
+    if (nextRole === 'partner') {
+      setMatchTypeFilter('doubles');
+    } else if (matchTypeFilter === 'doubles') {
+      setMatchTypeFilter('all');
     }
   };
 
   const handleClearSearch = () => {
     setSelectedPlayer(null);
+    setPlayerRoleFilter('any');
     setSearchQuery('');
   };
 
@@ -495,6 +539,7 @@ export function MatchHistory() {
     setStatusFilter('all');
     setMatchTypeFilter('all');
     setSelectedPlayer(null);
+    setPlayerRoleFilter('any');
     setSearchQuery('');
     if (selectedSeasonId !== 'all') {
       setSeasonId('all');
@@ -636,10 +681,15 @@ export function MatchHistory() {
             <MatchHistorySearchCombobox
               scope={scope}
               searchQuery={searchQuery}
-              selectedPlayer={selectedPlayer}
+              selectedPlayer={effectiveSelectedPlayer}
               personalPivots={personalPivots}
               clubStats={clubStats}
-              onSearchChange={setSearchQuery}
+              onSearchChange={(val) => {
+                setSearchQuery(val);
+                if (!val.trim() && !selectedPlayer) {
+                  setPlayerRoleFilter('any');
+                }
+              }}
               onSelectPlayer={handleSelectComboboxPlayer}
               onClear={handleClearSearch}
             />
@@ -733,10 +783,13 @@ export function MatchHistory() {
           isLoggedIn={Boolean(user)}
           isLoading={isListLoading}
           hasActiveFilters={hasActiveFilters || Boolean(selectedPlayer) || searchQuery.trim() !== ''}
+          hasPlayerQuery={Boolean(selectedPlayer || searchQuery.trim())}
+          playerRoleFilter={playerRoleFilter}
           statusFilter={statusFilter}
           matchTypeFilter={matchTypeFilter}
           personalSlice={personalSlice}
           clubStats={clubStats}
+          onChangePlayerRole={handleChangePlayerRole}
           onToggleMatchType={handleToggleMatchType}
           onTogglePendingFilter={handleTogglePendingFilter}
           onInspectPlayer={openInspectPlayer}

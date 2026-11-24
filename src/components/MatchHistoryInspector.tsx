@@ -22,13 +22,14 @@ import {
 
 interface ComboboxOptionItem {
   key: string;
-  group: 'recent' | 'rivals' | 'partners' | 'active';
-  id: string;
+  group: 'recent' | 'rivals' | 'partners' | 'active' | 'custom';
+  id?: string;
   name: string;
   avatar?: string | null;
   department?: string | null;
   role: 'any' | 'rival' | 'partner';
   roleLabel?: '對手' | '搭檔';
+  isCustomFallback?: boolean;
   wins: number;
   losses: number;
   matches: number;
@@ -78,6 +79,7 @@ export function MatchHistorySearchCombobox({
   const trimmedQuery = searchQuery.trim().toLowerCase();
 
   const groupedOptions = useMemo(() => {
+    const rawQuery = searchQuery.trim();
     const matchesQuery = (name: string, dept?: string | null) => {
       if (!trimmedQuery) return true;
       return (
@@ -87,23 +89,123 @@ export function MatchHistorySearchCombobox({
     };
 
     if (scope === 'mine') {
-      const recentItems: ComboboxOptionItem[] = personalPivots.recentPlayers
-        .filter((p) => matchesQuery(p.name, p.department))
-        .map((p) => ({
-          key: `recent-${p.id}-${p.lastRole}`,
-          group: 'recent',
-          id: p.id,
-          name: p.name,
-          avatar: p.avatar,
-          department: p.department,
-          role: p.lastRole,
-          roleLabel: p.lastRole === 'partner' ? '搭檔' : '對手',
-          wins: p.wins,
-          losses: p.losses,
-          matches: p.matches,
-          winRate: p.winRate,
-          netMmr: p.netMmr,
-        }));
+      // 輸入關鍵字時：直接搜尋完整對手＋搭檔名單，清楚分出「當對手」與「當搭檔」選項
+      if (trimmedQuery) {
+        const matchedRivals: ComboboxOptionItem[] = personalPivots.allRivals
+          .filter((p) => matchesQuery(p.name, p.department))
+          .map((p) => ({
+            key: `search-rival-${p.id}`,
+            group: 'rivals',
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            department: p.department,
+            role: 'rival',
+            roleLabel: '對手',
+            wins: p.wins,
+            losses: p.losses,
+            matches: p.matches,
+            winRate: p.winRate,
+            netMmr: p.netMmr,
+          }));
+
+        const matchedPartners: ComboboxOptionItem[] = personalPivots.allPartners
+          .filter((p) => matchesQuery(p.name, p.department))
+          .map((p) => ({
+            key: `search-partner-${p.id}`,
+            group: 'partners',
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            department: p.department,
+            role: 'partner',
+            roleLabel: '搭檔',
+            wins: p.wins,
+            losses: p.losses,
+            matches: p.matches,
+            winRate: p.winRate,
+            netMmr: p.netMmr,
+          }));
+
+        const hasExactRival = matchedRivals.some(
+          (i) => i.name.trim().toLowerCase() === trimmedQuery,
+        );
+        const hasExactPartner = matchedPartners.some(
+          (i) => i.name.trim().toLowerCase() === trimmedQuery,
+        );
+
+        const customRoleItems: ComboboxOptionItem[] = [];
+        if (!hasExactRival) {
+          customRoleItems.push({
+            key: `custom-rival-${trimmedQuery}`,
+            group: 'custom',
+            name: rawQuery,
+            role: 'rival',
+            roleLabel: '對手',
+            isCustomFallback: true,
+            wins: 0,
+            losses: 0,
+            matches: 0,
+            winRate: 0,
+            netMmr: 0,
+          });
+        }
+        if (!hasExactPartner) {
+          customRoleItems.push({
+            key: `custom-partner-${trimmedQuery}`,
+            group: 'custom',
+            name: rawQuery,
+            role: 'partner',
+            roleLabel: '搭檔',
+            isCustomFallback: true,
+            wins: 0,
+            losses: 0,
+            matches: 0,
+            winRate: 0,
+            netMmr: 0,
+          });
+        }
+
+        return [
+          {
+            id: 'rivals',
+            label: '當對手',
+            icon: Swords,
+            iconClass: 'text-sapphire-blue',
+            items: matchedRivals,
+          },
+          {
+            id: 'partners',
+            label: '當搭檔',
+            icon: Users,
+            iconClass: 'text-amber-500',
+            items: matchedPartners,
+          },
+          {
+            id: 'custom',
+            label: `依「${rawQuery}」指定角色篩選`,
+            icon: Search,
+            iconClass: 'text-muted-foreground',
+            items: customRoleItems,
+          },
+        ].filter((g) => g.items.length > 0);
+      }
+
+      const recentItems: ComboboxOptionItem[] = personalPivots.recentPlayers.map((p) => ({
+        key: `recent-${p.id}-${p.lastRole}`,
+        group: 'recent',
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar,
+        department: p.department,
+        role: p.lastRole,
+        roleLabel: p.lastRole === 'partner' ? '搭檔' : '對手',
+        wins: p.wins,
+        losses: p.losses,
+        matches: p.matches,
+        winRate: p.winRate,
+        netMmr: p.netMmr,
+      }));
 
       const recentRivalKeys = new Set(
         recentItems.filter((i) => i.role === 'rival').map((i) => i.id),
@@ -113,8 +215,7 @@ export function MatchHistorySearchCombobox({
       );
 
       const rivalItems: ComboboxOptionItem[] = personalPivots.topRivals
-        .filter((p) => matchesQuery(p.name, p.department))
-        .filter((p) => (trimmedQuery ? true : !recentRivalKeys.has(p.id)))
+        .filter((p) => !recentRivalKeys.has(p.id))
         .map((p) => ({
           key: `rival-${p.id}`,
           group: 'rivals',
@@ -123,6 +224,7 @@ export function MatchHistorySearchCombobox({
           avatar: p.avatar,
           department: p.department,
           role: 'rival',
+          roleLabel: '對手',
           wins: p.wins,
           losses: p.losses,
           matches: p.matches,
@@ -131,8 +233,7 @@ export function MatchHistorySearchCombobox({
         }));
 
       const partnerItems: ComboboxOptionItem[] = personalPivots.topPartners
-        .filter((p) => matchesQuery(p.name, p.department))
-        .filter((p) => (trimmedQuery ? true : !recentPartnerKeys.has(p.id)))
+        .filter((p) => !recentPartnerKeys.has(p.id))
         .map((p) => ({
           key: `partner-${p.id}`,
           group: 'partners',
@@ -141,6 +242,7 @@ export function MatchHistorySearchCombobox({
           avatar: p.avatar,
           department: p.department,
           role: 'partner',
+          roleLabel: '搭檔',
           wins: p.wins,
           losses: p.losses,
           matches: p.matches,
@@ -173,27 +275,53 @@ export function MatchHistorySearchCombobox({
       ].filter((g) => g.items.length > 0);
     }
 
-    const recentClubItems: ComboboxOptionItem[] = clubStats.recentPlayers
-      .filter((p) => matchesQuery(p.name, p.department))
-      .map((p) => ({
-        key: `club-recent-${p.id}`,
-        group: 'recent',
-        id: p.id,
-        name: p.name,
-        avatar: p.avatar,
-        department: p.department,
-        role: 'any',
-        wins: p.wins,
-        losses: p.losses,
-        matches: p.matches,
-        winRate: p.winRate,
-        netMmr: p.netMmr,
-      }));
+    if (trimmedQuery) {
+      const matchedClubPlayers: ComboboxOptionItem[] = clubStats.allPlayers
+        .filter((p) => matchesQuery(p.name, p.department))
+        .map((p) => ({
+          key: `club-search-${p.id}`,
+          group: 'active',
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar,
+          department: p.department,
+          role: 'any',
+          wins: p.wins,
+          losses: p.losses,
+          matches: p.matches,
+          winRate: p.winRate,
+          netMmr: p.netMmr,
+        }));
+
+      return [
+        {
+          id: 'active',
+          label: '符合的參賽球友',
+          icon: Search,
+          iconClass: 'text-sapphire-blue',
+          items: matchedClubPlayers,
+        },
+      ].filter((g) => g.items.length > 0);
+    }
+
+    const recentClubItems: ComboboxOptionItem[] = clubStats.recentPlayers.map((p) => ({
+      key: `club-recent-${p.id}`,
+      group: 'recent',
+      id: p.id,
+      name: p.name,
+      avatar: p.avatar,
+      department: p.department,
+      role: 'any',
+      wins: p.wins,
+      losses: p.losses,
+      matches: p.matches,
+      winRate: p.winRate,
+      netMmr: p.netMmr,
+    }));
 
     const recentIds = new Set(recentClubItems.map((i) => i.id));
     const activeItems: ComboboxOptionItem[] = clubStats.topActivePlayers
-      .filter((p) => matchesQuery(p.name, p.department))
-      .filter((p) => (trimmedQuery ? true : !recentIds.has(p.id)))
+      .filter((p) => !recentIds.has(p.id))
       .map((p) => ({
         key: `club-active-${p.id}`,
         group: 'active',
@@ -225,7 +353,7 @@ export function MatchHistorySearchCombobox({
         items: activeItems,
       },
     ].filter((g) => g.items.length > 0);
-  }, [scope, trimmedQuery, personalPivots, clubStats]);
+  }, [scope, searchQuery, trimmedQuery, personalPivots, clubStats]);
 
   const flatOptions = useMemo(
     () => groupedOptions.flatMap((g) => g.items),
@@ -473,13 +601,34 @@ export function MatchHistorySearchCombobox({
                             )}
                           >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <PlayerAvatar
-                                src={item.avatar}
-                                name={item.name}
-                                className="size-7 rounded-lg text-[11px] shrink-0"
-                              />
+                              {item.isCustomFallback ? (
+                                <span
+                                  className={cn(
+                                    'size-7 rounded-lg flex items-center justify-center shrink-0',
+                                    item.role === 'partner'
+                                      ? 'bg-amber-500/12 text-amber-600 dark:text-amber-300'
+                                      : 'bg-sapphire-blue/10 text-sapphire-blue dark:text-blue-300',
+                                  )}
+                                >
+                                  {item.role === 'partner' ? (
+                                    <Users size={13} aria-hidden="true" />
+                                  ) : (
+                                    <Swords size={13} aria-hidden="true" />
+                                  )}
+                                </span>
+                              ) : (
+                                <PlayerAvatar
+                                  src={item.avatar}
+                                  name={item.name}
+                                  className="size-7 rounded-lg text-[11px] shrink-0"
+                                />
+                              )}
                               <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-black truncate">{item.name}</span>
+                                <span className="text-xs font-black truncate">
+                                  {item.isCustomFallback
+                                    ? `篩選「${item.name}」${item.role === 'partner' ? '當搭檔' : '當對手'}`
+                                    : item.name}
+                                </span>
                                 {item.roleLabel && (
                                   <span
                                     className={cn(
@@ -500,36 +649,42 @@ export function MatchHistorySearchCombobox({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0 tabular-nums text-xs font-display font-black">
-                              <span>
-                                <span className="text-emerald-600 dark:text-emerald-400">
-                                  {item.wins}勝
-                                </span>{' '}
-                                <span className="text-rose-500 dark:text-rose-400">
-                                  {item.losses}敗
-                                </span>
+                            {item.isCustomFallback ? (
+                              <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                                全部紀錄
                               </span>
-                              {item.group === 'partners' ? (
-                                <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] text-foreground">
-                                  {item.winRate}%
+                            ) : (
+                              <div className="flex items-center gap-2 shrink-0 tabular-nums text-xs font-display font-black">
+                                <span>
+                                  <span className="text-emerald-600 dark:text-emerald-400">
+                                    {item.wins}勝
+                                  </span>{' '}
+                                  <span className="text-rose-500 dark:text-rose-400">
+                                    {item.losses}敗
+                                  </span>
                                 </span>
-                              ) : item.group === 'active' || (item.group === 'recent' && scope === 'all') ? (
-                                <span className="text-[11px] font-bold text-muted-foreground">
-                                  {item.matches}場
-                                </span>
-                              ) : item.netMmr !== 0 ? (
-                                <span
-                                  className={cn(
-                                    'text-[11px]',
-                                    item.netMmr > 0
-                                      ? 'text-emerald-600 dark:text-emerald-400'
-                                      : 'text-rose-500 dark:text-rose-400',
-                                  )}
-                                >
-                                  {formatSignedDelta(item.netMmr)}
-                                </span>
-                              ) : null}
-                            </div>
+                                {item.group === 'partners' ? (
+                                  <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] text-foreground">
+                                    {item.winRate}%
+                                  </span>
+                                ) : item.group === 'active' || (item.group === 'recent' && scope === 'all') ? (
+                                  <span className="text-[11px] font-bold text-muted-foreground">
+                                    {item.matches}場
+                                  </span>
+                                ) : item.netMmr !== 0 ? (
+                                  <span
+                                    className={cn(
+                                      'text-[11px]',
+                                      item.netMmr > 0
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-rose-500 dark:text-rose-400',
+                                    )}
+                                  >
+                                    {formatSignedDelta(item.netMmr)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            )}
                           </button>
                         );
                       })}
@@ -556,10 +711,13 @@ export interface MatchHistorySummaryBarProps {
   isLoggedIn: boolean;
   isLoading: boolean;
   hasActiveFilters: boolean;
+  hasPlayerQuery: boolean;
+  playerRoleFilter: 'any' | 'rival' | 'partner';
   statusFilter: 'all' | 'confirmed' | 'pending';
   matchTypeFilter: 'all' | 'singles' | 'doubles';
   personalSlice: PersonalSliceStats;
   clubStats: ClubInspectorStats;
+  onChangePlayerRole: (role: 'any' | 'rival' | 'partner') => void;
   onToggleMatchType: (type: 'singles' | 'doubles') => void;
   onTogglePendingFilter: () => void;
   onInspectPlayer: (playerId: string) => void;
@@ -571,10 +729,13 @@ export function MatchHistorySummaryBar({
   isLoggedIn,
   isLoading,
   hasActiveFilters,
+  hasPlayerQuery,
+  playerRoleFilter,
   statusFilter,
   matchTypeFilter,
   personalSlice,
   clubStats,
+  onChangePlayerRole,
   onToggleMatchType,
   onTogglePendingFilter,
   onInspectPlayer,
@@ -683,7 +844,37 @@ export function MatchHistorySummaryBar({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto flex-wrap">
+          {hasPlayerQuery && (
+            <div
+              role="group"
+              aria-label="切換對手或搭檔角色"
+              className="inline-flex p-0.5 rounded-lg bg-secondary border border-border text-[11px] font-black"
+            >
+              {([
+                { id: 'any', label: '不限' },
+                { id: 'rival', label: '當對手' },
+                { id: 'partner', label: '當搭檔' },
+              ] as const).map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={playerRoleFilter === r.id}
+                  onClick={() => onChangePlayerRole(r.id)}
+                  className={cn(
+                    'px-2 py-0.5 rounded-md transition-colors whitespace-nowrap',
+                    playerRoleFilter === r.id
+                      ? r.id === 'partner'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'bg-sapphire-blue text-white shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          )}
           {h2hContext?.player.id && (
             <button
               type="button"

@@ -59,6 +59,8 @@ export interface PersonalPivots {
   recentPlayers: RecentCompanionStats[];
   topRivals: PivotPlayerStats[];
   topPartners: PivotPlayerStats[];
+  allRivals: PivotPlayerStats[];
+  allPartners: PivotPlayerStats[];
 }
 
 export interface ClubInspectorStats {
@@ -73,6 +75,7 @@ export interface ClubInspectorStats {
   totalPendingInBase: number;
   recentPlayers: PivotPlayerStats[];
   topActivePlayers: PivotPlayerStats[];
+  allPlayers: PivotPlayerStats[];
 }
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
@@ -127,7 +130,10 @@ export function matchesSelectedPlayerFilter(
 
   const playerMatches = (p: MatchPlayer) => {
     if (targetId && p.id && String(p.id) === targetId) return true;
-    return (p.name || '').trim().toLowerCase() === targetName;
+    const pName = (p.name || '').trim().toLowerCase();
+    const pDept = (p.department || '').trim().toLowerCase();
+    if (targetId) return pName === targetName;
+    return pName.includes(targetName) || pDept.includes(targetName);
   };
 
   if (scope === 'mine' && currentUserId && selected.role !== 'any') {
@@ -424,15 +430,17 @@ export function computePersonalPivots(
       lastRole: item.lastRole,
     }));
 
-  const topRivals = finalizePivots(rivalMap)
-    .sort((a, b) => b.matches - a.matches || b.lastPlayedAt - a.lastPlayedAt)
-    .slice(0, 6);
+  const allRivals = finalizePivots(rivalMap).sort(
+    (a, b) => b.matches - a.matches || b.lastPlayedAt - a.lastPlayedAt,
+  );
+  const topRivals = allRivals.slice(0, 6);
 
-  const topPartners = finalizePivots(partnerMap)
-    .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate)
-    .slice(0, 5);
+  const allPartners = finalizePivots(partnerMap).sort(
+    (a, b) => b.matches - a.matches || b.winRate - a.winRate,
+  );
+  const topPartners = allPartners.slice(0, 5);
 
-  return { recentPlayers, topRivals, topPartners };
+  return { recentPlayers, topRivals, topPartners, allRivals, allPartners };
 }
 
 export function computeClubStats(
@@ -521,15 +529,15 @@ export function computeClubStats(
     }
   }
 
-  const allClubPlayers = finalizePivots(playerMap);
+  const allClubPlayers = finalizePivots(playerMap).sort(
+    (a, b) => b.matches - a.matches || b.wins - a.wins,
+  );
 
   const recentPlayers = [...allClubPlayers]
     .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt || b.matches - a.matches)
     .slice(0, 5);
 
-  const topActivePlayers = [...allClubPlayers]
-    .sort((a, b) => b.matches - a.matches || b.wins - a.wins)
-    .slice(0, 6);
+  const topActivePlayers = allClubPlayers.slice(0, 6);
 
   return {
     total,
@@ -543,5 +551,6 @@ export function computeClubStats(
     totalPendingInBase,
     recentPlayers,
     topActivePlayers,
+    allPlayers: allClubPlayers,
   };
 }
