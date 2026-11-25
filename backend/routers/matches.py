@@ -8,7 +8,10 @@ from models import Match, MatchChallenge, Notification, User, SeasonRecord, utc_
 from schemas import MatchCreateReq, MatchBatchConfirmReq, MatchDisputeReq
 
 from config import settings
-from services.challenge_service import ensure_challenge_table
+from services.challenge_service import (
+    ensure_challenge_table,
+    match_participants_fit_challenge,
+)
 from services.elo_engine import get_team_mmr, calculate_match_deltas
 from services.auth_jwt import get_current_user
 from services.season_service import (
@@ -69,7 +72,7 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
     session.add(new_match)
     session.flush()
 
-    # 若此場比賽由約戰戰帖直接轉入報分，累加已報場數（不自動結束約戰，方便同一場約打連報多場）
+    # 若此場比賽由約戰戰帖直接轉入報分，僅在賽制與對陣名單完全吻合時才綁定（避免換人誤標）
     if req.challenge_id:
         ensure_challenge_table()
         challenge = session.get(MatchChallenge, req.challenge_id)
@@ -83,6 +86,7 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
                 challenge.challenger_partner_id,
                 challenge.challenged_partner_id,
             )
+            and match_participants_fit_challenge(new_match, challenge)
         ):
             new_match.challenge_id = challenge.id
             session.add(new_match)
@@ -134,7 +138,8 @@ def report_match(req: MatchCreateReq, session: Session = Depends(get_session), c
 
     return {
         "message": "報分已送出，等待對手確認中！",
-        "match_id": new_match.id
+        "match_id": new_match.id,
+        "linked_challenge_id": str(new_match.challenge_id) if new_match.challenge_id else None,
     }
 
 @router.delete("/api/matches/{match_id}", summary="撤回待確認比賽")

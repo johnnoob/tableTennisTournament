@@ -8,7 +8,6 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  ChevronUp,
   Clock,
   Copy,
   Flag,
@@ -102,14 +101,14 @@ function InlineTeamNames({
   onInspect: (id: string) => void;
 }) {
   if (players.length === 0) {
-    return <span className="text-muted-foreground">待定</span>;
+    return <span className="text-muted-foreground text-sm">待定</span>;
   }
 
   return (
     <span
       className={cn(
-        'inline-flex items-center flex-wrap gap-0.5 min-w-0',
-        won ? 'font-black text-foreground' : 'font-bold text-muted-foreground',
+        'inline-flex items-center flex-wrap gap-0.5 min-w-0 text-sm',
+        won ? 'font-bold text-foreground' : 'font-medium text-muted-foreground',
       )}
     >
       {players.map((p, idx) => (
@@ -121,7 +120,7 @@ function InlineTeamNames({
               e.stopPropagation();
               onInspect(p.id);
             }}
-            className="hover:text-sapphire-blue transition-colors truncate max-w-[110px]"
+            className="hover:text-sapphire-blue transition-colors truncate max-w-[150px] sm:max-w-[200px]"
           >
             {p.name}
           </button>
@@ -150,17 +149,17 @@ function ChallengeReportedMatchesPanel({
 
   if (list.length === 0) {
     return (
-      <div className="rounded-xl bg-card/85 border border-border/80 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="text-muted-foreground font-bold">
+      <div className="rounded-xl bg-card/85 border border-border/80 px-3.5 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="text-muted-foreground font-medium">
           此約戰累計已報 {expectedCount} 場，無法自動比對到對應歷史場次（可能已被管理員刪除）。
         </span>
         <button
           type="button"
           onClick={onNavigateHistory}
-          className="inline-flex items-center gap-1 text-sapphire-blue hover:underline font-black shrink-0"
+          className="inline-flex items-center gap-1 text-sapphire-blue hover:underline font-semibold shrink-0"
         >
           <span>前往對戰歷史</span>
-          <ArrowUpRight size={12} aria-hidden="true" />
+          <ArrowUpRight size={14} aria-hidden="true" />
         </button>
       </div>
     );
@@ -168,9 +167,9 @@ function ChallengeReportedMatchesPanel({
 
   return (
     <div className="rounded-xl bg-card/90 border border-border/80 overflow-hidden">
-      <div className="px-3 py-1.5 bg-surface-subtle/70 border-b border-border/60 flex items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
+      <div className="px-3.5 py-2.5 bg-surface-subtle/70 border-b border-border/60 flex items-center justify-between gap-2 text-xs sm:text-sm font-semibold text-muted-foreground">
         <span>已關聯約戰場次明細（共 {list.length} 場）</span>
-        <span className="hidden sm:inline">點擊「定位」可在對戰歷史查看完整紀錄</span>
+        <span className="hidden sm:inline text-xs font-medium">點擊「定位」可在對戰歷史查看完整紀錄</span>
       </div>
       <div className="divide-y divide-border/60">
         {list.map((m, idx) => {
@@ -190,27 +189,27 @@ function ChallengeReportedMatchesPanel({
           return (
             <div
               key={m.id}
-              className="px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs hover:bg-surface-subtle/40 transition-colors"
+              className="px-3.5 py-3 flex flex-wrap items-center justify-between gap-x-3.5 gap-y-2 text-sm hover:bg-surface-subtle/40 transition-colors"
             >
               {/* 左：場次編號與對戰時間 */}
               <div className="flex items-center gap-2 shrink-0">
-                <span className="px-1.5 py-0.5 rounded-md bg-secondary border border-border/70 text-[11px] font-display font-black text-muted-foreground tabular-nums">
+                <span className="px-2 py-0.5 rounded-md bg-secondary border border-border/70 text-xs font-display font-bold text-muted-foreground tabular-nums">
                   #{idx + 1}
                 </span>
-                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground tabular-nums">
                   {formatSmartMatchTime(m.created_at)}
                 </span>
                 {m.format === 'BO5' && (
-                  <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                  <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-semibold text-muted-foreground leading-none">
                     BO5
                   </span>
                 )}
               </div>
 
               {/* 中：對陣雙方與比分 */}
-              <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+              <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
                 <InlineTeamNames players={m.team_a} won={aWon} onInspect={onInspectPlayer} />
-                <span className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border/80 font-display font-black text-xs sm:text-sm tabular-nums shrink-0 leading-none">
+                <span className="px-2.5 py-1 rounded-lg bg-surface-subtle border border-border/80 font-display font-bold text-sm sm:text-base tabular-nums shrink-0 leading-none">
                   <span className={aWon ? 'text-foreground' : 'text-muted-foreground/60'}>
                     {m.score_a}
                   </span>
@@ -223,34 +222,34 @@ function ChallengeReportedMatchesPanel({
               </div>
 
               {/* 右：結算狀態與跳轉定位 */}
-              <div className="flex items-center gap-2 shrink-0 ml-auto">
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                 {isPending ? (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 border border-amber-500/25 text-[10px] font-black">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 border border-amber-500/25 text-xs font-semibold">
                     待確認
                   </span>
                 ) : isDisputed ? (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/12 text-rose-700 dark:text-rose-300 border border-rose-500/25 text-[10px] font-black">
+                  <span className="px-2.5 py-0.5 rounded-full bg-rose-500/12 text-rose-700 dark:text-rose-300 border border-rose-500/25 text-xs font-semibold">
                     申訴中
                   </span>
                 ) : absElo !== null && absElo > 0 ? (
                   viewerInMatch ? (
                     <span
                       className={cn(
-                        'font-display font-black text-[11px] tabular-nums whitespace-nowrap',
+                        'font-display font-bold text-sm tabular-nums whitespace-nowrap',
                         viewerWon
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-600 dark:text-rose-400',
                       )}
                     >
-                      {viewerWon ? `+${absElo}` : `-${absElo}`} ELO
+                      {viewerWon ? `+${absElo}` : `-${absElo}`} 分
                     </span>
                   ) : (
-                    <span className="font-display font-black text-[11px] text-muted-foreground tabular-nums">
-                      ±{absElo} ELO
+                    <span className="font-display font-bold text-sm text-muted-foreground tabular-nums">
+                      ±{absElo} 分
                     </span>
                   )
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
                     已確認
                   </span>
                 )}
@@ -258,10 +257,10 @@ function ChallengeReportedMatchesPanel({
                 <button
                   type="button"
                   onClick={() => onNavigateMatch(m.id)}
-                  className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg bg-card hover:bg-secondary border border-border text-[11px] font-black text-sapphire-blue dark:text-blue-300 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 min-h-8 rounded-lg bg-card hover:bg-secondary border border-border text-xs sm:text-sm font-semibold text-sapphire-blue dark:text-blue-300 transition-colors shrink-0"
                 >
                   <span>定位</span>
-                  <ArrowUpRight size={11} aria-hidden="true" />
+                  <ArrowUpRight size={13} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -375,10 +374,10 @@ export function ChallengeHub({
             <Swords size={16} aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-display font-black text-foreground leading-tight">
+            <h2 className="text-base sm:text-lg font-display font-bold text-foreground leading-tight">
               約戰與挑戰看板
             </h2>
-            <p className="text-[11px] font-bold text-muted-foreground">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground mt-0.5">
               約定時間開打，賽後一鍵帶入名單報分
             </p>
           </div>
@@ -386,7 +385,7 @@ export function ChallengeHub({
 
         <div className="flex items-center gap-2">
           {(data?.pending_response_count ?? 0) > 0 && (
-            <span className="px-2.5 py-1 rounded-full bg-smash-orange text-white text-xs font-display font-black tabular-nums">
+            <span className="px-2.5 py-1 rounded-full bg-smash-orange text-white text-xs font-display font-bold tabular-nums">
               {data?.pending_response_count} 筆待回應
             </span>
           )}
@@ -394,11 +393,16 @@ export function ChallengeHub({
             <button
               type="button"
               onClick={() => setShowHistory((prev) => !prev)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-secondary/80 hover:bg-secondary border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+              aria-expanded={showHistory}
+              className="inline-flex items-center gap-1.5 min-h-9 px-3 py-1.5 rounded-xl bg-secondary/80 hover:bg-secondary border border-border text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
-              <History size={12} aria-hidden="true" />
+              <History size={14} aria-hidden="true" />
               <span>歷史 ({historyList.length})</span>
-              {showHistory ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={cn('transition-transform duration-200', showHistory && 'rotate-180')}
+              />
             </button>
           )}
         </div>
@@ -473,11 +477,11 @@ export function ChallengeHub({
                         )}
                       >
                         <span>{statusBadge.text}</span>
-                        {isMatchesExpanded ? (
-                          <ChevronUp size={12} aria-hidden="true" />
-                        ) : (
-                          <ChevronDown size={12} aria-hidden="true" />
-                        )}
+                        <ChevronDown
+                          size={13}
+                          aria-hidden="true"
+                          className={cn('transition-transform duration-200', isMatchesExpanded && 'rotate-180')}
+                        />
                       </button>
                     ) : (
                       <span className={cn('px-2 py-0.5 rounded-full border text-[11px] font-black', statusBadge.cls)}>
@@ -831,9 +835,9 @@ export function ChallengeHub({
 
       {/* 近期已結束/已取消戰帖紀錄（可收合） */}
       {showHistory && historyList.length > 0 && (
-        <div className="pt-2 border-t border-border/80 space-y-2">
-          <p className="text-[11px] font-black text-muted-foreground">近 14 天戰帖紀錄</p>
-          <div className="space-y-1.5">
+        <div className="pt-3 border-t border-border/80 space-y-2.5">
+          <p className="text-sm font-bold text-foreground/80">近 14 天戰帖紀錄</p>
+          <div className="rounded-2xl border border-border/80 bg-card divide-y divide-border/70 overflow-hidden">
             {historyList.map((ch) => {
               const badge = HISTORY_STATUS_BADGE[ch.status] || {
                 label: ch.status,
@@ -855,12 +859,10 @@ export function ChallengeHub({
                 <div
                   key={ch.id}
                   className={cn(
-                    'rounded-xl border transition-colors overflow-hidden',
-                    hasMatches
-                      ? isExpanded
-                        ? 'bg-card border-emerald-500/35 shadow-xs'
-                        : 'bg-surface-subtle/60 border-border/70 hover:border-emerald-500/35 hover:bg-surface-subtle'
-                      : 'bg-surface-subtle/60 border-border/70',
+                    'transition-colors',
+                    hasMatches && isExpanded
+                      ? 'bg-emerald-50/35 dark:bg-emerald-500/[0.04]'
+                      : 'hover:bg-surface-subtle/50',
                   )}
                 >
                   {hasMatches ? (
@@ -868,46 +870,46 @@ export function ChallengeHub({
                       type="button"
                       aria-expanded={isExpanded}
                       onClick={() => toggleChallengeMatches(ch.id)}
-                      className="w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-left text-xs cursor-pointer"
+                      className="w-full flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-3 sm:px-4 min-h-12 text-left text-sm cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black shrink-0', badge.cls)}>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                        <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0', badge.cls)}>
                           {badge.label}
                         </span>
-                        <span className="font-bold text-foreground truncate">
+                        <span className="text-sm sm:text-[15px] font-semibold text-foreground truncate">
                           {teamALabel} vs {teamBLabel}
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 text-[11px] font-black shrink-0">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 text-xs font-bold shrink-0">
                           <span>{reportedCount} 場</span>
-                          {isExpanded ? (
-                            <ChevronUp size={12} aria-hidden="true" />
-                          ) : (
-                            <ChevronDown size={12} aria-hidden="true" />
-                          )}
+                          <ChevronDown
+                            size={14}
+                            aria-hidden="true"
+                            className={cn('transition-transform duration-200', isExpanded && 'rotate-180')}
+                          />
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0 ml-auto">
+                      <span className="text-xs sm:text-sm font-medium text-muted-foreground tabular-nums shrink-0 ml-auto">
                         {formatChallengeDateTimeLabel(ch.proposed_at)}
                       </span>
                     </button>
                   ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black shrink-0', badge.cls)}>
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-3 sm:px-4 min-h-12 text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0', badge.cls)}>
                           {badge.label}
                         </span>
-                        <span className="font-bold text-foreground truncate">
+                        <span className="text-sm sm:text-[15px] font-semibold text-foreground truncate">
                           {teamALabel} vs {teamBLabel}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0">
+                      <span className="text-xs sm:text-sm font-medium text-muted-foreground tabular-nums shrink-0 ml-auto">
                         {formatChallengeDateTimeLabel(ch.proposed_at)}
                       </span>
                     </div>
                   )}
 
                   {hasMatches && isExpanded && (
-                    <div className="px-2.5 pb-2.5 pt-1 border-t border-border/60 bg-surface-subtle/35">
+                    <div className="px-3 pb-3 pt-1.5 sm:px-4 border-t border-border/60 bg-surface-subtle/35">
                       <ChallengeReportedMatchesPanel
                         matches={ch.reported_matches}
                         expectedCount={ch.reported_matches_count}

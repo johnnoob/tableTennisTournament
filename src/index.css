@@ -4,10 +4,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --surface-canvas: #f6f9fc;
-  --surface-shell: #f9fbff;
+  color-scheme: light;
+  --surface-canvas: #f8fafc;
+  --surface-shell: #f8fafc;
   --surface-card: #ffffff;
-  --surface-subtle: #eff4fa;
+  --surface-subtle: #f1f5f9;
   --surface-elevated: #ffffff;
   --ink-primary: #0f172a;
   --ink-secondary: #475569;
@@ -24,6 +25,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --surface-canvas: #070b14;
   --surface-shell: #0b1120;
   --surface-card: #111a2e;
@@ -151,24 +153,16 @@
   .arena-hero-surface {
     background-color: #ffffff;
     background-image:
-      radial-gradient(circle at 88% 12%, rgba(37, 99, 235, 0.12), transparent 46%),
-      radial-gradient(circle at 10% 90%, rgba(245, 158, 11, 0.11), transparent 48%),
-      linear-gradient(to right, rgba(15, 23, 42, 0.028) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(15, 23, 42, 0.028) 1px, transparent 1px),
-      linear-gradient(135deg, #ffffff 0%, #f4f8ff 52%, #fffaf2 100%);
-    background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, 100% 100%;
+      radial-gradient(circle at 90% 10%, rgba(37, 99, 235, 0.06), transparent 48%),
+      linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
   }
 
   .dark .arena-hero-surface,
   .arena-hero-dark {
-    background-color: #0b1220;
+    background-color: #0f172a;
     background-image:
-      radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.28), transparent 45%),
-      radial-gradient(circle at 12% 85%, rgba(245, 158, 11, 0.14), transparent 45%),
-      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(135deg, #0b1220 0%, #132240 60%, #0f172a 100%);
-    background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, 100% 100%;
+      radial-gradient(circle at 88% 12%, rgba(59, 130, 246, 0.16), transparent 48%),
+      linear-gradient(135deg, #0f172a 0%, #13203a 100%);
   }
 
   .arena-label {

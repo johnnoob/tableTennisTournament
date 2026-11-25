@@ -84,43 +84,40 @@ export function PlayerAnalyticsHub({
   return (
     <section
       aria-label="個人戰力分析艙"
-      className="arena-surface p-4 sm:p-6 md:p-7 overflow-hidden space-y-4 sm:space-y-5"
+      className="bg-card rounded-2xl md:rounded-3xl border border-border shadow-xs p-4 sm:p-6 overflow-hidden space-y-4 sm:space-y-5"
     >
       {/* Top Header + View Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-        <div className="min-w-0 space-y-1">
-          <h2 className="font-display text-lg sm:text-xl text-foreground font-black tracking-tight">
+        <div className="min-w-0">
+          <h2 className="font-display text-lg sm:text-xl text-foreground font-bold tracking-tight">
             個人戰力分析艙
           </h2>
-          <p className="text-[11px] text-muted-foreground uppercase font-sans font-bold tracking-wider">
-            Player Analytics Hub · Single-Track Elo
-          </p>
         </div>
 
-        {/* 3-Tab Hub Switcher (Mobile full-width 44px touch targets) */}
+        {/* 3-Tab Hub Switcher (Mobile full-width touch targets) */}
         <Tabs
           value={activeView}
           onValueChange={(v) => setActiveView(v as HubView)}
           className="w-full lg:w-auto"
         >
-          <TabsList className="grid w-full lg:w-auto grid-cols-3 h-10 sm:h-9 bg-secondary/90 border border-border rounded-xl p-1">
+          <TabsList className="grid w-full lg:w-auto grid-cols-3 min-h-10 h-auto bg-secondary/90 border border-border rounded-xl p-1">
             <TabsTrigger
               value="progression"
-              className="text-xs font-black rounded-lg px-2.5 sm:px-3.5 gap-1.5"
+              className="min-h-8 text-xs font-semibold rounded-lg px-2.5 sm:px-3.5 gap-1.5"
             >
               <TrendingUp size={13} aria-hidden="true" />
               <span>走勢曲線</span>
             </TabsTrigger>
             <TabsTrigger
               value="radar"
-              className="text-xs font-black rounded-lg px-2.5 sm:px-3.5 gap-1.5"
+              className="min-h-8 text-xs font-semibold rounded-lg px-2.5 sm:px-3.5 gap-1.5"
             >
               <RadarIcon size={13} aria-hidden="true" />
               <span>球風雷達</span>
             </TabsTrigger>
             <TabsTrigger
               value="breakdown"
-              className="text-xs font-black rounded-lg px-2.5 sm:px-3.5 gap-1.5"
+              className="min-h-8 text-xs font-semibold rounded-lg px-2.5 sm:px-3.5 gap-1.5"
             >
               <BarChart3 size={13} aria-hidden="true" />
               <span>勝敗拆解</span>
@@ -148,7 +145,7 @@ export function PlayerAnalyticsHub({
                   onChartIntervalChange(opt.id);
                 }}
                 className={cn(
-                  'min-h-8 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                  'min-h-9 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                   active
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground',
@@ -160,14 +157,14 @@ export function PlayerAnalyticsHub({
           })}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+        <div className="flex items-center gap-2.5 ml-auto sm:ml-0">
           {analytics && (
-            <span className="px-2.5 py-1 rounded-lg bg-surface-subtle border border-border text-[11px] font-bold text-muted-foreground tabular-nums">
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
               已結算 {analytics.settled_count} 場
             </span>
           )}
           {isFetching && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Loader2 size={12} className="animate-spin text-sapphire-blue" aria-hidden="true" />
               更新中…
             </span>
@@ -179,16 +176,16 @@ export function PlayerAnalyticsHub({
       {activeView === 'progression' && (
         <div className="space-y-3.5">
 
-          {/* 3-Col Interval KPI Strip */}
+          {/* 3-Col Unified Divided KPI Strip */}
           {summary && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="rounded-2xl bg-surface-subtle/80 border border-border px-3 py-2.5">
-                <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+            <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-surface-subtle/45 overflow-hidden">
+              <div className="px-3.5 py-2.5">
+                <p className="text-xs font-medium text-muted-foreground">
                   區間淨值
                 </p>
                 <p
                   className={cn(
-                    'text-base sm:text-xl font-display font-black tabular-nums leading-tight mt-0.5',
+                    'text-lg sm:text-2xl font-display font-bold tabular-nums leading-tight mt-0.5',
                     summary.net_delta > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : summary.net_delta < 0
@@ -200,25 +197,25 @@ export function PlayerAnalyticsHub({
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-surface-subtle/80 border border-border px-3 py-2.5">
-                <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+              <div className="px-3.5 py-2.5">
+                <p className="text-xs font-medium text-muted-foreground">
                   區間勝率
                 </p>
-                <p className="text-base sm:text-xl font-display font-black text-foreground tabular-nums leading-tight mt-0.5">
+                <p className="text-lg sm:text-2xl font-display font-bold text-foreground tabular-nums leading-tight mt-0.5">
                   {summary.matches > 0 ? `${summary.win_rate}%` : '-'}
                   {summary.matches > 0 && (
-                    <span className="hidden sm:inline text-xs font-bold text-muted-foreground ml-1.5">
+                    <span className="hidden sm:inline text-xs font-medium text-muted-foreground ml-1.5">
                       ({summary.wins}勝 {summary.losses}敗)
                     </span>
                   )}
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-surface-subtle/80 border border-border px-3 py-2.5">
-                <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+              <div className="px-3.5 py-2.5">
+                <p className="text-xs font-medium text-muted-foreground">
                   區間最高
                 </p>
-                <p className="text-base sm:text-xl font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums leading-tight mt-0.5">
+                <p className="text-lg sm:text-2xl font-display font-bold text-sapphire-blue dark:text-blue-300 tabular-nums leading-tight mt-0.5">
                   {summary.peak_rating}
                 </p>
               </div>
@@ -226,7 +223,7 @@ export function PlayerAnalyticsHub({
           )}
 
           {/* Main Interactive Story Chart */}
-          <div className="rounded-2xl bg-card/60 dark:bg-slate-950/35 border border-border/80 pt-2 pb-1 px-1 sm:px-3">
+          <div className="rounded-2xl bg-card dark:bg-slate-950/35 border border-border/80 pt-2 pb-1 px-1 sm:px-3">
             <StatsChart
               showCard={false}
               showHeader={false}
@@ -251,7 +248,7 @@ export function PlayerAnalyticsHub({
           )}
 
           {/* Legend Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-bold text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs font-medium text-muted-foreground">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-emerald-500" />
@@ -262,11 +259,11 @@ export function PlayerAnalyticsHub({
                 敗場
               </span>
               <span className="inline-flex items-center gap-1">
-                <Star size={11} className="text-amber-500" fill="currentColor" aria-hidden="true" />
+                <Star size={12} className="text-amber-500" fill="currentColor" aria-hidden="true" />
                 換季重置
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground/85">
+            <span className="text-xs text-muted-foreground/85">
               點擊或滑過任一點檢視賽果詳情
             </span>
           </div>
@@ -312,69 +309,69 @@ function PinnedMatchStoryStrip({
     : point.name;
 
   return (
-    <div className="rounded-2xl border border-border bg-surface-subtle/85 p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+    <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+          <span className="text-xs font-medium text-muted-foreground tabular-nums">
             {timeText}
           </span>
           {isReset ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black">
-              <Star size={10} fill="currentColor" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+              <Star size={11} fill="currentColor" aria-hidden="true" />
               系統換季軟重置
             </span>
           ) : isStart ? (
-            <span className="px-2 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-black">
+            <span className="px-2 py-0.5 rounded-full bg-secondary text-muted-foreground text-xs font-semibold">
               賽季初始基準
             </span>
           ) : point.result ? (
             <span
               className={cn(
-                'px-2 py-0.5 rounded-full text-[10px] font-black',
+                'px-2 py-0.5 rounded-full text-xs font-semibold',
                 point.result === 'W'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-rose-500 text-white',
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
               )}
             >
               {point.result === 'W' ? '勝' : '敗'} {point.score}
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black">
+            <span className="px-2 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-xs font-semibold">
               積分校準
             </span>
           )}
           {point.match_type && (
-            <span className="text-[11px] font-black text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {point.match_type === 'doubles' ? '雙打' : '單打'} {point.format || ''}
             </span>
           )}
         </div>
 
         {point.opponents && point.opponents.length > 0 ? (
-          <div className="flex items-center gap-1.5 flex-wrap text-xs sm:text-sm font-bold text-foreground">
-            <span className="text-muted-foreground font-bold">vs</span>
+          <div className="flex items-center gap-1.5 flex-wrap text-xs sm:text-sm font-medium text-foreground">
+            <span className="text-muted-foreground">vs</span>
             {point.opponents.map((opp, idx) => (
               <button
                 key={opp.id}
                 type="button"
                 onClick={() => onInspectPlayer?.(opp.id)}
-                className="inline-flex items-center gap-0.5 font-display font-black text-foreground hover:text-sapphire-blue dark:hover:text-blue-300 underline decoration-border underline-offset-4 transition-colors"
+                className="inline-flex items-center gap-0.5 font-display font-semibold text-foreground hover:text-sapphire-blue dark:hover:text-blue-300 underline decoration-border underline-offset-4 transition-colors"
               >
                 <span>{opp.name}</span>
-                {onInspectPlayer && <ChevronRight size={12} aria-hidden="true" />}
+                {onInspectPlayer && <ChevronRight size={13} aria-hidden="true" />}
                 {idx < (point.opponents?.length ?? 0) - 1 && (
                   <span className="no-underline text-muted-foreground">/</span>
                 )}
               </button>
             ))}
             {point.partner && (
-              <span className="text-xs text-muted-foreground font-bold">
+              <span className="text-xs text-muted-foreground font-medium">
                 （搭檔：{point.partner.name}）
               </span>
             )}
           </div>
         ) : (
-          <p className="text-xs font-bold text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             {isReset
               ? '依新季軟重置公式調整積分起點'
               : isStart
@@ -386,18 +383,18 @@ function PinnedMatchStoryStrip({
 
       <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 border-t border-border/60 sm:pt-0 sm:border-0 shrink-0">
         <div className="text-left sm:text-right">
-          <p className="text-[10px] font-black text-muted-foreground uppercase">結算積分</p>
-          <p className="font-display font-black text-lg text-foreground tabular-nums leading-tight">
+          <p className="text-xs font-medium text-muted-foreground">結算積分</p>
+          <p className="font-display font-bold text-lg text-foreground tabular-nums leading-tight">
             {Math.round(point.rating)}
           </p>
         </div>
         {deltaVal !== 0 && !isReset && (
           <span
             className={cn(
-              'px-2.5 py-1 rounded-xl font-display font-black text-xs tabular-nums',
+              'px-2.5 py-1 rounded-xl font-display font-semibold text-xs tabular-nums',
               deltaVal > 0
-                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
+                ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+                : 'bg-rose-500/12 text-rose-600 dark:text-rose-300',
             )}
           >
             {deltaVal > 0 ? `+${deltaVal}` : deltaVal} 分
@@ -589,7 +586,7 @@ function RadarAnalyticsView({
               </div>
 
               {showBaselineOverlay && (
-                <div className="px-3 pb-1.5 flex items-center justify-center gap-4 text-[11px] font-bold text-muted-foreground">
+                <div className="px-3 pb-1.5 flex items-center justify-center gap-4 text-xs font-medium text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-4 h-0.5 bg-sapphire-blue rounded-full" />
                     實線：{activeIntervalLabel}
@@ -602,36 +599,33 @@ function RadarAnalyticsView({
               )}
             </div>
 
-            <div className="md:col-span-6 flex flex-col justify-between gap-2">
+            <div className="md:col-span-6 rounded-2xl border border-border bg-card divide-y divide-border/70 overflow-hidden flex flex-col justify-between">
               {radar.map((axis) => {
                 const delta = axis.delta_vs_career ?? 0;
                 return (
-                  <div
-                    key={axis.key}
-                    className="rounded-xl border border-border bg-card px-3.5 py-2.5 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-display font-black text-foreground">{axis.label}</span>
-                      <span className="text-[11px] font-bold text-muted-foreground truncate">
+                  <div key={axis.key} className="px-4 py-3 space-y-1.5 flex-1 flex flex-col justify-center">
+                    <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                      <span className="font-display font-semibold text-foreground">{axis.label}</span>
+                      <span className="text-xs font-medium text-muted-foreground truncate">
                         {axis.detail}
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-sapphire-blue to-indigo-500 transition-all duration-500"
+                          className="h-full rounded-full bg-sapphire-blue transition-all duration-500"
                           style={{ width: `${axis.score}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-end gap-1 shrink-0 tabular-nums">
-                        <span className="font-display font-black text-xs text-foreground w-6 text-right">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0 tabular-nums">
+                        <span className="font-display font-bold text-xs sm:text-sm text-foreground w-6 text-right">
                           {axis.score}
                         </span>
                         {showBaselineOverlay && delta !== 0 && (
                           <span
                             title={`相較生涯基準 (${axis.baseline_score} 分)`}
                             className={cn(
-                              'text-[10px] font-display font-black px-1 py-0.5 rounded leading-none',
+                              'text-xs font-display font-semibold px-1.5 py-0.5 rounded leading-none',
                               delta > 0
                                 ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400'
                                 : 'bg-rose-500/12 text-rose-500 dark:text-rose-400',
@@ -667,7 +661,7 @@ function BreakdownAnalyticsView({
 }>) {
   if (!analytics) {
     return (
-      <div className="py-12 text-center text-xs font-bold text-muted-foreground">
+      <div className="py-12 text-center text-xs font-medium text-muted-foreground">
         暫無實戰數據可供拆解
       </div>
     );
@@ -682,16 +676,14 @@ function BreakdownAnalyticsView({
   const formatCards = [
     {
       title: '單打戰績',
-      subtitle: 'Singles',
       icon: Swords,
-      iconBg: 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300',
+      iconBg: 'bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300',
       stats: singles,
     },
     {
       title: '雙打戰績',
-      subtitle: 'Doubles',
       icon: Users,
-      iconBg: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+      iconBg: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
       stats: doubles,
     },
   ];
@@ -734,30 +726,27 @@ function BreakdownAnalyticsView({
   return (
     <div className="space-y-3.5">
       {scorelines.total === 0 && chartInterval !== 'all' && (
-        <div className="rounded-2xl border border-dashed border-border bg-surface-subtle/75 px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
-          <span className="font-bold text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border bg-surface-subtle/60 px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
+          <span className="font-medium text-muted-foreground">
             {activeIntervalLabel}尚無已結算場次可供拆解
           </span>
           <button
             type="button"
             onClick={onSwitchToAll}
-            className="font-black text-sapphire-blue dark:text-blue-300 hover:underline shrink-0"
+            className="font-semibold text-sapphire-blue dark:text-blue-300 hover:underline shrink-0"
           >
             切換至生涯
           </button>
         </div>
       )}
 
-      {/* Row 1: Singles vs Doubles Split */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+      {/* Row 1: Singles vs Doubles Split (Unified Divided Container) */}
+      <div className="grid grid-cols-2 divide-x divide-border rounded-2xl border border-border bg-surface-subtle/45 overflow-hidden">
         {formatCards.map((card) => {
           const Icon = card.icon;
           const net = card.stats.net_mmr;
           return (
-            <div
-              key={card.title}
-              className="rounded-2xl border border-border bg-surface-subtle/75 p-3.5 space-y-2"
-            >
+            <div key={card.title} className="p-3.5 sm:p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span
@@ -768,15 +757,13 @@ function BreakdownAnalyticsView({
                   >
                     <Icon size={14} aria-hidden="true" />
                   </span>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-display font-black text-foreground truncate">
-                      {card.title}
-                    </p>
-                  </div>
+                  <p className="text-xs sm:text-sm font-display font-semibold text-foreground truncate">
+                    {card.title}
+                  </p>
                 </div>
                 <span
                   className={cn(
-                    'text-[11px] font-display font-black tabular-nums whitespace-nowrap',
+                    'text-xs font-display font-semibold tabular-nums whitespace-nowrap',
                     net > 0
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : net < 0
@@ -788,11 +775,11 @@ function BreakdownAnalyticsView({
                 </span>
               </div>
 
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-xl sm:text-2xl font-display font-black text-foreground tabular-nums leading-none">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-xl sm:text-2xl font-display font-bold text-foreground tabular-nums leading-none">
                   {card.stats.matches > 0 ? `${card.stats.win_rate}%` : '-'}
                 </span>
-                <span className="text-xs font-display font-black tabular-nums whitespace-nowrap">
+                <span className="text-xs font-display font-semibold tabular-nums whitespace-nowrap">
                   <span className="text-emerald-600 dark:text-emerald-400">
                     {card.stats.wins}勝
                   </span>
@@ -800,7 +787,7 @@ function BreakdownAnalyticsView({
                   <span className="text-rose-500 dark:text-rose-400">
                     {card.stats.losses}敗
                   </span>
-                  <span className="text-[11px] font-sans font-bold text-muted-foreground ml-1">
+                  <span className="text-xs font-sans font-medium text-muted-foreground ml-1">
                     ({card.stats.matches})
                   </span>
                 </span>
@@ -810,13 +797,13 @@ function BreakdownAnalyticsView({
         })}
       </div>
 
-      {/* Row 2: Scoreline DNA Stacked Bar */}
-      <div className="rounded-2xl border border-border bg-surface-subtle/75 p-3.5 space-y-3">
+      {/* Row 2: Scoreline Breakdown (Borderless Legend Columns) */}
+      <div className="rounded-2xl border border-border/80 bg-surface-subtle/45 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-display font-black text-foreground">
-            比分結構拆解 (Scoreline DNA)
+          <p className="text-xs sm:text-sm font-display font-semibold text-foreground">
+            比分結構拆解
           </p>
-          <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+          <span className="text-xs font-medium text-muted-foreground tabular-nums">
             累計 {scorelines.total} 場已結算
           </span>
         </div>
@@ -836,23 +823,20 @@ function BreakdownAnalyticsView({
             )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
           {scoreBuckets.map((b) => (
-            <div
-              key={b.key}
-              className="rounded-xl border border-border/80 bg-card px-2.5 py-2 space-y-0.5"
-            >
+            <div key={b.key} className="space-y-0.5">
               <div className="flex items-center gap-1.5">
                 <span className={cn('size-2 rounded-full shrink-0', b.barClass)} />
-                <span className="text-[11px] font-black text-foreground truncate">
+                <span className="text-xs font-medium text-muted-foreground truncate">
                   {b.label}
                 </span>
               </div>
-              <div className="flex items-baseline justify-between gap-1 pt-0.5">
-                <span className={cn('text-sm font-display font-black tabular-nums', b.textClass)}>
+              <div className="flex items-baseline gap-1.5 pl-3.5">
+                <span className={cn('text-sm font-display font-bold tabular-nums', b.textClass)}>
                   {b.data.pct}%
                 </span>
-                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                <span className="text-xs font-medium text-muted-foreground tabular-nums">
                   {b.data.count} 場 · {b.sub}
                 </span>
               </div>
@@ -863,36 +847,36 @@ function BreakdownAnalyticsView({
 
       {/* Row 3: Vs Opponent Tiers + 8-Week Activity Pulse */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-border bg-surface-subtle/75 p-3.5 space-y-2.5">
-          <p className="text-xs font-display font-black text-foreground">
+        <div className="rounded-2xl border border-border/80 bg-surface-subtle/45 p-4 space-y-2.5">
+          <p className="text-xs sm:text-sm font-display font-semibold text-foreground">
             對戰各段位勝率階梯
           </p>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {vs_tiers.map((tier) => (
               <div key={tier.key} className="space-y-1">
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className={cn(
-                        'px-1.5 py-0.5 rounded-md font-black text-[10px] shrink-0',
+                        'px-1.5 py-0.5 rounded-md font-semibold text-xs shrink-0',
                         TIER_PILL_COLOR[tier.key] || TIER_PILL_COLOR.silver,
                       )}
                     >
                       {tier.label}
                     </span>
-                    <span className="text-muted-foreground font-bold tabular-nums">
+                    <span className="text-muted-foreground font-medium tabular-nums">
                       {tier.range}
                     </span>
                   </div>
                   {tier.matches > 0 ? (
-                    <span className="font-display font-black text-foreground tabular-nums">
+                    <span className="font-display font-bold text-foreground tabular-nums">
                       {tier.win_rate}%{' '}
-                      <span className="text-muted-foreground font-sans font-bold">
+                      <span className="text-muted-foreground font-sans font-medium">
                         ({tier.wins}勝 {tier.losses}敗)
                       </span>
                     </span>
                   ) : (
-                    <span className="text-muted-foreground/60 font-bold">尚未交手</span>
+                    <span className="text-muted-foreground/60 font-medium">尚未交手</span>
                   )}
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -906,14 +890,14 @@ function BreakdownAnalyticsView({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface-subtle/75 p-3.5 flex flex-col justify-between gap-3">
+        <div className="rounded-2xl border border-border/80 bg-surface-subtle/45 p-4 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-display font-black text-foreground flex items-center gap-1.5">
-              <Calendar size={13} className="text-sapphire-blue" aria-hidden="true" />
+            <p className="text-xs sm:text-sm font-display font-semibold text-foreground flex items-center gap-1.5">
+              <Calendar size={14} className="text-sapphire-blue" aria-hidden="true" />
               近 8 週出勤
             </p>
-            <span className="px-2 py-0.5 rounded-full bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-[11px] font-black tabular-nums">
-              近8週 {activity_8w_total} 場
+            <span className="text-xs font-semibold text-sapphire-blue dark:text-blue-300 tabular-nums">
+              近 8 週 {activity_8w_total} 場
             </span>
           </div>
 
@@ -928,7 +912,7 @@ function BreakdownAnalyticsView({
                   className="flex flex-col items-center justify-end h-full gap-1"
                   title={`${week.label} 週：${week.matches} 場（${week.wins} 勝）`}
                 >
-                  <span className="text-[10px] font-display font-black text-muted-foreground tabular-nums leading-none">
+                  <span className="text-xs font-display font-semibold text-muted-foreground tabular-nums leading-none">
                     {week.matches > 0 ? week.matches : ''}
                   </span>
                   <div className="w-full flex-1 flex items-end justify-center">
@@ -939,16 +923,16 @@ function BreakdownAnalyticsView({
                         week.matches === 0
                           ? 'bg-secondary/90 rounded-lg'
                           : isCurrentWeek
-                            ? 'bg-gradient-to-t from-sapphire-blue to-sky-400 shadow-xs'
-                            : 'bg-sapphire-blue/75 dark:bg-blue-500/70',
+                            ? 'bg-sapphire-blue shadow-xs'
+                            : 'bg-sapphire-blue/65 dark:bg-blue-500/65',
                       )}
                     />
                   </div>
                   <span
                     className={cn(
-                      'text-[9px] sm:text-[10px] font-bold tabular-nums leading-none',
+                      'text-[0.6875rem] sm:text-xs font-medium tabular-nums leading-none',
                       isCurrentWeek
-                        ? 'text-sapphire-blue dark:text-blue-300 font-black'
+                        ? 'text-sapphire-blue dark:text-blue-300 font-semibold'
                         : 'text-muted-foreground',
                     )}
                   >

@@ -62,21 +62,21 @@ function SeasonPulseCard({
       <section aria-label="賽季脈動" className={cn('min-w-0', className)}>
         <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs p-4 sm:p-5 space-y-3 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               <CalendarClock size={14} className="text-sapphire-blue" aria-hidden="true" />
               休賽季準備中
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
-              OFF-SEASON
+            <span className="px-2.5 py-0.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
+              休賽期
             </span>
           </div>
-          <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-            目前尚未開啟計分賽季，所有對戰仍會即時更新全域 ELO 積分與歷史生涯總榜。
+          <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+            目前尚未開啟計分賽季，所有對戰仍會即時更新全域積分與歷史生涯總榜。
           </p>
           <button
             type="button"
             onClick={() => navigate('/leaderboard')}
-            className="w-full min-h-10 px-3.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-black text-foreground flex items-center justify-between transition-colors"
+            className="w-full min-h-10 px-3.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-semibold text-foreground flex items-center justify-between transition-colors"
           >
             <span>查看生涯積分榜</span>
             <ArrowRight size={14} aria-hidden="true" />
@@ -104,30 +104,30 @@ function SeasonPulseCard({
         {/* Top Header: Live indicator + Season Name + Countdown Badge */}
         <div className="flex items-start justify-between gap-2.5 min-w-0">
           <div className="min-w-0 space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               {!isCompleted && (
                 <span className="relative flex size-2" aria-hidden="true">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
                 </span>
               )}
-              <span>{isCompleted ? '賽季結算' : '賽季脈動 · LIVE'}</span>
+              <span>{isCompleted ? '賽季已結算' : '賽季進行中'}</span>
             </div>
-            <h2 className="text-base sm:text-lg font-display font-black text-foreground truncate leading-tight">
+            <h2 className="text-base sm:text-lg font-display font-bold text-foreground truncate leading-tight">
               {pulse.season_name}
             </h2>
           </div>
 
           <span
             className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0',
+              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-display font-semibold tabular-nums whitespace-nowrap shrink-0',
               isCompleted
                 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
                 : pulse.days_remaining !== null &&
                     pulse.days_remaining !== undefined &&
                     pulse.days_remaining <= 7
                   ? 'bg-smash-orange/15 text-smash-orange'
-                  : 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300',
+                  : 'bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300',
             )}
           >
             <CalendarClock size={12} aria-hidden="true" />
@@ -147,11 +147,11 @@ function SeasonPulseCard({
               aria-valuemax={100}
             >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-sapphire-blue via-sky-400 to-olympic-gold transition-all duration-500"
+                className="h-full rounded-full bg-sapphire-blue transition-all duration-500"
                 style={{ width: `${pulse.progress_percent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground tabular-nums">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground tabular-nums">
               <span>{startLabel ? `開季 ${startLabel}` : '賽季進度'}</span>
               <span>
                 {pulse.progress_percent}%{endLabel ? ` · 結算 ${endLabel}` : ''}
@@ -160,25 +160,25 @@ function SeasonPulseCard({
           </div>
         )}
 
-        {/* 3-Column Mini KPI Strip */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="min-w-0 rounded-xl bg-surface-subtle/85 border border-border/70 px-2.5 py-2 text-center">
-            <p className="text-[11px] font-bold text-muted-foreground truncate">本季場次</p>
-            <p className="text-base sm:text-lg font-display font-black text-foreground tabular-nums leading-tight mt-0.5">
+        {/* Unified 3-Column Mini KPI Strip */}
+        <div className="grid grid-cols-3 divide-x divide-border/70 rounded-xl bg-surface-subtle/50 border border-border/70 overflow-hidden">
+          <div className="min-w-0 px-2.5 py-2 text-center">
+            <p className="text-xs font-medium text-muted-foreground truncate">本季場次</p>
+            <p className="text-base sm:text-lg font-display font-bold text-foreground tabular-nums leading-tight mt-0.5">
               {pulse.total_matches}
             </p>
           </div>
-          <div className="min-w-0 rounded-xl bg-surface-subtle/85 border border-border/70 px-2.5 py-2 text-center">
-            <p className="text-[11px] font-bold text-muted-foreground truncate">近 7 天</p>
-            <p className="text-base sm:text-lg font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums leading-tight mt-0.5">
+          <div className="min-w-0 px-2.5 py-2 text-center">
+            <p className="text-xs font-medium text-muted-foreground truncate">近 7 天</p>
+            <p className="text-base sm:text-lg font-display font-bold text-sapphire-blue dark:text-blue-300 tabular-nums leading-tight mt-0.5">
               {pulse.matches_last_7d}
             </p>
           </div>
-          <div className="min-w-0 rounded-xl bg-surface-subtle/85 border border-border/70 px-2.5 py-2 text-center">
-            <p className="text-[11px] font-bold text-muted-foreground truncate">活躍人數</p>
-            <p className="text-base sm:text-lg font-display font-black text-foreground tabular-nums leading-tight mt-0.5">
+          <div className="min-w-0 px-2.5 py-2 text-center">
+            <p className="text-xs font-medium text-muted-foreground truncate">活躍人數</p>
+            <p className="text-base sm:text-lg font-display font-bold text-foreground tabular-nums leading-tight mt-0.5">
               {pulse.active_players}
-              <span className="text-[11px] font-bold text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 /{pulse.total_members}
               </span>
             </p>
@@ -189,7 +189,7 @@ function SeasonPulseCard({
         <button
           type="button"
           onClick={() => navigate(`/season/${encodeURIComponent(pulse.season_id)}`)}
-          className="w-full min-h-10 px-3.5 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-black text-foreground flex items-center justify-between transition-colors group"
+          className="w-full min-h-10 px-3.5 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border text-xs font-semibold text-foreground flex items-center justify-between transition-colors group"
         >
           <span className="inline-flex items-center gap-1.5">
             <Trophy size={13} className="text-olympic-gold shrink-0" aria-hidden="true" />
@@ -244,7 +244,7 @@ function TopRivalsCard({
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight flex items-center gap-1.5">
+            <h2 className="text-lg sm:text-xl text-foreground font-display font-bold tracking-tight flex items-center gap-1.5">
               <Crown size={18} className="text-olympic-gold shrink-0" aria-hidden="true" />
               <span>群雄榜單</span>
             </h2>
@@ -256,8 +256,8 @@ function TopRivalsCard({
               />
             )}
           </div>
-          <p className="text-xs text-muted-foreground font-bold mt-0.5 truncate">
-            {scope === 'all-time' ? '生涯 Top 5 · All-Time' : '本季 Top 5 · Global ELO'}
+          <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+            {scope === 'all-time' ? '生涯前 5 名' : '本季前 5 名'}
             {allUnrankedPreview && ' · 季前實力預排'}
           </p>
         </div>
@@ -276,7 +276,7 @@ function TopRivalsCard({
               type="button"
               onClick={() => onScopeChange(tab.id)}
               className={cn(
-                'min-h-8 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                 scope === tab.id
                   ? 'bg-card text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground',
@@ -325,29 +325,29 @@ function TopRivalsCard({
                       {isRanked && numericPos <= 3 ? (
                         <span
                           className={cn(
-                            'size-7 rounded-full border flex items-center justify-center font-display font-black text-xs tabular-nums',
+                            'size-7 rounded-full border flex items-center justify-center font-display font-bold text-xs tabular-nums',
                             getMedalClass(numericPos),
                           )}
                         >
                           {numericPos}
                         </span>
                       ) : isRanked ? (
-                        <span className="font-display font-black text-sm text-muted-foreground tabular-nums leading-none">
-                          #{numericPos}
+                        <span className="font-display font-bold text-sm text-muted-foreground tabular-nums leading-none">
+                          {numericPos}
                         </span>
                       ) : (
                         <span
-                          title="季前依 ELO 預排，完成首戰即正式上榜"
-                          className="size-7 rounded-full border border-dashed border-border bg-surface-subtle/80 flex items-center justify-center font-display font-black text-[11px] text-muted-foreground tabular-nums"
+                          title="季前依積分預排，完成首戰即正式上榜"
+                          className="size-7 rounded-full border border-dashed border-border bg-surface-subtle/80 flex items-center justify-center font-display font-semibold text-xs text-muted-foreground tabular-nums"
                         >
-                          #{idx + 1}
+                          {idx + 1}
                         </span>
                       )}
 
                       {trendStr !== '0' && (
                         <span
                           className={cn(
-                            'text-[10px] font-black leading-none tabular-nums',
+                            'text-xs font-semibold leading-none tabular-nums',
                             isPositiveTrend
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-rose-500 dark:text-rose-400',
@@ -374,22 +374,22 @@ function TopRivalsCard({
                     {/* Player Name, Badges & Record */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm font-display font-black text-foreground truncate">
+                        <span className="text-sm font-display font-semibold text-foreground truncate">
                           {player.player_name}
                         </span>
                         {isMe && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black shrink-0">
+                          <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-xs font-semibold shrink-0 leading-none">
                             你
                           </span>
                         )}
                         {streak >= 2 && (
-                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-black tabular-nums shrink-0 whitespace-nowrap">
-                            <Flame size={9} aria-hidden="true" />
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-orange-500/12 text-smash-orange text-xs font-semibold tabular-nums shrink-0 whitespace-nowrap leading-none">
+                            <Flame size={10} aria-hidden="true" />
                             {streak}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5 tabular-nums">
+                      <p className="text-xs font-medium text-muted-foreground truncate mt-0.5 tabular-nums">
                         {player.matches_played > 0 ? (
                           <>
                             {winRateRounded}% 勝率 · {player.wins}勝 {losses}敗
@@ -400,26 +400,26 @@ function TopRivalsCard({
                       </p>
                     </div>
 
-                    {/* ELO & Weekly Delta */}
+                    {/* Rating & Weekly Delta */}
                     <div className="text-right shrink-0">
-                      <p className="text-lg font-display font-black text-foreground tabular-nums leading-none">
+                      <p className="text-lg font-display font-bold text-foreground tabular-nums leading-none">
                         {Math.round(player.global_mmr)}
                       </p>
                       {weeklyDelta !== 0 ? (
                         <p
                           title="近 7 日積分漲跌"
                           className={cn(
-                            'text-[10px] font-display font-black tabular-nums mt-1',
+                            'text-xs font-display font-semibold tabular-nums mt-1',
                             weeklyDelta > 0
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-rose-500 dark:text-rose-400',
                           )}
                         >
-                          {weeklyDelta > 0 ? `▲ +${weeklyDelta}` : `▼ ${weeklyDelta}`}
+                          {weeklyDelta > 0 ? `+${weeklyDelta}` : weeklyDelta} 分
                         </p>
                       ) : (
-                        <p className="text-[10px] uppercase tracking-wider font-black text-muted-foreground mt-1">
-                          ELO
+                        <p className="text-xs font-medium text-muted-foreground mt-1">
+                          分
                         </p>
                       )}
                     </div>
@@ -433,14 +433,14 @@ function TopRivalsCard({
               <button
                 type="button"
                 onClick={() => onInspectPlayer(myEntry.player_id)}
-                className="w-full min-h-[60px] px-3.5 py-2.5 bg-sapphire-blue/[0.06] hover:bg-sapphire-blue/[0.11] dark:bg-blue-500/12 dark:hover:bg-blue-500/20 border-t border-sapphire-blue/25 flex items-center gap-2.5 sm:gap-3 text-left transition-colors"
+                className="w-full min-h-[60px] px-3.5 py-2.5 bg-sapphire-blue/[0.05] hover:bg-sapphire-blue/[0.1] dark:bg-blue-500/12 dark:hover:bg-blue-500/20 border-t border-sapphire-blue/25 flex items-center gap-2.5 sm:gap-3 text-left transition-colors"
               >
                 <div className="w-8 shrink-0 flex flex-col items-center justify-center">
-                  <span className="text-[10px] font-black text-sapphire-blue dark:text-blue-300 leading-none">
+                  <span className="text-xs font-semibold text-sapphire-blue dark:text-blue-300 leading-none">
                     我的
                   </span>
-                  <span className="text-xs font-display font-black text-foreground tabular-nums mt-0.5">
-                    {myEntry.rank !== '-' ? `#${myEntry.rank}` : `#${myIndex + 1}`}
+                  <span className="text-xs font-display font-bold text-foreground tabular-nums mt-0.5">
+                    {myEntry.rank !== '-' ? `${myEntry.rank}名` : `${myIndex + 1}名`}
                   </span>
                 </div>
 
@@ -451,10 +451,10 @@ function TopRivalsCard({
                 />
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-display font-black text-foreground truncate">
+                  <p className="text-xs sm:text-sm font-display font-semibold text-foreground truncate">
                     {myEntry.player_name}
                   </p>
-                  <p className="text-[11px] font-bold text-sapphire-blue dark:text-blue-300 truncate mt-0.5 tabular-nums">
+                  <p className="text-xs font-medium text-sapphire-blue dark:text-blue-300 truncate mt-0.5 tabular-nums">
                     {myEntry.matches_played === 0 && scope === 'season'
                       ? '完成本季首戰即可登榜'
                       : gapToTop5 > 0
@@ -464,11 +464,11 @@ function TopRivalsCard({
                 </div>
 
                 <div className="text-right shrink-0">
-                  <p className="text-base font-display font-black text-foreground tabular-nums leading-none">
+                  <p className="text-base font-display font-bold text-foreground tabular-nums leading-none">
                     {Math.round(myEntry.global_mmr)}
                   </p>
-                  <p className="text-[10px] uppercase font-black text-muted-foreground mt-1">
-                    ELO
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5">
+                    分
                   </p>
                 </div>
               </button>
@@ -482,7 +482,7 @@ function TopRivalsCard({
                   scope === 'all-time' ? '/leaderboard?season_id=all-time' : '/leaderboard',
                 )
               }
-              className="w-full min-h-11 px-4 border-t border-border bg-surface-subtle/60 hover:bg-secondary text-xs font-black text-foreground flex items-center justify-between transition-colors group"
+              className="w-full min-h-11 px-4 border-t border-border bg-surface-subtle/60 hover:bg-secondary text-xs font-semibold text-foreground flex items-center justify-between transition-colors group"
             >
               <span className="inline-flex items-center gap-1.5">
                 <Users size={13} className="text-sapphire-blue shrink-0" aria-hidden="true" />
@@ -498,7 +498,7 @@ function TopRivalsCard({
         ) : (
           <div className="text-center py-10 px-4 space-y-2">
             <Search size={26} className="mx-auto text-muted-foreground/50" aria-hidden="true" />
-            <p className="text-muted-foreground font-bold text-xs">尚無排行榜資料</p>
+            <p className="text-muted-foreground font-medium text-xs">尚無排行榜資料</p>
           </div>
         )}
       </div>
@@ -524,42 +524,37 @@ function ClubSpotlightsCard({
     <section aria-label="俱樂部焦點人物" className={cn('space-y-3 min-w-0', className)}>
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight flex items-center gap-1.5">
+          <h2 className="text-lg sm:text-xl text-foreground font-display font-bold tracking-tight flex items-center gap-1.5">
             <Sparkles size={17} className="text-smash-orange shrink-0" aria-hidden="true" />
             <span>俱樂部焦點</span>
           </h2>
-          <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider mt-0.5">
-            Hot &amp; Rising · Spotlights
-          </p>
         </div>
       </div>
 
-      <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs p-3.5 sm:p-4 space-y-2.5 overflow-hidden">
+      <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs divide-y divide-border/70 overflow-hidden">
         {hasAny ? (
           <>
             {streak && (
               <button
                 type="button"
                 onClick={() => onInspectPlayer(streak.player_id)}
-                className="w-full min-h-[60px] p-2.5 rounded-2xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 flex items-center gap-2.5 sm:gap-3 text-left transition-colors group"
+                className="w-full min-h-[60px] px-4 py-3 hover:bg-surface-subtle/70 flex items-center gap-3 text-left transition-colors group"
               >
-                <div className="size-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                  <Flame size={16} aria-hidden="true" />
-                </div>
                 <PlayerAvatar
                   src={streak.avatar_url}
                   name={streak.player_name}
                   className="size-9 rounded-xl border border-border shrink-0 text-xs"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                  <p className="text-sm font-display font-semibold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                     {streak.player_name}
                   </p>
-                  <p className="text-[11px] font-bold text-muted-foreground truncate">
-                    連勝火熱王 · {streak.global_mmr} ELO
+                  <p className="text-xs font-medium text-muted-foreground truncate inline-flex items-center gap-1">
+                    <Flame size={12} className="text-smash-orange shrink-0" aria-hidden="true" />
+                    <span>連勝火熱王 · {streak.global_mmr} 分</span>
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0">
+                <span className="text-sm font-display font-bold text-smash-orange tabular-nums whitespace-nowrap shrink-0">
                   {streak.streak} 連勝
                 </span>
               </button>
@@ -569,26 +564,24 @@ function ClubSpotlightsCard({
               <button
                 type="button"
                 onClick={() => onInspectPlayer(climber.player_id)}
-                className="w-full min-h-[60px] p-2.5 rounded-2xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 flex items-center gap-2.5 sm:gap-3 text-left transition-colors group"
+                className="w-full min-h-[60px] px-4 py-3 hover:bg-surface-subtle/70 flex items-center gap-3 text-left transition-colors group"
               >
-                <div className="size-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                  <Rocket size={16} aria-hidden="true" />
-                </div>
                 <PlayerAvatar
                   src={climber.avatar_url}
                   name={climber.player_name}
                   className="size-9 rounded-xl border border-border shrink-0 text-xs"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                  <p className="text-sm font-display font-semibold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                     {climber.player_name}
                   </p>
-                  <p className="text-[11px] font-bold text-muted-foreground truncate">
-                    {climber.window_label}飆分王 · {climber.global_mmr} ELO
+                  <p className="text-xs font-medium text-muted-foreground truncate inline-flex items-center gap-1">
+                    <Rocket size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+                    <span>{climber.window_label}飆分王 · {climber.global_mmr} 分</span>
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0">
-                  +{climber.mmr_delta} PTS
+                <span className="text-sm font-display font-bold text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap shrink-0">
+                  +{climber.mmr_delta} 分
                 </span>
               </button>
             )}
@@ -597,34 +590,32 @@ function ClubSpotlightsCard({
               <button
                 type="button"
                 onClick={() => onInspectPlayer(active.player_id)}
-                className="w-full min-h-[60px] p-2.5 rounded-2xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 flex items-center gap-2.5 sm:gap-3 text-left transition-colors group"
+                className="w-full min-h-[60px] px-4 py-3 hover:bg-surface-subtle/70 flex items-center gap-3 text-left transition-colors group"
               >
-                <div className="size-9 rounded-xl bg-gradient-to-br from-sapphire-blue to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                  <Swords size={16} aria-hidden="true" />
-                </div>
                 <PlayerAvatar
                   src={active.avatar_url}
                   name={active.player_name}
                   className="size-9 rounded-xl border border-border shrink-0 text-xs"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                  <p className="text-sm font-display font-semibold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                     {active.player_name}
                   </p>
-                  <p className="text-[11px] font-bold text-muted-foreground truncate">
-                    {active.scope_label}最活躍 · {active.wins} 勝
+                  <p className="text-xs font-medium text-muted-foreground truncate inline-flex items-center gap-1">
+                    <Swords size={12} className="text-sapphire-blue shrink-0" aria-hidden="true" />
+                    <span>{active.scope_label}最活躍 · {active.wins} 勝</span>
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-xs font-display font-black tabular-nums whitespace-nowrap shrink-0">
+                <span className="text-sm font-display font-bold text-sapphire-blue dark:text-blue-300 tabular-nums whitespace-nowrap shrink-0">
                   {active.matches_count} 場
                 </span>
               </button>
             )}
           </>
         ) : (
-          <div className="py-6 px-3 text-center space-y-1.5">
-            <p className="text-xs font-black text-foreground">新賽季焦點頭銜虛位以待</p>
-            <p className="text-[11px] font-bold text-muted-foreground">
+          <div className="py-6 px-4 text-center space-y-1">
+            <p className="text-xs font-semibold text-foreground">新賽季焦點頭銜虛位以待</p>
+            <p className="text-xs font-medium text-muted-foreground">
               完成本季首場對戰即可搶下連勝王與飆分王稱號
             </p>
           </div>
@@ -647,34 +638,31 @@ function UpcomingChallengesCard({
     <section aria-label="近期公開約戰預告" className={cn('space-y-3 min-w-0', className)}>
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight flex items-center gap-1.5">
+          <h2 className="text-lg sm:text-xl text-foreground font-display font-bold tracking-tight flex items-center gap-1.5">
             <Swords size={18} className="text-smash-orange shrink-0" aria-hidden="true" />
             <span>近期約戰預告</span>
           </h2>
-          <p className="text-xs font-bold text-muted-foreground mt-0.5">
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">
             即將開打的公開挑戰，歡迎前往觀戰加油
           </p>
         </div>
         {upcoming.length > 0 && (
-          <span className="px-2 py-0.5 rounded-full bg-smash-orange/12 text-smash-orange text-[11px] font-display font-black tabular-nums shrink-0">
+          <span className="px-2 py-0.5 rounded-full bg-smash-orange/12 text-smash-orange text-xs font-display font-semibold tabular-nums shrink-0">
             {upcoming.length} 場
           </span>
         )}
       </div>
 
-      <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs p-3 sm:p-4 space-y-2.5 overflow-hidden">
+      <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs divide-y divide-border/70 overflow-hidden">
         {upcoming.length > 0 ? (
           upcoming.map((ch) => (
-            <div
-              key={ch.id}
-              className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 space-y-2"
-            >
-              <div className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="inline-flex items-center gap-1 font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
+            <div key={ch.id} className="p-3.5 sm:px-4 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 font-display font-semibold text-sapphire-blue dark:text-blue-300 tabular-nums">
                   <CalendarClock size={12} aria-hidden="true" />
                   {formatChallengeDateTimeLabel(ch.proposed_at)}
                 </span>
-                <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground shrink-0">
+                <span className="px-2 py-0.5 rounded bg-secondary text-xs font-medium text-muted-foreground shrink-0">
                   {ch.match_type === 'doubles' ? '雙打' : '單打'} · {ch.format}
                 </span>
               </div>
@@ -688,9 +676,9 @@ function UpcomingChallengesCard({
                   <PlayerAvatar
                     src={ch.challenger?.avatar}
                     name={ch.challenger?.name || '?'}
-                    className="size-7 rounded-lg border border-border shrink-0 text-[10px]"
+                    className="size-7 rounded-lg border border-border shrink-0 text-xs"
                   />
-                  <span className="text-xs font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                     {ch.challenger?.name}
                     {ch.match_type === 'doubles' && ch.challenger_partner
                       ? `/${ch.challenger_partner.name}`
@@ -698,7 +686,7 @@ function UpcomingChallengesCard({
                   </span>
                 </button>
 
-                <span className="text-[11px] font-display font-black italic text-smash-orange shrink-0">
+                <span className="text-xs font-display font-bold italic text-smash-orange shrink-0">
                   VS
                 </span>
 
@@ -707,7 +695,7 @@ function UpcomingChallengesCard({
                   onClick={() => ch.challenged && onInspectPlayer(ch.challenged.id)}
                   className="flex items-center justify-end gap-1.5 min-w-0 flex-1 text-right group"
                 >
-                  <span className="text-xs font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                     {ch.challenged?.name}
                     {ch.match_type === 'doubles' && ch.challenged_partner
                       ? `/${ch.challenged_partner.name}`
@@ -716,15 +704,15 @@ function UpcomingChallengesCard({
                   <PlayerAvatar
                     src={ch.challenged?.avatar}
                     name={ch.challenged?.name || '?'}
-                    className="size-7 rounded-lg border border-border shrink-0 text-[10px]"
+                    className="size-7 rounded-lg border border-border shrink-0 text-xs"
                   />
                 </button>
               </div>
 
               {(ch.location || ch.message) && (
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-muted-foreground pt-0.5">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground pt-0.5">
                   {ch.location && (
-                    <span className="inline-flex items-center gap-1 font-bold truncate">
+                    <span className="inline-flex items-center gap-1 font-medium truncate">
                       <MapPin size={11} className="shrink-0" aria-hidden="true" />
                       {ch.location}
                     </span>
@@ -735,9 +723,9 @@ function UpcomingChallengesCard({
             </div>
           ))
         ) : (
-          <div className="py-5 px-3 text-center space-y-1">
-            <p className="text-xs font-black text-foreground">目前尚無公開約戰預告</p>
-            <p className="text-[11px] font-bold text-muted-foreground leading-relaxed">
+          <div className="py-5 px-4 text-center space-y-1">
+            <p className="text-xs font-semibold text-foreground">目前尚無公開約戰預告</p>
+            <p className="text-xs font-medium text-muted-foreground leading-relaxed">
               點擊任一球友頭像即可下戰帖約時間！
             </p>
           </div>

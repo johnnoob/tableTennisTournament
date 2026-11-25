@@ -184,3 +184,109 @@ export function downloadChallengeIcs(challenge: ChallengeItem): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+export function doesLineupMatchChallenge({
+  challenge,
+  myUserId,
+  matchType,
+  partnerId,
+  opponent1Id,
+  opponent2Id,
+}: {
+  challenge: ChallengeItem;
+  myUserId: string;
+  matchType: 'singles' | 'doubles';
+  partnerId: string | null;
+  opponent1Id: string | null;
+  opponent2Id: string | null;
+}): boolean {
+  if (challenge.status !== 'accepted' || challenge.match_type !== matchType) {
+    return false;
+  }
+
+  const challengerId = challenge.challenger?.id;
+  const challengedId = challenge.challenged?.id;
+  if (!challengerId || !challengedId) {
+    return false;
+  }
+
+  const teamA = new Set<string>([myUserId]);
+  if (matchType === 'doubles' && partnerId) {
+    teamA.add(partnerId);
+  }
+
+  const teamB = new Set<string>();
+  if (opponent1Id) teamB.add(opponent1Id);
+  if (matchType === 'doubles' && opponent2Id) teamB.add(opponent2Id);
+
+  let challengerTeam: Set<string>;
+  let challengedTeam: Set<string>;
+  if (teamA.has(challengerId) && teamB.has(challengedId)) {
+    challengerTeam = teamA;
+    challengedTeam = teamB;
+  } else if (teamB.has(challengerId) && teamA.has(challengedId)) {
+    challengerTeam = teamB;
+    challengedTeam = teamA;
+  } else {
+    return false;
+  }
+
+  if (matchType === 'singles') {
+    return teamA.size === 1 && teamB.size === 1;
+  }
+
+  const challengerPartnerId = challenge.challenger_partner?.id;
+  const challengedPartnerId = challenge.challenged_partner?.id;
+  if (challengerPartnerId && !challengerTeam.has(challengerPartnerId)) {
+    return false;
+  }
+  if (challengedPartnerId && !challengedTeam.has(challengedPartnerId)) {
+    return false;
+  }
+  return true;
+}
+
+export function isChallengeWithinAutoLinkWindow(
+  challenge: ChallengeItem,
+  nowMs: number,
+): boolean {
+  if (challenge.status !== 'accepted') return false;
+  const proposedMs = Date.parse(challenge.proposed_at);
+  if (Number.isNaN(proposedMs)) return false;
+
+  const windowStart = proposedMs - 60 * 60 * 1000;
+  let latestReportedMs = 0;
+  for (const m of challenge.reported_matches ?? []) {
+    if (!m.created_at) continue;
+    const t = Date.parse(m.created_at);
+    if (!Number.isNaN(t) && t > latestReportedMs) {
+      latestReportedMs = t;
+    }
+  }
+
+  const windowEnd = Math.max(
+    proposedMs + 4 * 60 * 60 * 1000,
+    latestReportedMs > 0 ? latestReportedMs + 2 * 60 * 60 * 1000 : 0,
+  );
+  return nowMs >= windowStart && nowMs <= windowEnd;
+}
+
+export function getChallengeOpponentSummary(
+  challenge: ChallengeItem,
+  myUserId: string,
+): string {
+  const isChallengerSide =
+    challenge.challenger?.id === myUserId ||
+    challenge.challenger_partner?.id === myUserId;
+
+  const lead = isChallengerSide ? challenge.challenged : challenge.challenger;
+  const partner = isChallengerSide
+    ? challenge.challenged_partner
+    : challenge.challenger_partner;
+
+  const leadName = lead?.name || '對手';
+  if (challenge.match_type === 'doubles') {
+    return `${leadName} / ${partner?.name || '現場湊咖'}`;
+  }
+  return leadName;
+}

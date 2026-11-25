@@ -43,7 +43,8 @@ def format_challenge_time_tw(dt: datetime) -> str:
 def sync_stale_challenges(session: Session) -> None:
     """
     將超過約定時間的未回應戰帖標記為過期；
-    已成立約戰在約定時間超過 24 小時後自動歸檔為已完賽或過期。
+    已成立約戰若已報過比賽，在約定時間超過 6 小時且最後更新超過 3 小時後自動結案為已完賽；
+    若完全未報分，則在超過約定時間 24 小時後自動過期。
     """
     now_utc = utc_now()
     active_rows = session.exec(
@@ -64,8 +65,19 @@ def sync_stale_challenges(session: Session) -> None:
                 session.add(ch)
                 dirty = True
         elif ch.status == "accepted":
-            if proposed_utc + timedelta(hours=24) < now_utc:
-                ch.status = "completed" if (ch.reported_matches_count or 0) > 0 else "expired"
+            has_reported = (ch.reported_matches_count or 0) > 0
+            if has_reported:
+                last_activity_utc = ensure_utc(ch.updated_at) or proposed_utc
+                if (
+                    proposed_utc + timedelta(hours=6) < now_utc
+                    and last_activity_utc + timedelta(hours=3) < now_utc
+                ):
+                    ch.status = "completed"
+                    ch.updated_at = now_utc
+                    session.add(ch)
+                    dirty = True
+            elif proposed_utc + timedelta(hours=24) < now_utc:
+                ch.status = "expired"
                 ch.updated_at = now_utc
                 session.add(ch)
                 dirty = True
@@ -126,8 +138,11 @@ def _serialize_challenge_match_player(user_map: dict[UUID, User], uid: UUID | No
     return _serialize_player(user_map, uid)
 
 
-def _match_participants_fit_challenge(m: Match, ch: MatchChallenge) -> bool:
-    """檢查 Match 的雙方參賽陣容是否符合約戰戰帖之對陣組合（支援單雙打及現場湊咖）。"""
+def match_participants_fit_challenge(m: Match, ch: MatchChallenge) -> bool:
+    """檢查 Match 的賽制與雙方參賽陣容是否符合約戰戰帖（支援單雙打及現場湊咖）。"""
+    if (m.match_type or "singles") != (ch.match_type or "singles"):
+        return False
+
     team_a_ids = {uid for uid in (m.team_a_p1_id, m.team_a_p2_id) if uid is not None}
     team_b_ids = {uid for uid in (m.team_b_p1_id, m.team_b_p2_id) if uid is not None}
 
@@ -138,11 +153,17 @@ def _match_participants_fit_challenge(m: Match, ch: MatchChallenge) -> bool:
     else:
         return False
 
+    if ch.match_type == "singles":
+        return len(team_a_ids) == 1 and len(team_b_ids) == 1
+
     if ch.challenger_partner_id is not None and ch.challenger_partner_id not in challenger_team:
         return False
     if ch.challenged_partner_id is not None and ch.challenged_partner_id not in challenged_team:
         return False
     return True
+
+
+_match_participants_fit_challenge = match_participants_fit_challenge
 
 
 def _resolve_and_serialize_challenge_matches(

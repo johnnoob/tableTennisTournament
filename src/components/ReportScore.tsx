@@ -3,7 +3,7 @@ import { useThrottledCallback } from '@tanstack/react-pacer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import apiClient from '@/utils/apiClient';
-import { ChevronDown, Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star, Zap } from 'lucide-react';
+import { ChevronDown, Trophy, User, CheckCircle2, Search, X, RotateCcw, Sparkles, Star, Swords, Zap } from 'lucide-react';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
 import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/matchScore';
@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useMyChallenges } from '@/hooks/useChallenges';
+import {
+  doesLineupMatchChallenge,
+  formatChallengeDateTimeLabel,
+  getChallengeOpponentSummary,
+  isChallengeWithinAutoLinkWindow,
+} from '@/lib/challengeUtils';
+import type { ChallengeItem } from '@/types/api.types';
 import {
   getMatchupSignature,
   getPresetSignature,
@@ -185,6 +193,10 @@ export function ReportScore({
   );
   const [showAllQuickItems, setShowAllQuickItems] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const [openedAtMs, setOpenedAtMs] = React.useState<number>(() => Date.now());
+  const [explicitChallengeId, setExplicitChallengeId] = React.useState<string | null>(challengeId);
+  const [optedOutChallengeIds, setOptedOutChallengeIds] = React.useState<Record<string, boolean>>({});
+  const [submittedLinkedChallenge, setSubmittedLinkedChallenge] = React.useState<ChallengeItem | null>(null);
   const resetTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
@@ -215,8 +227,12 @@ export function ReportScore({
       );
       setShowAllQuickItems(false);
       setIsSuccess(false);
+      setOpenedAtMs(Date.now());
+      setExplicitChallengeId(challengeId);
+      setOptedOutChallengeIds({});
+      setSubmittedLinkedChallenge(null);
     },
-    [initialFormat, initialMatchType, initialOpponent2Id, initialOpponentId, initialPartnerId, initialScoreA, initialScoreB]
+    [challengeId, initialFormat, initialMatchType, initialOpponent2Id, initialOpponentId, initialPartnerId, initialScoreA, initialScoreB]
   );
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -244,6 +260,8 @@ export function ReportScore({
     setSearchTerm('');
     setActiveSlot(findInitialSlot(matchType, selectedPartnerId, opponent1Id, opponent2Id));
     setIsSuccess(false);
+    setOpenedAtMs(Date.now());
+    setSubmittedLinkedChallenge(null);
   };
 
   const { data: configData } = useQuery({
@@ -269,6 +287,7 @@ export function ReportScore({
     enabled: Boolean(currentUser && open && !editMode),
     userId: currentUser?.id,
   });
+  const { data: myChallengesData } = useMyChallenges(Boolean(currentUser && open && !editMode));
   const createPresetMutation = useCreateMatchPreset();
 
   // 讀取已快取的近期對戰名單，將常交手的同事置頂方便點選
@@ -318,6 +337,129 @@ export function ReportScore({
     matchType === 'singles'
       ? !!opponent1Id
       : !!selectedPartnerId && !!opponent1Id && !!opponent2Id;
+
+  const acceptedChallenges = React.useMemo(() => {
+    const active = myChallengesData?.active ?? [];
+    return active
+      .filter((ch) => ch.status === 'accepted' && ch.can_report)
+      .sort((a, b) => {
+        const aInWin = isChallengeWithinAutoLinkWindow(a, openedAtMs);
+        const bInWin = isChallengeWithinAutoLinkWindow(b, openedAtMs);
+        if (aInWin !== bInWin) return aInWin ? -1 : 1;
+        const aDiff = Math.abs((Date.parse(a.proposed_at) || 0) - openedAtMs);
+        const bDiff = Math.abs((Date.parse(b.proposed_at) || 0) - openedAtMs);
+        return aDiff - bDiff;
+      });
+  }, [myChallengesData, openedAtMs]);
+
+  const handleApplyChallenge = (ch: ChallengeItem) => {
+    if (editMode) return;
+    const prefill = ch.report_prefill;
+    const nextType: MatchType = prefill?.match_type ?? ch.match_type;
+    const nextPartner = nextType === 'doubles' ? (prefill?.partner_id ?? null) : null;
+    const nextOpp1 = prefill?.opponent1_id ?? null;
+    const nextOpp2 = nextType === 'doubles' ? (prefill?.opponent2_id ?? null) : null;
+
+    setMatchType(nextType);
+    setMatchFormat(prefill?.format ?? ch.format);
+    setSelectedPartnerId(nextPartner);
+    setOpponent1Id(nextOpp1);
+    setOpponent2Id(nextOpp2);
+    setSearchTerm('');
+    setActiveSlot(findInitialSlot(nextType, nextPartner, nextOpp1, nextOpp2));
+    setExplicitChallengeId(ch.id);
+    setOptedOutChallengeIds((prev) => {
+      if (!prev[ch.id]) return prev;
+      const next = { ...prev };
+      delete next[ch.id];
+      return next;
+    });
+  };
+
+  const challengeLinkState = React.useMemo(():
+    | { mode: 'explicit_matched'; challenge: ChallengeItem }
+    | { mode: 'explicit_pending_slots'; challenge: ChallengeItem }
+    | { mode: 'auto_matched'; challenge: ChallengeItem }
+    | { mode: 'explicit_mismatch'; challenge: ChallengeItem }
+    | { mode: 'none'; challenge: null } => {
+    if (editMode || !currentUser) {
+      return { mode: 'none', challenge: null };
+    }
+    const myUserId = currentUser.id;
+
+    const explicitChallenge = explicitChallengeId
+      ? acceptedChallenges.find((ch) => ch.id === explicitChallengeId) ?? null
+      : null;
+
+    if (explicitChallenge) {
+      const sameType = matchType === explicitChallenge.match_type;
+      if (sameType && !isLineupReady) {
+        return { mode: 'explicit_pending_slots', challenge: explicitChallenge };
+      }
+      if (
+        sameType &&
+        isLineupReady &&
+        doesLineupMatchChallenge({
+          challenge: explicitChallenge,
+          myUserId,
+          matchType,
+          partnerId: selectedPartnerId,
+          opponent1Id,
+          opponent2Id,
+        })
+      ) {
+        return { mode: 'explicit_matched', challenge: explicitChallenge };
+      }
+    }
+
+    if (isLineupReady) {
+      const windowMatches = acceptedChallenges
+        .filter(
+          (ch) =>
+            isChallengeWithinAutoLinkWindow(ch, openedAtMs) &&
+            doesLineupMatchChallenge({
+              challenge: ch,
+              myUserId,
+              matchType,
+              partnerId: selectedPartnerId,
+              opponent1Id,
+              opponent2Id,
+            }),
+        )
+        .sort(
+          (a, b) =>
+            Math.abs((Date.parse(a.proposed_at) || 0) - openedAtMs) -
+            Math.abs((Date.parse(b.proposed_at) || 0) - openedAtMs),
+        );
+
+      if (windowMatches.length > 0) {
+        return { mode: 'auto_matched', challenge: windowMatches[0] };
+      }
+    }
+
+    if (explicitChallenge) {
+      return { mode: 'explicit_mismatch', challenge: explicitChallenge };
+    }
+
+    return { mode: 'none', challenge: null };
+  }, [
+    acceptedChallenges,
+    currentUser,
+    editMode,
+    explicitChallengeId,
+    isLineupReady,
+    matchType,
+    openedAtMs,
+    opponent1Id,
+    opponent2Id,
+    selectedPartnerId,
+  ]);
+
+  const effectiveChallengeId =
+    (challengeLinkState.mode === 'explicit_matched' || challengeLinkState.mode === 'auto_matched') &&
+    !optedOutChallengeIds[challengeLinkState.challenge.id]
+      ? challengeLinkState.challenge.id
+      : null;
 
   const canSaveAsPreset =
     !editMode &&
@@ -491,8 +633,14 @@ export function ReportScore({
       }
       toast.error(errorMessage);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       setIsSuccess(true);
+      if (variables.challenge_id) {
+        const linked = acceptedChallenges.find((ch) => ch.id === variables.challenge_id) ?? null;
+        setSubmittedLinkedChallenge(linked);
+      } else {
+        setSubmittedLinkedChallenge(null);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['matches', 'recent'] });
@@ -562,7 +710,7 @@ export function ReportScore({
         team_b_p2_id: matchType === 'doubles' ? opponent2Id : null,
         format: matchFormat,
         reported_by: currentUser.id,
-        challenge_id: challengeId ?? null,
+        challenge_id: effectiveChallengeId,
       };
 
       mutation.mutate(payload);
@@ -665,11 +813,17 @@ export function ReportScore({
               </div>
             </div>
 
-            <div className="pt-3 border-t border-dashed border-border flex justify-between items-center text-xs">
+            <div className="pt-3 border-t border-dashed border-border flex flex-wrap justify-between items-center gap-2 text-xs">
               <span className="flex items-center gap-1.5 font-bold text-muted-foreground">
                 <span className="size-2 bg-amber-400 rounded-full animate-pulse" />
                 等待對手確認中
               </span>
+              {submittedLinkedChallenge && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sapphire-blue/10 text-sapphire-blue dark:text-blue-300 border border-sapphire-blue/25 font-bold">
+                  <Swords size={12} aria-hidden="true" />
+                  已關聯約戰紀錄
+                </span>
+              )}
               <span className="font-bold text-muted-foreground">48 小時後自動生效</span>
             </div>
           </div>
@@ -706,6 +860,47 @@ export function ReportScore({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+          )}
+
+          {/* ⚔️ 進行中約戰一鍵帶入 */}
+          {!editMode && acceptedChallenges.length > 0 && (
+            <div className="space-y-1.5 min-w-0">
+              <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                <Swords size={12} className="text-sapphire-blue" aria-hidden="true" />
+                進行中約戰（一鍵帶入）
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {acceptedChallenges.map((ch) => {
+                  const isLinked = effectiveChallengeId === ch.id;
+                  const inWindow = isChallengeWithinAutoLinkWindow(ch, openedAtMs);
+                  const opponentSummary = getChallengeOpponentSummary(ch, currentUser.id);
+                  return (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      onClick={() => handleApplyChallenge(ch)}
+                      className={cn(
+                        'max-w-full min-w-0 min-h-10 px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 transition-all text-left',
+                        isLinked
+                          ? 'bg-emerald-500/12 border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-card border-border text-foreground hover:bg-secondary'
+                      )}
+                    >
+                      {inWindow && (
+                        <span
+                          className="size-2 rounded-full bg-smash-orange shrink-0"
+                          title="接近約戰時間"
+                        />
+                      )}
+                      <span className="truncate">
+                        {ch.match_type === 'doubles' ? '雙打' : '單打'} ·{' '}
+                        {formatLocalTime(ch.proposed_at, 'MM/dd HH:mm')} · vs {opponentSummary}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* ⚡ 快速帶入常用組合（依目前賽制過濾，自動換行不截斷） */}
@@ -1058,6 +1253,71 @@ export function ReportScore({
             />
           </section>
 
+          {/* 4.5. 約戰自動關聯預勾選 / 漂移提醒 */}
+          {!editMode && challengeLinkState.mode !== 'none' && (
+            <div className="min-w-0">
+              {(challengeLinkState.mode === 'explicit_matched' ||
+                challengeLinkState.mode === 'auto_matched') && (() => {
+                const targetCh = challengeLinkState.challenge;
+                const isChecked = !optedOutChallengeIds[targetCh.id];
+                const opponentLabel = getChallengeOpponentSummary(targetCh, currentUser.id);
+                const whenLabel = formatChallengeDateTimeLabel(targetCh.proposed_at);
+                return (
+                  <label
+                    className={cn(
+                      'min-h-11 rounded-xl border px-3.5 py-2.5 flex items-start gap-2.5 cursor-pointer transition-colors text-xs',
+                      isChecked
+                        ? 'bg-sapphire-blue/[0.06] border-sapphire-blue/35 text-foreground dark:bg-blue-500/10 dark:border-blue-400/35'
+                        : 'bg-surface-subtle border-border text-muted-foreground'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setOptedOutChallengeIds((prev) => ({
+                          ...prev,
+                          [targetCh.id]: !checked,
+                        }));
+                      }}
+                      className="mt-0.5 size-4 rounded border-input accent-sapphire-blue shrink-0"
+                    />
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="font-bold leading-snug">
+                        {isChecked
+                          ? `歸入進行中約戰：${whenLabel} · vs ${opponentLabel}`
+                          : '已取消約戰關聯，本場將以一般對戰申報'}
+                      </p>
+                      {isChecked && (
+                        <p className="text-muted-foreground font-medium">
+                          非約戰場次可取消勾選
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {challengeLinkState.mode === 'explicit_pending_slots' && (
+                <div className="rounded-xl border border-sapphire-blue/30 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 px-3.5 py-2.5 text-xs font-semibold text-foreground flex items-center gap-2">
+                  <Swords size={14} className="text-sapphire-blue shrink-0" aria-hidden="true" />
+                  <span>
+                    約戰模式：{formatChallengeDateTimeLabel(challengeLinkState.challenge.proposed_at)}
+                    （請補齊「現場湊咖」名單）
+                  </span>
+                </div>
+              )}
+
+              {challengeLinkState.mode === 'explicit_mismatch' && (
+                <div className="rounded-xl border border-amber-300/80 dark:border-amber-500/35 bg-amber-50/70 dark:bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                  <Swords size={14} className="shrink-0" aria-hidden="true" />
+                  <span>名單或賽制已與原約戰不同，本場將改以一般對戰報分</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 5. 狀態與預估積分變動回饋 */}
           <div
             role="status"
@@ -1077,7 +1337,7 @@ export function ReportScore({
             {estimatedDelta !== null && (
               <span className="inline-flex items-center gap-1 font-display font-black tabular-nums">
                 <Sparkles size={13} aria-hidden="true" />
-                預估 {estimatedDelta > 0 ? `+${estimatedDelta}` : estimatedDelta} ELO
+                預估 {estimatedDelta > 0 ? `+${estimatedDelta}` : estimatedDelta} 分
               </span>
             )}
           </div>

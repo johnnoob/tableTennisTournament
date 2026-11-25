@@ -119,7 +119,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="arena-hero-surface rounded-2xl px-3.5 sm:px-4 py-2.5 border border-blue-200/85 dark:border-slate-700/80 shadow-xs dark:shadow-md dark:shadow-primary-navy/10 overflow-hidden"
+        className="bg-card rounded-2xl px-4 py-2.5 border border-border shadow-xs overflow-hidden"
       >
         <div className="flex items-center justify-between gap-2.5 sm:gap-4 min-h-8">
           <button
@@ -130,12 +130,12 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
           >
             <span
               className={cn(
-                'inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0',
+                'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full shrink-0',
                 style.badgeBg,
                 style.badgeText
               )}
             >
-              <Icon size={13} aria-hidden="true" />
+              <Icon size={12} aria-hidden="true" />
               {style.label}
             </span>
 
@@ -146,13 +146,13 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.18 }}
-                className="text-xs sm:text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue dark:group-hover:text-blue-300 transition-colors"
+                className="text-sm font-display font-semibold text-foreground truncate group-hover:text-sapphire-blue dark:group-hover:text-blue-300 transition-colors"
               >
                 {current.title}
               </motion.span>
             </AnimatePresence>
 
-            <span className="hidden md:inline-flex items-center gap-1 text-muted-foreground text-xs font-bold tabular-nums shrink-0">
+            <span className="hidden md:inline-flex items-center gap-1 text-muted-foreground text-xs font-medium tabular-nums shrink-0">
               <Timer size={12} aria-hidden="true" />
               {formatLocalTime(current.created_at, 'yyyy-MM-dd')}
             </span>
@@ -161,24 +161,24 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
           <div className="flex items-center gap-1.5 shrink-0">
             {items.length > 1 && (
               <>
-                <span className="hidden sm:inline text-xs font-black text-muted-foreground tabular-nums px-1">
+                <span className="hidden sm:inline text-xs font-semibold text-muted-foreground tabular-nums px-1">
                   {(safeIndex + 1).toString().padStart(2, '0')}/{items.length.toString().padStart(2, '0')}
                 </span>
                 <button
                   type="button"
                   aria-label="上一則公告"
                   onClick={prevMsg}
-                  className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-white transition-colors"
+                  className="size-8 rounded-lg bg-secondary/80 hover:bg-secondary border border-border/80 flex items-center justify-center text-foreground transition-colors"
                 >
-                  <ChevronLeft size={14} strokeWidth={2.5} aria-hidden="true" />
+                  <ChevronLeft size={14} strokeWidth={2.2} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   aria-label="下一則公告"
                   onClick={nextMsg}
-                  className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-white transition-colors"
+                  className="size-8 rounded-lg bg-secondary/80 hover:bg-secondary border border-border/80 flex items-center justify-center text-foreground transition-colors"
                 >
-                  <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
+                  <ChevronRight size={14} strokeWidth={2.2} aria-hidden="true" />
                 </button>
               </>
             )}
@@ -189,7 +189,7 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
               aria-label="切換公告詳情"
               title={expanded ? '收合公告' : '展開公告'}
               onClick={() => setExpanded((prev) => !prev)}
-              className="size-8 rounded-lg bg-secondary/90 hover:bg-secondary border border-border/80 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/10 flex items-center justify-center text-foreground dark:text-slate-200 transition-colors shrink-0"
+              className="size-8 rounded-lg bg-secondary/80 hover:bg-secondary border border-border/80 flex items-center justify-center text-foreground transition-colors shrink-0"
             >
               <ChevronDown
                 size={15}
@@ -209,12 +209,12 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pt-3 mt-2.5 border-t border-border/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pt-3 mt-2.5 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-foreground/85 dark:text-slate-200 font-medium leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-foreground/85 font-normal leading-relaxed whitespace-pre-line">
                     {current.content}
                   </p>
-                  <p className="text-xs text-muted-foreground font-bold md:hidden tabular-nums">
+                  <p className="text-xs text-muted-foreground font-medium md:hidden tabular-nums">
                     發布日期：{formatLocalTime(current.created_at, 'yyyy-MM-dd')}
                   </p>
                 </div>
@@ -222,10 +222,10 @@ function AnnouncementBanner({ items }: { items: Announcement[] }) {
                   <Button
                     type="button"
                     onClick={() => window.open(current.link_url, '_blank')}
-                    className="h-9 px-4 rounded-xl font-black text-xs tracking-wider bg-sapphire-blue hover:bg-blue-700 text-white shrink-0 gap-1"
+                    className="min-h-9 px-4 rounded-xl font-semibold text-xs bg-sapphire-blue hover:bg-blue-700 text-white shrink-0 gap-1"
                   >
                     {current.link_text || '了解詳情'}
-                    <ChevronRight size={14} strokeWidth={3} aria-hidden="true" />
+                    <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -472,13 +472,13 @@ export function Dashboard() {
           <motion.div variants={fadeInUp}>
             <PageHeader
               title={user?.name || 'Precision Arena'}
-              subtitle={isLoggedIn ? 'Precision Arena · Personal Dashboard' : 'Precision Arena · Live Overview'}
+              subtitle={isLoggedIn ? '個人戰情總覽' : '即時戰況總覽'}
               actions={
                 !isLoggedIn ? (
                   <Button
                     type="button"
                     onClick={() => navigate('/login')}
-                    className="hidden lg:inline-flex h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-2"
+                    className="hidden lg:inline-flex min-h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-bold text-sm gap-2"
                   >
                     <LogIn size={16} aria-hidden="true" />
                     登入戰情室
@@ -581,7 +581,7 @@ export function Dashboard() {
                     <motion.section variants={itemVariants} className="space-y-3 min-w-0">
                       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <h2 className="text-sm sm:text-base font-display font-black text-foreground flex items-center gap-2">
+                          <h2 className="text-base font-display font-bold text-foreground flex items-center gap-2">
                             <Swords size={16} className="text-smash-orange" aria-hidden="true" />
                             一鍵約戰報分
                           </h2>
@@ -603,7 +603,7 @@ export function Dashboard() {
                                   setShowAllQuickItems(false);
                                 }}
                                 className={cn(
-                                  'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                                  'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all',
                                   quickFilter === tab.id
                                     ? 'bg-card text-foreground shadow-xs'
                                     : 'text-muted-foreground hover:text-foreground'
@@ -619,12 +619,12 @@ export function Dashboard() {
                           <button
                             type="button"
                             onClick={() => setManagerOpen(true)}
-                            className="h-8 px-2.5 rounded-xl bg-secondary hover:bg-card border border-border text-xs font-bold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+                            className="min-h-9 px-3 rounded-xl bg-secondary hover:bg-card border border-border text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
                           >
-                            <SlidersHorizontal size={12} aria-hidden="true" />
+                            <SlidersHorizontal size={13} aria-hidden="true" />
                             <span>管理</span>
                             {customPresets.length > 0 && (
-                              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-300 text-[11px] font-black tabular-nums">
+                              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 text-xs font-semibold tabular-nums leading-none">
                                 {customPresets.length}
                               </span>
                             )}
@@ -633,9 +633,9 @@ export function Dashboard() {
                             type="button"
                             disabled={customPresets.length >= MAX_MATCH_PRESETS}
                             onClick={() => openPresetEditor(null)}
-                            className="h-8 px-2.5 rounded-xl bg-sapphire-blue/10 hover:bg-sapphire-blue/20 text-sapphire-blue dark:text-blue-300 border border-sapphire-blue/25 text-xs font-black inline-flex items-center gap-1 transition-colors disabled:opacity-45"
+                            className="min-h-9 px-3 rounded-xl bg-sapphire-blue/10 hover:bg-sapphire-blue/20 text-sapphire-blue dark:text-blue-300 border border-sapphire-blue/25 text-xs font-semibold inline-flex items-center gap-1 transition-colors disabled:opacity-45"
                           >
-                            <Plus size={13} aria-hidden="true" />
+                            <Plus size={14} aria-hidden="true" />
                             <span>新增組合</span>
                           </button>
                         </div>
@@ -679,35 +679,25 @@ export function Dashboard() {
                                       item.opponent2?.id ?? null
                                     )
                                   }
-                                  className={cn(
-                                    'w-full min-w-0 flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-card hover:bg-secondary border shadow-xs transition-all group text-left',
-                                    item.isCustom
-                                      ? 'border-amber-400/50 dark:border-amber-400/40 hover:border-amber-400'
-                                      : 'border-border hover:border-sapphire-blue/40'
-                                  )}
+                                  className="w-full min-w-0 flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-card hover:bg-secondary/70 border border-border hover:border-sapphire-blue/40 shadow-xs transition-all group text-left"
                                 >
                                   <PlayerAvatar
                                     src={avatarPlayer?.avatar}
                                     name={avatarPlayer?.name || '球'}
-                                    className={cn(
-                                      'size-9 rounded-xl text-xs shrink-0 transition-transform group-hover:scale-105',
-                                      isDoubles
-                                        ? 'border border-amber-400/70'
-                                        : 'border border-border'
-                                    )}
+                                    className="size-9 rounded-xl text-xs shrink-0 border border-border transition-transform group-hover:scale-105"
                                   />
 
                                   <div className="min-w-0 flex-1 space-y-0.5">
                                     <div className="flex items-center gap-1 min-w-0">
                                       {item.isCustom && (
                                         <Star
-                                          size={11}
+                                          size={12}
                                           fill="currentColor"
                                           className="text-olympic-gold shrink-0"
                                           aria-hidden="true"
                                         />
                                       )}
-                                      <p className="text-xs sm:text-sm font-black text-foreground group-hover:text-sapphire-blue transition-colors truncate">
+                                      <p className="text-sm font-semibold text-foreground group-hover:text-sapphire-blue transition-colors truncate">
                                         {primaryTitle}
                                       </p>
                                     </div>
@@ -732,7 +722,7 @@ export function Dashboard() {
                                     : `顯示全部 (${filteredQuickItems.length} 組)`
                                 }
                                 onClick={() => setShowAllQuickItems((prev) => !prev)}
-                                className="inline-flex items-center gap-1 h-8 px-3 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                                className="inline-flex items-center gap-1 min-h-9 px-3 rounded-xl bg-surface-subtle hover:bg-secondary border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 {!showAllQuickItems && (
                                   <span>+{filteredQuickItems.length - 6}</span>
@@ -751,7 +741,7 @@ export function Dashboard() {
                         </div>
                       ) : (
                         <div className="rounded-2xl bg-surface-subtle/80 border border-dashed border-border p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                          <p className="text-xs font-bold text-muted-foreground">
+                          <p className="text-xs font-medium text-muted-foreground">
                             {quickFilter === 'doubles'
                               ? '尚無常打雙打組合，可手動建立固定搭檔或四人團！'
                               : quickFilter === 'singles'
@@ -762,7 +752,7 @@ export function Dashboard() {
                             type="button"
                             disabled={customPresets.length >= MAX_MATCH_PRESETS}
                             onClick={() => openPresetEditor(null)}
-                            className="shrink-0 h-9 px-3.5 rounded-xl bg-sapphire-blue text-white text-xs font-black inline-flex items-center gap-1.5 hover:bg-blue-700 transition-colors disabled:opacity-45"
+                            className="shrink-0 min-h-9 px-3.5 rounded-xl bg-sapphire-blue text-white text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-blue-700 transition-colors disabled:opacity-45"
                           >
                             <Plus size={14} aria-hidden="true" />
                             <span>新增自訂組合</span>
@@ -782,24 +772,21 @@ export function Dashboard() {
                       />
                     </motion.div>
 
-                    {/* Tabbed Bento Rivalry & Synergy Section */}
+                    {/* Tabbed Clean Rivalry & Synergy Section */}
                     <motion.section variants={itemVariants} className="space-y-4">
                       <Tabs defaultValue="rivals" className="w-full flex flex-col gap-4">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
                           <div>
-                            <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
+                            <h2 className="text-lg sm:text-xl text-foreground font-display font-bold tracking-tight">
                               對戰情報室
                             </h2>
-                            <p className="text-xs text-muted-foreground uppercase font-sans font-bold tracking-wider">
-                              Rivalry &amp; Partner Synergy
-                            </p>
                           </div>
-                          <TabsList className="grid w-full sm:w-auto grid-cols-2 h-10 bg-secondary border border-border rounded-xl p-1 shrink-0">
-                            <TabsTrigger value="rivals" className="text-xs font-black rounded-lg px-3.5 gap-1.5">
+                          <TabsList className="grid w-full sm:w-auto grid-cols-2 min-h-10 h-auto bg-secondary border border-border rounded-xl p-1 shrink-0">
+                            <TabsTrigger value="rivals" className="min-h-8 text-xs font-semibold rounded-lg px-3.5 gap-1.5">
                               <Swords size={13} aria-hidden="true" />
                               宿敵與提款機
                             </TabsTrigger>
-                            <TabsTrigger value="partners" className="text-xs font-black rounded-lg px-3.5 gap-1.5">
+                            <TabsTrigger value="partners" className="min-h-8 text-xs font-semibold rounded-lg px-3.5 gap-1.5">
                               <Handshake size={13} aria-hidden="true" />
                               雙打搭檔情報
                             </TabsTrigger>
@@ -807,45 +794,39 @@ export function Dashboard() {
                         </div>
 
                         <TabsContent value="rivals" className="mt-0">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                            <div className="rounded-2xl md:rounded-3xl bg-rose-50/50 dark:bg-rose-950/25 p-5 sm:p-6 border border-rose-200/70 dark:border-rose-500/30 space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-xl bg-rose-600 flex items-center justify-center shadow-md shadow-rose-600/20">
-                                  <Skull size={20} className="text-white" aria-hidden="true" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                            <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+                              <div className="px-4 py-3.5 border-b border-border/70 flex items-center gap-2.5">
+                                <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                  <Skull size={16} aria-hidden="true" />
                                 </div>
-                                <div>
-                                  <h3 className="text-base sm:text-lg font-display font-black text-foreground">宿命天敵</h3>
-                                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nemesis</p>
-                                </div>
+                                <h3 className="text-base font-display font-bold text-foreground">宿命天敵</h3>
                               </div>
-                              <div className="space-y-2.5">
+                              <div className="divide-y divide-border/70">
                                 {rivals.nemesis.length > 0 ? (
                                   rivals.nemesis.map((item) => (
                                     <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
                                   ))
                                 ) : (
-                                  <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無天敵資料</p>
+                                  <p className="text-xs text-muted-foreground font-medium text-center py-6">尚無天敵資料</p>
                                 )}
                               </div>
                             </div>
 
-                            <div className="rounded-2xl md:rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/25 p-5 sm:p-6 border border-emerald-200/70 dark:border-emerald-500/30 space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-600/20">
-                                  <Crown size={20} className="text-white" aria-hidden="true" />
+                            <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+                              <div className="px-4 py-3.5 border-b border-border/70 flex items-center gap-2.5">
+                                <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                  <Crown size={16} aria-hidden="true" />
                                 </div>
-                                <div>
-                                  <h3 className="text-base sm:text-lg font-display font-black text-foreground">積分提款機</h3>
-                                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Minions</p>
-                                </div>
+                                <h3 className="text-base font-display font-bold text-foreground">積分提款機</h3>
                               </div>
-                              <div className="space-y-2.5">
+                              <div className="divide-y divide-border/70">
                                 {rivals.minions.length > 0 ? (
                                   rivals.minions.map((item) => (
                                     <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
                                   ))
                                 ) : (
-                                  <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無提款機資料</p>
+                                  <p className="text-xs text-muted-foreground font-medium text-center py-6">尚無提款機資料</p>
                                 )}
                               </div>
                             </div>
@@ -853,45 +834,39 @@ export function Dashboard() {
                         </TabsContent>
 
                         <TabsContent value="partners" className="mt-0">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                            <div className="rounded-2xl md:rounded-3xl bg-amber-50/50 dark:bg-amber-950/25 p-5 sm:p-6 border border-amber-200/70 dark:border-amber-500/30 space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-xl bg-olympic-gold flex items-center justify-center shadow-md shadow-amber-500/20">
-                                  <Trophy size={20} className="text-white" aria-hidden="true" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                            <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+                              <div className="px-4 py-3.5 border-b border-border/70 flex items-center gap-2.5">
+                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                  <Trophy size={16} aria-hidden="true" />
                                 </div>
-                                <div>
-                                  <h3 className="text-base sm:text-lg font-display font-black text-foreground">黃金搭檔</h3>
-                                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Best Partners</p>
-                                </div>
+                                <h3 className="text-base font-display font-bold text-foreground">黃金搭檔</h3>
                               </div>
-                              <div className="space-y-2.5">
+                              <div className="divide-y divide-border/70">
                                 {partners.golden_partners.length > 0 ? (
                                   partners.golden_partners.map((item) => (
                                     <RivalRow key={item.id} {...item} type="minions" onInspect={openInspect} />
                                   ))
                                 ) : (
-                                  <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無黃金搭檔資料</p>
+                                  <p className="text-xs text-muted-foreground font-medium text-center py-6">尚無黃金搭檔資料</p>
                                 )}
                               </div>
                             </div>
 
-                            <div className="rounded-2xl md:rounded-3xl bg-surface-subtle/80 p-5 sm:p-6 border border-border space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-xl bg-slate-600 flex items-center justify-center shadow-md shadow-slate-600/20">
-                                  <Zap size={20} className="text-white" aria-hidden="true" />
+                            <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+                              <div className="px-4 py-3.5 border-b border-border/70 flex items-center gap-2.5">
+                                <div className="size-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center shrink-0">
+                                  <Zap size={16} aria-hidden="true" />
                                 </div>
-                                <div>
-                                  <h3 className="text-base sm:text-lg font-display font-black text-foreground">磨合搭檔</h3>
-                                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Toughest Pairings</p>
-                                </div>
+                                <h3 className="text-base font-display font-bold text-foreground">磨合搭檔</h3>
                               </div>
-                              <div className="space-y-2.5">
+                              <div className="divide-y divide-border/70">
                                 {partners.worst_partners.length > 0 ? (
                                   partners.worst_partners.map((item) => (
                                     <RivalRow key={item.id} {...item} type="nemesis" onInspect={openInspect} />
                                   ))
                                 ) : (
-                                  <p className="text-xs text-muted-foreground font-bold text-center py-4">尚無相關資料</p>
+                                  <p className="text-xs text-muted-foreground font-medium text-center py-6">尚無相關資料</p>
                                 )}
                               </div>
                             </div>
@@ -906,7 +881,7 @@ export function Dashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1">
                     <div>
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <h2 className="text-lg sm:text-xl text-foreground font-display font-black tracking-tight">
+                        <h2 className="text-lg sm:text-xl text-foreground font-display font-bold tracking-tight">
                           近期戰報動態
                         </h2>
                         <div
@@ -923,7 +898,7 @@ export function Dashboard() {
                               setIsFeedSectionCollapsed(false);
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                              'inline-flex items-center gap-1 min-h-8 px-3 py-1 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap',
                               feedScope === 'all'
                                 ? 'bg-card text-foreground shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground',
@@ -945,7 +920,7 @@ export function Dashboard() {
                               setIsFeedSectionCollapsed(false);
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                              'inline-flex items-center gap-1 min-h-8 px-3 py-1 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap',
                               feedScope === 'mine'
                                 ? 'bg-card text-foreground shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground',
@@ -956,16 +931,13 @@ export function Dashboard() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground font-sans font-bold mt-1">
-                        {feedScope === 'all' ? 'All-Club Live Feed' : 'My Recent Matches'}
-                        {activeFeedMatches.length > 0 && (
-                          <>
-                            {' · '}共 {activeFeedMatches.length} 場
-                            {feedClusters.length < activeFeedMatches.length &&
-                              ` · 同組連打已收疊為 ${feedClusters.length} 組`}
-                          </>
-                        )}
-                      </p>
+                      {activeFeedMatches.length > 0 && (
+                        <p className="text-xs text-muted-foreground font-sans font-medium mt-1">
+                          共 {activeFeedMatches.length} 場
+                          {feedClusters.length < activeFeedMatches.length &&
+                            ` · 同組連打已收疊為 ${feedClusters.length} 組`}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0">
@@ -975,7 +947,7 @@ export function Dashboard() {
                         aria-label="切換近期對戰紀錄"
                         title={isFeedSectionCollapsed ? '展開近期戰報' : '收合近期戰報'}
                         onClick={() => setIsFeedSectionCollapsed((prev) => !prev)}
-                        className="size-8 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        className="size-9 inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
                       >
                         <ChevronDown
                           size={15}
@@ -989,7 +961,7 @@ export function Dashboard() {
                       <Button
                         type="button"
                         variant="ghost"
-                        className="h-8 text-xs sm:text-sm font-black tracking-wider text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3 whitespace-nowrap"
+                        className="min-h-9 text-xs sm:text-sm font-semibold text-sapphire-blue hover:bg-sapphire-blue/10 rounded-xl px-3 whitespace-nowrap"
                         onClick={() =>
                           navigate(feedScope === 'mine' ? '/history?scope=mine' : '/history?scope=all')
                         }
@@ -1155,24 +1127,24 @@ function RivalRow({
     <button
       type="button"
       onClick={() => onInspect(id)}
-      className="w-full text-left flex items-center gap-3.5 bg-card p-3.5 rounded-2xl shadow-xs border border-border group hover:border-sapphire-blue/40 hover:shadow-sm transition-all"
+      className="w-full text-left flex items-center gap-3.5 px-4 py-3 group hover:bg-surface-subtle/70 transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue focus-visible:-outline-offset-2"
     >
       <PlayerAvatar
         src={avatar}
         name={name}
-        className="size-10 rounded-full border border-border text-xs"
+        className="size-10 rounded-full border border-border text-xs shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="font-sans font-black text-foreground text-sm truncate group-hover:text-sapphire-blue transition-colors">
+        <p className="font-sans font-semibold text-foreground text-sm truncate group-hover:text-sapphire-blue transition-colors">
           {name}
         </p>
-        <p className="text-xs text-muted-foreground font-bold mt-0.5 tabular-nums">
-          {matches} 場 • {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} 分
+        <p className="text-xs text-muted-foreground font-medium mt-0.5 tabular-nums">
+          {matches} 場 · {pointsExchanged > 0 ? `+${pointsExchanged}` : pointsExchanged} 分
         </p>
       </div>
       <span
         className={cn(
-          'font-display font-black text-base tabular-nums shrink-0',
+          'font-display font-bold text-base tabular-nums shrink-0',
           type === 'nemesis' ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
         )}
       >
