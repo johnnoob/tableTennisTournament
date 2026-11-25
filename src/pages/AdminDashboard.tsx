@@ -230,11 +230,11 @@ export function AdminDashboard() {
                 <StatusIcon size={17} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-wider opacity-75">
+                <p className="text-xs font-medium opacity-75">
                     全站報分狀態
                 </p>
-                <p className="font-display font-black text-sm leading-tight">{statusMeta.label}</p>
-                <p className="text-[11px] font-bold opacity-80 truncate max-w-[190px]">
+                <p className="font-display font-bold text-sm leading-tight">{statusMeta.label}</p>
+                <p className="text-xs font-medium opacity-80 truncate max-w-[190px]">
                     {statusMeta.sub}
                 </p>
             </div>
@@ -251,24 +251,30 @@ export function AdminDashboard() {
             {/* Header Section */}
             <PageHeader
                 title="管理主控台"
-                subtitle="Precision Arena · Admin Control"
+                subtitle="系統設定、賽季管理、賽事裁決與成員維護"
                 badge={
-                    <span className="px-2.5 py-0.5 bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black uppercase tracking-wider rounded-full border border-sapphire-blue/20 dark:border-blue-500/30">
-                        Admin
+                    <span className="px-2.5 py-0.5 bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-semibold rounded-full border border-sapphire-blue/20 dark:border-blue-500/30">
+                        管理員
                     </span>
                 }
                 actions={statusCard}
             />
 
             {/* Tab Navigation */}
-            <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-secondary rounded-2xl border border-border w-full lg:w-fit">
+            <div
+                role="tablist"
+                aria-label="管理主控台功能分頁"
+                className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 p-1 bg-secondary rounded-2xl border border-border w-full lg:w-fit"
+            >
                 {tabs.map((tab) => (
                     <button
                         type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
                         key={tab.id}
                         onClick={() => handleSelectTab(tab.id)}
                         className={cn(
-                            "flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 relative overflow-hidden shrink-0 whitespace-nowrap",
+                            "flex items-center gap-2 min-h-10 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 relative overflow-hidden shrink-0 whitespace-nowrap",
                             activeTab === tab.id
                                 ? "bg-card text-foreground shadow-xs"
                                 : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
@@ -279,7 +285,7 @@ export function AdminDashboard() {
                         {tab.id === 'matches' && matchesAttentionCount > 0 && (
                             <span
                                 className={cn(
-                                    'px-1.5 py-0.5 rounded-full text-[11px] font-display font-black tabular-nums leading-none',
+                                    'px-1.5 py-0.5 rounded-full text-xs font-display font-semibold tabular-nums leading-none',
                                     disputedCount > 0
                                         ? 'bg-rose-500 text-white'
                                         : 'bg-amber-500 text-white'
@@ -305,7 +311,7 @@ export function AdminDashboard() {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="animate-spin text-sapphire-blue" size={40} />
-                            <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">載入數據中...</p>
+                            <p className="text-muted-foreground font-medium text-xs">載入數據中...</p>
                         </div>
                     </div>
                 ) : (
@@ -480,23 +486,23 @@ function GeneralConfig({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* 左側：Vercel Cron 健康狀態與手動觸發 */}
             <div className="lg:col-span-5 space-y-6">
-                <Card className="arena-card p-5 sm:p-6 space-y-5 overflow-hidden">
+                <Card className="bg-card border border-border rounded-2xl shadow-xs p-5 sm:p-6 space-y-5 overflow-hidden">
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
                                 <Activity size={18} className="text-sapphire-blue shrink-0" aria-hidden="true" />
-                                <h3 className="text-lg font-display font-black text-foreground">
+                                <h3 className="text-lg font-display font-bold text-foreground">
                                     Vercel Cron 排程監控
                                 </h3>
                             </div>
-                            <p className="text-xs font-bold text-muted-foreground mt-1">
+                            <p className="text-xs font-medium text-muted-foreground mt-1">
                                 排程週期：{cronStatus?.cron_schedule_label || '每日 04:00 (台灣時間)'}
                             </p>
                         </div>
 
                         <span
                             className={cn(
-                                'px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 inline-flex items-center gap-1',
+                                'px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 inline-flex items-center gap-1',
                                 cronStatus?.cron_test_mode
                                     ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
                                     : summary?.status === 'partial_error'
@@ -523,20 +529,20 @@ function GeneralConfig({
                     </div>
 
                     {cronStatus && !cronStatus.cron_secret_configured && (
-                        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-500/12 border border-amber-200/80 dark:border-amber-500/30 p-3.5 text-xs font-bold text-amber-800 dark:text-amber-200 leading-relaxed">
-                            尚未偵測到環境變數 <code className="font-mono font-black">CRON_SECRET</code>。部署於 Vercel 時建議設定此變數，Vercel Cron 每日觸發才能順利通過驗證。
+                        <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-500/12 border border-amber-200/80 dark:border-amber-500/30 p-3.5 text-xs font-medium text-amber-800 dark:text-amber-200 leading-relaxed">
+                            尚未偵測到環境變數 <code className="font-mono font-semibold">CRON_SECRET</code>。部署於 Vercel 時建議設定此變數，Vercel Cron 每日觸發才能順利通過驗證。
                         </div>
                     )}
 
                     {/* Pending Backlog & Last Run Info */}
                     <div className="grid grid-cols-2 gap-2.5">
                         <div className="rounded-2xl bg-surface-subtle/85 border border-border p-3.5">
-                            <p className="text-[11px] font-bold text-muted-foreground">待確認比賽（已超時）</p>
-                            <p className="text-xl font-display font-black text-foreground tabular-nums mt-1">
+                            <p className="text-xs font-medium text-muted-foreground">待確認比賽（已超時）</p>
+                            <p className="text-xl font-display font-bold text-foreground tabular-nums mt-1">
                                 {cronStatus?.pending_total_count ?? 0}
                                 <span
                                     className={cn(
-                                        'text-xs ml-1.5',
+                                        'text-xs font-medium ml-1.5',
                                         (cronStatus?.pending_overdue_count ?? 0) > 0
                                             ? 'text-smash-orange'
                                             : 'text-muted-foreground'
@@ -548,14 +554,14 @@ function GeneralConfig({
                         </div>
 
                         <div className="rounded-2xl bg-surface-subtle/85 border border-border p-3.5">
-                            <p className="text-[11px] font-bold text-muted-foreground">最近執行時間</p>
-                            <p className="text-sm font-display font-black text-foreground tabular-nums mt-1.5 truncate">
+                            <p className="text-xs font-medium text-muted-foreground">最近執行時間</p>
+                            <p className="text-sm font-display font-bold text-foreground tabular-nums mt-1.5 truncate">
                                 {cronStatus?.last_run_at
                                     ? formatLocalTime(cronStatus.last_run_at, 'MM/dd HH:mm')
                                     : '無執行紀錄'}
                             </p>
                             {summary && (
-                                <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                                <p className="text-xs font-medium text-muted-foreground mt-0.5">
                                     {summary.trigger === 'manual' ? '管理員手動' : 'Vercel 自動'} · {summary.duration_ms}ms
                                 </p>
                             )}
@@ -564,10 +570,10 @@ function GeneralConfig({
 
                     {summary && summary.tasks_run.length > 0 && (
                         <div className="rounded-2xl bg-surface-subtle/70 border border-border/80 p-3.5 space-y-1.5">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                            <p className="text-xs font-semibold text-muted-foreground">
                                 最近一次執行摘要
                             </p>
-                            <ul className="space-y-1 text-xs font-bold text-foreground/90">
+                            <ul className="space-y-1 text-xs font-medium text-foreground/90">
                                 {summary.tasks_run.map((line, i) => (
                                     <li key={i} className="flex items-start gap-1.5">
                                         <span className="text-sapphire-blue mt-0.5">•</span>
@@ -584,7 +590,7 @@ function GeneralConfig({
                             type="button"
                             disabled={runCronMutation.isPending}
                             onClick={() => runCronMutation.mutate()}
-                            className="w-full h-11 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs sm:text-sm gap-2"
+                            className="w-full min-h-11 py-2 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-xs sm:text-sm gap-2"
                         >
                             {runCronMutation.isPending ? (
                                 <Loader2 size={15} className="animate-spin" aria-hidden="true" />
@@ -601,7 +607,7 @@ function GeneralConfig({
                                 setDecayModalOpen(true);
                                 if (decayModalOpen) refetchDecayPreview();
                             }}
-                            className="w-full h-11 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-display font-black text-xs sm:text-sm gap-2"
+                            className="w-full min-h-11 py-2 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-display font-semibold text-xs sm:text-sm gap-2"
                         >
                             <Clock size={15} className="text-smash-orange" aria-hidden="true" />
                             預覽／執行衰退
@@ -610,19 +616,19 @@ function GeneralConfig({
                 </Card>
 
                 <Card className="p-5 sm:p-6 border border-blue-200/80 dark:border-blue-500/25 bg-sapphire-blue/[0.06] dark:bg-blue-500/10 rounded-2xl md:rounded-3xl space-y-2.5">
-                    <h4 className="text-sm font-display font-black text-foreground flex items-center gap-2">
+                    <h4 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
                         <Sparkles size={15} className="text-sapphire-blue" aria-hidden="true" />
                         排程運作架構說明
                     </h4>
-                    <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Vercel 每日 04:00 僅負責「<strong>超時未確認比賽自動結算</strong>」與「<strong>選配之久未出賽衰退扣分</strong>」。賽季名稱、開始與結束完全由管理員於「<strong>賽季與獎品</strong>」分頁手動掌控，不再被排程半夜覆蓋或偷偷重置積分。
+                    <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                        Vercel 每日 04:00 僅負責「<strong className="font-semibold text-foreground">超時未確認比賽自動結算</strong>」與「<strong className="font-semibold text-foreground">選配之久未出賽衰退扣分</strong>」。賽季名稱、開始與結束完全由管理員於「<strong className="font-semibold text-foreground">賽季與獎品</strong>」分頁手動掌控，不再被排程半夜覆蓋或偷偷重置積分。
                     </p>
                 </Card>
             </div>
 
             {/* 右側：規則開關與參數表單 */}
-            <Card className="lg:col-span-7 arena-card p-5 sm:p-7 space-y-6">
-                <h3 className="text-lg sm:text-xl font-display font-black text-foreground flex items-center gap-2.5">
+            <Card className="lg:col-span-7 bg-card border border-border rounded-2xl shadow-xs p-5 sm:p-7 space-y-6">
+                <h3 className="text-lg sm:text-xl font-display font-bold text-foreground flex items-center gap-2.5">
                     <Sliders className="text-sapphire-blue" size={20} aria-hidden="true" />
                     賽事與積分規則開關
                 </h3>
@@ -631,7 +637,7 @@ function GeneralConfig({
                 <div className="space-y-3">
                     <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
                         <div className="min-w-0">
-                            <p className="font-bold text-sm text-foreground">暫停積分申報</p>
+                            <p className="font-semibold text-sm text-foreground">暫停積分申報</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 開啟後全站暫時停止發起新的報分（既有待確認比賽仍可完成）
                             </p>
@@ -657,7 +663,7 @@ function GeneralConfig({
 
                     <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
                         <div className="min-w-0">
-                            <p className="font-bold text-sm text-foreground">賽季到期自動鎖定新報分</p>
+                            <p className="font-semibold text-sm text-foreground">賽季到期自動鎖定新報分</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 超過賽季結束時刻後鎖定新增報分以確保榜單公平，但放行舊比賽確認直到管理員正式結算
                             </p>
@@ -683,7 +689,7 @@ function GeneralConfig({
 
                     <div className="flex items-center justify-between gap-4 p-4 bg-surface-subtle/80 rounded-2xl border border-border">
                         <div className="min-w-0">
-                            <p className="font-bold text-sm text-foreground">啟用久未出賽惰性衰退</p>
+                            <p className="font-semibold text-sm text-foreground">啟用久未出賽惰性衰退</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 開啟後，Cron 每日檢查並對超過指定天數未出賽的活躍同仁自動扣分
                             </p>
@@ -755,7 +761,7 @@ function GeneralConfig({
 
                         <div>
                             <label htmlFor={decayAmountId} className="arena-label text-muted-foreground">
-                                每次衰退扣除 ELO 分數
+                                每次衰退扣除積分
                             </label>
                             <input
                                 id={decayAmountId}
@@ -772,7 +778,7 @@ function GeneralConfig({
                     <Button
                         type="submit"
                         disabled={saving}
-                        className="w-full h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground border-none shadow-sm font-display font-black text-sm tracking-wide transition-all"
+                        className="w-full min-h-11 py-2 rounded-xl bg-primary hover:opacity-90 text-primary-foreground border-none shadow-sm font-display font-semibold text-sm transition-all"
                     >
                         {saving ? (
                             <Loader2 className="animate-spin mr-2" size={18} aria-hidden="true" />
@@ -791,7 +797,7 @@ function GeneralConfig({
                 size="md"
                 icon={<Clock size={18} />}
                 title="惰性衰退預覽與執行"
-                description="先預覽符合條件的扣分名單，確認無誤後才實際扣除 ELO"
+                description="先預覽符合條件的扣分名單，確認無誤後才實際扣除積分"
                 onSubmit={(e) => {
                     e.preventDefault();
                     triggerDecayMutation.mutate();
@@ -802,7 +808,7 @@ function GeneralConfig({
                             type="button"
                             variant="outline"
                             onClick={() => setDecayModalOpen(false)}
-                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                            className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold"
                         >
                             取消
                         </Button>
@@ -813,7 +819,7 @@ function GeneralConfig({
                                 isPreviewFetching ||
                                 (decayPreview?.affected_count ?? 0) === 0
                             }
-                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-smash-orange hover:bg-orange-600 text-white font-display font-black text-sm"
+                            className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-smash-orange hover:bg-orange-600 text-white font-display font-semibold text-sm"
                         >
                             {triggerDecayMutation.isPending
                                 ? '執行扣分中...'
@@ -824,19 +830,19 @@ function GeneralConfig({
             >
                 <div className="space-y-4">
                     {isPreviewFetching ? (
-                        <div className="py-10 flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+                        <div className="py-10 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
                             <Loader2 size={16} className="animate-spin text-sapphire-blue" />
                             <span>試算衰退名單中...</span>
                         </div>
                     ) : decayPreview ? (
                         <>
-                            <div className="rounded-2xl bg-surface-subtle border border-border p-3.5 text-xs font-bold text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+                            <div className="rounded-2xl bg-surface-subtle border border-border p-3.5 text-xs font-medium text-muted-foreground flex flex-wrap items-center justify-between gap-2">
                                 <span>
                                     目前門檻：閒置滿 {decayPreview.threshold}{' '}
                                     {decayPreview.time_unit === 'minutes' ? '分鐘' : '天'} · 每次扣{' '}
-                                    <strong className="text-foreground">{decayPreview.amount}</strong> 分
+                                    <strong className="font-semibold text-foreground">{decayPreview.amount}</strong> 分
                                 </span>
-                                <span className="px-2 py-0.5 rounded-full bg-card border border-border text-foreground font-black">
+                                <span className="px-2 py-0.5 rounded-full bg-card border border-border text-foreground font-semibold">
                                     受影響：{decayPreview.affected_count} 人
                                 </span>
                             </div>
@@ -855,20 +861,20 @@ function GeneralConfig({
                                                     className="size-9 rounded-xl text-xs shrink-0"
                                                 />
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-display font-black text-foreground truncate">
+                                                    <p className="text-sm font-display font-bold text-foreground truncate">
                                                         {u.name}
                                                     </p>
-                                                    <p className="text-[11px] font-bold text-muted-foreground truncate">
+                                                    <p className="text-xs font-medium text-muted-foreground truncate">
                                                         已閒置 {u.inactive_value}{' '}
                                                         {decayPreview.time_unit === 'minutes' ? '分鐘' : '天'}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0 tabular-nums">
-                                                <p className="text-xs font-display font-black text-rose-500">
+                                                <p className="text-xs font-display font-semibold text-rose-500">
                                                     -{u.deduction} 分
                                                 </p>
-                                                <p className="text-[11px] font-bold text-muted-foreground">
+                                                <p className="text-xs font-medium text-muted-foreground">
                                                     {u.current_mmr} → {u.projected_mmr}
                                                 </p>
                                             </div>
@@ -876,7 +882,7 @@ function GeneralConfig({
                                     ))}
                                 </div>
                             ) : (
-                                <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs font-bold text-muted-foreground">
+                                <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs font-medium text-muted-foreground">
                                     目前所有近期有出賽紀錄的球友皆活躍中，無符合衰退門檻的名單。
                                 </div>
                             )}
@@ -933,7 +939,7 @@ function SeasonAndPrizeManager({
                     '名次',
                     '選手姓名',
                     '所屬單位',
-                    s.status === 'completed' ? '最終 ELO' : '目前 ELO',
+                    s.status === 'completed' ? '最終積分' : '目前積分',
                     '出賽場次',
                     '勝場',
                     '敗場',
@@ -975,13 +981,13 @@ function SeasonAndPrizeManager({
         <div className="space-y-8">
             {/* 1. Active Season Spotlight OR Off-Season Start Card */}
             {activeSeason ? (
-                <Card className="arena-hero-surface rounded-2xl md:rounded-3xl p-5 sm:p-6 border border-blue-200/85 dark:border-slate-700/80 shadow-sm space-y-5">
+                <Card className="bg-card border border-sapphire-blue/30 dark:border-blue-400/35 rounded-2xl md:rounded-3xl p-5 sm:p-6 shadow-xs space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1.5 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span
                                     className={cn(
-                                        'px-2.5 py-0.5 rounded-full text-xs font-black',
+                                        'px-2.5 py-0.5 rounded-full text-xs font-semibold',
                                         activeSeason.is_expired
                                             ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40'
                                             : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
@@ -989,14 +995,14 @@ function SeasonAndPrizeManager({
                                 >
                                     {activeSeason.is_expired ? '已達截止日 · 待管理員結算' : '進行中賽季'}
                                 </span>
-                                <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                                <span className="text-xs font-medium text-muted-foreground tabular-nums">
                                     代號 {activeSeason.id}
                                 </span>
                             </div>
-                            <h3 className="text-xl sm:text-2xl font-display font-black text-foreground truncate">
+                            <h3 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">
                                 {activeSeason.name}
                             </h3>
-                            <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                            <p className="text-xs font-medium text-muted-foreground tabular-nums">
                                 期間：
                                 {activeSeason.start_date
                                     ? formatLocalTime(activeSeason.start_date, 'yyyy/MM/dd HH:mm')
@@ -1014,7 +1020,7 @@ function SeasonAndPrizeManager({
                                 variant="outline"
                                 disabled={exportingSeasonId === activeSeason.id}
                                 onClick={() => handleExportStandingsCsv(activeSeason)}
-                                className="h-11 px-3.5 rounded-xl bg-card border-border text-foreground font-display font-black text-xs sm:text-sm gap-1.5"
+                                className="min-h-11 py-2 px-3.5 rounded-xl bg-card border-border text-foreground font-display font-semibold text-xs sm:text-sm gap-1.5"
                             >
                                 {exportingSeasonId === activeSeason.id ? (
                                     <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -1027,7 +1033,7 @@ function SeasonAndPrizeManager({
                                 type="button"
                                 variant="outline"
                                 onClick={() => setEditingSeason(activeSeason)}
-                                className="h-11 px-4 rounded-xl bg-card border-border text-foreground font-display font-black text-xs sm:text-sm gap-1.5"
+                                className="min-h-11 py-2 px-4 rounded-xl bg-card border-border text-foreground font-display font-semibold text-xs sm:text-sm gap-1.5"
                             >
                                 <Edit size={15} aria-hidden="true" />
                                 編輯起訖
@@ -1035,7 +1041,7 @@ function SeasonAndPrizeManager({
                             <Button
                                 type="button"
                                 onClick={() => setRolloverModalOpen(true)}
-                                className="h-11 px-5 rounded-xl bg-gradient-to-r from-sapphire-blue to-blue-700 text-white font-display font-black text-xs sm:text-sm shadow-sm gap-1.5"
+                                className="min-h-11 py-2 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-xs sm:text-sm shadow-xs gap-1.5"
                             >
                                 <Trophy size={15} aria-hidden="true" />
                                 結算並開啟新季
@@ -1044,25 +1050,25 @@ function SeasonAndPrizeManager({
                     </div>
 
                     {/* KPI & Top 3 Preview Strip */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-3 border-t border-blue-200/60 dark:border-white/10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-3 border-t border-border/70">
                         <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
-                                <p className="text-[11px] font-bold text-muted-foreground">參賽人數</p>
-                                <p className="text-xl font-display font-black text-foreground tabular-nums mt-0.5">
+                            <div className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 text-center">
+                                <p className="text-xs font-medium text-muted-foreground">參賽人數</p>
+                                <p className="text-xl font-display font-bold text-foreground tabular-nums mt-0.5">
                                     {activeSeason.participants_count}
                                 </p>
                             </div>
-                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
-                                <p className="text-[11px] font-bold text-muted-foreground">已結算場</p>
-                                <p className="text-xl font-display font-black text-foreground tabular-nums mt-0.5">
+                            <div className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 text-center">
+                                <p className="text-xs font-medium text-muted-foreground">已結算場</p>
+                                <p className="text-xl font-display font-bold text-foreground tabular-nums mt-0.5">
                                     {activeSeason.total_matches}
                                 </p>
                             </div>
-                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
-                                <p className="text-[11px] font-bold text-muted-foreground">待確認</p>
+                            <div className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 text-center">
+                                <p className="text-xs font-medium text-muted-foreground">待確認</p>
                                 <p
                                     className={cn(
-                                        'text-xl font-display font-black tabular-nums mt-0.5',
+                                        'text-xl font-display font-bold tabular-nums mt-0.5',
                                         activeSeason.pending_matches > 0
                                             ? 'text-smash-orange'
                                             : 'text-foreground'
@@ -1071,11 +1077,11 @@ function SeasonAndPrizeManager({
                                     {activeSeason.pending_matches}
                                 </p>
                             </div>
-                            <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 text-center">
-                                <p className="text-[11px] font-bold text-muted-foreground">申訴中</p>
+                            <div className="rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 text-center">
+                                <p className="text-xs font-medium text-muted-foreground">申訴中</p>
                                 <p
                                     className={cn(
-                                        'text-xl font-display font-black tabular-nums mt-0.5',
+                                        'text-xl font-display font-bold tabular-nums mt-0.5',
                                         (activeSeason.disputed_matches ?? 0) > 0
                                             ? 'text-rose-600 dark:text-rose-400'
                                             : 'text-foreground'
@@ -1086,38 +1092,38 @@ function SeasonAndPrizeManager({
                             </div>
                         </div>
 
-                        <div className="lg:col-span-6 rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-blue-100/80 dark:border-white/10 p-3 flex flex-col justify-center">
-                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider mb-2">
-                                目前頒獎台前三強
+                        <div className="lg:col-span-6 rounded-2xl bg-surface-subtle/80 border border-border/80 p-3 flex flex-col justify-center">
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                目前領先群前三名
                             </p>
                             {activeSeason.top3.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     {activeSeason.top3.map((p, idx) => (
                                         <div
                                             key={p.player_id}
-                                            className="flex items-center gap-2 min-w-0 rounded-xl bg-surface-subtle/80 px-2.5 py-1.5 border border-border/60"
+                                            className="flex items-center gap-2 min-w-0 rounded-xl bg-card px-2.5 py-1.5 border border-border/80"
                                         >
-                                            <span className="text-xs font-display font-black text-olympic-gold shrink-0">
+                                            <span className="text-xs font-display font-bold text-olympic-gold shrink-0">
                                                 #{idx + 1}
                                             </span>
                                             <PlayerAvatar
                                                 src={p.avatar_url}
                                                 name={p.player_name}
-                                                className="size-7 rounded-lg text-[10px] shrink-0"
+                                                className="size-7 rounded-lg text-xs shrink-0"
                                             />
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-xs font-black text-foreground truncate">
+                                                <p className="text-xs font-semibold text-foreground truncate">
                                                     {p.player_name}
                                                 </p>
-                                                <p className="text-[10px] font-bold text-muted-foreground tabular-nums">
-                                                    {p.global_mmr} ELO
+                                                <p className="text-xs font-medium text-muted-foreground tabular-nums">
+                                                    {p.global_mmr} 分
                                                 </p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs font-bold text-muted-foreground">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     尚無本季完賽紀錄
                                 </p>
                             )}
@@ -1125,22 +1131,22 @@ function SeasonAndPrizeManager({
                     </div>
                 </Card>
             ) : (
-                <Card className="arena-surface rounded-2xl md:rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-dashed">
+                <Card className="bg-card border border-border border-dashed rounded-2xl md:rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-xs font-black text-muted-foreground">
+                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-xs font-semibold text-muted-foreground">
                             目前為休賽季
                         </span>
-                        <h3 className="text-xl font-display font-black text-foreground">
+                        <h3 className="text-xl font-display font-bold text-foreground">
                             尚未有進行中的賽季
                         </h3>
-                        <p className="text-xs font-bold text-muted-foreground">
+                        <p className="text-xs font-medium text-muted-foreground">
                             可手動建立並啟動新賽季，自訂賽季名稱與預計結束時間。
                         </p>
                     </div>
                     <Button
                         type="button"
                         onClick={() => setCreateModalOpen(true)}
-                        className="h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-2 shrink-0"
+                        className="min-h-11 py-2 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm gap-2 shrink-0"
                     >
                         <Plus size={16} aria-hidden="true" />
                         建立並啟動新賽季
@@ -1152,7 +1158,7 @@ function SeasonAndPrizeManager({
             {seasons.length > 0 && (
                 <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="text-base sm:text-lg font-display font-black text-foreground">
+                        <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
                             所有賽季歷程 ({seasons.length})
                         </h3>
                     </div>
@@ -1161,14 +1167,14 @@ function SeasonAndPrizeManager({
                         {seasons.map((s) => (
                             <Card
                                 key={s.id}
-                                className="arena-card p-4 flex flex-col justify-between gap-3.5"
+                                className="bg-card border border-border rounded-2xl shadow-xs p-4 flex flex-col justify-between gap-3.5"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 space-y-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span
                                                 className={cn(
-                                                    'px-2 py-0.5 rounded-full text-[11px] font-black',
+                                                    'px-2 py-0.5 rounded-full text-xs font-semibold',
                                                     s.status === 'active'
                                                         ? s.is_expired
                                                             ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
@@ -1182,14 +1188,14 @@ function SeasonAndPrizeManager({
                                                         : '進行中'
                                                     : '已結算'}
                                             </span>
-                                            <span className="text-[11px] font-bold text-muted-foreground">
+                                            <span className="text-xs font-medium text-muted-foreground">
                                                 {s.id} · {s.participants_count} 人 · {s.total_matches} 場
                                             </span>
                                         </div>
-                                        <h4 className="text-base font-display font-black text-foreground truncate">
+                                        <h4 className="text-base font-display font-bold text-foreground truncate">
                                             {s.name}
                                         </h4>
-                                        <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                                        <p className="text-xs font-medium text-muted-foreground tabular-nums">
                                             {s.start_date
                                                 ? formatLocalTime(s.start_date, 'yyyy/MM/dd')
                                                 : '—'}
@@ -1206,7 +1212,7 @@ function SeasonAndPrizeManager({
                                         type="button"
                                         variant="outline"
                                         onClick={() => setEditingSeason(s)}
-                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
+                                        className="min-h-10 py-1.5 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-semibold gap-1"
                                     >
                                         <Edit size={13} aria-hidden="true" />
                                         起訖
@@ -1215,7 +1221,7 @@ function SeasonAndPrizeManager({
                                         type="button"
                                         variant="outline"
                                         onClick={() => jumpToPrizes(s.id)}
-                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
+                                        className="min-h-10 py-1.5 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-semibold gap-1"
                                     >
                                         <Trophy size={13} className="text-olympic-gold" aria-hidden="true" />
                                         獎品 ({s.prizes_count})
@@ -1225,7 +1231,7 @@ function SeasonAndPrizeManager({
                                         variant="outline"
                                         disabled={exportingSeasonId === s.id}
                                         onClick={() => handleExportStandingsCsv(s)}
-                                        className="h-10 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1"
+                                        className="min-h-10 py-1.5 px-2 rounded-xl border-border bg-card hover:bg-secondary text-xs font-semibold gap-1"
                                     >
                                         {exportingSeasonId === s.id ? (
                                             <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -1314,13 +1320,13 @@ function SeasonDurationQuickBar({
 
     return (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-bold text-muted-foreground mr-1">快選區間：</span>
+            <span className="text-xs font-medium text-muted-foreground mr-1">快選區間：</span>
             {[30, 60, 90].map((d) => (
                 <button
                     key={d}
                     type="button"
                     onClick={() => applyDays(d)}
-                    className="h-8 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-black text-foreground transition-colors"
+                    className="min-h-8 py-1 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-semibold text-foreground transition-colors"
                 >
                     +{d} 天
                 </button>
@@ -1328,7 +1334,7 @@ function SeasonDurationQuickBar({
             <button
                 type="button"
                 onClick={onClearEnd}
-                className="h-8 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                className="min-h-8 py-1 px-2.5 rounded-lg bg-secondary hover:bg-card border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
                 設為無期限
             </button>
@@ -1389,14 +1395,14 @@ function SeasonEditModal({
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={mutation.isPending}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm"
                     >
                         {mutation.isPending ? '儲存中...' : '儲存變更'}
                     </Button>
@@ -1507,14 +1513,14 @@ function SeasonCreateModal({
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={mutation.isPending}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm"
                     >
                         {mutation.isPending ? '建立中...' : '立即啟動賽季'}
                     </Button>
@@ -1623,7 +1629,7 @@ function SeasonRolloverModal({
             size="lg"
             icon={<Trophy size={18} />}
             title={`結算賽季「${activeSeason.name}」`}
-            description="將永久封存本季每位選手的最終 ELO 快照"
+            description="將永久封存本季每位選手的最終積分快照"
             onSubmit={(e) => {
                 e.preventDefault();
                 if (disputedCount > 0 && !acknowledgeDisputed) {
@@ -1642,14 +1648,14 @@ function SeasonRolloverModal({
                         type="button"
                         variant="outline"
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={mutation.isPending || (disputedCount > 0 && !acknowledgeDisputed)}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5 disabled:opacity-45"
+                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm gap-1.5 disabled:opacity-45"
                     >
                         <span>
                             {mutation.isPending
@@ -1666,18 +1672,18 @@ function SeasonRolloverModal({
             <div className="space-y-4">
                 {/* Severe Guardrail: Disputed Matches */}
                 {disputedCount > 0 && (
-                    <div className="rounded-2xl bg-rose-50/90 dark:bg-rose-500/15 border border-rose-300/80 dark:border-rose-500/35 p-4 space-y-2.5 text-xs font-bold text-rose-800 dark:text-rose-200">
+                    <div className="rounded-2xl bg-rose-50/90 dark:bg-rose-500/15 border border-rose-300/80 dark:border-rose-500/35 p-4 space-y-2.5 text-xs font-medium text-rose-800 dark:text-rose-200">
                         <div className="flex items-start justify-between gap-2.5">
                             <div className="flex items-start gap-2">
                                 <AlertTriangle size={16} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" aria-hidden="true" />
                                 <p className="leading-relaxed">
-                                    本季尚有 <strong>{disputedCount} 場「爭議申訴中」對戰</strong>尚未裁決！若此時直接結算，爭議場次不會納入積分且將永久封存現行名次。
+                                    本季尚有 <strong className="font-semibold">{disputedCount} 場「爭議申訴中」對戰</strong>尚未裁決！若此時直接結算，爭議場次不會納入積分且將永久封存現行名次。
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => onNavigateToMatches('disputed')}
-                                className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] shrink-0 whitespace-nowrap transition-colors"
+                                className="min-h-8 px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shrink-0 whitespace-nowrap transition-colors"
                             >
                                 前往裁決台 →
                             </button>
@@ -1690,7 +1696,7 @@ function SeasonRolloverModal({
                                 onChange={(e) => setAcknowledgeDisputed(e.target.checked)}
                                 className="size-4 rounded accent-rose-600"
                             />
-                            <span className="font-black text-rose-700 dark:text-rose-200">
+                            <span className="font-semibold text-rose-700 dark:text-rose-200">
                                 我已確認略過上述未決爭議場次，強制封存本季最終排名
                             </span>
                         </label>
@@ -1699,17 +1705,17 @@ function SeasonRolloverModal({
 
                 {/* Pending Match Guardrail Alert */}
                 {activeSeason.pending_matches > 0 && (
-                    <div className="rounded-2xl bg-amber-50/85 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-500/35 p-3.5 flex items-start justify-between gap-2.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                    <div className="rounded-2xl bg-amber-50/85 dark:bg-amber-500/15 border border-amber-300/80 dark:border-amber-500/35 p-3.5 flex items-start justify-between gap-2.5 text-xs font-medium text-amber-800 dark:text-amber-200">
                         <div className="flex items-start gap-2">
                             <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
                             <span>
-                                本季尚有 <strong>{activeSeason.pending_matches} 場「待確認」比賽</strong>尚未結算，建議先請對手確認或於裁決台／排程自動確認後再結算。
+                                本季尚有 <strong className="font-semibold">{activeSeason.pending_matches} 場「待確認」比賽</strong>尚未結算，建議先請對手確認或於裁決台／排程自動確認後再結算。
                             </span>
                         </div>
                         <button
                             type="button"
                             onClick={() => onNavigateToMatches('pending')}
-                            className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] shrink-0 whitespace-nowrap transition-colors"
+                            className="min-h-8 px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shrink-0 whitespace-nowrap transition-colors"
                         >
                             前往處理 →
                         </button>
@@ -1719,7 +1725,7 @@ function SeasonRolloverModal({
                 {/* Final Top 3 Preview */}
                 {activeSeason.top3.length > 0 && (
                     <div className="rounded-2xl bg-surface-subtle/80 border border-border p-3.5 space-y-2">
-                        <p className="text-xs font-black text-muted-foreground">
+                        <p className="text-xs font-semibold text-muted-foreground">
                             即將封存之本季最終前三名
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1728,13 +1734,13 @@ function SeasonRolloverModal({
                                     key={p.player_id}
                                     className="rounded-xl bg-card border border-border px-3 py-2 flex items-center gap-2 min-w-0"
                                 >
-                                    <span className="text-xs font-display font-black text-olympic-gold">
+                                    <span className="text-xs font-display font-bold text-olympic-gold">
                                         #{idx + 1}
                                     </span>
-                                    <span className="text-xs font-black text-foreground truncate flex-1">
+                                    <span className="text-xs font-semibold text-foreground truncate flex-1">
                                         {p.player_name}
                                     </span>
-                                    <span className="text-xs font-display font-black tabular-nums text-muted-foreground">
+                                    <span className="text-xs font-display font-semibold tabular-nums text-muted-foreground">
                                         {p.global_mmr}
                                     </span>
                                 </div>
@@ -1746,9 +1752,9 @@ function SeasonRolloverModal({
                 {/* Soft Reset Toggle */}
                 <div className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-surface-subtle/80 border border-border">
                     <div className="min-w-0">
-                        <p className="text-sm font-bold text-foreground">執行賽季 ELO 軟重置</p>
+                        <p className="text-sm font-semibold text-foreground">執行賽季積分軟重置</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            結算後將活躍球友積分向基準 1000 分收斂：(目前 ELO + 1000) ÷ 2
+                            結算後將活躍球友積分向基準 1000 分收斂：(目前積分 + 1000) ÷ 2
                         </p>
                     </div>
                     <button
@@ -1913,8 +1919,8 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
             {/* Header / New Button */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
-                    <h3 className="text-xl sm:text-2xl font-black text-foreground">公告管理</h3>
-                    <p className="text-xs text-muted-foreground font-bold tracking-wide">系統、社團與賽事即時資訊發布</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-foreground">公告管理</h3>
+                    <p className="text-xs text-muted-foreground font-medium">系統、社團與賽事即時資訊發布</p>
                 </div>
                 <Button
                     type="button"
@@ -1923,7 +1929,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                         setFormData({ title: '', content: '', link_text: '', link_url: '', type: 'system', is_active: true });
                         setIsAdding(true);
                     }}
-                    className="h-11 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white transition-all shadow-sm flex items-center gap-2 font-black text-sm"
+                    className="min-h-11 py-2 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white transition-all shadow-sm flex items-center gap-2 font-semibold text-sm"
                 >
                     <Plus size={17} aria-hidden="true" /> 新增公告
                 </Button>
@@ -1934,20 +1940,20 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                 {announcements.map(ann => {
                     const badge = getTypeBadge(ann.type || 'system');
                     return (
-                        <Card key={ann.id} className="arena-card p-4 sm:p-6 flex flex-col gap-4">
+                        <Card key={ann.id} className="bg-card border border-border rounded-2xl shadow-xs p-4 sm:p-6 flex flex-col gap-4">
                             <div className="space-y-1.5 w-full">
                                 <div className="flex items-center gap-2.5 flex-wrap">
                                     <h4 className="font-bold text-base md:text-lg text-foreground truncate">{ann.title}</h4>
-                                    <span className={cn("px-2.5 py-0.5 text-xs font-black rounded-md", badge.bg, badge.text)}>
+                                    <span className={cn("px-2.5 py-0.5 text-xs font-semibold rounded-md", badge.bg, badge.text)}>
                                         {badge.label}
                                     </span>
                                     {!ann.is_active && (
-                                        <span className="px-2 py-0.5 bg-secondary text-muted-foreground text-xs font-black rounded-md">已下架</span>
+                                        <span className="px-2 py-0.5 bg-secondary text-muted-foreground text-xs font-semibold rounded-md">已下架</span>
                                     )}
                                 </div>
                                 <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{ann.content}</p>
                                 {ann.link_url && (
-                                    <div className="flex items-center gap-2 text-xs font-bold text-sapphire-blue pt-1">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-sapphire-blue pt-1">
                                         <ExternalLink size={12} aria-hidden="true" />
                                         {ann.link_text || '連結'} : <span className="opacity-70 truncate">{ann.link_url}</span>
                                     </div>
@@ -1957,7 +1963,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                                 <button
                                     type="button"
                                     onClick={() => handleEdit(ann)}
-                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 dark:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
+                                    className="flex items-center gap-1.5 min-h-9 px-3.5 py-2 text-xs font-semibold text-sapphire-blue bg-sapphire-blue/5 hover:bg-sapphire-blue/10 dark:text-blue-300 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
                                 >
                                     <Edit size={14} aria-hidden="true" />
                                     <span>編輯</span>
@@ -1965,7 +1971,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                                 <button
                                     type="button"
                                     onClick={() => setDeletingAnn(ann)}
-                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:text-rose-300 dark:bg-rose-500/12 dark:hover:bg-rose-500/20 rounded-xl transition-colors"
+                                    className="flex items-center gap-1.5 min-h-9 px-3.5 py-2 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:text-rose-300 dark:bg-rose-500/12 dark:hover:bg-rose-500/20 rounded-xl transition-colors"
                                 >
                                     <Trash2 size={14} aria-hidden="true" />
                                     <span>刪除</span>
@@ -1976,7 +1982,7 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                 })}
 
                 {announcements.length === 0 && (
-                    <div className="py-20 text-center text-muted-foreground bg-surface-subtle/50 rounded-3xl border border-dashed border-border">
+                    <div className="py-20 text-center text-muted-foreground bg-card rounded-2xl border border-dashed border-border text-sm font-medium">
                         目前沒有任何公開公告
                     </div>
                 )}
@@ -2015,14 +2021,14 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingAnn(null)}
-                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                            className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                         >
                             取消
                         </Button>
                         <Button
                             type="submit"
                             disabled={deleteMutation.isPending}
-                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
+                            className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-semibold text-sm shadow-sm"
                         >
                             {deleteMutation.isPending ? '刪除中...' : '確認刪除'}
                         </Button>
@@ -2031,8 +2037,8 @@ function AnnouncementManager({ announcements, onUpdate }: { announcements: Annou
             >
                 {deletingAnn && (
                     <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4 space-y-1">
-                        <p className="text-sm font-black text-foreground">{deletingAnn.title}</p>
-                        <p className="text-xs text-rose-700 dark:text-rose-300 font-bold">刪除後將立即從戰情室公告欄移除，無法復原。</p>
+                        <p className="text-sm font-semibold text-foreground">{deletingAnn.title}</p>
+                        <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">刪除後將立即從戰情室公告欄移除，無法復原。</p>
                     </div>
                 )}
             </ResponsiveFormModal>
@@ -2074,7 +2080,7 @@ function AnnouncementFormContent({
                                 aria-pressed={isSelected}
                                 onClick={() => onChange({ ...data, type: t })}
                                 className={cn(
-                                    "min-h-11 px-2 rounded-xl border transition-all text-xs font-black flex items-center justify-center",
+                                    "min-h-11 px-2 py-2 rounded-xl border transition-all text-xs font-semibold flex items-center justify-center",
                                     isSelected
                                         ? cn(badge.bg, "border-current shadow-xs", badge.text)
                                         : "bg-card border-input text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -2204,14 +2210,14 @@ function ResponsiveAnnouncementModal({
                         variant="outline"
                         disabled={isSaving}
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={isSaving || !data.title.trim()}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm shadow-sm disabled:opacity-40"
+                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm shadow-sm disabled:opacity-40"
                     >
                         {isSaving ? '處理中...' : isEditing ? '儲存變更' : '確認發布'}
                     </Button>
@@ -2286,7 +2292,7 @@ function PrizeManager({
         <div className="space-y-6">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-black text-foreground">賽季獎勵設置</h3>
+                    <h3 className="text-xl font-bold text-foreground">賽季獎勵設置</h3>
                     <p className="text-sm text-muted-foreground mt-1">選定具體賽季並設置對應的名次或特殊獎勵</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
@@ -2313,7 +2319,7 @@ function PrizeManager({
                             type="button"
                             variant="outline"
                             onClick={() => setCopyModalOpen(true)}
-                            className="h-11 px-4 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs sm:text-sm gap-1.5"
+                            className="min-h-11 py-2 px-4 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-semibold text-xs sm:text-sm gap-1.5"
                         >
                             <Copy size={15} aria-hidden="true" />
                             <span>從其他季複製</span>
@@ -2322,7 +2328,7 @@ function PrizeManager({
                     <Button
                         type="button"
                         onClick={() => setExtraPrizes([...extraPrizes, { rank: 0, item_name: '', quantity: 1 }])}
-                        className="h-11 px-5 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-black text-sm"
+                        className="min-h-11 py-2 px-5 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-semibold text-sm"
                     >
                         <Plus size={17} className="mr-1.5" aria-hidden="true" /> 新增特殊獎項
                     </Button>
@@ -2403,14 +2409,14 @@ function PrizeManager({
                             variant="outline"
                             disabled={deleteMutation.isPending}
                             onClick={() => setDeletingPrizeId(null)}
-                            className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                            className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                         >
                             取消
                         </Button>
                         <Button
                             type="submit"
                             disabled={deleteMutation.isPending}
-                            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm shadow-sm"
+                            className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-semibold text-sm shadow-sm"
                         >
                             {deleteMutation.isPending ? '刪除中...' : '確認刪除'}
                         </Button>
@@ -2418,7 +2424,7 @@ function PrizeManager({
                 }
             >
                 <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4">
-                    <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-relaxed">
+                    <p className="text-xs font-medium text-rose-700 dark:text-rose-300 leading-relaxed">
                         確認後將從該賽季獎品展示清單中永久刪除，無法復原。
                     </p>
                 </div>
@@ -2486,14 +2492,14 @@ function CopyPrizesModal({
                         variant="outline"
                         disabled={copyMutation.isPending}
                         onClick={onClose}
-                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold"
+                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold"
                     >
                         取消
                     </Button>
                     <Button
                         type="submit"
                         disabled={copyMutation.isPending || isSourceLoading || sourcePrizes.length === 0}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5 disabled:opacity-40"
+                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm gap-1.5 disabled:opacity-40"
                     >
                         <Copy size={15} aria-hidden="true" />
                         <span>
@@ -2524,16 +2530,16 @@ function CopyPrizesModal({
 
                 {/* Source Prizes Preview */}
                 <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    <p className="text-xs font-semibold text-muted-foreground">
                         來源賽季獎品預覽 ({sourcePrizes.length})
                     </p>
                     {isSourceLoading ? (
-                        <div className="py-6 flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground">
+                        <div className="py-6 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
                             <Loader2 size={14} className="animate-spin text-sapphire-blue" />
                             <span>載入獎品清單中...</span>
                         </div>
                     ) : sourcePrizes.length === 0 ? (
-                        <p className="py-5 text-center text-xs font-bold text-muted-foreground">
+                        <p className="py-5 text-center text-xs font-medium text-muted-foreground">
                             該來源賽季尚未設定任何獎品。
                         </p>
                     ) : (
@@ -2544,14 +2550,14 @@ function CopyPrizesModal({
                                     className="flex items-center justify-between gap-2.5 rounded-xl bg-card border border-border px-3 py-2 text-xs"
                                 >
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-display font-black shrink-0">
+                                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-display font-semibold shrink-0">
                                             {sp.label || (sp.rank > 0 ? `第 ${sp.rank} 名` : '特別獎')}
                                         </span>
-                                        <span className="font-bold text-foreground truncate">
+                                        <span className="font-semibold text-foreground truncate">
                                             {sp.item_name}
                                         </span>
                                     </div>
-                                    <span className="font-display font-black text-muted-foreground tabular-nums shrink-0">
+                                    <span className="font-display font-semibold text-muted-foreground tabular-nums shrink-0">
                                         ×{sp.quantity}
                                     </span>
                                 </div>
@@ -2576,8 +2582,8 @@ function CopyPrizesModal({
                                         : 'border-border bg-card hover:bg-secondary/60'
                                 )}
                             >
-                                <p className="text-xs font-black text-foreground">僅補齊空缺名次</p>
-                                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                <p className="text-xs font-semibold text-foreground">僅補齊空缺名次</p>
+                                <p className="text-xs font-medium text-muted-foreground mt-0.5">
                                     保留既有第 1–3 名，只填入尚未設定的項目
                                 </p>
                             </button>
@@ -2591,8 +2597,8 @@ function CopyPrizesModal({
                                         : 'border-border bg-card hover:bg-secondary/60'
                                 )}
                             >
-                                <p className="text-xs font-black text-foreground">覆蓋取代現有配置</p>
-                                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                <p className="text-xs font-semibold text-foreground">覆蓋取代現有配置</p>
+                                <p className="text-xs font-medium text-muted-foreground mt-0.5">
                                     清空目標賽季現有獎品後完整匯入
                                 </p>
                             </button>
@@ -2640,7 +2646,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
     return (
         <Card className={cn(
-            "arena-card p-6 sm:p-7 relative group",
+            "bg-card border border-border rounded-2xl shadow-xs p-6 sm:p-7 relative group",
             isNew && "ring-2 ring-sapphire-blue ring-offset-2 ring-offset-background"
         )}>
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -2658,7 +2664,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
                 <div className="flex items-center justify-between pr-8">
                     <div className={cn(
-                        "size-11 rounded-2xl flex items-center justify-center font-black text-lg",
+                        "size-11 rounded-2xl flex items-center justify-center font-bold text-lg",
                         isStandard && !label ? (
                             rank === 1 ? "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" :
                                 rank === 2 ? "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200" : "bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300"
@@ -2666,8 +2672,8 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
                     )}>
                         {rank || '★'}
                     </div>
-                    <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                        {displayLabel || `Rank ${rank} Prize`}
+                    <p className="text-xs font-semibold text-muted-foreground">
+                        {displayLabel || `第 ${rank} 名獎項`}
                     </p>
                 </div>
 
@@ -2735,7 +2741,7 @@ function PrizeFormCard({ rank: initialRank, prize, onSave, onDelete, isNew }: {
 
                 <Button
                     type="submit"
-                    className="w-full h-11 bg-primary hover:opacity-90 text-primary-foreground rounded-xl border-none transition-all font-display font-black text-sm"
+                    className="w-full min-h-11 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl border-none transition-all font-display font-semibold text-sm"
                 >
                     {prize?.id ? '更新項目' : '建立獎項'}
                 </Button>
@@ -2869,7 +2875,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                 <Button
                     type="button"
                     onClick={() => setIsAdding(true)}
-                    className="w-full h-11 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none transition-all shadow-sm font-black text-sm mb-2"
+                    className="w-full min-h-11 py-2 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none transition-all shadow-sm font-semibold text-sm mb-2"
                 >
                     <Plus className="mr-1.5" size={17} aria-hidden="true" /> 新賽事
                 </Button>
@@ -2889,8 +2895,8 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                             <p className="font-bold truncate pr-3">{t.title}</p>
                             <ChevronRight size={16} aria-hidden="true" className={cn(selectedTourn === t.id ? "opacity-100" : "opacity-0 group-hover:opacity-100")} />
                         </div>
-                        <p className={cn("text-xs mt-1 font-black uppercase tracking-wider", selectedTourn === t.id ? "text-blue-100" : "text-muted-foreground")}>
-                            {t.status}
+                        <p className={cn("text-xs mt-1 font-medium", selectedTourn === t.id ? "text-blue-100" : "text-muted-foreground")}>
+                            {t.status === 'registering' ? '報名中' : t.status === 'ongoing' ? '進行中' : '已結束'}
                         </p>
                     </Card>
                 ))}
@@ -2899,8 +2905,8 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
             {/* Management Section */}
             <div className="lg:col-span-3">
                 {isAdding ? (
-                    <Card className="arena-card p-6 sm:p-8 max-w-2xl">
-                        <h3 className="text-xl sm:text-2xl font-black text-foreground mb-6">發起獨立錦標賽</h3>
+                    <Card className="bg-card border border-border rounded-2xl shadow-xs p-6 sm:p-8 max-w-2xl">
+                        <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-6">發起獨立錦標賽</h3>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
                                 <label htmlFor={titleId} className="arena-label text-muted-foreground">
@@ -2966,14 +2972,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsAdding(false)}
-                                    className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                                    className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                                 >
                                     取消
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={createMutation.isPending || !formData.title.trim()}
-                                    className="w-full sm:w-auto h-11 px-7 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-display font-black text-sm disabled:opacity-40"
+                                    className="w-full sm:w-auto min-h-11 py-2 px-7 bg-sapphire-blue hover:bg-blue-700 text-white rounded-xl border-none shadow-sm font-display font-semibold text-sm disabled:opacity-40"
                                 >
                                     {createMutation.isPending ? '建立中...' : '建立賽事'}
                                 </Button>
@@ -2982,12 +2988,16 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                     </Card>
                 ) : activeTournament ? (
                     <div className="space-y-6">
-                        <Card className="arena-card p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <Card className="bg-card border border-border rounded-2xl shadow-xs p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2.5 flex-wrap">
-                                    <h3 className="text-xl sm:text-2xl font-black text-foreground">{activeTournament.title}</h3>
-                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 text-xs font-black uppercase">
-                                        {activeTournament.status}
+                                    <h3 className="text-xl sm:text-2xl font-bold text-foreground">{activeTournament.title}</h3>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 text-xs font-semibold">
+                                        {activeTournament.status === 'registering'
+                                            ? '報名中'
+                                            : activeTournament.status === 'ongoing'
+                                              ? '進行中'
+                                              : '已結束'}
                                     </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-1">{participants.length} 位已報名同仁</p>
@@ -3000,22 +3010,22 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         setNextStatus(activeTournament.status || 'registering');
                                         setStatusModalOpen(true);
                                     }}
-                                    className="h-10 rounded-xl font-bold text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                                    className="min-h-10 py-2 rounded-xl font-semibold text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                                 >
                                     切換狀態
                                 </Button>
                                 <Button
                                     type="button"
                                     onClick={() => setDeleteModalOpen(true)}
-                                    className="h-10 rounded-xl font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:hover:bg-rose-500/20 dark:border-rose-500/30"
+                                    className="min-h-10 py-2 rounded-xl font-semibold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/80 dark:bg-rose-500/12 dark:text-rose-300 dark:hover:bg-rose-500/20 dark:border-rose-500/30"
                                 >
                                     刪除賽事
                                 </Button>
                             </div>
                         </Card>
 
-                        <Card className="arena-card p-6 sm:p-8">
-                            <h4 className="font-black text-foreground mb-6 flex items-center justify-between">
+                        <Card className="bg-card border border-border rounded-2xl shadow-xs p-6 sm:p-8">
+                            <h4 className="font-semibold text-foreground mb-6 flex items-center justify-between">
                                 參賽名單
                                 <Button
                                     type="button"
@@ -3024,7 +3034,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         setPlayerSearch('');
                                         setAddPlayerModalOpen(true);
                                     }}
-                                    className="rounded-xl bg-blue-50 text-sapphire-blue hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25 border-none font-bold"
+                                    className="rounded-xl bg-blue-50 text-sapphire-blue hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25 border-none font-semibold"
                                 >
                                     <Plus size={16} className="mr-1" aria-hidden="true" /> 手動加入玩家
                                 </Button>
@@ -3076,14 +3086,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setStatusModalOpen(false)}
-                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                                     >
                                         取消
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={statusMutation.isPending}
-                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
+                                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-semibold text-sm"
                                     >
                                         {statusMutation.isPending ? '更新中...' : '儲存狀態'}
                                     </Button>
@@ -3102,7 +3112,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         aria-pressed={nextStatus === opt.id}
                                         onClick={() => setNextStatus(opt.id)}
                                         className={cn(
-                                            "w-full min-h-11 px-4 rounded-xl border text-left text-sm font-black transition-all flex items-center justify-between",
+                                            "w-full min-h-11 py-2 px-4 rounded-xl border text-left text-sm font-semibold transition-all flex items-center justify-between",
                                             nextStatus === opt.id
                                                 ? "bg-blue-50 dark:bg-blue-500/15 border-sapphire-blue text-sapphire-blue dark:text-blue-300"
                                                 : "bg-card border-border text-foreground hover:bg-secondary"
@@ -3134,14 +3144,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                         type="button"
                                         variant="outline"
                                         onClick={() => setDeleteModalOpen(false)}
-                                        className="w-full sm:w-auto h-11 px-5 rounded-xl border-border text-muted-foreground font-bold hover:bg-secondary hover:text-foreground"
+                                        className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl border-border text-muted-foreground font-semibold hover:bg-secondary hover:text-foreground"
                                     >
                                         取消
                                     </Button>
                                     <Button
                                         type="submit"
                                         disabled={deleteTournMutation.isPending}
-                                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm"
+                                        className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-semibold text-sm"
                                     >
                                         {deleteTournMutation.isPending ? '刪除中...' : '確認刪除'}
                                     </Button>
@@ -3149,8 +3159,8 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                             }
                         >
                             <div className="bg-rose-50/70 dark:bg-rose-500/12 border border-rose-200/80 dark:border-rose-500/30 rounded-2xl p-4 space-y-1">
-                                <p className="text-sm font-black text-foreground">{activeTournament.title}</p>
-                                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">刪除後將同步清除該賽事的參賽名單，無法復原。</p>
+                                <p className="text-sm font-semibold text-foreground">{activeTournament.title}</p>
+                                <p className="text-xs font-medium text-rose-700 dark:text-rose-300">刪除後將同步清除該賽事的參賽名單，無法復原。</p>
                             </div>
                         </ResponsiveFormModal>
 
@@ -3167,7 +3177,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                 <Button
                                     type="button"
                                     onClick={() => setAddPlayerModalOpen(false)}
-                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-black text-sm"
+                                    className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-display font-semibold text-sm"
                                 >
                                     完成
                                 </Button>
@@ -3198,7 +3208,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <PlayerAvatar src={u.avatar} name={u.name} className="size-9 rounded-xl text-xs" />
                                                     <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-foreground truncate">{u.name}</p>
+                                                        <p className="text-sm font-semibold text-foreground truncate">{u.name}</p>
                                                         <p className="text-xs text-muted-foreground truncate">{u.department || '一般同仁'}</p>
                                                     </div>
                                                 </div>
@@ -3207,14 +3217,14 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                                                     size="sm"
                                                     disabled={addParticipantMutation.isPending}
                                                     onClick={() => addParticipantMutation.mutate({ tournId: activeTournament.id, userId: u.id })}
-                                                    className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white text-xs font-black shrink-0"
+                                                    className="min-h-9 py-1.5 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white text-xs font-semibold shrink-0"
                                                 >
                                                     <Plus size={14} className="mr-1" aria-hidden="true" /> 加入
                                                 </Button>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="py-8 text-center text-xs font-bold text-muted-foreground">
+                                        <p className="py-8 text-center text-xs font-medium text-muted-foreground">
                                             {playerSearch ? '找不到符合的同仁' : '所有同仁皆已在名單內'}
                                         </p>
                                     )}
@@ -3225,7 +3235,7 @@ function TournamentManager({ tournaments, onUpdate }: { tournaments: TournamentE
                 ) : (
                     <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground/40 space-y-4">
                         <ImageIcon size={64} strokeWidth={1} aria-hidden="true" />
-                        <p className="font-bold">請從左側選擇要管理的錦標賽</p>
+                        <p className="font-medium">請從左側選擇要管理的錦標賽</p>
                     </div>
                 )}
             </div>

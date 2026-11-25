@@ -85,9 +85,9 @@ export function AdminImageUploadField({
         <button
           type="button"
           onClick={() => setShowUrlInput((prev) => !prev)}
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-sapphire-blue dark:text-blue-300 hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-medium text-sapphire-blue dark:text-blue-300 hover:underline"
         >
-          <Link2 size={11} aria-hidden="true" />
+          <Link2 size={12} aria-hidden="true" />
           <span>{showUrlInput ? '隱藏網址輸入' : '改貼圖片網址'}</span>
         </button>
       </div>
@@ -123,7 +123,7 @@ export function AdminImageUploadField({
             variant="outline"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="w-full h-9 rounded-xl bg-card border-border text-xs font-bold text-foreground hover:bg-secondary gap-1.5"
+            className="w-full min-h-9 py-1.5 rounded-xl bg-card border-border text-xs font-semibold text-foreground hover:bg-secondary gap-1.5"
           >
             {uploading ? (
               <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -167,10 +167,10 @@ export function AdminImageUploadField({
             )}
           </div>
           <div className="space-y-0.5">
-            <p className="text-xs font-black text-foreground">
+            <p className="text-xs font-semibold text-foreground">
               {uploading ? '圖片上傳中...' : '點擊選擇或拖曳圖片至此處上傳'}
             </p>
-            <p className="text-[11px] font-bold text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               支援 JPG / PNG / GIF / WebP，最大 8MB
             </p>
           </div>

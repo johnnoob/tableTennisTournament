@@ -131,18 +131,18 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return (
     <div className="bg-popover/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-border min-w-[185px] max-w-[250px] space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted-foreground font-bold tabular-nums">
+        <span className="text-xs text-muted-foreground font-medium tabular-nums">
           {timeLabel}
         </span>
         {isReset ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-black">
-            <Star size={10} fill="currentColor" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 text-xs font-semibold">
+            <Star size={11} fill="currentColor" aria-hidden="true" />
             換季重置
           </span>
         ) : data.result ? (
           <span
             className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-black',
+              'px-2 py-0.5 rounded-full text-xs font-semibold',
               data.result === 'W'
                 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
                 : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
@@ -155,11 +155,11 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
       {oppText && (
         <div className="text-xs space-y-0.5">
-          <p className="font-bold text-foreground">
+          <p className="font-semibold text-foreground">
             {data.match_type === 'doubles' ? '雙打' : '單打'} {data.format || ''} · vs {oppText}
           </p>
           {data.partner && (
-            <p className="text-[11px] font-bold text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               搭檔：{data.partner.name}
             </p>
           )}
@@ -167,14 +167,14 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       )}
 
       <div className="pt-1.5 border-t border-border/80 flex items-baseline justify-between gap-3">
-        <span className="font-display font-black text-base text-foreground tabular-nums">
+        <span className="font-display font-bold text-base text-foreground tabular-nums">
           {Math.round(data.rating)}{' '}
-          <span className="text-[10px] font-sans font-bold text-muted-foreground">ELO</span>
+          <span className="text-xs font-sans font-medium text-muted-foreground">分</span>
         </span>
         {deltaNum !== null && deltaNum !== 0 && !isReset && (
           <span
             className={cn(
-              'font-display font-black text-xs tabular-nums',
+              'font-display font-semibold text-xs tabular-nums',
               deltaNum > 0
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-rose-500 dark:text-rose-400',
@@ -198,11 +198,11 @@ const CompactMobileTooltip = ({ active, payload }: CustomTooltipProps) => {
       : null;
 
   return (
-    <div className="bg-popover/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-md border border-border text-[11px] flex items-center gap-2 whitespace-nowrap">
+    <div className="bg-popover/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-md border border-border text-xs flex items-center gap-2 whitespace-nowrap">
       {data.result && (
         <span
           className={cn(
-            'font-black',
+            'font-semibold',
             data.result === 'W'
               ? 'text-emerald-600 dark:text-emerald-400'
               : 'text-rose-500 dark:text-rose-400',
@@ -211,14 +211,14 @@ const CompactMobileTooltip = ({ active, payload }: CustomTooltipProps) => {
           {data.result === 'W' ? '勝' : '敗'} {data.score || ''}
         </span>
       )}
-      {oppText && <span className="font-bold text-foreground max-w-[90px] truncate">{oppText}</span>}
-      <span className="font-display font-black text-foreground tabular-nums">
+      {oppText && <span className="font-medium text-foreground max-w-[90px] truncate">{oppText}</span>}
+      <span className="font-display font-bold text-foreground tabular-nums">
         {Math.round(data.rating)}
       </span>
       {deltaNum !== null && deltaNum !== 0 && (
         <span
           className={cn(
-            'font-display font-black tabular-nums',
+            'font-display font-semibold tabular-nums',
             deltaNum > 0
               ? 'text-emerald-600 dark:text-emerald-400'
               : 'text-rose-500 dark:text-rose-400',
@@ -317,20 +317,20 @@ export function StatsChart({
       {showHeader && (
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h4 className="font-display text-xl text-foreground">Performance Analytics</h4>
+            <h4 className="font-display text-xl text-foreground">積分走勢分析</h4>
             <p className="text-xs text-muted-foreground mt-1 font-sans">
-              Rating Progression • Season Summary
+              賽季區間積分變化
             </p>
           </div>
           <div
             className={cn(
-              'rounded-full px-3 py-1 text-xs font-semibold',
+              'rounded-full px-3 py-1 text-xs font-semibold tabular-nums',
               ptsChange >= 0
                 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
                 : 'bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-300',
             )}
           >
-            {ptsChange > 0 ? `+${ptsChange}` : ptsChange} PTS
+            {ptsChange > 0 ? `+${ptsChange}` : ptsChange} 分
           </div>
         </div>
       )}
@@ -356,7 +356,7 @@ export function StatsChart({
               tickLine={false}
               interval="preserveStartEnd"
               minTickGap={28}
-              tick={{ fontSize: 11, fill: tickColor }}
+              tick={{ fontSize: 12, fill: tickColor }}
               tickFormatter={(value) => {
                 const pt = pointByName.get(String(value));
                 if (pt?.recorded_at) {
@@ -369,7 +369,7 @@ export function StatsChart({
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: tickColor }}
+              tick={{ fontSize: 12, fill: tickColor }}
               domain={yDomain}
               allowDecimals={false}
             />
@@ -390,8 +390,8 @@ export function StatsChart({
                     value: tier.label,
                     position: 'insideTopRight',
                     fill: isDark ? tier.dark : tier.light,
-                    fontSize: 10,
-                    fontWeight: 800,
+                    fontSize: 11,
+                    fontWeight: 600,
                   }}
                 />
               ))}
@@ -409,7 +409,7 @@ export function StatsChart({
                       position: 'top',
                       fill: tickColor,
                       fontSize: 11,
-                      fontWeight: 'bold',
+                      fontWeight: 600,
                     }}
                   />
                 ),

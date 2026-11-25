@@ -29,7 +29,7 @@ const CATEGORY_TABS: Array<{ key: AuditCategoryFilter; label: string }> = [
 ];
 
 const ACTION_LABELS: Record<string, string> = {
-  'mmr.adjust': 'ELO 校準',
+  'mmr.adjust': '積分校準',
   'user.update': '成員異動',
   'user.batch_department': '批次設單位',
   'match.create': '代為補登',
@@ -150,10 +150,10 @@ export function AdminAuditLogPanel() {
               <History size={18} aria-hidden="true" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-display font-black text-foreground leading-tight">
-                管理員操作稽核紀錄（Audit Log）
+              <h3 className="text-base sm:text-lg font-display font-bold text-foreground leading-tight">
+                管理員操作稽核紀錄
               </h3>
-              <p className="text-xs font-bold text-muted-foreground mt-0.5">
+              <p className="text-xs font-medium text-muted-foreground mt-0.5">
                 集中追蹤誰在何時調整積分、裁決賽事、變更賽季與修改系統參數（共 {totalCount} 筆）
               </p>
             </div>
@@ -164,7 +164,7 @@ export function AdminAuditLogPanel() {
             variant="outline"
             disabled={logs.length === 0}
             onClick={handleExportCsv}
-            className="h-9 px-3 rounded-xl border-border bg-card hover:bg-secondary text-xs font-black gap-1.5 shrink-0 ml-auto"
+            className="min-h-9 py-1.5 px-3 rounded-xl border-border bg-card hover:bg-secondary text-xs font-semibold gap-1.5 shrink-0 ml-auto"
           >
             <Download size={13} aria-hidden="true" />
             <span>匯出已載入 CSV</span>
@@ -180,9 +180,10 @@ export function AdminAuditLogPanel() {
                 <button
                   key={tab.key}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setCategory(tab.key)}
                   className={cn(
-                    'min-h-8 px-3 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap shrink-0',
+                    'min-h-8 px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0',
                     active
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground',
@@ -206,7 +207,7 @@ export function AdminAuditLogPanel() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜尋管理員、摘要或目標 ID..."
               aria-label="搜尋操作稽核紀錄"
-              className="arena-input pl-9 pr-8 h-9 text-xs"
+              className="arena-input pl-9 pr-8 min-h-9 py-1.5 text-xs"
             />
             {search && (
               <button
@@ -226,13 +227,13 @@ export function AdminAuditLogPanel() {
       {isLoading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2">
           <Loader2 className="animate-spin text-sapphire-blue" size={24} />
-          <p className="text-xs font-bold text-muted-foreground">載入操作稽核紀錄中...</p>
+          <p className="text-xs font-medium text-muted-foreground">載入操作稽核紀錄中...</p>
         </div>
       ) : logs.length === 0 ? (
         <div className="p-10 text-center space-y-2">
           <Shield size={28} className="mx-auto text-muted-foreground/40" aria-hidden="true" />
-          <p className="text-sm font-display font-black text-foreground">目前尚無符合條件的稽核紀錄</p>
-          <p className="text-xs font-bold text-muted-foreground">
+          <p className="text-sm font-display font-bold text-foreground">目前尚無符合條件的稽核紀錄</p>
+          <p className="text-xs font-medium text-muted-foreground">
             日後凡是積分校準、賽事裁決、賽季異動與規則參數修改，都會自動留存於此。
           </p>
         </div>
@@ -264,19 +265,19 @@ export function AdminAuditLogPanel() {
 
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={cn('px-2 py-0.5 rounded-md text-[10px] font-black leading-none', style.badge)}>
+                        <span className={cn('px-2 py-0.5 rounded-md text-xs font-semibold leading-none', style.badge)}>
                           {actionLabel}
                         </span>
-                        <span className="text-xs font-black text-foreground">
+                        <span className="text-xs font-semibold text-foreground">
                           {log.actor_name}
                         </span>
                         {log.target_id && (
-                          <span className="text-[10px] font-display font-bold text-muted-foreground tabular-nums bg-secondary px-1.5 py-0.5 rounded">
+                          <span className="text-xs font-display font-medium text-muted-foreground tabular-nums bg-secondary px-1.5 py-0.5 rounded">
                             #{log.target_id.slice(0, 8)}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs sm:text-[13px] font-medium text-foreground/90 leading-relaxed break-words">
+                      <p className="text-xs sm:text-sm font-medium text-foreground/90 leading-relaxed break-words">
                         {log.summary}
                       </p>
                     </div>
@@ -284,7 +285,7 @@ export function AdminAuditLogPanel() {
 
                   <span
                     title={log.created_at ? formatLocalTime(log.created_at, 'yyyy/MM/dd HH:mm:ss') : undefined}
-                    className="text-[11px] font-bold text-muted-foreground tabular-nums shrink-0 pl-9 sm:pl-0"
+                    className="text-xs font-medium text-muted-foreground tabular-nums shrink-0 pl-9 sm:pl-0"
                   >
                     {log.created_at ? formatLocalTime(log.created_at, 'MM/dd HH:mm') : ''}
                   </span>
@@ -300,7 +301,7 @@ export function AdminAuditLogPanel() {
                 variant="outline"
                 disabled={isFetchingNextPage}
                 onClick={() => fetchNextPage()}
-                className="h-9 px-5 rounded-xl text-xs font-black gap-1.5"
+                className="min-h-9 py-1.5 px-5 rounded-xl text-xs font-semibold gap-1.5"
               >
                 {isFetchingNextPage && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
                 <span>{isFetchingNextPage ? '載入中...' : '載入更多稽核紀錄'}</span>

@@ -91,7 +91,7 @@ export function AdminUserMmrLogsDrawer({
   const content = user ? (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-popover">
       {/* Header */}
-      <div className={cn('px-5 pt-4 pb-3 border-b border-border bg-surface-subtle/50 shrink-0 space-y-3', isDesktop && 'pr-12')}>
+      <div className={cn('px-5 pt-4 pb-3 border-b border-border bg-card shrink-0 space-y-3', isDesktop && 'pr-12')}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <PlayerAvatar
@@ -101,15 +101,15 @@ export function AdminUserMmrLogsDrawer({
             />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-display font-black text-foreground truncate">
+                <h2 className="text-base sm:text-lg font-display font-bold text-foreground truncate">
                   {user.name}
                 </h2>
-                <span className="px-2 py-0.5 rounded-lg bg-card border border-border text-xs font-display font-black tabular-nums shrink-0">
-                  {Math.round(user.global_mmr)} ELO
+                <span className="px-2 py-0.5 rounded-lg bg-surface-subtle border border-border text-xs font-display font-semibold tabular-nums shrink-0">
+                  {Math.round(user.global_mmr)} 分
                 </span>
               </div>
-              <p className="text-xs font-bold text-muted-foreground truncate mt-0.5">
-                {user.department || '未設定單位'} · 歷史 ELO 異動日誌
+              <p className="text-xs font-medium text-muted-foreground truncate mt-0.5">
+                {user.department || '未設定單位'} · 歷史積分異動日誌
               </p>
             </div>
           </div>
@@ -127,9 +127,10 @@ export function AdminUserMmrLogsDrawer({
               <button
                 key={tab.key}
                 type="button"
+                aria-pressed={eventFilter === tab.key}
                 onClick={() => setEventFilter(tab.key)}
                 className={cn(
-                  'min-h-7 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                  'min-h-7 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                   eventFilter === tab.key
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground',
@@ -145,7 +146,7 @@ export function AdminUserMmrLogsDrawer({
             aria-pressed={includeMatches}
             onClick={() => setIncludeMatches((v) => !v)}
             className={cn(
-              'h-8 px-2.5 rounded-xl border text-xs font-black transition-colors whitespace-nowrap',
+              'min-h-8 py-1 px-2.5 rounded-xl border text-xs font-semibold transition-colors whitespace-nowrap',
               includeMatches
                 ? 'bg-sapphire-blue/12 border-sapphire-blue text-sapphire-blue dark:text-blue-300'
                 : 'bg-card border-border text-muted-foreground hover:text-foreground',
@@ -161,13 +162,13 @@ export function AdminUserMmrLogsDrawer({
         {isLoading ? (
           <div className="py-14 flex flex-col items-center justify-center gap-2.5">
             <Loader2 className="animate-spin text-sapphire-blue" size={26} />
-            <p className="text-xs font-bold text-muted-foreground">讀取異動歷程中...</p>
+            <p className="text-xs font-medium text-muted-foreground">讀取異動歷程中...</p>
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="py-14 px-6 text-center space-y-2 rounded-2xl border border-dashed border-border">
             <History size={28} className="mx-auto text-muted-foreground/45" aria-hidden="true" />
-            <p className="text-sm font-display font-black text-foreground">查無符合條件的異動紀錄</p>
-            <p className="text-xs font-bold text-muted-foreground">
+            <p className="text-sm font-display font-bold text-foreground">查無符合條件的異動紀錄</p>
+            <p className="text-xs font-medium text-muted-foreground">
               該成員目前尚無管理員校準、惰性衰退或季末軟重置紀錄；如需查看一般對戰曲線可開啟「顯示一般對戰」。
             </p>
           </div>
@@ -185,34 +186,34 @@ export function AdminUserMmrLogsDrawer({
                 <div className="flex items-center justify-between gap-2">
                   <span
                     className={cn(
-                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black leading-none',
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold leading-none',
                       badge.className,
                     )}
                   >
-                    <Icon size={11} aria-hidden="true" />
+                    <Icon size={12} aria-hidden="true" />
                     {badge.label}
                   </span>
 
-                  <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                  <span className="text-xs font-medium text-muted-foreground tabular-nums">
                     {item.recorded_at ? formatLocalTime(item.recorded_at, 'yyyy/MM/dd HH:mm') : ''}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 font-display font-black text-sm sm:text-base tabular-nums">
+                  <div className="flex items-center gap-1.5 font-display font-bold text-sm sm:text-base tabular-nums">
                     {item.old_mmr !== null && item.old_mmr !== undefined && (
                       <>
                         <span className="text-muted-foreground">{Math.round(item.old_mmr)}</span>
                         <span className="text-muted-foreground/45">→</span>
                       </>
                     )}
-                    <span className="text-foreground">{Math.round(item.new_mmr)} ELO</span>
+                    <span className="text-foreground">{Math.round(item.new_mmr)} 分</span>
                   </div>
 
                   {item.delta !== null && item.delta !== undefined && (
                     <span
                       className={cn(
-                        'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-xs font-display font-black tabular-nums',
+                        'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-xs font-display font-semibold tabular-nums',
                         delta > 0
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                           : delta < 0
@@ -233,7 +234,7 @@ export function AdminUserMmrLogsDrawer({
                 {(item.actor_name || item.reason) && (
                   <p className="text-xs font-medium text-muted-foreground leading-relaxed break-words">
                     {item.actor_name && (
-                      <strong className="text-foreground font-black mr-1.5">{item.actor_name}：</strong>
+                      <strong className="text-foreground font-semibold mr-1.5">{item.actor_name}：</strong>
                     )}
                     {item.reason || '無附加說明'}
                   </p>
@@ -250,7 +251,7 @@ export function AdminUserMmrLogsDrawer({
     return (
       <Sheet open={Boolean(user)} onOpenChange={handleOpenChange}>
         <SheetContent className="w-[92vw] sm:max-w-[440px] p-0 border-none bg-popover lg:rounded-l-[2rem] overflow-hidden shadow-2xl flex flex-col">
-          <SheetTitle className="sr-only">成員 ELO 異動日誌</SheetTitle>
+          <SheetTitle className="sr-only">成員積分異動日誌</SheetTitle>
           <SheetDescription className="sr-only">檢視歷史管理員校準、惰性衰退與季末軟重置清單</SheetDescription>
           {content}
         </SheetContent>
@@ -261,7 +262,7 @@ export function AdminUserMmrLogsDrawer({
   return (
     <Drawer open={Boolean(user)} onOpenChange={handleOpenChange}>
       <DrawerContent className="p-0 border-none bg-popover rounded-t-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[86dvh]">
-        <DrawerTitle className="sr-only">成員 ELO 異動日誌</DrawerTitle>
+        <DrawerTitle className="sr-only">成員積分異動日誌</DrawerTitle>
         <DrawerDescription className="sr-only">檢視歷史管理員校準、惰性衰退與季末軟重置清單</DrawerDescription>
         {content}
       </DrawerContent>

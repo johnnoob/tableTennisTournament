@@ -49,8 +49,8 @@ const QUICK_MMR_REASONS = ['賽事積分誤算補正', '新進同仁實力定位
 
 const SORT_OPTIONS: ResponsiveSelectOption[] = [
   { value: 'default', label: '預設排序（啟用 / 管理員優先）' },
-  { value: 'mmr_desc', label: 'ELO 積分由高到低' },
-  { value: 'mmr_asc', label: 'ELO 積分由低到高' },
+  { value: 'mmr_desc', label: '積分由高到低' },
+  { value: 'mmr_asc', label: '積分由低到高' },
   { value: 'matches_desc', label: '生涯出賽場次最多' },
 ];
 
@@ -181,7 +181,7 @@ function DepartmentCombobox({
       {open && (
         <div className="rounded-xl border border-border bg-card shadow-md overflow-hidden">
           {choices.length > 0 && (
-            <div className="px-3 py-1.5 bg-surface-subtle/70 border-b border-border/70 flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+            <div className="px-3 py-1.5 bg-surface-subtle/70 border-b border-border/70 flex items-center justify-between text-xs font-medium text-muted-foreground">
               <span>
                 {isFiltering && trimmed
                   ? `符合「${trimmed}」的單位`
@@ -195,7 +195,7 @@ function DepartmentCombobox({
               <button
                 type="button"
                 onClick={() => handleSelect(trimmed)}
-                className="w-full px-3 py-2.5 flex items-center gap-2 text-left text-xs font-black text-sapphire-blue dark:text-blue-300 bg-sapphire-blue/[0.06] hover:bg-sapphire-blue/12 transition-colors"
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-left text-xs font-semibold text-sapphire-blue dark:text-blue-300 bg-sapphire-blue/[0.06] hover:bg-sapphire-blue/12 transition-colors"
               >
                 <Plus size={14} className="shrink-0" aria-hidden="true" />
                 <span className="truncate">使用新單位「{trimmed}」</span>
@@ -217,10 +217,10 @@ function DepartmentCombobox({
                 >
                   <span className="inline-flex items-center gap-2 min-w-0">
                     <Building2 size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <span className="text-xs sm:text-sm font-bold truncate">{choice.name}</span>
+                    <span className="text-xs sm:text-sm font-medium truncate">{choice.name}</span>
                   </span>
                   <span className="inline-flex items-center gap-1.5 shrink-0">
-                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-black text-muted-foreground tabular-nums">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-semibold text-muted-foreground tabular-nums">
                       {choice.count} 人
                     </span>
                     {selected && <Check size={14} className="shrink-0" aria-hidden="true" />}
@@ -229,7 +229,7 @@ function DepartmentCombobox({
               );
             })}
             {filteredChoices.length === 0 && !trimmed && (
-              <p className="px-3 py-3 text-xs font-bold text-muted-foreground text-center">
+              <p className="px-3 py-3 text-xs font-medium text-muted-foreground text-center">
                 目前尚無已建檔單位，請直接於上方輸入名稱
               </p>
             )}
@@ -268,7 +268,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
   const [batchDeptOpen, setBatchDeptOpen] = useState(false);
   const [batchDepartment, setBatchDepartment] = useState('');
 
-  // User ELO History Drawer State
+  // User Score History Drawer State
   const [logsUser, setLogsUser] = useState<AdminUserItem | null>(null);
 
   // Create Test Account Modal State
@@ -401,7 +401,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         'Email',
         '角色',
         '帳號狀態',
-        '目前 ELO',
+        '目前積分',
         '出賽場次',
         '勝場',
         '敗場',
@@ -658,7 +658,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
     return (
       <div className="rounded-2xl border border-border bg-card py-20 flex flex-col items-center justify-center gap-3">
         <Loader2 className="animate-spin text-sapphire-blue" size={32} />
-        <p className="text-xs font-bold text-muted-foreground tracking-wider uppercase">
+        <p className="text-xs font-medium text-muted-foreground">
           載入成員名錄中...
         </p>
       </div>
@@ -679,7 +679,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
                   className={cn(
-                    'min-h-9 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap',
+                    'min-h-9 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap',
                     active
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -688,7 +688,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   <span>{tab.label}</span>
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded-full text-[11px] font-display font-black tabular-nums leading-none',
+                      'px-1.5 py-0.5 rounded-full text-xs font-display font-semibold tabular-nums leading-none',
                       active
                         ? 'bg-primary text-primary-foreground'
                         : tab.key === 'inactive' && tab.count > 0
@@ -705,7 +705,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
 
           <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 text-xs font-bold text-muted-foreground sm:ml-auto flex-wrap">
             <span>
-              顯示 <strong className="text-foreground font-black tabular-nums">{filteredUsers.length}</strong> / {summary.total} 位
+              顯示 <strong className="text-foreground font-semibold tabular-nums">{filteredUsers.length}</strong> / {summary.total} 位
             </span>
             <div className="flex items-center gap-2 flex-wrap">
               {hasActiveFilter && (
@@ -717,7 +717,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     setSortBy('default');
                     setSearch('');
                   }}
-                  className="text-sapphire-blue hover:underline font-black"
+                  className="text-sapphire-blue hover:underline font-semibold"
                 >
                   重設條件
                 </button>
@@ -727,7 +727,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   type="button"
                   variant="outline"
                   onClick={() => setCreateTestOpen(true)}
-                  className="h-9 px-2.5 sm:px-3 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1.5"
+                  className="min-h-9 py-1.5 px-2.5 sm:px-3 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-semibold text-xs gap-1.5"
                 >
                   <FlaskConical size={13} aria-hidden="true" />
                   <span>建立測試帳號</span>
@@ -738,7 +738,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 variant="outline"
                 disabled={filteredUsers.length === 0}
                 onClick={handleExportUsersCsv}
-                className="h-9 px-2.5 sm:px-3 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-black text-xs gap-1.5"
+                className="min-h-9 py-1.5 px-2.5 sm:px-3 rounded-xl border-border bg-card hover:bg-secondary text-foreground font-semibold text-xs gap-1.5"
               >
                 <Download size={13} aria-hidden="true" />
                 <span>匯出 CSV ({filteredUsers.length})</span>
@@ -798,12 +798,12 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
           <div className="rounded-xl bg-sapphire-blue/10 dark:bg-blue-500/15 border border-sapphire-blue/30 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-3 text-xs font-bold text-foreground">
               <span>
-                已選取 <strong className="font-display font-black tabular-nums text-sapphire-blue dark:text-blue-300">{selectedValidIds.length}</strong> 位成員
+                已選取 <strong className="font-display font-semibold tabular-nums text-sapphire-blue dark:text-blue-300">{selectedValidIds.length}</strong> 位成員
               </span>
               <button
                 type="button"
                 onClick={toggleSelectAllVisible}
-                className="text-sapphire-blue dark:text-blue-300 font-black hover:underline"
+                className="text-sapphire-blue dark:text-blue-300 font-semibold hover:underline"
               >
                 {allVisibleSelected ? '取消全選' : `全選目前 ${filteredUsers.length} 位`}
               </button>
@@ -822,7 +822,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 setBatchDepartment('');
                 setBatchDeptOpen(true);
               }}
-              className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs gap-1.5 border-none"
+              className="min-h-9 py-1.5 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-xs gap-1.5 border-none"
             >
               <Building2 size={14} aria-hidden="true" />
               <span>批次設定單位 ({selectedValidIds.length})</span>
@@ -835,14 +835,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       {filteredUsers.length === 0 ? (
         <div className="p-12 text-center space-y-2">
           <Users size={36} className="mx-auto text-muted-foreground/40" aria-hidden="true" />
-          <p className="text-base font-display font-black text-foreground">找不到符合條件的成員</p>
+          <p className="text-base font-display font-bold text-foreground">找不到符合條件的成員</p>
           <p className="text-xs font-bold text-muted-foreground">請試著放寬搜尋關鍵字或篩選標籤。</p>
         </div>
       ) : (
         <>
           {/* Desktop Directory Table (1024px+ so tablet never cramps 6 columns) */}
           <div className="hidden lg:block overflow-x-auto">
-            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-[11px] font-black uppercase tracking-wider text-muted-foreground grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.15fr)_116px_68px_248px] items-center gap-3">
+            <div className="px-5 py-2.5 bg-surface-subtle/60 border-b border-border/80 text-xs font-semibold text-muted-foreground grid grid-cols-[24px_minmax(0,1.4fr)_minmax(0,1.15fr)_116px_68px_248px] items-center gap-3">
               <button
                 type="button"
                 role="checkbox"
@@ -861,7 +861,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               <span>成員</span>
               <span>單位 / 信箱</span>
               <span>權限狀態</span>
-              <span className="text-right">ELO</span>
+              <span className="text-right">積分</span>
               <span className="text-right">操作</span>
             </div>
 
@@ -910,17 +910,17 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         )}
                       />
                       <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
-                        <span className="font-display font-black text-sm text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                        <span className="font-display font-bold text-sm text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                           {u.name}
                         </span>
                         {u.auth_provider === 'test' && (
-                          <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-[10px] font-black leading-none shrink-0">
+                          <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-xs font-semibold leading-none shrink-0">
                             測試帳號
                           </span>
                         )}
                         {isSelf && (
-                          <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
-                            YOU
+                          <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-xs font-semibold leading-none shrink-0">
+                            我
                           </span>
                         )}
                       </div>
@@ -931,7 +931,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       <p className="text-xs font-bold text-foreground truncate">
                         {u.department || '未設定單位'}
                       </p>
-                      <p className="text-[11px] font-medium text-muted-foreground truncate mt-0.5">
+                      <p className="text-xs font-medium text-muted-foreground truncate mt-0.5">
                         {u.email || '未綁定信箱'}
                       </p>
                     </div>
@@ -939,27 +939,27 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     {/* Role & Status */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {!u.is_active ? (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-[11px] font-black leading-none">
+                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-xs font-semibold leading-none">
                           已停用
                         </span>
                       ) : u.role === 'admin' ? (
                         <span
                           title={u.is_env_admin ? '受環境變數 ADMIN_EMAILS 保護' : undefined}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[11px] font-black leading-none"
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-xs font-semibold leading-none"
                         >
                           <ShieldCheck size={11} aria-hidden="true" />
                           管理員
                           {u.is_env_admin && <Lock size={10} className="opacity-75" aria-hidden="true" />}
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[11px] font-bold leading-none">
+                        <span className="px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-xs font-medium leading-none">
                           一般同仁
                         </span>
                       )}
                     </div>
 
-                    {/* ELO */}
-                    <div className="text-right font-display font-black text-base text-foreground tabular-nums">
+                    {/* Score */}
+                    <div className="text-right font-display font-bold text-base text-foreground tabular-nums">
                       {Math.round(u.global_mmr)}
                     </div>
 
@@ -975,7 +975,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                             disabled={impersonateMutation.isPending}
                             onClick={() => impersonateMutation.mutate(u.id)}
                             title="切換為此測試帳號實測雙向流程"
-                            className="h-9 px-2.5 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/60 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-black text-xs gap-1 shrink-0"
+                            className="min-h-9 py-1.5 px-2.5 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/60 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 dark:hover:bg-violet-500/20 font-semibold text-xs gap-1 shrink-0"
                           >
                             <ArrowLeftRight size={13} aria-hidden="true" />
                             切換
@@ -986,8 +986,8 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         variant="outline"
                         size="icon"
                         onClick={() => setLogsUser(u)}
-                        aria-label={`檢視 ${u.name} 的 ELO 異動日誌`}
-                        title="ELO 異動日誌"
+                        aria-label={`檢視 ${u.name} 的積分異動日誌`}
+                        title="積分異動日誌"
                         className="size-9 rounded-xl border-border text-muted-foreground hover:text-foreground shrink-0"
                       >
                         <History size={14} aria-hidden="true" />
@@ -996,7 +996,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         type="button"
                         variant="outline"
                         onClick={() => openMmrModal(u)}
-                        className="h-9 px-2.5 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1"
+                        className="min-h-9 py-1.5 px-2.5 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-semibold text-xs gap-1"
                       >
                         <Scale size={13} aria-hidden="true" />
                         校準
@@ -1005,7 +1005,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         type="button"
                         variant="outline"
                         onClick={() => openEditModal(u)}
-                        className="h-9 px-2.5 rounded-xl border-border font-bold text-xs gap-1"
+                        className="min-h-9 py-1.5 px-2.5 rounded-xl border-border font-semibold text-xs gap-1"
                       >
                         <Edit3 size={13} aria-hidden="true" />
                         編輯
@@ -1032,7 +1032,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     !u.is_active && 'bg-rose-50/15 dark:bg-rose-950/10 opacity-80'
                   )}
                 >
-                  {/* Row 1: Checkbox + Identity + ELO */}
+                  {/* Row 1: Checkbox + Identity + Score */}
                   <div className="flex items-center justify-between gap-2.5 min-w-0">
                     <button
                       type="button"
@@ -1065,33 +1065,33 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                          <span className="font-display font-black text-sm sm:text-base text-foreground truncate max-w-full">
+                          <span className="font-display font-bold text-sm sm:text-base text-foreground truncate max-w-full">
                             {u.name}
                           </span>
                           {u.auth_provider === 'test' && (
-                            <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-[10px] font-black leading-none shrink-0">
+                            <span className="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 text-xs font-semibold leading-none shrink-0">
                               測試帳號
                             </span>
                           )}
                           {isSelf && (
-                            <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-[10px] font-black leading-none shrink-0">
-                              YOU
+                            <span className="px-1.5 py-0.5 rounded bg-sapphire-blue/12 text-sapphire-blue dark:text-blue-300 text-xs font-semibold leading-none shrink-0">
+                              我
                             </span>
                           )}
                           {u.role === 'admin' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-black leading-none shrink-0">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-xs font-semibold leading-none shrink-0">
                               <ShieldCheck size={10} aria-hidden="true" />
                               管理員
                             </span>
                           )}
                           {u.is_env_admin && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-[10px] font-black leading-none shrink-0">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-xs font-semibold leading-none shrink-0">
                               <Lock size={9} aria-hidden="true" />
                               環境鎖定
                             </span>
                           )}
                           {!u.is_active && (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-[10px] font-black leading-none shrink-0">
+                            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 text-xs font-semibold leading-none shrink-0">
                               已停用
                             </span>
                           )}
@@ -1104,11 +1104,11 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                     </button>
 
                     <div className="text-right shrink-0 tabular-nums">
-                      <span className="font-display font-black text-lg text-foreground leading-none block">
+                      <span className="font-display font-bold text-lg text-foreground leading-none block">
                         {Math.round(u.global_mmr)}
                       </span>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                        ELO
+                      <span className="text-xs font-medium text-muted-foreground">
+                        分
                       </span>
                     </div>
                   </div>
@@ -1119,7 +1119,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       type="button"
                       variant="outline"
                       onClick={() => setLogsUser(u)}
-                      className="h-10 rounded-xl border-border font-bold text-xs gap-1"
+                      className="min-h-10 py-2 rounded-xl border-border font-semibold text-xs gap-1"
                     >
                       <History size={14} aria-hidden="true" />
                       日誌
@@ -1128,7 +1128,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       type="button"
                       variant="outline"
                       onClick={() => openMmrModal(u)}
-                      className="h-10 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-bold text-xs gap-1"
+                      className="min-h-10 py-2 rounded-xl border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300 hover:bg-sapphire-blue/8 font-semibold text-xs gap-1"
                     >
                       <Scale size={14} aria-hidden="true" />
                       校準
@@ -1137,7 +1137,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       type="button"
                       variant="outline"
                       onClick={() => openEditModal(u)}
-                      className="h-10 rounded-xl border-border font-bold text-xs gap-1"
+                      className="min-h-10 py-2 rounded-xl border-border font-semibold text-xs gap-1"
                     >
                       <Edit3 size={14} aria-hidden="true" />
                       編輯
@@ -1153,7 +1153,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         variant="outline"
                         disabled={impersonateMutation.isPending}
                         onClick={() => impersonateMutation.mutate(u.id)}
-                        className="w-full h-10 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 font-black text-xs gap-1.5"
+                        className="w-full min-h-10 py-2 rounded-xl border-violet-300/80 dark:border-violet-500/40 bg-violet-50/70 dark:bg-violet-500/12 text-violet-700 dark:text-violet-300 hover:bg-violet-100/80 font-semibold text-xs gap-1.5"
                       >
                         <ArrowLeftRight size={14} aria-hidden="true" />
                         切換成此測試帳號進行實測
@@ -1185,14 +1185,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               variant="outline"
               disabled={updateUserMutation.isPending}
               onClick={() => setEditingUser(null)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={updateUserMutation.isPending || !editName.trim()}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary text-primary-foreground font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm"
             >
               {updateUserMutation.isPending ? '儲存中...' : '儲存成員設定'}
             </Button>
@@ -1209,15 +1209,15 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 className="size-11 rounded-xl border border-border shrink-0 text-sm"
               />
               <div className="min-w-0 flex-1">
-                <p className="font-display font-black text-sm text-foreground truncate">
+                <p className="font-display font-bold text-sm text-foreground truncate">
                   {editingUser.name}
                 </p>
                 <p className="text-xs font-bold text-muted-foreground truncate">
                   {editingUser.email || '未綁定 Email'}
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-xl bg-card border border-border text-xs font-display font-black tabular-nums shrink-0">
-                {Math.round(editingUser.global_mmr)} ELO
+              <span className="px-2.5 py-1 rounded-xl bg-card border border-border text-xs font-display font-semibold tabular-nums shrink-0">
+                {Math.round(editingUser.global_mmr)} 分
               </span>
             </div>
 
@@ -1343,7 +1343,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         )}
       </ResponsiveFormModal>
 
-      {/* Modal 2: Focused ELO Calibration Stage */}
+      {/* Modal 2: Focused Score Calibration Stage */}
       <ResponsiveFormModal
         open={!!mmrUser}
         onOpenChange={(open) => {
@@ -1352,7 +1352,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         size="md"
         tone="gold"
         icon={<Scale size={18} />}
-        title={mmrUser ? `校準積分 · ${mmrUser.name}` : '校準 ELO 積分'}
+        title={mmrUser ? `校準積分 · ${mmrUser.name}` : '校準積分'}
         description="調整結果將寫入選手歷史曲線並寄送通知。"
         onSubmit={handleSaveMmr}
         footer={
@@ -1362,7 +1362,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               variant="outline"
               disabled={adjustMmrMutation.isPending}
               onClick={() => setMmrUser(null)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
@@ -1373,7 +1373,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 !mmrPreview?.valid ||
                 mmrReason.trim().length < 2
               }
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-display font-semibold text-sm"
             >
               {adjustMmrMutation.isPending ? '套用中...' : '確認校準積分'}
             </Button>
@@ -1386,19 +1386,19 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
             <div className="rounded-2xl border border-border bg-surface-subtle/60 p-4 space-y-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-[11px] font-bold text-muted-foreground block">
+                  <span className="text-xs font-medium text-muted-foreground block">
                     調整前後即時預覽 {mmrPreview?.clamped ? '(已套用 600–3000 上下限)' : ''}
                   </span>
-                  <div className="flex items-center gap-2 mt-0.5 font-display font-black text-base sm:text-lg tabular-nums">
+                  <div className="flex items-center gap-2 mt-0.5 font-display font-bold text-base sm:text-lg tabular-nums">
                     <span className="text-muted-foreground">{Math.round(mmrUser.global_mmr)}</span>
                     <span className="text-muted-foreground/45">→</span>
                     <span className="text-foreground">
-                      {Math.round(mmrPreview?.nextMmr ?? mmrUser.global_mmr)} ELO
+                      {Math.round(mmrPreview?.nextMmr ?? mmrUser.global_mmr)} 分
                     </span>
                     {mmrPreview && (
                       <span
                         className={cn(
-                          'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-xs font-display font-black tabular-nums',
+                          'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-xs font-display font-semibold tabular-nums',
                           mmrPreview.delta > 0
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                             : mmrPreview.delta < 0
@@ -1426,7 +1426,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       setMmrInput('20');
                     }}
                     className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                      'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all',
                       mmrMode === 'delta'
                         ? 'bg-card text-foreground shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
@@ -1441,7 +1441,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                       setMmrInput(String(Math.round(mmrUser.global_mmr)));
                     }}
                     className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                      'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all',
                       mmrMode === 'target'
                         ? 'bg-card text-foreground shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
@@ -1467,10 +1467,10 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   type="number"
                   step="0.5"
                   inputMode="decimal"
-                  aria-label={mmrMode === 'delta' ? '調整幅度' : '目標 ELO 分數'}
+                  aria-label={mmrMode === 'delta' ? '調整幅度' : '目標積分'}
                   value={mmrInput}
                   onChange={(e) => setMmrInput(e.target.value)}
-                  className="arena-input text-center font-display font-black text-lg tabular-nums"
+                  className="arena-input text-center font-display font-bold text-lg tabular-nums"
                 />
                 <button
                   type="button"
@@ -1495,7 +1495,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                         setMmrInput(String(d));
                       }}
                       className={cn(
-                        'min-h-9 rounded-xl border text-xs font-display font-black tabular-nums transition-all active:scale-95',
+                        'min-h-9 py-1.5 rounded-xl border text-xs font-display font-semibold tabular-nums transition-all active:scale-95',
                         active
                           ? d > 0
                             ? 'bg-emerald-600 border-emerald-600 text-white'
@@ -1543,7 +1543,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] font-bold text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 將寫入選手戰績曲線並發送系統通知，確保排行公開透明。
               </p>
             </div>
@@ -1570,14 +1570,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               variant="outline"
               disabled={batchDeptMutation.isPending}
               onClick={() => setBatchDeptOpen(false)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={batchDeptMutation.isPending || !batchDepartment.trim()}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm"
             >
               {batchDeptMutation.isPending
                 ? '套用中...'
@@ -1588,7 +1588,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
       >
         <div className="space-y-4">
           <div className="rounded-2xl bg-surface-subtle/70 border border-border p-3 space-y-1.5">
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+            <p className="text-xs font-semibold text-muted-foreground">
               目標成員預覽
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -1601,7 +1601,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
                 </span>
               ))}
               {selectedUsersList.length > 8 && (
-                <span className="px-2 py-0.5 rounded-lg bg-secondary text-xs font-black text-muted-foreground">
+                <span className="px-2 py-0.5 rounded-lg bg-secondary text-xs font-medium text-muted-foreground">
                   +{selectedUsersList.length - 8} 人
                 </span>
               )}
@@ -1643,14 +1643,14 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
               variant="outline"
               disabled={createTestMutation.isPending}
               onClick={() => setCreateTestOpen(false)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={createTestMutation.isPending}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-display font-semibold text-sm"
             >
               {createTestMutation.isPending ? '建立中...' : '確認建立測試帳號'}
             </Button>
@@ -1691,7 +1691,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
 
             <div>
               <label htmlFor="test-user-mmr" className="arena-label">
-                初始 ELO 積分
+                初始積分
               </label>
               <input
                 id="test-user-mmr"
@@ -1707,7 +1707,7 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
         </div>
       </ResponsiveFormModal>
 
-      {/* Slide-Over / Bottom Sheet: Member ELO Change Timeline */}
+      {/* Slide-Over / Bottom Sheet: Member Score Change Timeline */}
       <AdminUserMmrLogsDrawer user={logsUser} onClose={() => setLogsUser(null)} />
     </section>
   );

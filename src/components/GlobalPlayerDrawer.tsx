@@ -27,7 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
-import { getTierBadge } from '@/lib/ranking';
+import { getTierBadge, getShortTierName } from '@/lib/ranking';
 import { useTheme } from '@/contexts/theme-context';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer';
@@ -356,7 +356,7 @@ function PlayerDrawerInner({
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-10 space-y-4 min-h-[340px]">
         <div className="size-10 border-4 border-border border-t-sapphire-blue rounded-full animate-spin" />
-        <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
+        <p className="text-muted-foreground font-medium text-xs">
           讀取選手資料中...
         </p>
       </div>
@@ -393,23 +393,23 @@ function PlayerDrawerInner({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* 1. Compact Broadcast Hero Header */}
-      <header className="arena-hero-surface px-4 pt-4 pb-3.5 sm:px-5 sm:pt-5 sm:pb-4 text-foreground border-b border-blue-200/70 dark:border-slate-700/80 relative shrink-0">
+      {/* 1. Calm Hero Header */}
+      <header className="bg-card px-4 pt-4 pb-3.5 sm:px-5 sm:pt-5 sm:pb-4 text-foreground border-b border-border relative shrink-0">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="relative shrink-0">
               <PlayerAvatar
                 src={player.avatar}
                 name={player.name}
-                className="size-13 sm:size-15 rounded-2xl border-2 border-blue-200/80 dark:border-white/20 shadow-md text-lg"
+                className="size-13 sm:size-15 rounded-2xl border border-border/80 shadow-xs text-lg"
               />
               <span
                 aria-label={rankBadge.ariaText}
                 className={cn(
-                  'absolute -left-1.5 -top-1.5 flex items-center justify-center rounded-full border-2 ring-2 ring-background font-display font-black tabular-nums shadow-sm leading-none',
+                  'absolute -left-1.5 -top-1.5 flex items-center justify-center rounded-full border-2 ring-2 ring-background font-display font-bold tabular-nums shadow-xs leading-none',
                   rankBadge.textLabel === '定級'
-                    ? 'px-1.5 h-6 text-[10px]'
-                    : 'size-6 sm:size-7 text-[11px] sm:text-xs',
+                    ? 'px-1.5 min-h-6 py-0.5 text-xs'
+                    : 'size-6 sm:size-7 text-xs',
                   rankBadge.containerClass,
                 )}
               >
@@ -419,20 +419,20 @@ function PlayerDrawerInner({
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-display font-black tracking-tight text-foreground leading-tight truncate">
+                <h2 className="text-lg sm:text-xl font-display font-bold tracking-tight text-foreground leading-tight truncate">
                   {player.name}
                 </h2>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-black shrink-0',
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold shadow-none shrink-0',
                     tier.color,
                   )}
                 >
                   {tier.icon}
-                  {tier.name}
+                  {getShortTierName(player.rating)}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs font-bold text-muted-foreground mt-1 truncate">
+              <p className="text-xs font-medium text-muted-foreground mt-1 truncate">
                 {formatEquipmentLine(player)}
               </p>
             </div>
@@ -441,15 +441,15 @@ function PlayerDrawerInner({
           <div className="flex items-start gap-2 shrink-0">
             <div className="text-right">
               <div className="flex items-baseline justify-end gap-1">
-                <span className="text-2xl sm:text-[26px] font-display font-black text-foreground tabular-nums leading-none">
+                <span className="text-2xl sm:text-[1.625rem] font-display font-bold text-foreground tabular-nums leading-none">
                   {Math.round(player.rating)}
                 </span>
-                <span className="text-xs font-black text-muted-foreground">分</span>
+                <span className="text-xs font-medium text-muted-foreground">分</span>
               </div>
               {canShowH2H && mmrGap !== null && (
                 <span
                   className={cn(
-                    'mt-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black tabular-nums',
+                    'mt-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tabular-nums',
                     mmrGap > 0
                       ? 'bg-orange-500/12 text-orange-600 dark:text-orange-300'
                       : mmrGap < 0
@@ -480,12 +480,12 @@ function PlayerDrawerInner({
         </div>
 
         {/* 近 5 場正圓手感 + 連勝/戰績摘要 Strip */}
-        <div className="mt-3 pt-2.5 border-t border-blue-200/50 dark:border-slate-700/60 flex items-center justify-between gap-2">
+        <div className="mt-3 pt-2.5 border-t border-border/70 flex items-center justify-between gap-2">
           <div
             className="flex items-center gap-1.5"
             aria-label="近 5 場勝負（由左至右為最新到較舊）"
           >
-            <span className="text-[11px] font-black text-muted-foreground mr-0.5 shrink-0">
+            <span className="text-xs font-medium text-muted-foreground mr-0.5 shrink-0">
               近 5 場
             </span>
             {Array.from({ length: 5 }).map((_, idx) => {
@@ -495,11 +495,11 @@ function PlayerDrawerInner({
                 <span
                   key={idx}
                   className={cn(
-                    'size-5.5 sm:size-6 rounded-full shrink-0 flex items-center justify-center font-display font-black text-[10px] leading-none select-none',
+                    'size-5.5 sm:size-6 rounded-full shrink-0 flex items-center justify-center font-display font-bold text-[0.6875rem] sm:text-xs leading-none select-none',
                     res === 'W'
-                      ? cn('bg-emerald-500 text-white', idx === 0 && 'ring-2 ring-emerald-500/35')
+                      ? cn('bg-emerald-500 text-white', idx === 0 && 'ring-2 ring-emerald-500/30')
                       : res === 'L'
-                        ? cn('bg-rose-500 text-white', idx === 0 && 'ring-2 ring-rose-500/35')
+                        ? cn('bg-rose-500 text-white', idx === 0 && 'ring-2 ring-rose-500/30')
                         : 'border border-dashed border-border bg-surface-subtle/80 text-muted-foreground/45',
                   )}
                 >
@@ -513,17 +513,17 @@ function PlayerDrawerInner({
             {Math.abs(streak) >= 2 ? (
               <span
                 className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black tabular-nums',
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums',
                   streak > 0
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
                     : 'bg-rose-500/15 text-rose-600 dark:text-rose-300',
                 )}
               >
-                {streak > 0 && <Flame size={11} aria-hidden="true" />}
+                {streak > 0 && <Flame size={12} aria-hidden="true" />}
                 {streak > 0 ? `${streak} 連勝` : `${Math.abs(streak)} 連敗`}
               </span>
             ) : (
-              <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+              <span className="text-xs font-medium text-muted-foreground tabular-nums">
                 生涯 {player.stats.wins}勝 {player.stats.losses}敗
               </span>
             )}
@@ -561,12 +561,7 @@ function PlayerDrawerInner({
                     mainTabRefs,
                   )
                 }
-                className={cn(
-                  'relative min-h-11 px-3 py-2 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue focus-visible:-outline-offset-2',
-                  isActive
-                    ? "text-sapphire-blue dark:text-blue-300 after:content-[''] after:absolute after:inset-x-4 after:bottom-0 after:border-b-[3px] after:border-sapphire-blue dark:after:border-blue-400"
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
+                className='relative min-h-11 px-3 py-2 flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue focus-visible:-outline-offset-2 aria-selected:text-sapphire-blue dark:aria-selected:text-blue-300 aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-x-4 aria-selected:after:bottom-0 aria-selected:after:border-b-[3px] aria-selected:after:border-sapphire-blue dark:aria-selected:after:border-blue-400'
               >
                 {tab.id === 'h2h' ? (
                   <Swords size={14} aria-hidden="true" />
@@ -577,7 +572,7 @@ function PlayerDrawerInner({
                 {typeof tab.badge === 'number' && tab.badge > 0 && (
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded-full text-[10px] font-display font-black tabular-nums leading-none',
+                      'px-1.5 py-0.5 rounded-full text-xs font-display font-semibold tabular-nums leading-none',
                       isActive
                         ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-400/20 dark:text-blue-200'
                         : 'bg-secondary text-muted-foreground',
@@ -641,7 +636,7 @@ function PlayerDrawerInner({
             <Button
               type="button"
               onClick={() => onOpenChallenge(player, Boolean(existingChallenge))}
-              className="flex-1 min-h-11 rounded-xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm gap-1.5 shadow-sm"
+              className="flex-1 min-h-11 rounded-xl bg-smash-orange hover:bg-orange-600 text-white font-display font-semibold text-sm gap-1.5 shadow-xs"
             >
               <Swords size={16} aria-hidden="true" />
               {existingChallenge ? '查看進行中戰帖' : `向 ${player.name} 發起挑戰`}
@@ -650,7 +645,7 @@ function PlayerDrawerInner({
               type="button"
               variant="outline"
               onClick={() => onQuickReport(inspectingId)}
-              className="min-h-11 px-4 rounded-xl border-sapphire-blue/35 text-sapphire-blue hover:bg-blue-50 dark:hover:bg-blue-500/15 font-black text-sm gap-1.5 shrink-0"
+              className="min-h-11 px-4 rounded-xl border-sapphire-blue/35 text-sapphire-blue hover:bg-blue-50 dark:hover:bg-blue-500/15 font-semibold text-sm gap-1.5 shrink-0"
             >
               <Plus size={15} aria-hidden="true" />
               直接報分
@@ -661,7 +656,7 @@ function PlayerDrawerInner({
             <Button
               type="button"
               onClick={() => onNavigateRoute('/')}
-              className="flex-1 min-h-11 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-1.5"
+              className="flex-1 min-h-11 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm gap-1.5"
             >
               <LayoutDashboard size={16} aria-hidden="true" />
               前往個人戰情室
@@ -670,7 +665,7 @@ function PlayerDrawerInner({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="min-h-11 px-4 rounded-xl font-black text-sm shrink-0"
+              className="min-h-11 px-4 rounded-xl font-semibold text-sm shrink-0"
             >
               關閉
             </Button>
@@ -679,7 +674,7 @@ function PlayerDrawerInner({
           <Button
             type="button"
             onClick={onClose}
-            className="w-full min-h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-black text-sm"
+            className="w-full min-h-11 rounded-xl bg-primary hover:opacity-90 text-primary-foreground font-semibold text-sm"
           >
             關閉檔案
           </Button>
@@ -791,17 +786,12 @@ function H2HComparisonPanel({
                   subTabRefs,
                 )
               }
-              className={cn(
-                'relative flex-1 min-w-[96px] min-h-10 px-2.5 py-2 flex items-center justify-center gap-1.5 text-xs font-black whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue focus-visible:-outline-offset-2',
-                isActive
-                  ? "text-foreground bg-card after:content-[''] after:absolute after:inset-x-3 after:bottom-0 after:border-b-[3px] after:border-sapphire-blue dark:after:border-blue-400"
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
+              className='relative flex-1 min-w-[96px] min-h-10 px-2.5 py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue focus-visible:-outline-offset-2 aria-selected:text-foreground aria-selected:bg-card aria-selected:after:content-[""] aria-selected:after:absolute aria-selected:after:inset-x-3 aria-selected:after:bottom-0 aria-selected:after:border-b-[3px] aria-selected:after:border-sapphire-blue dark:aria-selected:after:border-blue-400'
             >
               <span>{tab.label}</span>
               <span
                 className={cn(
-                  'font-display tabular-nums text-[11px]',
+                  'font-display tabular-nums text-xs',
                   isActive ? 'text-sapphire-blue dark:text-blue-300' : 'text-muted-foreground/75',
                 )}
               >
@@ -830,28 +820,28 @@ function H2HComparisonPanel({
             <div className="space-y-2.5">
               <div className="flex items-end justify-between gap-2">
                 <div>
-                  <div className="flex items-baseline gap-1.5 font-display font-black leading-none">
-                    <span className="text-2xl sm:text-[26px] text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  <div className="flex items-baseline gap-1.5 font-display font-bold leading-none">
+                    <span className="text-2xl sm:text-[1.625rem] text-emerald-600 dark:text-emerald-400 tabular-nums">
                       {bucket.wins}勝
                     </span>
                     <span className="text-lg text-muted-foreground/45">·</span>
-                    <span className="text-2xl sm:text-[26px] text-rose-500 dark:text-rose-400 tabular-nums">
+                    <span className="text-2xl sm:text-[1.625rem] text-rose-500 dark:text-rose-400 tabular-nums">
                       {bucket.losses}敗
                     </span>
                   </div>
-                  <p className="text-xs font-bold text-muted-foreground mt-1 tabular-nums">
+                  <p className="text-xs font-medium text-muted-foreground mt-1 tabular-nums">
                     {isPartnerTab ? '同隊搭檔勝率' : '雙方交手勝率'}{' '}
-                    <span className="font-black text-foreground">{bucket.win_rate}%</span>
+                    <span className="font-semibold text-foreground">{bucket.win_rate}%</span>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-xs font-medium text-muted-foreground block">
                     累計淨得分
                   </span>
                   <span
                     className={cn(
-                      'text-lg sm:text-xl font-display font-black tabular-nums leading-tight',
+                      'text-lg sm:text-xl font-display font-bold tabular-nums leading-tight',
                       bucket.net_mmr > 0
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : bucket.net_mmr < 0
@@ -870,17 +860,13 @@ function H2HComparisonPanel({
                   className="h-full bg-emerald-500 transition-all duration-500"
                   style={{ width: `${bucket.win_rate}%` }}
                 />
-                <div
-                  className="h-full bg-rose-400 transition-all duration-500"
-                  style={{ width: `${100 - bucket.win_rate}%` }}
-                />
               </div>
 
               {/* 動態情資條（氣勢 + 雙打合體/單打盤口事實） */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs">
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-black tabular-nums',
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold tabular-nums',
                     bucketStreak >= 2
                       ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
                       : bucketStreak <= -2
@@ -897,13 +883,13 @@ function H2HComparisonPanel({
 
                 {isPartnerTab && preview && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 font-black tabular-nums">
-                      <Handshake size={11} aria-hidden="true" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-sapphire-blue dark:text-blue-300 font-semibold tabular-nums">
+                      <Handshake size={12} aria-hidden="true" />
                       合體均強 {preview.combined_team_mmr} 分
                     </span>
                     {preview.hand_synergy && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-black">
-                        <Sparkles size={11} aria-hidden="true" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+                        <Sparkles size={12} aria-hidden="true" />
                         左右手黃金配對
                       </span>
                     )}
@@ -911,13 +897,13 @@ function H2HComparisonPanel({
                 )}
 
                 {activeTab === 'singles_vs' && preview && (
-                  <span className="font-bold text-muted-foreground tabular-nums">
+                  <span className="font-medium text-muted-foreground tabular-nums">
                     BO3 贏{' '}
-                    <span className="font-black text-emerald-600 dark:text-emerald-400">
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                       {formatRangeText(preview.singles_bo3.win_2_1, preview.singles_bo3.win_2_0, true)}
                     </span>
                     {' / 輸 '}
-                    <span className="font-black text-rose-500 dark:text-rose-400">
+                    <span className="font-semibold text-rose-500 dark:text-rose-400">
                       {formatRangeText(preview.singles_bo3.lose_0_2, preview.singles_bo3.lose_1_2)}
                     </span>
                   </span>
@@ -928,7 +914,7 @@ function H2HComparisonPanel({
             {/* 近期交手明細清單 (最多 5 場，可點擊直接跳轉該場詳情) */}
             {bucket.recent.length > 0 && (
               <div className="pt-1 border-t border-border">
-                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider pt-2 pb-1">
+                <p className="text-xs font-semibold text-muted-foreground pt-2 pb-1">
                   近期交手明細（點擊跳至戰報）
                 </p>
                 <ul className="divide-y divide-border">
@@ -953,7 +939,7 @@ function H2HComparisonPanel({
           <button
             type="button"
             onClick={() => onJumpToAllHistory('any', 'all')}
-            className="min-h-10 px-2 -mx-2 rounded-xl text-xs font-black text-sapphire-blue dark:text-blue-300 hover:bg-blue-50/70 dark:hover:bg-blue-500/10 inline-flex items-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue"
+            className="min-h-10 px-2 -mx-2 rounded-xl text-xs font-semibold text-sapphire-blue dark:text-blue-300 hover:bg-blue-50/70 dark:hover:bg-blue-500/10 inline-flex items-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-sapphire-blue"
           >
             <History size={14} aria-hidden="true" />
             <span>查看與 {targetName} 的全部 {data.total_matches} 場紀錄</span>
@@ -964,7 +950,7 @@ function H2HComparisonPanel({
             <button
               type="button"
               onClick={handleViewAll}
-              className="min-h-10 px-2 rounded-xl text-[11px] font-black text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              className="min-h-10 px-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
               僅看本項 ({bucket.matches})
             </button>
@@ -1003,10 +989,10 @@ function ZeroMatchupInviteCard({
             <Swords size={14} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h3 className="text-sm font-display font-black text-foreground truncate">
+            <h3 className="text-sm font-display font-bold text-foreground truncate">
               尚未與 {targetName} 同場出賽
             </h3>
-            <p className="text-[11px] font-bold text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               依現行積分規則預覽組隊與單打盤口
             </p>
           </div>
@@ -1014,7 +1000,7 @@ function ZeroMatchupInviteCard({
 
         <span
           className={cn(
-            'px-2 py-0.5 rounded-full text-[11px] font-black shrink-0',
+            'px-2 py-0.5 rounded-full text-xs font-semibold shrink-0',
             gapBadge.cls,
           )}
         >
@@ -1026,20 +1012,20 @@ function ZeroMatchupInviteCard({
         <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2.5">
           {/* 組隊雙打預覽 */}
           <div className="rounded-xl bg-surface-subtle border border-border p-3 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-black text-sapphire-blue dark:text-blue-300">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-sapphire-blue dark:text-blue-300">
               <Handshake size={14} aria-hidden="true" />
               <span>組隊雙打戰力</span>
             </div>
-            <p className="text-lg font-display font-black text-foreground tabular-nums leading-tight">
+            <p className="text-lg font-display font-bold text-foreground tabular-nums leading-tight">
               均強 {preview.combined_team_mmr} 分
             </p>
             {preview.hand_synergy ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black">
-                <Sparkles size={10} aria-hidden="true" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                <Sparkles size={11} aria-hidden="true" />
                 左右手黃金配對
               </span>
             ) : (
-              <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
+              <p className="text-xs font-medium text-muted-foreground tabular-nums">
                 你 {preview.my_mmr} + 他 {preview.target_mmr} 分均分
               </p>
             )}
@@ -1047,18 +1033,18 @@ function ZeroMatchupInviteCard({
 
           {/* 單打 BO3 盤口預覽 */}
           <div className="rounded-xl bg-surface-subtle border border-border p-3 space-y-1.5">
-            <div className="flex items-center justify-between gap-1 text-xs font-black text-foreground">
+            <div className="flex items-center justify-between gap-1 text-xs font-semibold text-foreground">
               <span className="inline-flex items-center gap-1">
                 <Swords size={13} className="text-smash-orange" aria-hidden="true" />
                 單打 BO3 盤口
               </span>
               {placementHint && (
-                <span className="text-[10px] font-black text-sapphire-blue dark:text-blue-300">
+                <span className="text-xs font-semibold text-sapphire-blue dark:text-blue-300">
                   含定級加成
                 </span>
               )}
             </div>
-            <div className="space-y-0.5 text-xs font-black tabular-nums">
+            <div className="space-y-0.5 text-xs font-semibold tabular-nums">
               <p className="text-emerald-600 dark:text-emerald-400">
                 贏 {formatRangeText(preview.singles_bo3.win_2_1, preview.singles_bo3.win_2_0, true)}
               </p>
@@ -1070,7 +1056,7 @@ function ZeroMatchupInviteCard({
         </div>
       )}
 
-      <p className="text-xs font-bold text-muted-foreground text-center pt-0.5">
+      <p className="text-xs font-medium text-muted-foreground text-center pt-0.5">
         點下方「向 {targetName} 發起挑戰」，開啟你們的第一場正式交鋒！
       </p>
     </section>
@@ -1088,7 +1074,7 @@ function EmptySubBucketState({
 }>) {
   return (
     <div className="py-6 px-4 text-center rounded-xl bg-surface-subtle/70 border border-dashed border-border space-y-2">
-      <p className="text-xs font-black text-foreground">
+      <p className="text-xs font-semibold text-foreground">
         {activeTab === 'doubles_with'
           ? `尚未與 ${targetName} 同隊搭檔出賽`
           : activeTab === 'doubles_vs'
@@ -1096,35 +1082,35 @@ function EmptySubBucketState({
             : `尚未與 ${targetName} 進行過單打對決`}
       </p>
       {activeTab === 'doubles_with' && preview && (
-        <div className="flex items-center justify-center gap-2 flex-wrap text-[11px] font-bold text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 flex-wrap text-xs font-medium text-muted-foreground">
           <span>
             合體雙打均強{' '}
-            <strong className="font-display font-black text-sapphire-blue dark:text-blue-300 tabular-nums">
+            <strong className="font-display font-bold text-sapphire-blue dark:text-blue-300 tabular-nums">
               {preview.combined_team_mmr} 分
             </strong>
           </span>
           {preview.hand_synergy && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-black">
-              <Sparkles size={10} aria-hidden="true" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+              <Sparkles size={11} aria-hidden="true" />
               左右手黃金配對
             </span>
           )}
         </div>
       )}
       {activeTab === 'singles_vs' && preview && (
-        <p className="text-[11px] font-bold text-muted-foreground tabular-nums">
+        <p className="text-xs font-medium text-muted-foreground tabular-nums">
           BO3 單打盤口：贏{' '}
-          <span className="font-black text-emerald-600 dark:text-emerald-400">
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
             {formatRangeText(preview.singles_bo3.win_2_1, preview.singles_bo3.win_2_0, true)}
           </span>
           {' / 輸 '}
-          <span className="font-black text-rose-500 dark:text-rose-400">
+          <span className="font-semibold text-rose-500 dark:text-rose-400">
             {formatRangeText(preview.singles_bo3.lose_0_2, preview.singles_bo3.lose_1_2)}
           </span>
         </p>
       )}
       {activeTab === 'doubles_vs' && (
-        <p className="text-[11px] font-bold text-muted-foreground">
+        <p className="text-xs font-medium text-muted-foreground">
           雙打會依四位球員平均積分與 0.85x 團隊係數共同結算
         </p>
       )}
@@ -1171,7 +1157,7 @@ function H2HRecentMatchRow({
       <div className="flex items-center gap-2.5 min-w-0">
         <span
           className={cn(
-            'size-6 rounded-full shrink-0 flex items-center justify-center font-display font-black text-[11px] leading-none',
+            'size-6 rounded-full shrink-0 flex items-center justify-center font-display font-bold text-xs leading-none',
             match.is_winner
               ? 'bg-emerald-500 text-white'
               : 'bg-rose-500 text-white',
@@ -1181,16 +1167,16 @@ function H2HRecentMatchRow({
         </span>
 
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
             <span className="tabular-nums text-muted-foreground">
               {formatLocalTime(match.date, 'MM/dd')}
             </span>
-            <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-secondary text-muted-foreground">
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground leading-none">
               {match.format}
             </span>
           </div>
           {lineupSummary && (
-            <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5">
+            <p className="text-xs font-medium text-muted-foreground truncate mt-0.5">
               {lineupSummary}
             </p>
           )}
@@ -1198,12 +1184,12 @@ function H2HRecentMatchRow({
       </div>
 
       <div className="flex items-center gap-2.5 shrink-0">
-        <span className="font-display font-black text-sm text-foreground tabular-nums">
+        <span className="font-display font-bold text-sm text-foreground tabular-nums">
           {match.my_score} : {match.opp_score}
         </span>
         <span
           className={cn(
-            'font-display font-black text-xs tabular-nums min-w-[3.25rem] text-right',
+            'font-display font-semibold text-xs tabular-nums min-w-[3.25rem] text-right',
             match.mmr_delta >= 0
               ? 'text-emerald-600 dark:text-emerald-400'
               : 'text-rose-500 dark:text-rose-400',
@@ -1266,40 +1252,40 @@ function ScoutingPanel({
       {/* 1. 整合式三欄 KPI（單卡，避免碎片感） */}
       <div className="rounded-2xl bg-card border border-border grid grid-cols-3 divide-x divide-border shadow-xs">
         <div className="p-3 text-center">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+          <p className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1">
             <TrendingUp size={12} className="text-emerald-500" aria-hidden="true" />
             生涯勝率
           </p>
-          <p className="text-lg sm:text-xl font-display font-black text-foreground tabular-nums mt-0.5 leading-tight">
+          <p className="text-lg sm:text-xl font-display font-bold text-foreground tabular-nums mt-0.5 leading-tight">
             {player.stats.winRate}%
           </p>
-          <p className="text-[10px] font-bold text-muted-foreground mt-0.5 tabular-nums">
+          <p className="text-xs font-medium text-muted-foreground mt-0.5 tabular-nums">
             {player.stats.wins}勝 {player.stats.losses}敗
           </p>
         </div>
 
         <div className="p-3 text-center">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+          <p className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1">
             <Swords size={12} className="text-sapphire-blue" aria-hidden="true" />
             總出賽數
           </p>
-          <p className="text-lg sm:text-xl font-display font-black text-foreground tabular-nums mt-0.5 leading-tight">
+          <p className="text-lg sm:text-xl font-display font-bold text-foreground tabular-nums mt-0.5 leading-tight">
             {totalMatches}
           </p>
-          <p className="text-[10px] font-bold text-muted-foreground mt-0.5 tabular-nums">
+          <p className="text-xs font-medium text-muted-foreground mt-0.5 tabular-nums">
             {player.format_split ? `雙${doublesCount} · 單${singlesCount}` : '已結算場次'}
           </p>
         </div>
 
         <div className="p-3 text-center">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+          <p className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1">
             <Trophy size={12} className="text-olympic-gold" aria-hidden="true" />
             生涯巔峰
           </p>
-          <p className="text-lg sm:text-xl font-display font-black text-foreground tabular-nums mt-0.5 leading-tight">
-            {peakRating} <span className="text-xs font-bold text-muted-foreground">分</span>
+          <p className="text-lg sm:text-xl font-display font-bold text-foreground tabular-nums mt-0.5 leading-tight">
+            {peakRating} <span className="text-xs font-medium text-muted-foreground">分</span>
           </p>
-          <p className="text-[10px] font-bold text-muted-foreground mt-0.5 tabular-nums">
+          <p className="text-xs font-medium text-muted-foreground mt-0.5 tabular-nums">
             {peakRating <= currentRounded ? '目前即為巔峰' : `距巔峰差 ${peakRating - currentRounded} 分`}
           </p>
         </div>
@@ -1312,12 +1298,12 @@ function ScoutingPanel({
           className="rounded-2xl bg-card border border-border p-3.5 sm:p-4 space-y-2 shadow-xs"
         >
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <h3 className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
               <RadarIcon size={14} className="text-sapphire-blue" aria-hidden="true" />
               五維球風雷達
             </h3>
 
-            <div className="flex items-center gap-2.5 text-[11px] font-black">
+            <div className="flex items-center gap-2.5 text-xs font-medium">
               <span className="inline-flex items-center gap-1 text-foreground">
                 <span className="size-2.5 rounded-full bg-sapphire-blue" />
                 {player.name}
@@ -1332,8 +1318,8 @@ function ScoutingPanel({
           </div>
 
           {!radarBlock.unlocked && (
-            <div className="rounded-xl border border-dashed border-sapphire-blue/35 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
-              <span className="inline-flex items-center gap-1.5 font-bold text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-sapphire-blue/35 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 px-3 py-2 flex items-center justify-between gap-2 text-xs">
+              <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
                 <Lock size={12} className="text-sapphire-blue shrink-0" aria-hidden="true" />
                 預覽輪廓：已結算 {radarBlock.settled_count}/{radarBlock.unlock_required} 場
               </span>
@@ -1358,7 +1344,7 @@ function ScoutingPanel({
                 <PolarAngleAxis
                   dataKey="label"
                   tickLine={false}
-                  tick={{ fill: labelColor, fontSize: 11, fontWeight: 800 }}
+                  tick={{ fill: labelColor, fontSize: 12, fontWeight: 600 }}
                 />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
                 <RechartsTooltip
@@ -1369,16 +1355,16 @@ function ScoutingPanel({
                     if (!active || !row) return null;
                     return (
                       <div className="bg-popover p-2.5 rounded-xl shadow-lg border border-border text-xs space-y-1">
-                        <p className="font-display font-black text-foreground">{row.label}</p>
-                        <p className="font-bold text-sapphire-blue dark:text-blue-300 tabular-nums">
+                        <p className="font-display font-bold text-foreground">{row.label}</p>
+                        <p className="font-semibold text-sapphire-blue dark:text-blue-300 tabular-nums">
                           {player.name}：{row.targetScore} 分
                         </p>
                         {row.myScore !== null && (
-                          <p className="font-bold text-orange-600 dark:text-orange-300 tabular-nums">
+                          <p className="font-semibold text-orange-600 dark:text-orange-300 tabular-nums">
                             我：{row.myScore} 分
                           </p>
                         )}
-                        <p className="text-[11px] font-bold text-muted-foreground">{row.detail}</p>
+                        <p className="text-xs font-medium text-muted-foreground">{row.detail}</p>
                       </div>
                     );
                   }}
@@ -1433,7 +1419,7 @@ function ScoutingPanel({
 
       {/* 3. 近期實力波動趨勢 */}
       <section aria-label="近期積分走勢" className="space-y-2">
-        <h3 className="text-xs font-black text-muted-foreground uppercase tracking-wider ml-1">
+        <h3 className="text-xs font-semibold text-muted-foreground ml-1">
           近期積分走勢
         </h3>
         <div className="w-full bg-card rounded-2xl p-3 sm:p-3.5 border border-border shadow-xs">
@@ -1491,7 +1477,7 @@ function RelationSection({
     <section className="space-y-2">
       <h3
         className={cn(
-          'text-xs font-black uppercase tracking-wider ml-1 flex items-center gap-1.5',
+          'text-xs font-semibold ml-1 flex items-center gap-1.5',
           isAmber ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400',
         )}
       >
@@ -1518,11 +1504,11 @@ function RelationSection({
                   )}
                 />
                 <div className="min-w-0">
-                  <span className="text-sm font-black text-foreground truncate block">
+                  <span className="text-sm font-bold text-foreground truncate block">
                     {p.name}
                   </span>
                   {typeof p.wins === 'number' && typeof p.losses === 'number' && (
-                    <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
                       {p.wins}勝 {p.losses}敗{typeof p.matches === 'number' ? ` · 共 ${p.matches} 場` : ''}
                     </span>
                   )}
@@ -1532,14 +1518,14 @@ function RelationSection({
               <div className="flex items-center gap-1.5 shrink-0">
                 <span
                   className={cn(
-                    'text-sm sm:text-base font-display font-black tabular-nums',
+                    'text-sm sm:text-base font-display font-bold tabular-nums',
                     isAmber
                       ? 'text-amber-600 dark:text-amber-400'
                       : 'text-rose-600 dark:text-rose-400',
                   )}
                 >
                   {p.winRate}%{' '}
-                  <span className="text-[11px] font-sans font-bold text-muted-foreground">勝率</span>
+                  <span className="text-xs font-sans font-medium text-muted-foreground">勝率</span>
                 </span>
                 <ChevronRight size={14} className="text-muted-foreground/60" aria-hidden="true" />
               </div>

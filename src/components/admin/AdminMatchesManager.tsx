@@ -582,9 +582,10 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 <button
                   key={tab.key}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => handleStatusChange(tab.key)}
                   className={cn(
-                    'min-h-9 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap',
+                    'min-h-9 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap',
                     active
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -593,7 +594,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                   <span>{tab.label}</span>
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded-full text-[11px] font-display font-black tabular-nums leading-none',
+                      'px-1.5 py-0.5 rounded-full text-xs font-display font-semibold tabular-nums leading-none',
                       tab.key === 'disputed' && tab.count > 0
                         ? 'bg-rose-500 text-white'
                         : active
@@ -614,7 +615,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 type="button"
                 variant="outline"
                 onClick={() => openBatchModal('overdue')}
-                className="h-9 px-3 rounded-xl border-amber-300 dark:border-amber-500/35 bg-amber-50/80 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/25 font-black text-xs gap-1.5"
+                className="min-h-9 py-1.5 px-3 rounded-xl border-amber-300 dark:border-amber-500/35 bg-amber-50/80 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/25 font-semibold text-xs gap-1.5"
               >
                 <Zap size={13} aria-hidden="true" />
                 一鍵結算超時 ({counts.overdue})
@@ -624,7 +625,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
             <Button
               type="button"
               onClick={openCreateModal}
-              className="h-9 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-xs gap-1.5 shadow-xs border-none"
+              className="min-h-9 py-1.5 px-3.5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-xs gap-1.5 shadow-xs border-none"
             >
               <Plus size={14} aria-hidden="true" />
               代為補登
@@ -684,7 +685,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 type="button"
                 onClick={() => setTypeFilter(opt.key)}
                 className={cn(
-                  'min-h-9 rounded-lg text-xs font-black transition-all',
+                  'min-h-9 py-1.5 rounded-lg text-xs font-semibold transition-all',
                   typeFilter === opt.key
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -699,15 +700,15 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         {/* Contextual Multi-Select Action Bar */}
         {selectedValidIds.length > 0 && (
           <div className="rounded-xl bg-emerald-50/90 dark:bg-emerald-500/12 border border-emerald-200 dark:border-emerald-500/30 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-3 text-xs font-bold text-emerald-800 dark:text-emerald-200">
+            <div className="flex items-center gap-3 text-xs font-medium text-emerald-800 dark:text-emerald-200">
               <span>
-                已選取 <strong className="font-display font-black tabular-nums">{selectedValidIds.length}</strong> 場
+                已選取 <strong className="font-display font-semibold tabular-nums">{selectedValidIds.length}</strong> 場
               </span>
               {selectableLoadedIds.length > 1 && (
                 <button
                   type="button"
                   onClick={toggleSelectAllLoaded}
-                  className="text-sapphire-blue dark:text-blue-300 font-black hover:underline"
+                  className="text-sapphire-blue dark:text-blue-300 font-semibold hover:underline"
                 >
                   {selectedValidIds.length === selectableLoadedIds.length
                     ? '取消全選'
@@ -726,7 +727,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
             <Button
               type="button"
               onClick={() => openBatchModal('selected')}
-              className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-xs gap-1.5 border-none"
+              className="min-h-9 py-1.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-semibold text-xs gap-1.5 border-none"
             >
               <CheckCheck size={14} aria-hidden="true" />
               批次強制結算 ({selectedValidIds.length})
@@ -768,7 +769,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               <button
                 type="button"
                 onClick={() => handleStatusChange('all')}
-                className="h-7 px-2.5 rounded-lg bg-sapphire-blue text-white font-black hover:bg-blue-700 transition-colors"
+                className="min-h-7 py-1 px-2.5 rounded-lg bg-sapphire-blue text-white font-semibold hover:bg-blue-700 transition-colors"
               >
                 切換至「全部對戰」
               </button>
@@ -778,7 +779,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 type="button"
                 disabled={isFetchingNextPage}
                 onClick={() => fetchNextPage()}
-                className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                className="min-h-7 py-1 px-2.5 rounded-lg bg-card border border-border font-semibold text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
               >
                 {isFetchingNextPage ? '載入中...' : '載入更多對戰'}
               </button>
@@ -786,7 +787,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
             <button
               type="button"
               onClick={clearHighlight}
-              className="h-7 px-2.5 rounded-lg bg-card border border-border font-bold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+              className="min-h-7 py-1 px-2.5 rounded-lg bg-card border border-border font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
             >
               <span>清除定位</span>
               <X size={12} aria-hidden="true" />
@@ -799,17 +800,17 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3">
           <Loader2 className="animate-spin text-sapphire-blue" size={32} />
-          <p className="text-xs font-bold text-muted-foreground tracking-wider uppercase">
+          <p className="text-xs font-medium text-muted-foreground">
             載入對戰清單中...
           </p>
         </div>
       ) : filteredMatches.length === 0 ? (
         <div className="p-12 text-center space-y-3">
           <CheckCircle2 size={36} className="mx-auto text-emerald-500/60" aria-hidden="true" />
-          <p className="text-base font-display font-black text-foreground">
+          <p className="text-base font-display font-bold text-foreground">
             {statusFilter === 'attention' ? '目前沒有待處理或申訴中的對戰' : '找不到符合條件的對戰紀錄'}
           </p>
-          <p className="text-xs font-bold text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             {statusFilter === 'attention'
               ? '若需要更正或回滾已結算賽果，可切換至「已結算」頁籤；如需補登比賽可點擊右上方「代為補登」。'
               : '請嘗試調整上方狀態、賽季或搜尋條件。'}
@@ -841,15 +842,15 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                     : 'border-l-emerald-500';
 
               const statusBadge = isDisputed ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 leading-none">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 leading-none">
                   爭議申訴
                 </span>
               ) : isPending ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 leading-none">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 leading-none">
                   待確認
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 leading-none">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 leading-none">
                   已結算
                 </span>
               );
@@ -869,14 +870,14 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 >
                   {isHighlighted && (
                     <div className="px-4 sm:px-5 py-1.5 bg-sapphire-blue/10 dark:bg-blue-500/18 border-b border-sapphire-blue/25 flex items-center justify-between gap-2 text-xs">
-                      <span className="inline-flex items-center gap-1.5 font-black text-sapphire-blue dark:text-blue-300">
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-sapphire-blue dark:text-blue-300">
                         <Crosshair size={12} className="animate-pulse" aria-hidden="true" />
                         通知指定裁決場次 · #{String(m.id).slice(0, 4)}
                       </span>
                       <button
                         type="button"
                         onClick={clearHighlight}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-card border border-border text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-card border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <span>清除定位</span>
                         <X size={11} aria-hidden="true" />
@@ -909,12 +910,12 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {statusBadge}
                         {isPending && m.is_overdue && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30 leading-none">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30 leading-none">
                             超時 {autoConfirmHours}h+
                           </span>
                         )}
                       </div>
-                      <p className="text-xs font-bold text-muted-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">
                         {m.match_type === 'doubles' ? '雙打' : '單打'} · {m.format}
                       </p>
                       <p className="text-xs font-bold text-muted-foreground tabular-nums">
@@ -931,21 +932,21 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             <div
                               className={cn(
                                 'text-sm truncate',
-                                aWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+                                aWon ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'
                               )}
                             >
                               {renderClickableTeam(m.team_a, 'right')}
                             </div>
                             <div className="flex items-center justify-end gap-1.5 mt-0.5">
                               {aIsReporter && (
-                                <span className="text-[10px] font-black text-muted-foreground bg-secondary px-1.5 py-0.5 rounded leading-none">
+                                <span className="text-xs font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded leading-none">
                                   報分方
                                 </span>
                               )}
                               {isSettled && teamADelta && (
                                 <span
                                   className={cn(
-                                    'text-xs font-display font-black tabular-nums',
+                                    'text-xs font-display font-bold tabular-nums',
                                     (m.team_a[0]?.mmr_delta ?? 0) >= 0
                                       ? 'text-emerald-600 dark:text-emerald-400'
                                       : 'text-rose-600 dark:text-rose-400'
@@ -979,7 +980,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                         </div>
 
                         {/* Score Pill */}
-                        <div className="px-3 py-1 rounded-xl bg-surface-subtle border border-border font-display font-black text-lg tabular-nums shrink-0 flex items-center gap-1 leading-none">
+                        <div className="px-3 py-1 rounded-xl bg-surface-subtle border border-border font-display font-bold text-lg tabular-nums shrink-0 flex items-center gap-1 leading-none">
                           <span className={aWon ? 'text-foreground' : 'text-muted-foreground/55'}>
                             {m.score_a}
                           </span>
@@ -1015,21 +1016,21 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             <div
                               className={cn(
                                 'text-sm truncate',
-                                !aWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+                                !aWon ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'
                               )}
                             >
                               {renderClickableTeam(m.team_b, 'left')}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               {!aIsReporter && (
-                                <span className="text-[10px] font-black text-muted-foreground bg-secondary px-1.5 py-0.5 rounded leading-none">
+                                <span className="text-xs font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded leading-none">
                                   報分方
                                 </span>
                               )}
                               {isSettled && teamBDelta && (
                                 <span
                                   className={cn(
-                                    'text-xs font-display font-black tabular-nums',
+                                    'text-xs font-display font-bold tabular-nums',
                                     (m.team_b[0]?.mmr_delta ?? 0) >= 0
                                       ? 'text-emerald-600 dark:text-emerald-400'
                                       : 'text-rose-600 dark:text-rose-400'
@@ -1043,7 +1044,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                         </div>
                       </div>
 
-                      <p className="text-[11px] font-bold text-muted-foreground text-center">
+                      <p className="text-xs font-medium text-muted-foreground text-center">
                         {m.season_name} · 由 {m.reported_by_name} 報分
                       </p>
 
@@ -1054,7 +1055,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"
                             aria-hidden="true"
                           />
-                          <p className="text-xs font-bold text-rose-800 dark:text-rose-200 break-words">
+                          <p className="text-xs font-medium text-rose-800 dark:text-rose-200 break-words">
                             申訴說明：{m.dispute_reason || '選手已提交異議並暫停自動結算，等待管理員裁決。'}
                           </p>
                         </div>
@@ -1069,7 +1070,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openConfirmModal(m, 'edit')}
-                            className="h-9 px-3 rounded-xl border-border font-bold text-xs gap-1"
+                            className="min-h-9 py-1.5 px-3 rounded-xl border-border font-semibold text-xs gap-1"
                           >
                             <Pencil size={13} aria-hidden="true" />
                             改分重算
@@ -1078,7 +1079,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openVoidModal(m)}
-                            className="h-9 px-3 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-black text-xs gap-1"
+                            className="min-h-9 py-1.5 px-3 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-semibold text-xs gap-1"
                           >
                             <RotateCcw size={13} aria-hidden="true" />
                             撤銷回滾
@@ -1090,7 +1091,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="ghost"
                             onClick={() => openVoidModal(m)}
-                            className="h-9 px-3 rounded-xl text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-bold text-xs gap-1"
+                            className="min-h-9 py-1.5 px-3 rounded-xl text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-semibold text-xs gap-1"
                           >
                             <Trash2 size={13} aria-hidden="true" />
                             駁回
@@ -1099,7 +1100,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openConfirmModal(m, 'edit')}
-                            className="h-9 px-3 rounded-xl border-border font-bold text-xs gap-1"
+                            className="min-h-9 py-1.5 px-3 rounded-xl border-border font-semibold text-xs gap-1"
                           >
                             <Pencil size={13} aria-hidden="true" />
                             改分
@@ -1107,7 +1108,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           <Button
                             type="button"
                             onClick={() => openConfirmModal(m, 'as_is')}
-                            className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-xs gap-1 border-none"
+                            className="min-h-9 py-1.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-semibold text-xs gap-1 border-none"
                           >
                             <Gavel size={13} aria-hidden="true" />
                             確認結算
@@ -1141,7 +1142,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                         )}
                         {statusBadge}
                         {isPending && m.is_overdue && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30 leading-none">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30 leading-none">
                             超時 {autoConfirmHours}h+
                           </span>
                         )}
@@ -1187,20 +1188,20 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             <span
                               className={cn(
                                 'text-sm',
-                                aWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+                                aWon ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'
                               )}
                             >
                               {renderClickableTeam(m.team_a)}
                             </span>
                             {aIsReporter && (
-                              <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                              <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-semibold text-muted-foreground leading-none">
                                 報分
                               </span>
                             )}
                             {isSettled && teamADelta && (
                               <span
                                 className={cn(
-                                  'text-xs font-display font-black tabular-nums',
+                                  'text-xs font-display font-bold tabular-nums',
                                   (m.team_a[0]?.mmr_delta ?? 0) >= 0
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-rose-600 dark:text-rose-400'
@@ -1219,7 +1220,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           />
                           <span
                             className={cn(
-                              'font-display font-black text-xl tabular-nums w-6 text-right leading-none',
+                              'font-display font-bold text-xl tabular-nums w-6 text-right leading-none',
                               aWon ? 'text-foreground' : 'text-muted-foreground/55'
                             )}
                           >
@@ -1245,20 +1246,20 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             <span
                               className={cn(
                                 'text-sm',
-                                !aWon ? 'font-black text-foreground' : 'font-bold text-muted-foreground'
+                                !aWon ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'
                               )}
                             >
                               {renderClickableTeam(m.team_b)}
                             </span>
                             {!aIsReporter && (
-                              <span className="px-1.5 py-0.5 rounded bg-secondary text-[10px] font-black text-muted-foreground leading-none">
+                              <span className="px-1.5 py-0.5 rounded bg-secondary text-xs font-semibold text-muted-foreground leading-none">
                                 報分
                               </span>
                             )}
                             {isSettled && teamBDelta && (
                               <span
                                 className={cn(
-                                  'text-xs font-display font-black tabular-nums',
+                                  'text-xs font-display font-bold tabular-nums',
                                   (m.team_b[0]?.mmr_delta ?? 0) >= 0
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-rose-600 dark:text-rose-400'
@@ -1277,7 +1278,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           />
                           <span
                             className={cn(
-                              'font-display font-black text-xl tabular-nums w-6 text-right leading-none',
+                              'font-display font-bold text-xl tabular-nums w-6 text-right leading-none',
                               !aWon ? 'text-foreground' : 'text-muted-foreground/55'
                             )}
                           >
@@ -1289,7 +1290,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
 
                     {/* Footer Meta + Action Row */}
                     <div className="space-y-2">
-                      <p className="text-[11px] font-bold text-muted-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">
                         {m.season_name} · 由 {m.reported_by_name} 報分
                       </p>
 
@@ -1299,7 +1300,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openConfirmModal(m, 'edit')}
-                            className="h-10 rounded-xl border-border font-bold text-xs gap-1.5"
+                            className="min-h-10 py-2 rounded-xl border-border font-semibold text-xs gap-1.5"
                           >
                             <Pencil size={14} aria-hidden="true" />
                             改分重算
@@ -1308,7 +1309,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openVoidModal(m)}
-                            className="h-10 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-black text-xs gap-1.5"
+                            className="min-h-10 py-2 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-semibold text-xs gap-1.5"
                           >
                             <RotateCcw size={14} aria-hidden="true" />
                             撤銷回滾
@@ -1320,7 +1321,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openVoidModal(m)}
-                            className="h-10 px-3.5 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-bold text-xs gap-1"
+                            className="min-h-10 py-2 px-3.5 rounded-xl border-rose-200 dark:border-rose-500/35 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 font-semibold text-xs gap-1"
                           >
                             <Trash2 size={14} aria-hidden="true" />
                             駁回
@@ -1329,7 +1330,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                             type="button"
                             variant="outline"
                             onClick={() => openConfirmModal(m, 'edit')}
-                            className="h-10 px-3.5 rounded-xl border-border font-bold text-xs gap-1"
+                            className="min-h-10 py-2 px-3.5 rounded-xl border-border font-semibold text-xs gap-1"
                           >
                             <Pencil size={14} aria-hidden="true" />
                             改分
@@ -1337,7 +1338,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           <Button
                             type="button"
                             onClick={() => openConfirmModal(m, 'as_is')}
-                            className="h-10 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-xs gap-1 border-none"
+                            className="min-h-10 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-semibold text-xs gap-1 border-none"
                           >
                             <Gavel size={14} aria-hidden="true" />
                             確認結算
@@ -1354,7 +1355,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
           {/* Pagination Footer */}
           <div className="px-4 sm:px-5 py-3.5 border-t border-border bg-surface-subtle/35 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs font-bold text-muted-foreground tabular-nums">
-              已載入 <strong className="text-foreground font-black">{allMatches.length}</strong> / {filteredTotal} 場
+              已載入 <strong className="text-foreground font-semibold">{allMatches.length}</strong> / {filteredTotal} 場
               {(typeFilter !== 'all' || search.trim()) && ` · 目前顯示 ${filteredMatches.length} 場`}
             </p>
 
@@ -1364,7 +1365,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 variant="outline"
                 disabled={isFetchingNextPage}
                 onClick={() => fetchNextPage()}
-                className="h-9 px-4 rounded-xl border-border bg-card font-bold text-xs gap-1.5"
+                className="min-h-9 py-1.5 px-4 rounded-xl border-border bg-card font-semibold text-xs gap-1.5"
               >
                 {isFetchingNextPage ? (
                   <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -1396,8 +1397,8 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         }
         description={
           confirmIsSettled
-            ? '系統將先退回本場原套用的 ELO 積分，再依新比分即時重新結算。'
-            : '結算後系統將即時更新雙方 ELO 積分與本季戰績。'
+            ? '系統將先退回本場原套用的積分，再依新比分即時重新結算。'
+            : '結算後系統將即時更新雙方積分與本季戰績。'
         }
         onSubmit={handleConfirmSubmit}
         footer={
@@ -1407,7 +1408,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               variant="outline"
               disabled={confirmBusy}
               onClick={() => setConfirmMatch(null)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
@@ -1419,7 +1420,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 (confirmIsSettled && scoreUnchanged)
               }
               className={cn(
-                'w-full sm:w-auto h-11 px-6 rounded-xl text-white font-display font-black text-sm',
+                'w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl text-white font-display font-semibold text-sm',
                 confirmIsSettled
                   ? 'bg-sapphire-blue hover:bg-blue-700'
                   : 'bg-emerald-600 hover:bg-emerald-700'
@@ -1441,7 +1442,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
             {/* Interactive Matchup Header */}
             <div className="rounded-2xl border border-border bg-surface-subtle/60 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   對戰雙方對照
                 </span>
                 {!confirmIsSettled && (
@@ -1458,7 +1459,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                       }
                     }}
                     className={cn(
-                      'px-2.5 py-1 rounded-lg text-xs font-black border transition-colors inline-flex items-center gap-1',
+                      'px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors inline-flex items-center gap-1',
                       confirmMode === 'edit'
                         ? 'bg-card border-border text-foreground hover:bg-secondary'
                         : 'bg-sapphire-blue/10 border-sapphire-blue/30 text-sapphire-blue dark:text-blue-300'
@@ -1481,19 +1482,19 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
 
               <div className="flex items-center justify-between gap-2.5">
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-bold text-muted-foreground block">A 隊</span>
-                  <span className="text-sm font-black text-foreground truncate block">
+                  <span className="text-xs font-medium text-muted-foreground block">A 隊</span>
+                  <span className="text-sm font-bold text-foreground truncate block">
                     {formatTeamLabel(confirmMatch.team_a)}
                   </span>
                 </div>
-                <div className="px-3.5 py-1.5 rounded-xl bg-card border border-border font-display font-black text-xl tabular-nums shrink-0 leading-none">
+                <div className="px-3.5 py-1.5 rounded-xl bg-card border border-border font-display font-bold text-xl tabular-nums shrink-0 leading-none">
                   {confirmIsSettled || confirmMode === 'edit'
                     ? `${editScoreA} : ${editScoreB}`
                     : `${confirmMatch.score_a} : ${confirmMatch.score_b}`}
                 </div>
                 <div className="min-w-0 flex-1 text-right">
-                  <span className="text-[11px] font-bold text-muted-foreground block">B 隊</span>
-                  <span className="text-sm font-black text-foreground truncate block">
+                  <span className="text-xs font-medium text-muted-foreground block">B 隊</span>
+                  <span className="text-sm font-bold text-foreground truncate block">
                     {formatTeamLabel(confirmMatch.team_b)}
                   </span>
                 </div>
@@ -1566,7 +1567,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         title={isVoidSettled ? '撤銷比賽並原子回滾積分' : '駁回並移除待確認報分'}
         description={
           isVoidSettled
-            ? '將精準退回每位選手的 ELO 積分、出賽場次、勝場與趨勢紀錄。'
+            ? '將精準退回每位選手的積分、出賽場次、勝場與趨勢紀錄。'
             : '移除該筆誤報或無效對戰紀錄，此操作不影響任何積分。'
         }
         onSubmit={handleVoidSubmit}
@@ -1577,14 +1578,14 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               variant="outline"
               disabled={voidMatchMutation.isPending}
               onClick={() => setVoidMatch(null)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={voidMatchMutation.isPending}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-display font-semibold text-sm"
             >
               {voidMatchMutation.isPending
                 ? '處理中...'
@@ -1599,21 +1600,21 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
           <div className="space-y-4">
             <div className="bg-surface-subtle/70 border border-border rounded-2xl p-3.5 flex items-center justify-between gap-2.5">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-foreground truncate">
+                <p className="text-sm font-bold text-foreground truncate">
                   {formatTeamLabel(voidMatch.team_a)} vs {formatTeamLabel(voidMatch.team_b)}
                 </p>
                 <p className="text-xs font-bold text-muted-foreground mt-0.5">
                   {formatLocalTime(voidMatch.created_at, 'yyyy/MM/dd HH:mm')} · {voidMatch.season_name}
                 </p>
               </div>
-              <span className="font-display font-black text-xl tabular-nums text-foreground shrink-0">
+              <span className="font-display font-bold text-xl tabular-nums text-foreground shrink-0">
                 {voidMatch.score_a} : {voidMatch.score_b}
               </span>
             </div>
 
             {isVoidSettled && (
               <div className="rounded-2xl border border-rose-200/80 dark:border-rose-500/30 bg-rose-50/40 dark:bg-rose-500/8 overflow-hidden">
-                <div className="px-3.5 py-2.5 border-b border-rose-200/60 dark:border-rose-500/20 flex items-center gap-2 text-xs font-black text-rose-700 dark:text-rose-300">
+                <div className="px-3.5 py-2.5 border-b border-rose-200/60 dark:border-rose-500/20 flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   <Clock size={13} aria-hidden="true" />
                   <span>回滾影響預覽（於單一交易內原子完成）</span>
                 </div>
@@ -1631,19 +1632,19 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           <PlayerAvatar
                             src={p.avatar_url}
                             name={p.name}
-                            className="size-7 rounded-lg border border-border text-[10px] shrink-0"
+                            className="size-7 rounded-lg border border-border text-xs shrink-0"
                           />
                           <span className="font-bold text-foreground truncate">{p.name}</span>
                         </div>
                         <span
                           className={cn(
-                            'font-display font-black tabular-nums shrink-0',
+                            'font-display font-bold tabular-nums shrink-0',
                             (rbVal ?? 0) >= 0
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-rose-600 dark:text-rose-400'
                           )}
                         >
-                          回滾 {rbStr || '0'} ELO · 場次 -1
+                          回滾 {rbStr || '0'} 分 · 場次 -1
                         </span>
                       </div>
                     );
@@ -1700,7 +1701,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
             ? `一鍵結算已超時對戰 (${counts.overdue} 場)`
             : `批次強制結算已選取對戰 (${selectedValidIds.length} 場)`
         }
-        description="系統將依建立時間先後順序在同一交易內連貫結算每場 ELO 與出賽數，並通知所有參賽選手。"
+        description="系統將依建立時間先後順序在同一交易內連貫結算每場積分與出賽數，並通知所有參賽選手。"
         onSubmit={handleBatchSubmit}
         footer={
           <>
@@ -1709,14 +1710,14 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               variant="outline"
               disabled={batchConfirmMutation.isPending}
               onClick={() => setBatchModalMode(null)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={batchConfirmMutation.isPending}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-black text-sm"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-semibold text-sm"
             >
               {batchConfirmMutation.isPending
                 ? '批次結算中...'
@@ -1730,13 +1731,13 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         {batchModalMode && (
           <div className="space-y-4">
             <div className="rounded-2xl bg-surface-subtle/75 border border-border p-4 space-y-1.5 text-xs font-bold text-muted-foreground leading-relaxed">
-              <p className="text-sm font-black text-foreground">
+              <p className="text-sm font-bold text-foreground">
                 {batchModalMode === 'overdue'
                   ? `即將結算 ${seasonFilter === 'all' ? '全站' : '此賽季'}所有超過 ${autoConfirmHours} 小時仍待確認的比賽（共 ${counts.overdue} 場）。`
                   : `即將強制結算您勾選的 ${selectedValidIds.length} 場對戰（包含任何申訴中或待確認場次）。`}
               </p>
               <p>
-                連打場次將按時間順序逐場套用當下真實 ELO 與生涯場次，確保分數精準連貫且全成功或全回滾。
+                連打場次將按時間順序逐場套用當下真實積分與生涯場次，確保分數精準連貫且全成功或全回滾。
               </p>
             </div>
 
@@ -1767,7 +1768,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
         tone="default"
         icon={<Plus size={18} />}
         title="代為補登對戰賽果"
-        description="為忘記報分或因賽季鎖定無法提交的球友補登賽果，可選擇立即結算 ELO。"
+        description="為忘記報分或因賽季鎖定無法提交的球友補登賽果，可選擇立即結算積分。"
         onSubmit={handleCreateSubmit}
         footer={
           <>
@@ -1776,14 +1777,14 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
               variant="outline"
               disabled={createMatchMutation.isPending}
               onClick={() => setCreateOpen(false)}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-bold"
+              className="w-full sm:w-auto min-h-11 py-2 px-5 rounded-xl font-semibold"
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={createMatchMutation.isPending || !createScoreValidation.valid}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm disabled:opacity-40"
+              className="w-full sm:w-auto min-h-11 py-2 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm disabled:opacity-40"
             >
               {createMatchMutation.isPending
                 ? '送出中...'
@@ -1832,7 +1833,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                           }
                         }}
                         className={cn(
-                          'rounded-lg text-xs font-black transition-all',
+                          'rounded-lg text-xs font-semibold transition-all',
                           createType === t
                             ? 'bg-card text-foreground shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
@@ -1847,7 +1848,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
 
               {/* Section 2: Players Lineup */}
               <div className="rounded-2xl border border-border bg-surface-subtle/50 p-3.5 sm:p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                   <Users size={14} aria-hidden="true" />
                   <span>參賽陣容（自動排除已選選手，避免重複）</span>
                 </div>
@@ -1855,7 +1856,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Team A */}
                   <div className="space-y-2">
-                    <span className="text-xs font-black text-sapphire-blue dark:text-blue-300 block">
+                    <span className="text-xs font-semibold text-sapphire-blue dark:text-blue-300 block">
                       A 隊選手
                     </span>
                     <ResponsiveSelect
@@ -1878,7 +1879,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
 
                   {/* Team B */}
                   <div className="space-y-2">
-                    <span className="text-xs font-black text-smash-orange block">
+                    <span className="text-xs font-semibold text-smash-orange block">
                       B 隊選手
                     </span>
                     <ResponsiveSelect
@@ -1937,7 +1938,7 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
                   <p className="text-sm font-bold text-foreground">立即結算並計入積分</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {createAutoSettle
-                      ? '送出後直接計算雙方 ELO 與賽季排行（推薦現場確認無誤時使用）'
+                      ? '送出後直接計算雙方積分與賽季排行（推薦現場確認無誤時使用）'
                       : '送出後進入待確認，由 B 隊選手點擊確認後再行計分'}
                   </p>
                 </div>
