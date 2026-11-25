@@ -125,17 +125,17 @@ function RecentFormStrip({
                 : '尚無紀錄'
           }
           className={cn(
-            'rounded-full shrink-0 flex items-center justify-center font-display font-black leading-none select-none',
-            compact ? 'size-5 text-[10px]' : 'size-6 text-[11px]',
+            'rounded-full shrink-0 flex items-center justify-center font-display font-bold leading-none select-none',
+            compact ? 'size-5.5 text-[0.6875rem]' : 'size-6 text-xs',
             res === 'W'
               ? cn(
                   'bg-emerald-500 text-white shadow-2xs',
-                  idx === 0 && 'ring-2 ring-emerald-500/35',
+                  idx === 0 && 'ring-2 ring-emerald-500/30',
                 )
               : res === 'L'
                 ? cn(
                     'bg-rose-500 text-white shadow-2xs',
-                    idx === 0 && 'ring-2 ring-rose-500/35',
+                    idx === 0 && 'ring-2 ring-rose-500/30',
                   )
                 : 'border border-dashed border-border bg-surface-subtle/80 text-muted-foreground/45',
           )}
@@ -154,7 +154,7 @@ function TrendBadge({ trend }: Readonly<{ trend?: string }>) {
   return (
     <span
       className={cn(
-        'text-[10px] font-display font-black leading-none tabular-nums whitespace-nowrap',
+        'text-xs font-display font-semibold leading-none tabular-nums whitespace-nowrap',
         isUp
           ? 'text-emerald-600 dark:text-emerald-400'
           : 'text-rose-500 dark:text-rose-400',
@@ -184,7 +184,7 @@ function MedalBadge({
     return (
       <span
         className={cn(
-          'size-8 rounded-full flex items-center justify-center font-display font-black text-sm tabular-nums border shadow-2xs',
+          'size-8 rounded-full flex items-center justify-center font-display font-bold text-sm tabular-nums border shadow-2xs',
           numRank === 1
             ? 'bg-amber-400/20 text-amber-700 border-amber-400/70 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-400/50'
             : numRank === 2
@@ -199,7 +199,7 @@ function MedalBadge({
 
   if (isRanked) {
     return (
-      <span className="font-display font-black text-base text-muted-foreground tabular-nums leading-none">
+      <span className="font-display font-semibold text-sm text-muted-foreground tabular-nums leading-none">
         {numRank}
       </span>
     );
@@ -209,12 +209,9 @@ function MedalBadge({
     return (
       <span
         title={`定級賽進行中（已完成 ${matchesPlayed}/${SEASON_PLACEMENT_MATCHES} 場，享有 K=32 加速，滿 ${SEASON_PLACEMENT_MATCHES} 場正式入榜）`}
-        className="inline-flex flex-col items-center justify-center px-1.5 py-1 rounded-lg border border-sapphire-blue/35 bg-sapphire-blue/10 text-sapphire-blue dark:border-blue-400/40 dark:bg-blue-500/15 dark:text-blue-300 font-display font-black leading-none tabular-nums"
+        className="inline-flex items-center px-2 py-0.5 rounded-md border border-sapphire-blue/30 bg-sapphire-blue/10 text-sapphire-blue dark:border-blue-400/35 dark:bg-blue-500/15 dark:text-blue-300 text-xs font-semibold leading-none tabular-nums whitespace-nowrap"
       >
-        <span className="text-[9px] font-sans font-black tracking-tight opacity-85">定級</span>
-        <span className="text-[11px] mt-0.5">
-          {matchesPlayed}/{SEASON_PLACEMENT_MATCHES}
-        </span>
+        定級 {matchesPlayed}/{SEASON_PLACEMENT_MATCHES}
       </span>
     );
   }
@@ -222,7 +219,7 @@ function MedalBadge({
   return (
     <span
       title="季前依基準積分預排"
-      className="size-7 rounded-full border border-dashed border-border bg-surface-subtle/80 flex items-center justify-center font-display font-black text-[11px] text-muted-foreground tabular-nums"
+      className="size-7 rounded-full border border-dashed border-border bg-surface-subtle/80 flex items-center justify-center font-display font-semibold text-xs text-muted-foreground tabular-nums"
     >
       {previewIndex !== undefined ? `${previewIndex}` : '-'}
     </span>
@@ -231,16 +228,17 @@ function MedalBadge({
 
 function WeeklyDeltaBadge({
   delta,
-  compact = false,
 }: Readonly<{
   delta?: number;
-  compact?: boolean;
 }>) {
   const val = delta ?? 0;
   if (val === 0) {
     return (
-      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-        ELO
+      <span
+        title="近 7 日無變動"
+        className="text-xs font-medium text-muted-foreground/75 whitespace-nowrap"
+      >
+        持平
       </span>
     );
   }
@@ -248,17 +246,10 @@ function WeeklyDeltaBadge({
     <span
       title="近 7 日積分漲跌"
       className={cn(
-        'inline-flex items-center font-display font-black tabular-nums whitespace-nowrap',
-        compact
-          ? 'text-[11px]'
-          : 'px-2 py-0.5 rounded-full text-[11px]',
+        'inline-flex items-center text-xs font-display font-semibold tabular-nums whitespace-nowrap',
         val > 0
-          ? compact
-            ? 'text-emerald-600 dark:text-emerald-400'
-            : 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-          : compact
-            ? 'text-rose-500 dark:text-rose-400'
-            : 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
+          ? 'text-emerald-600 dark:text-emerald-400'
+          : 'text-rose-600 dark:text-rose-400',
       )}
     >
       {val > 0 ? `▲ +${val}` : `▼ ${val}`}
@@ -470,22 +461,10 @@ export function Leaderboard() {
     };
   }, [filteredAndSortedPlayers, isPreseasonMode]);
 
-  const podiumPlayers = useMemo(() => {
-    if (rankedCount > 0) {
-      return realLeaderboard.filter((p) => p.rank !== '-').slice(0, 3);
-    }
-    if (activePlayedCount > 0) {
-      return realLeaderboard.filter((p) => p.matches_played > 0).slice(0, 3);
-    }
-    return realLeaderboard.slice(0, 3);
-  }, [realLeaderboard, rankedCount, activePlayedCount]);
-
-  const showPodium = !hasActiveFilters && podiumPlayers.length > 0;
-
   const seasonStatusBadge = (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-black text-xs uppercase tracking-wider',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold text-xs',
         isAllTime
           ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
           : isSeasonEnded
@@ -504,11 +483,11 @@ export function Leaderboard() {
 
   const countAction = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground">
+      <div className="inline-flex items-center gap-2 min-h-9 px-3.5 py-1.5 rounded-xl bg-surface-subtle border border-border text-xs font-medium text-muted-foreground">
         <Users size={14} className="text-sapphire-blue" aria-hidden="true" />
         <span>
           已定級{' '}
-          <strong className="font-display font-black text-foreground tabular-nums">
+          <strong className="font-display font-bold text-foreground tabular-nums">
             {rankedCount}
           </strong>{' '}
           / {realLeaderboard.length} 人
@@ -517,7 +496,7 @@ export function Leaderboard() {
       <button
         type="button"
         onClick={() => setIsRulesModalOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card hover:bg-secondary border border-border text-xs font-black text-foreground transition-colors shadow-2xs"
+        className="inline-flex items-center gap-1.5 min-h-9 px-3.5 py-1.5 rounded-xl bg-card hover:bg-secondary border border-border text-xs font-semibold text-foreground transition-colors shadow-xs"
       >
         <BookOpen size={14} className="text-sapphire-blue" aria-hidden="true" />
         <span>賽制與段位說明</span>
@@ -549,17 +528,21 @@ export function Leaderboard() {
           <motion.div variants={fadeInUp}>
             <PageHeader
               title={isAllTime ? '歷史殿堂總榜' : '賽季積分榜'}
-              subtitle="Precision Arena · Single-Track Elo"
+              subtitle={
+                isAllTime
+                  ? '歷史累計積分總榜 · 點擊選手查看完整戰績'
+                  : '賽季積分排名 · 點擊選手查看完整戰績'
+              }
               badge={seasonStatusBadge}
               actions={countAction}
             />
           </motion.div>
 
-          {/* 模組 4：多維度排序、處室與段位篩選控制列 */}
+          {/* 多維度排序、處室與段位篩選控制列 */}
           <motion.section
             variants={fadeInUp}
             aria-label="榜單篩選與排序"
-            className="arena-surface p-3 sm:p-4 space-y-3"
+            className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xs space-y-3"
           >
             {/* Row 1: Season Select, Department Select, Search Input */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
@@ -619,7 +602,7 @@ export function Leaderboard() {
                   placeholder="搜尋同仁姓名或處室..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-11 pl-10 pr-10 rounded-xl border border-input bg-card text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue transition-all font-bold text-foreground placeholder:text-muted-foreground/70 shadow-xs"
+                  className="w-full min-h-11 py-2.5 pl-10 pr-10 rounded-xl border border-input bg-card text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue transition-all font-medium text-foreground placeholder:text-muted-foreground/70 shadow-xs"
                 />
                 {searchTerm && (
                   <button
@@ -648,9 +631,10 @@ export function Leaderboard() {
                     <button
                       key={opt.id}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => setSortBy(opt.id)}
                       className={cn(
-                        'min-h-9 px-3 py-1.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 border transition-all',
+                        'min-h-9 px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 border transition-all',
                         active
                           ? 'bg-sapphire-blue text-white border-sapphire-blue shadow-xs'
                           : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-secondary/70',
@@ -673,9 +657,10 @@ export function Leaderboard() {
                     <button
                       key={t.id}
                       type="button"
+                      aria-pressed={tierFilter === t.id}
                       onClick={() => setTierFilter(t.id)}
                       className={cn(
-                        'min-h-8 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                        'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
                         tierFilter === t.id
                           ? 'bg-card text-foreground shadow-xs'
                           : 'text-muted-foreground hover:text-foreground',
@@ -690,7 +675,7 @@ export function Leaderboard() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="min-h-9 px-2.5 py-1 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-black text-muted-foreground hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                    className="min-h-9 px-2.5 py-1 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
                   >
                     <RotateCcw size={12} aria-hidden="true" />
                     <span>重置</span>
@@ -700,69 +685,11 @@ export function Leaderboard() {
             </div>
           </motion.section>
 
-          {/* 模組 2：Mobile 1+2 / Desktop 3-Col Hero Top 3 頒獎台 */}
-          {showPodium && (
-            <motion.section
-              variants={fadeInUp}
-              aria-label="前三名領先榜"
-              className="space-y-3"
-            >
-              <div className="flex items-center justify-between px-1">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground flex items-center gap-1.5">
-                  <Crown size={14} className="text-olympic-gold" aria-hidden="true" />
-                  <span>
-                    {isAllTime
-                      ? '歷史積分殿堂 Top 3'
-                      : isSeasonEnded
-                        ? '賽季最終頒獎台'
-                        : isPreseasonMode
-                          ? '季前實力預排 Top 3'
-                          : isPlacementPhase
-                            ? '定級衝刺領先組 Top 3'
-                            : '本季領先前三強'}
-                  </span>
-                </p>
-                <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
-                  點擊選手卡片查看完整 H2H 戰績
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 items-stretch">
-                <PodiumChampionCard
-                  player={podiumPlayers[0]}
-                  isPreseason={isPreseasonMode}
-                  isPlacementOnly={isPlacementPhase}
-                  currentUserId={currentUser?.id}
-                  onSelect={openInspect}
-                  className="col-span-2 md:col-span-1 order-1 md:order-2"
-                />
-                <PodiumRunnerCard
-                  place={2}
-                  player={podiumPlayers[1]}
-                  isPreseason={isPreseasonMode}
-                  isPlacementOnly={isPlacementPhase}
-                  currentUserId={currentUser?.id}
-                  onSelect={openInspect}
-                  className="col-span-1 order-2 md:order-1"
-                />
-                <PodiumRunnerCard
-                  place={3}
-                  player={podiumPlayers[2]}
-                  isPreseason={isPreseasonMode}
-                  isPlacementOnly={isPlacementPhase}
-                  currentUserId={currentUser?.id}
-                  onSelect={openInspect}
-                  className="col-span-1 order-3 md:order-3"
-                />
-              </div>
-            </motion.section>
-          )}
-
           {/* 季前 / 定級賽提示條 */}
           {(isPreseasonMode || isPlacementPhase) && (
             <motion.div
               variants={fadeInUp}
-              className="rounded-2xl bg-sapphire-blue/[0.06] dark:bg-blue-500/12 border border-sapphire-blue/25 px-4 py-3 flex items-center gap-2.5 text-xs font-bold text-foreground"
+              className="rounded-2xl bg-sapphire-blue/[0.06] dark:bg-blue-500/12 border border-sapphire-blue/25 px-4 py-3 flex items-center gap-2.5 text-xs font-medium text-foreground"
             >
               <Sparkles
                 size={15}
@@ -772,7 +699,7 @@ export function Leaderboard() {
               <span>
                 {isPreseasonMode ? (
                   <>
-                    新賽季開戰中！目前依全體球友全域 ELO 進行<strong>季前實力預排</strong>
+                    新賽季開戰中！目前依全體球友全域積分進行<strong>季前實力預排</strong>
                     ，完成本季 {SEASON_PLACEMENT_MATCHES} 場定級賽即可正式入榜（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）。
                   </>
                 ) : (
@@ -802,48 +729,55 @@ export function Leaderboard() {
                   ))}
                 </div>
 
-                {/* 桌面端 (>= md): 高密度電競數據表 */}
-                <div className="hidden md:block arena-card overflow-hidden">
-                  <div className="overflow-x-auto">
+                {/* 桌面端 (>= md): 清爽極簡積分榜數據表 */}
+                <div className="hidden md:block bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+                  <div
+                    tabIndex={0}
+                    role="region"
+                    aria-labelledby="leaderboard-table-caption"
+                    className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-sapphire-blue"
+                  >
                     <table className="w-full text-left border-collapse">
-                      <caption className="sr-only">{seasonName} 積分排行榜</caption>
+                      <caption id="leaderboard-table-caption" className="sr-only">
+                        {seasonName} 積分排行榜
+                      </caption>
                       <thead>
-                        <tr className="border-b border-border bg-surface-subtle/90">
+                        <tr className="border-b border-border bg-surface-subtle/70">
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider w-24 text-center"
+                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance w-24 text-center"
                           >
                             名次
                           </th>
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider"
+                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance"
                           >
                             選手
                           </th>
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider"
+                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance"
                           >
                             段位
                           </th>
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider min-w-[165px]"
+                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance min-w-[165px]"
                           >
-                            勝率 &amp; 戰績
+                            勝率與戰績
                           </th>
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-muted-foreground uppercase tracking-wider text-center"
+                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance text-center"
                           >
-                            近 5 場 (左新)
+                            近 5 場
                           </th>
                           <th
                             scope="col"
-                            className="py-3.5 px-4 text-xs font-black text-foreground uppercase tracking-wider text-right"
+                            className="py-3 px-4 text-xs font-semibold text-foreground text-balance text-right"
                           >
-                            積分 &amp; 近 7 日漲跌
+                            積分 (近7日)
                           </th>
                         </tr>
                       </thead>
@@ -861,9 +795,9 @@ export function Leaderboard() {
                               key={player.player_id}
                               onClick={() => openInspect(player.player_id)}
                               className={cn(
-                                'group hover:bg-secondary/60 transition-colors cursor-pointer',
-                                isTop1 && 'bg-amber-50/35 dark:bg-amber-500/10',
-                                isMe && 'bg-sapphire-blue/[0.045] dark:bg-blue-500/12',
+                                'group hover:bg-surface-subtle/80 transition-colors cursor-pointer',
+                                isTop1 && 'bg-amber-50/30 dark:bg-amber-500/[0.06]',
+                                isMe && 'bg-sapphire-blue/[0.04] dark:bg-blue-500/[0.08]',
                               )}
                             >
                               <td className="py-3.5 px-4 w-24 text-center">
@@ -894,26 +828,26 @@ export function Leaderboard() {
                                   <PlayerAvatar
                                     src={player.avatar_url}
                                     name={player.player_name}
-                                    className="size-11 rounded-2xl border border-border shadow-xs text-sm group-hover:scale-105 transition-transform shrink-0"
+                                    className="size-10 rounded-xl border border-border/80 text-sm shrink-0"
                                   />
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                      <span className="font-sans font-black text-foreground text-base truncate group-hover:text-sapphire-blue transition-colors">
+                                      <span className="font-sans font-bold text-foreground text-sm sm:text-base truncate group-hover:text-sapphire-blue transition-colors">
                                         {player.player_name}
                                       </span>
                                       {isMe && (
-                                        <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black uppercase tracking-wider shrink-0">
-                                          YOU
+                                        <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-xs font-semibold leading-none shrink-0">
+                                          我
                                         </span>
                                       )}
                                       {streak >= 2 && (
-                                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-black tabular-nums whitespace-nowrap shrink-0">
-                                          <Flame size={10} aria-hidden="true" />
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/12 text-orange-600 border border-orange-500/25 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-400/30 text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0">
+                                          <Flame size={11} aria-hidden="true" />
                                           {streak} 連勝
                                         </span>
                                       )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground font-bold truncate mt-0.5">
+                                    <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
                                       {getNormalizedDept(player.department)}
                                     </p>
                                   </div>
@@ -923,13 +857,13 @@ export function Leaderboard() {
                               <td className="py-3.5 px-4">
                                 <div
                                   className={cn(
-                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border w-fit',
+                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border w-fit shadow-none',
                                     tier.color,
                                   )}
                                 >
                                   {tier.icon}
-                                  <span className="text-xs font-black whitespace-nowrap">
-                                    {tier.name}
+                                  <span className="text-xs font-semibold whitespace-nowrap">
+                                    {getShortTierName(player.global_mmr)}
                                   </span>
                                 </div>
                               </td>
@@ -938,10 +872,10 @@ export function Leaderboard() {
                                 {player.matches_played > 0 ? (
                                   <div className="space-y-1.5 max-w-[175px]">
                                     <div className="flex items-baseline justify-between gap-2 text-xs tabular-nums">
-                                      <span className="font-display font-black text-foreground">
+                                      <span className="font-display font-bold text-foreground">
                                         {winRateRounded}%
                                       </span>
-                                      <span className="font-display font-black">
+                                      <span className="font-display font-semibold">
                                         <span className="text-emerald-600 dark:text-emerald-400">
                                           {player.wins}勝
                                         </span>
@@ -951,12 +885,12 @@ export function Leaderboard() {
                                         <span className="text-rose-500 dark:text-rose-400">
                                           {losses}敗
                                         </span>
-                                        <span className="text-muted-foreground font-sans font-bold ml-1">
+                                        <span className="text-muted-foreground font-sans font-medium ml-1">
                                           ({player.matches_played})
                                         </span>
                                       </span>
                                     </div>
-                                    <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
+                                    <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden flex">
                                       <div
                                         className="h-full bg-emerald-500"
                                         style={{ width: `${winBarPercent}%` }}
@@ -964,7 +898,7 @@ export function Leaderboard() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <span className="text-xs font-bold text-muted-foreground">
+                                  <span className="text-xs font-medium text-muted-foreground">
                                     等待開季首戰
                                   </span>
                                 )}
@@ -978,7 +912,7 @@ export function Leaderboard() {
                                 <div className="flex flex-col items-end gap-1">
                                   <span
                                     className={cn(
-                                      'font-display font-black text-2xl tracking-tight tabular-nums leading-none',
+                                      'font-display font-bold text-xl sm:text-2xl tracking-tight tabular-nums leading-none',
                                       isTop1
                                         ? 'text-amber-600 dark:text-amber-400'
                                         : 'text-foreground',
@@ -999,13 +933,13 @@ export function Leaderboard() {
               </>
             ) : (
               secondaryUnrankedPlayers.length === 0 && (
-                <div className="arena-surface py-16 px-4 text-center flex flex-col items-center justify-center">
+                <div className="bg-card border border-border border-dashed rounded-2xl py-16 px-4 text-center flex flex-col items-center justify-center">
                   <Search
                     size={36}
                     className="mb-3 text-muted-foreground/40"
                     aria-hidden="true"
                   />
-                  <p className="text-muted-foreground font-bold text-sm">
+                  <p className="text-muted-foreground font-medium text-sm">
                     {hasActiveFilters
                       ? '沒有符合目前篩選條件的選手，試試重置篩選條件吧！'
                       : '目前尚無排行榜資料'}
@@ -1014,7 +948,7 @@ export function Leaderboard() {
                     <button
                       type="button"
                       onClick={resetFilters}
-                      className="mt-3 h-9 px-4 rounded-xl bg-sapphire-blue text-white text-xs font-black inline-flex items-center gap-1.5 hover:bg-blue-700 transition-colors"
+                      className="mt-3 min-h-9 py-1.5 px-4 rounded-xl bg-sapphire-blue text-white text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-blue-700 transition-colors"
                     >
                       <RotateCcw size={13} aria-hidden="true" />
                       重置篩選條件
@@ -1024,7 +958,7 @@ export function Leaderboard() {
               )
             )}
 
-            {/* 模組 6：待定級 / 季前預排智慧收合區（消除滿螢幕 0% / 0W-0L 雜訊） */}
+            {/* 待定級 / 季前預排智慧收合區 */}
             {secondaryUnrankedPlayers.length > 0 && (
               <div className="rounded-2xl md:rounded-3xl bg-card border border-border shadow-xs overflow-hidden">
                 <button
@@ -1038,11 +972,11 @@ export function Leaderboard() {
                       <Hourglass size={15} aria-hidden="true" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-display font-black text-foreground truncate">
+                      <p className="text-xs sm:text-sm font-display font-bold text-foreground truncate">
                         尚未出賽選手（共 {secondaryUnrankedPlayers.length} 人）
                       </p>
-                      <p className="text-[11px] font-bold text-muted-foreground truncate">
-                        依全域 ELO 排序 · 完成本季 {SEASON_PLACEMENT_MATCHES} 場定級賽即取得正式排名（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）
+                      <p className="text-xs font-medium text-muted-foreground truncate">
+                        依全域積分排序 · 完成本季 {SEASON_PLACEMENT_MATCHES} 場定級賽即取得正式排名（前 {SEASON_PLACEMENT_MATCHES} 場享有 K=32 加速）
                       </p>
                     </div>
                   </div>
@@ -1067,13 +1001,13 @@ export function Leaderboard() {
                           type="button"
                           onClick={() => openInspect(player.player_id)}
                           className={cn(
-                            'w-full min-h-[60px] p-3 rounded-2xl border bg-surface-subtle/50 hover:bg-secondary/70 flex items-center gap-2.5 text-left transition-colors group',
+                            'w-full min-h-[60px] p-3 rounded-2xl border bg-card hover:bg-surface-subtle flex items-center gap-2.5 text-left transition-colors group',
                             isMe
-                              ? 'border-sapphire-blue/45 bg-sapphire-blue/[0.05] dark:bg-blue-500/10'
-                              : 'border-border/80',
+                              ? 'border-sapphire-blue/45 bg-sapphire-blue/[0.04] dark:bg-blue-500/10'
+                              : 'border-border',
                           )}
                         >
-                          <span className="text-[11px] font-display font-black text-muted-foreground w-7 text-center tabular-nums shrink-0">
+                          <span className="text-xs font-display font-semibold text-muted-foreground w-7 text-center tabular-nums shrink-0">
                             {realIndexMap.get(player.player_id) ?? rankedCount + idx + 1}
                           </span>
                           <PlayerAvatar
@@ -1083,35 +1017,35 @@ export function Leaderboard() {
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-sm font-display font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
+                              <span className="text-sm font-display font-bold text-foreground truncate group-hover:text-sapphire-blue transition-colors">
                                 {player.player_name}
                               </span>
                               {isMe && (
-                                <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black shrink-0">
-                                  YOU
+                                <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-xs font-semibold leading-none shrink-0">
+                                  我
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                               <span
                                 className={cn(
-                                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-black shrink-0',
+                                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-semibold shadow-none shrink-0',
                                   tier.color,
                                 )}
                               >
                                 {tier.icon}
                                 {getShortTierName(player.global_mmr)}
                               </span>
-                              <span className="text-[11px] font-bold text-muted-foreground truncate">
+                              <span className="text-xs font-medium text-muted-foreground truncate">
                                 {getNormalizedDept(player.department)}
                               </span>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-base font-display font-black text-foreground tabular-nums leading-none">
+                            <p className="text-base font-display font-bold text-foreground tabular-nums leading-none">
                               {Math.round(player.global_mmr)}
                             </p>
-                            <p className="text-[10px] font-bold text-muted-foreground mt-1">
+                            <p className="text-xs font-medium text-muted-foreground mt-1">
                               待首戰
                             </p>
                           </div>
@@ -1135,297 +1069,7 @@ export function Leaderboard() {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * 模組 2A：第 1 名榜首榮耀巨頭卡（手機全寬焦點橫幅 / 桌面置中冠軍卡）
- * ─────────────────────────────────────────────────────────────────────────── */
-function PodiumChampionCard({
-  player,
-  isPreseason,
-  isPlacementOnly = false,
-  currentUserId,
-  onSelect,
-  className,
-}: Readonly<{
-  player?: RawLeaderboardItem;
-  isPreseason: boolean;
-  isPlacementOnly?: boolean;
-  currentUserId?: string;
-  onSelect: (id: string) => void;
-  className?: string;
-}>) {
-  if (!player) {
-    return (
-      <div
-        className={cn(
-          'rounded-2xl md:rounded-3xl border-2 border-dashed border-amber-300/70 bg-amber-50/40 dark:bg-amber-500/5 p-5 flex flex-col items-center justify-center text-center min-h-[180px]',
-          className,
-        )}
-      >
-        <Crown size={28} className="text-amber-400/60 mb-2" aria-hidden="true" />
-        <p className="text-xs font-black text-muted-foreground">榜首王座虛位以待</p>
-      </div>
-    );
-  }
-
-  const tier = getTierBadge(player.global_mmr, 12);
-  const { losses, winRateRounded, winBarPercent } = getWinRateStats(player);
-  const isMe = currentUserId === player.player_id;
-  const streak = player.current_streak ?? 0;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(player.player_id)}
-      className={cn(
-        'group relative w-full text-left md:text-center rounded-2xl md:rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-amber-50/95 via-white to-amber-100/70 dark:from-amber-500/18 dark:via-slate-900/90 dark:to-amber-500/5 border-2 border-amber-400/80 dark:border-amber-400/60 shadow-md shadow-amber-500/10 hover:shadow-lg transition-all flex flex-col justify-between gap-3.5 overflow-hidden focus-visible:outline-2 focus-visible:outline-sapphire-blue',
-        className,
-      )}
-    >
-      {/* Top Crown Pill + Weekly Momentum */}
-      <div className="flex items-center justify-between gap-2 w-full">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-olympic-gold text-white text-xs font-display font-black shadow-xs whitespace-nowrap">
-          <Crown size={12} aria-hidden="true" />
-          {isPreseason ? '預排第 1 名' : isPlacementOnly ? '暫居第 1 名' : '第 1 名 · 榜首王者'}
-        </span>
-        <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
-      </div>
-
-      {/* Main Identity: Horizontal on Phone, Centered Vertical on Desktop */}
-      <div className="flex md:flex-col items-center gap-3.5 md:gap-2.5 min-w-0">
-        <div className="relative shrink-0 p-[3px] rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-orange-500 shadow-md transition-transform group-hover:scale-105">
-          <PlayerAvatar
-            src={player.avatar_url}
-            name={player.player_name}
-            className="size-15 sm:size-20 rounded-full bg-card text-xl sm:text-2xl"
-          />
-        </div>
-
-        <div className="min-w-0 flex-1 md:w-full">
-          <div className="flex items-center md:justify-center gap-1.5 flex-wrap min-w-0">
-            <h3 className="text-base sm:text-xl font-display font-black text-foreground truncate group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
-              {player.player_name}
-            </h3>
-            {isMe && (
-              <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black shrink-0">
-                YOU
-              </span>
-            )}
-            {streak >= 2 && (
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-black tabular-nums shrink-0">
-                <Flame size={10} aria-hidden="true" />
-                {streak} 連勝
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center md:justify-center gap-1.5 mt-1 flex-wrap">
-            <span className="text-xs font-bold text-muted-foreground truncate">
-              {getNormalizedDept(player.department)}
-            </span>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-black',
-                tier.color,
-              )}
-            >
-              {tier.icon}
-              {getShortTierName(player.global_mmr)}
-            </span>
-          </div>
-        </div>
-
-        {/* Big ELO on Mobile Right / Below Name on Desktop */}
-        <div className="text-right md:text-center shrink-0">
-          <p className="text-3xl sm:text-4xl font-display font-black text-amber-700 dark:text-amber-300 tabular-nums leading-none">
-            {Math.round(player.global_mmr)}
-          </p>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">
-            GLOBAL ELO
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom Win-Rate Progress Bar */}
-      <div className="pt-2.5 border-t border-amber-300/50 dark:border-amber-500/20 space-y-1.5 w-full">
-        {player.matches_played > 0 ? (
-          <>
-            <div className="flex items-center justify-between text-xs font-display font-black tabular-nums">
-              <span className="text-foreground">勝率 {winRateRounded}%</span>
-              <span>
-                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
-                <span className="text-muted-foreground/50 mx-0.5">·</span>
-                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${winBarPercent}%` }}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] font-bold text-muted-foreground text-center">
-            季前實力預排 · 等待開季首戰
-          </p>
-        )}
-      </div>
-    </button>
-  );
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
- * 模組 2B：第 2 名亞軍 / 第 3 名季軍卡（手機並排 2 欄不擠壓）
- * ─────────────────────────────────────────────────────────────────────────── */
-function PodiumRunnerCard({
-  place,
-  player,
-  isPreseason,
-  isPlacementOnly = false,
-  currentUserId,
-  onSelect,
-  className,
-}: Readonly<{
-  place: 2 | 3;
-  player?: RawLeaderboardItem;
-  isPreseason: boolean;
-  isPlacementOnly?: boolean;
-  currentUserId?: string;
-  onSelect: (id: string) => void;
-  className?: string;
-}>) {
-  const isSilver = place === 2;
-  const label = isPreseason
-    ? `預排第 ${place} 名`
-    : isPlacementOnly
-      ? `暫居第 ${place} 名`
-      : isSilver
-        ? '第 2 名 · 亞軍'
-        : '第 3 名 · 季軍';
-
-  if (!player) {
-    return (
-      <div
-        className={cn(
-          'rounded-2xl md:rounded-3xl border border-dashed border-border bg-surface-subtle/60 p-4 flex flex-col items-center justify-center text-center min-h-[160px]',
-          className,
-        )}
-      >
-        <span className="text-xs font-display font-black text-muted-foreground mb-1">
-          {label}
-        </span>
-        <p className="text-xs font-bold text-muted-foreground/60">虛位以待</p>
-      </div>
-    );
-  }
-
-  const { losses, winRateRounded, winBarPercent } = getWinRateStats(player);
-  const isMe = currentUserId === player.player_id;
-  const streak = player.current_streak ?? 0;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(player.player_id)}
-      className={cn(
-        'group w-full min-w-0 overflow-hidden text-center rounded-2xl md:rounded-3xl p-3.5 sm:p-5 bg-card border shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 focus-visible:outline-2 focus-visible:outline-sapphire-blue',
-        isSilver
-          ? 'border-slate-300/90 dark:border-slate-600/80'
-          : 'border-orange-300/80 dark:border-orange-500/45',
-        className,
-      )}
-    >
-      {/* Top Medal Pill & Weekly Delta */}
-      <div className="flex items-center justify-between gap-1.5 w-full">
-        <span
-          className={cn(
-            'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-display font-black border whitespace-nowrap',
-            isSilver
-              ? 'bg-slate-200/85 text-slate-700 border-slate-300 dark:bg-slate-500/25 dark:text-slate-200 dark:border-slate-500/50'
-              : 'bg-orange-400/20 text-orange-700 border-orange-400/60 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-400/50',
-          )}
-        >
-          {label}
-        </span>
-        <WeeklyDeltaBadge delta={player.weekly_mmr_delta} compact />
-      </div>
-
-      {/* Avatar, Name, ELO */}
-      <div className="flex flex-col items-center gap-2 min-w-0">
-        <div
-          className={cn(
-            'relative p-[2.5px] rounded-full transition-transform group-hover:scale-105',
-            isSilver
-              ? 'bg-gradient-to-br from-slate-300 to-slate-500'
-              : 'bg-gradient-to-br from-orange-300 to-amber-600',
-          )}
-        >
-          <PlayerAvatar
-            src={player.avatar_url}
-            name={player.player_name}
-            className="size-13 sm:size-17 rounded-full bg-card text-base sm:text-xl"
-          />
-        </div>
-
-        <div className="min-w-0 w-full space-y-0.5">
-          <div className="flex items-center justify-center gap-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-display font-black text-foreground truncate group-hover:text-sapphire-blue transition-colors">
-              {player.player_name}
-            </h3>
-            {isMe && (
-              <span className="px-1 py-0.5 rounded bg-sapphire-blue text-white text-[9px] font-black shrink-0">
-                YOU
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] font-bold text-muted-foreground truncate">
-            {getNormalizedDept(player.department)}
-          </p>
-        </div>
-
-        <div className="flex items-baseline justify-center gap-1">
-          <span className="text-2xl sm:text-3xl font-display font-black text-foreground tabular-nums leading-none">
-            {Math.round(player.global_mmr)}
-          </span>
-          <span className="text-[10px] font-black text-muted-foreground uppercase">ELO</span>
-        </div>
-
-        {streak >= 2 && (
-          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-black tabular-nums">
-            <Flame size={10} aria-hidden="true" />
-            {streak} 連勝
-          </span>
-        )}
-      </div>
-
-      {/* Bottom Mini Win-Rate Bar */}
-      <div className="pt-2 border-t border-border/70 space-y-1 w-full">
-        {player.matches_played > 0 ? (
-          <>
-            <div className="flex items-center justify-between text-[11px] font-display font-black tabular-nums">
-              <span className="text-foreground">{winRateRounded}%</span>
-              <span>
-                <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
-                <span className="text-muted-foreground/45 mx-0.5">·</span>
-                <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${winBarPercent}%` }}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] font-bold text-muted-foreground">等待開季首戰</p>
-        )}
-      </div>
-    </button>
-  );
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
- * 模組 1：手機專屬原生競技球星列卡（零跑版、零斷裂分隔線）
+ * 手機專屬競技列卡（零跑版、零斷裂分隔線）
  * ─────────────────────────────────────────────────────────────────────────── */
 function MobilePlayerRowCard({
   player,
@@ -1452,13 +1096,13 @@ function MobilePlayerRowCard({
       className={cn(
         'w-full text-left rounded-2xl border p-3.5 shadow-2xs transition-colors active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-sapphire-blue',
         isMe
-          ? 'bg-sapphire-blue/[0.045] dark:bg-blue-500/12 border-sapphire-blue/40'
+          ? 'bg-sapphire-blue/[0.04] dark:bg-blue-500/[0.08] border-sapphire-blue/40'
           : isTop1
-            ? 'bg-amber-50/45 dark:bg-amber-500/10 border-amber-300/70 dark:border-amber-400/40'
-            : 'bg-card border-border hover:bg-secondary/50',
+            ? 'bg-amber-50/30 dark:bg-amber-500/[0.06] border-amber-300/60 dark:border-amber-400/40'
+            : 'bg-card border-border hover:bg-surface-subtle/80',
       )}
     >
-      {/* Top Row: Medal + Avatar + Name/Badges + Right ELO */}
+      {/* Top Row: Medal + Avatar + Name/Badges + Right Score */}
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="w-9 shrink-0 flex flex-col items-center justify-center gap-1">
           <MedalBadge
@@ -1473,27 +1117,27 @@ function MobilePlayerRowCard({
         <PlayerAvatar
           src={player.avatar_url}
           name={player.player_name}
-          className="size-11 rounded-2xl border border-border shadow-2xs text-sm shrink-0"
+          className="size-11 rounded-xl border border-border/80 shadow-2xs text-sm shrink-0"
         />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-display font-black text-base text-foreground truncate">
+            <span className="font-display font-bold text-base text-foreground truncate">
               {player.player_name}
             </span>
             {isMe && (
-              <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue text-white text-[10px] font-black uppercase shrink-0">
-                YOU
+              <span className="px-1.5 py-0.5 rounded-md bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-300 text-xs font-semibold leading-none shrink-0">
+                我
               </span>
             )}
             {streak >= 2 && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-black tabular-nums shrink-0 whitespace-nowrap">
-                <Flame size={9} aria-hidden="true" />
-                {streak}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/12 text-orange-600 border border-orange-500/25 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-400/30 text-xs font-semibold tabular-nums leading-none whitespace-nowrap shrink-0">
+                <Flame size={11} aria-hidden="true" />
+                {streak} 連勝
               </span>
             )}
           </div>
-          <p className="text-xs font-bold text-muted-foreground truncate mt-0.5">
+          <p className="text-xs font-medium text-muted-foreground truncate mt-0.5">
             {getNormalizedDept(player.department)}
           </p>
         </div>
@@ -1501,14 +1145,14 @@ function MobilePlayerRowCard({
         <div className="text-right shrink-0">
           <p
             className={cn(
-              'font-display font-black text-2xl tabular-nums leading-none',
+              'font-display font-bold text-2xl tabular-nums leading-none',
               isTop1 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
             )}
           >
             {Math.round(player.global_mmr)}
           </p>
           <div className="mt-1 flex justify-end">
-            <WeeklyDeltaBadge delta={player.weekly_mmr_delta} compact />
+            <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
           </div>
         </div>
       </div>
@@ -1517,26 +1161,25 @@ function MobilePlayerRowCard({
       <div className="mt-2.5 pt-2.5 border-t border-border/75 flex items-center justify-between gap-2 min-w-0">
         <span
           className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-black shrink-0 whitespace-nowrap',
+            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold shadow-none shrink-0 whitespace-nowrap',
             tier.color,
           )}
         >
           {tier.icon}
-          <span className="sm:hidden">{getShortTierName(player.global_mmr)}</span>
-          <span className="hidden sm:inline">{tier.name}</span>
+          <span>{getShortTierName(player.global_mmr)}</span>
         </span>
 
         {player.matches_played > 0 ? (
           <div className="min-w-0 flex-1 max-w-[140px] space-y-1">
-            <div className="flex items-baseline justify-between gap-1 text-[11px] font-display font-black tabular-nums">
-              <span className="text-foreground">{winRateRounded}%</span>
+            <div className="flex items-baseline justify-between gap-1 text-xs font-display font-semibold tabular-nums">
+              <span className="font-bold text-foreground">{winRateRounded}%</span>
               <span className="whitespace-nowrap">
                 <span className="text-emerald-600 dark:text-emerald-400">{player.wins}勝</span>
                 <span className="text-muted-foreground/45 mx-0.5">·</span>
                 <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-rose-500/25 overflow-hidden flex">
+            <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden flex">
               <div
                 className="h-full bg-emerald-500"
                 style={{ width: `${winBarPercent}%` }}
@@ -1544,7 +1187,7 @@ function MobilePlayerRowCard({
             </div>
           </div>
         ) : (
-          <span className="text-[11px] font-bold text-muted-foreground truncate">
+          <span className="text-xs font-medium text-muted-foreground truncate">
             等待本季首戰
           </span>
         )}
@@ -1558,7 +1201,7 @@ function MobilePlayerRowCard({
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
- * 模組 7：賽制與段位說明公開彈窗（RankingRulesDialog）
+ * 賽制與段位說明公開彈窗（RankingRulesDialog）
  * ─────────────────────────────────────────────────────────────────────────── */
 function RankingRulesDialog({
   open,
@@ -1570,7 +1213,7 @@ function RankingRulesDialog({
   const tiers = [
     {
       label: '菁英 (Elite)',
-      range: '1320+ ELO',
+      range: '1320+ 分',
       desc: '頂尖 5%～8% 殿堂級高手',
       icon: Shield,
       pillClass:
@@ -1578,7 +1221,7 @@ function RankingRulesDialog({
     },
     {
       label: '金牌 (Gold)',
-      range: '1180 ~ 1319 ELO',
+      range: '1180 ~ 1319 分',
       desc: '俱樂部前段班實力強者',
       icon: Trophy,
       pillClass:
@@ -1586,7 +1229,7 @@ function RankingRulesDialog({
     },
     {
       label: '銀牌 (Silver)',
-      range: '1050 ~ 1179 ELO',
+      range: '1050 ~ 1179 分',
       desc: '穩定出賽之中堅主力區間',
       icon: Medal,
       pillClass:
@@ -1594,7 +1237,7 @@ function RankingRulesDialog({
     },
     {
       label: '銅牌 (Bronze)',
-      range: '< 1050 ELO',
+      range: '< 1050 分',
       desc: '初入賽場／熱身累積期',
       icon: Award,
       pillClass:
@@ -1608,10 +1251,10 @@ function RankingRulesDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Scale size={20} className="text-sapphire-blue shrink-0" aria-hidden="true" />
-            <span>Single-Track ELO 賽制與段位說明</span>
+            <span>單軌積分賽制與段位說明</span>
           </DialogTitle>
           <DialogDescription>
-            全系統採用單軌 ELO 積分，公開透明計算每場單雙打對戰與賽季排名。
+            全系統採用單軌積分制，公開透明計算每場單雙打對戰與賽季排名。
           </DialogDescription>
         </DialogHeader>
 
@@ -1619,11 +1262,11 @@ function RankingRulesDialog({
           {/* 1. 段位區間 */}
           <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-display font-black text-foreground flex items-center gap-1.5">
+              <p className="font-display font-bold text-foreground flex items-center gap-1.5">
                 <Trophy size={14} className="text-olympic-gold" aria-hidden="true" />
                 四大段位門檻（起始基準 {SEASON_BASE_SCORE} 分）
               </p>
-              <span className="text-[11px] font-bold text-muted-foreground">最低保護 600</span>
+              <span className="text-xs font-medium text-muted-foreground">最低保護 600</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {tiers.map((t) => {
@@ -1636,18 +1279,18 @@ function RankingRulesDialog({
                     <div className="min-w-0">
                       <span
                         className={cn(
-                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-black',
+                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold',
                           t.pillClass,
                         )}
                       >
                         <Icon size={11} aria-hidden="true" />
                         {t.label}
                       </span>
-                      <p className="text-[11px] text-muted-foreground font-bold mt-1 truncate">
+                      <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
                         {t.desc}
                       </p>
                     </div>
-                    <span className="font-display font-black text-xs text-foreground tabular-nums shrink-0">
+                    <span className="font-display font-bold text-xs text-foreground tabular-nums shrink-0">
                       {t.range}
                     </span>
                   </div>
@@ -1658,23 +1301,23 @@ function RankingRulesDialog({
 
           {/* 2. 賽季定級門檻 & K 值 */}
           <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-2">
-            <p className="font-display font-black text-foreground flex items-center gap-1.5">
+            <p className="font-display font-bold text-foreground flex items-center gap-1.5">
               <BookOpen size={14} className="text-sapphire-blue" aria-hidden="true" />
               賽季 {SEASON_PLACEMENT_MATCHES} 場定級賽與動態 K 值
             </p>
-            <ul className="space-y-1.5 text-xs text-muted-foreground font-bold leading-relaxed">
+            <ul className="space-y-1.5 text-xs text-muted-foreground font-medium leading-relaxed">
               <li>
-                • <strong className="text-foreground">每季前 {SEASON_PLACEMENT_MATCHES} 場（定級賽 · K=32）</strong>
+                • <strong className="font-semibold text-foreground">每季前 {SEASON_PLACEMENT_MATCHES} 場（定級賽 · K=32）</strong>
                 ：享較高權重快速校準當季實力，榜單標示「定級 X/{SEASON_PLACEMENT_MATCHES}」，打滿 {SEASON_PLACEMENT_MATCHES} 場即正式取得{' '}
-                <strong className="text-foreground">第 1、2、3 名</strong>賽季名次。
+                <strong className="font-semibold text-foreground">第 1、2、3 名</strong>賽季名次。
               </li>
               <li>
-                • <strong className="text-foreground">每季第 {SEASON_PLACEMENT_MATCHES + 1} 場起（常態期 · K=24）</strong>
-                ：完成定級後恢復穩定係數；每位選手皆<strong className="text-foreground">獨立套用自身 K 值</strong>，不與對手平均。
+                • <strong className="font-semibold text-foreground">每季第 {SEASON_PLACEMENT_MATCHES + 1} 場起（常態期 · K=24）</strong>
+                ：完成定級後恢復穩定係數；每位選手皆<strong className="font-semibold text-foreground">獨立套用自身 K 值</strong>，不與對手平均。
               </li>
               <li>
-                • <strong className="text-foreground">季中高手速升範例</strong>
-                ：同分對決 2:1 勝場定級期約 <strong className="text-emerald-600 dark:text-emerald-400">+16 分</strong>（2:0 完封 <strong className="text-emerald-600 dark:text-emerald-400">+19.2 分</strong>）；第 6 場起為 <strong className="text-emerald-600 dark:text-emerald-400">+12 分</strong>（完封 <strong className="text-emerald-600 dark:text-emerald-400">+14.4 分</strong>）。
+                • <strong className="font-semibold text-foreground">季中高手速升範例</strong>
+                ：同分對決 2:1 勝場定級期約 <strong className="font-semibold text-emerald-600 dark:text-emerald-400">+16 分</strong>（2:0 完封 <strong className="font-semibold text-emerald-600 dark:text-emerald-400">+19.2 分</strong>）；第 6 場起為 <strong className="font-semibold text-emerald-600 dark:text-emerald-400">+12 分</strong>（完封 <strong className="font-semibold text-emerald-600 dark:text-emerald-400">+14.4 分</strong>）。
               </li>
             </ul>
           </div>
@@ -1682,41 +1325,41 @@ function RankingRulesDialog({
           {/* 3. 完封加成 & 雙打機制 & 軟重置 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-1.5">
-              <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+              <p className="font-display font-bold text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
                 <Flame size={14} className="text-smash-orange" aria-hidden="true" />
                 完封淨勝局加成
               </p>
-              <p className="text-xs text-muted-foreground font-bold leading-relaxed">
-                BO3：2:1 為 <strong className="text-foreground">1.0x</strong>｜2:0 完封{' '}
-                <strong className="text-foreground">1.2x</strong>
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                BO3：2:1 為 <strong className="font-semibold text-foreground">1.0x</strong>｜2:0 完封{' '}
+                <strong className="font-semibold text-foreground">1.2x</strong>
                 <br />
-                BO5：3:2 為 <strong className="text-foreground">1.2x</strong>｜3:1 為{' '}
-                <strong className="text-foreground">1.35x</strong>｜3:0 宰制{' '}
-                <strong className="text-foreground">1.5x</strong>
+                BO5：3:2 為 <strong className="font-semibold text-foreground">1.2x</strong>｜3:1 為{' '}
+                <strong className="font-semibold text-foreground">1.35x</strong>｜3:0 宰制{' '}
+                <strong className="font-semibold text-foreground">1.5x</strong>
               </p>
             </div>
 
             <div className="rounded-2xl border border-border bg-surface-subtle/60 p-3.5 space-y-1.5">
-              <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+              <p className="font-display font-bold text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
                 <Users size={14} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                 雙打公平共擔 (50/50)
               </p>
-              <p className="text-xs text-muted-foreground font-bold leading-relaxed">
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed">
                 隊伍戰力採兩位搭檔平均，個人加減分為單打的{' '}
-                <strong className="text-foreground">0.85x</strong>，同 K 值搭檔同加同扣。
+                <strong className="font-semibold text-foreground">0.85x</strong>，同 K 值搭檔同加同扣。
               </p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-sapphire-blue/25 bg-sapphire-blue/[0.05] dark:bg-blue-500/10 p-3.5 space-y-1">
-            <p className="font-display font-black text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
+            <p className="font-display font-bold text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
               <Sparkles size={14} className="text-sapphire-blue dark:text-blue-300" aria-hidden="true" />
               換季積分軟重置
             </p>
-            <p className="text-xs text-muted-foreground font-bold leading-relaxed">
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
               新賽季開打時依公式{' '}
-              <span className="font-display font-black text-foreground">
-                (上季結算 ELO + {SEASON_BASE_SCORE}) ÷ 2
+              <span className="font-display font-bold text-foreground">
+                (上季結算積分 + {SEASON_BASE_SCORE}) ÷ 2
               </span>{' '}
               回歸（例：上季 1320 菁英新季從 1160 銀牌頂端出發，搭配開季前 5 場 K=32 迅速衝刺重返高段位）。
             </p>
