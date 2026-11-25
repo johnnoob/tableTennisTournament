@@ -581,8 +581,8 @@ export function MatchHistory() {
 
   const headerSubtitle =
     scope === 'mine'
-      ? `Personal Match History${seasonSubtitleSegment} · ${typeof myTotal === 'number' ? `共 ${displayedTotal} 場` : '與我相關'}`
-      : `All-Club Match Feed${seasonSubtitleSegment} · ${typeof allTotal === 'number' ? `共 ${displayedTotal} 場` : '全部戰報'}`;
+      ? `個人戰績${seasonSubtitleSegment} · ${typeof myTotal === 'number' ? `共 ${displayedTotal} 場` : '與我相關'}`
+      : `全部戰報${seasonSubtitleSegment} · ${typeof allTotal === 'number' ? `共 ${displayedTotal} 場` : '全部戰報'}`;
 
   return (
     <motion.div
@@ -598,7 +598,7 @@ export function MatchHistory() {
 
       <div className="space-y-5 min-w-0 w-full">
         <search aria-label="搜尋與篩選對戰紀錄" className="block">
-          <div className="arena-surface p-3 sm:p-4 space-y-3">
+          <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xs space-y-3">
             {/* Scope + Folding Controls Row */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-border/70">
               <div
@@ -612,7 +612,7 @@ export function MatchHistory() {
                   aria-selected={scope === 'mine'}
                   onClick={() => setScope('mine')}
                   className={cn(
-                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 min-h-9 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap',
                     scope === 'mine'
                       ? 'bg-card text-foreground shadow-xs border border-border/60'
                       : 'text-muted-foreground hover:text-foreground',
@@ -621,7 +621,7 @@ export function MatchHistory() {
                   <UserCheck size={14} aria-hidden="true" />
                   <span>個人戰績</span>
                   {typeof myTotal === 'number' && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-black tabular-nums text-muted-foreground whitespace-nowrap">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-semibold tabular-nums text-muted-foreground whitespace-nowrap">
                       {myTotal}
                     </span>
                   )}
@@ -632,7 +632,7 @@ export function MatchHistory() {
                   aria-selected={scope === 'all'}
                   onClick={() => setScope('all')}
                   className={cn(
-                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap',
+                    'flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 min-h-9 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap',
                     scope === 'all'
                       ? 'bg-card text-foreground shadow-xs border border-border/60'
                       : 'text-muted-foreground hover:text-foreground',
@@ -641,7 +641,7 @@ export function MatchHistory() {
                   <Globe size={14} aria-hidden="true" />
                   <span>全部戰報</span>
                   {typeof allTotal === 'number' && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-black tabular-nums text-muted-foreground whitespace-nowrap">
+                    <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs font-display font-semibold tabular-nums text-muted-foreground whitespace-nowrap">
                       {allTotal}
                     </span>
                   )}
@@ -657,7 +657,7 @@ export function MatchHistory() {
                     title="選擇檢視賽季"
                     description="切換單一賽季或檢視全部歷史場次"
                     placeholder="全部賽季"
-                    triggerClassName="h-9 w-full sm:w-48 shrink-0 rounded-xl text-xs sm:text-sm"
+                    triggerClassName="min-h-9 w-full sm:w-48 shrink-0 rounded-xl text-xs sm:text-sm"
                     icon={
                       <History
                         size={14}
@@ -667,7 +667,7 @@ export function MatchHistory() {
                     }
                   />
                 ) : seasons.length === 1 ? (
-                  <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-surface-subtle border border-border text-xs font-bold text-muted-foreground whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5 min-h-9 px-3 py-1.5 rounded-xl bg-surface-subtle border border-border text-xs font-medium text-muted-foreground whitespace-nowrap">
                     <Timer size={13} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     {seasons[0].name}
                   </span>
@@ -678,7 +678,7 @@ export function MatchHistory() {
                   aria-pressed={clusterSeriesEnabled}
                   onClick={() => setClusterSeriesEnabled((prev) => !prev)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs sm:text-sm font-black transition-colors whitespace-nowrap',
+                    'inline-flex items-center gap-1.5 min-h-9 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap',
                     clusterSeriesEnabled
                       ? 'bg-sapphire-blue/10 border-sapphire-blue/30 text-sapphire-blue dark:bg-blue-500/15 dark:border-blue-400/30 dark:text-blue-300'
                       : 'bg-card border-border text-muted-foreground hover:text-foreground',
@@ -733,7 +733,7 @@ export function MatchHistory() {
                       aria-pressed={resultFilter === f}
                       onClick={() => setResultFilter(f)}
                       className={cn(
-                        'rounded-xl px-4 h-9 text-xs font-sans tracking-wider font-bold transition-all shrink-0',
+                        'rounded-xl px-4 min-h-9 py-1.5 text-xs font-sans font-semibold transition-all shrink-0',
                         resultFilter === f
                           ? f === 'all'
                             ? 'bg-primary text-primary-foreground shadow-sm'
@@ -758,7 +758,7 @@ export function MatchHistory() {
                       aria-pressed={statusFilter === s}
                       onClick={() => setStatusFilter(s)}
                       className={cn(
-                        'rounded-xl px-4 h-9 text-xs font-sans tracking-wider font-bold transition-all shrink-0',
+                        'rounded-xl px-4 min-h-9 py-1.5 text-xs font-sans font-semibold transition-all shrink-0',
                         statusFilter === s
                           ? s === 'all'
                             ? 'bg-primary text-primary-foreground shadow-sm'
@@ -793,7 +793,7 @@ export function MatchHistory() {
                     aria-pressed={matchTypeFilter === t.id}
                     onClick={() => setMatchTypeFilter(t.id)}
                     className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
+                      'px-3 py-1.5 min-h-8 rounded-lg text-xs font-semibold transition-all',
                       matchTypeFilter === t.id
                         ? 'bg-primary text-primary-foreground shadow-xs'
                         : 'text-muted-foreground hover:text-foreground',
@@ -856,7 +856,7 @@ export function MatchHistory() {
                     <button
                       type="button"
                       onClick={() => setSeasonId('all')}
-                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors"
+                      className="min-h-7 px-2.5 py-1 rounded-lg bg-card border border-border font-semibold text-foreground hover:bg-secondary transition-colors"
                     >
                       切換至全部賽季
                     </button>
@@ -865,7 +865,7 @@ export function MatchHistory() {
                     <button
                       type="button"
                       onClick={resetAllFilters}
-                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors"
+                      className="min-h-7 px-2.5 py-1 rounded-lg bg-card border border-border font-semibold text-foreground hover:bg-secondary transition-colors"
                     >
                       清除篩選條件
                     </button>
@@ -874,7 +874,7 @@ export function MatchHistory() {
                     <button
                       type="button"
                       onClick={() => setScope('all')}
-                      className="h-7 px-2.5 rounded-lg bg-sapphire-blue text-white font-black hover:bg-blue-700 transition-colors"
+                      className="min-h-7 px-2.5 py-1 rounded-lg bg-sapphire-blue text-white font-semibold hover:bg-blue-700 transition-colors"
                     >
                       切換至全部戰報
                     </button>
@@ -884,7 +884,7 @@ export function MatchHistory() {
                       type="button"
                       disabled={isFetchingMore}
                       onClick={() => handleLoadMore()}
-                      className="h-7 px-2.5 rounded-lg bg-card border border-border font-black text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                      className="min-h-7 px-2.5 py-1 rounded-lg bg-card border border-border font-semibold text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
                     >
                       {isFetchingMore ? '載入中...' : '載入更早對戰'}
                     </button>
@@ -892,7 +892,7 @@ export function MatchHistory() {
                   <button
                     type="button"
                     onClick={clearHighlightMatch}
-                    className="h-7 px-2.5 rounded-lg bg-card/80 border border-border/80 font-bold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+                    className="min-h-7 px-2.5 py-1 rounded-lg bg-card/80 border border-border/80 font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
                   >
                     <span>清除定位</span>
                     <X size={12} aria-hidden="true" />
@@ -902,11 +902,11 @@ export function MatchHistory() {
             )}
 
             {scope === 'mine' && !isAuthLoading && !user ? (
-              <div className="arena-surface p-8 sm:p-12 text-center space-y-4">
+              <div className="bg-card border border-border rounded-2xl p-8 sm:p-12 shadow-xs text-center space-y-4">
                 <div className="size-14 rounded-2xl bg-sapphire-blue/12 text-sapphire-blue flex items-center justify-center mx-auto">
                   <Trophy size={26} aria-hidden="true" />
                 </div>
-                <h2 className="text-lg sm:text-xl font-display font-black text-foreground">
+                <h2 className="text-lg sm:text-xl font-display font-bold text-foreground">
                   登入後查看個人對戰紀錄
                 </h2>
                 <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-md mx-auto">
@@ -916,7 +916,7 @@ export function MatchHistory() {
                   <Button
                     type="button"
                     onClick={() => navigate('/login')}
-                    className="h-10 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-black text-sm gap-2"
+                    className="min-h-10 py-2 px-5 rounded-xl bg-sapphire-blue hover:bg-blue-700 text-white font-display font-semibold text-sm gap-2"
                   >
                     <LogIn size={16} aria-hidden="true" />
                     立即登入戰情室
@@ -925,7 +925,7 @@ export function MatchHistory() {
                     type="button"
                     variant="outline"
                     onClick={() => setScope('all')}
-                    className="h-10 px-5 rounded-xl border-border text-foreground font-bold text-sm gap-1.5"
+                    className="min-h-10 py-2 px-5 rounded-xl border-border text-foreground font-semibold text-sm gap-1.5"
                   >
                     <Globe size={15} aria-hidden="true" />
                     先看全部戰報
@@ -939,9 +939,9 @@ export function MatchHistory() {
                 ))}
               </div>
             ) : filteredMatches.length === 0 ? (
-              <div className="text-center py-14 arena-surface border-dashed space-y-2">
+              <div className="text-center py-14 bg-card border border-border border-dashed rounded-2xl space-y-2">
                 <Trophy size={30} className="mx-auto text-muted-foreground/40 mb-2" aria-hidden="true" />
-                <p className="text-muted-foreground font-bold text-sm">
+                <p className="text-muted-foreground font-medium text-sm">
                   {isSyncingOlderMatches
                     ? '正在搜尋更早的對戰紀錄...'
                     : searchQuery.trim()
@@ -1000,13 +1000,13 @@ export function MatchHistory() {
                                 aria-hidden="true"
                               />
                             )}
-                            <span className="font-display font-black text-foreground">
+                            <span className="font-display font-bold text-foreground">
                               {dividerSeason?.name || dateSection.seasonId}
                             </span>
                             {dividerSeason && (
                               <span
                                 className={cn(
-                                  'px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none',
+                                  'px-1.5 py-0.5 rounded-md text-xs font-semibold leading-none',
                                   isDividerSeasonActive
                                     ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
                                     : 'bg-secondary text-muted-foreground',
@@ -1018,7 +1018,7 @@ export function MatchHistory() {
                             <button
                               type="button"
                               onClick={() => setSeasonId(dateSection.seasonId)}
-                              className="text-[11px] font-black text-sapphire-blue dark:text-blue-300 hover:underline pl-0.5"
+                              className="text-xs font-semibold text-sapphire-blue dark:text-blue-300 hover:underline pl-0.5"
                             >
                               只看此季
                             </button>
@@ -1036,23 +1036,23 @@ export function MatchHistory() {
                         className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-surface-subtle/80 hover:bg-secondary border border-border/80 transition-colors text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <span className="text-sm sm:text-base font-display font-black tracking-wide text-foreground whitespace-nowrap">
+                          <span className="text-sm sm:text-base font-display font-bold text-foreground whitespace-nowrap">
                             {dateSection.label}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-card border border-border text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full bg-card border border-border text-xs font-medium text-muted-foreground tabular-nums whitespace-nowrap">
                             {dateSection.items.length} 場
                           </span>
                           {clusterSeriesEnabled &&
                             dateSection.clusters.length < dateSection.items.length && (
-                              <span className="text-xs font-bold text-sapphire-blue dark:text-blue-300 whitespace-nowrap">
+                              <span className="text-xs font-medium text-sapphire-blue dark:text-blue-300 whitespace-nowrap">
                                 收疊為 {dateSection.clusters.length} 組
                               </span>
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2.5 shrink-0 text-xs sm:text-sm font-black tabular-nums whitespace-nowrap">
+                        <div className="flex items-center gap-2.5 shrink-0 text-xs sm:text-sm font-semibold tabular-nums whitespace-nowrap">
                           {scope === 'mine' && (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                               <span>
                                 <span className="text-emerald-600 dark:text-emerald-400">
                                   {dateSection.wins}勝
@@ -1064,10 +1064,10 @@ export function MatchHistory() {
                               {dateSection.netDelta !== 0 && (
                                 <span
                                   className={cn(
-                                    'px-2 py-0.5 rounded-md text-xs font-display font-black whitespace-nowrap',
+                                    'text-xs font-display font-semibold whitespace-nowrap',
                                     dateSection.netDelta > 0
-                                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-                                      : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : 'text-rose-600 dark:text-rose-400',
                                   )}
                                 >
                                   {dateSection.netDelta > 0
@@ -1171,7 +1171,7 @@ export function MatchHistory() {
                         />
                       ))}
                     </div>
-                    <span className="text-xs font-display font-black uppercase tracking-widest text-muted-foreground">
+                    <span className="text-xs font-medium text-muted-foreground">
                       載入更多紀錄...
                     </span>
                   </motion.div>
@@ -1182,7 +1182,7 @@ export function MatchHistory() {
                 <div className="flex items-center gap-3 text-muted-foreground py-2">
                   <div className="w-10 h-px bg-border" />
                   <Trophy size={13} aria-hidden="true" />
-                  <span className="text-xs font-display font-bold uppercase tracking-widest text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     已顯示所有對戰紀錄
                   </span>
                   <div className="w-10 h-px bg-border" />

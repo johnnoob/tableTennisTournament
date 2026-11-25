@@ -444,7 +444,7 @@ export function MatchHistorySearchCombobox({
         {selectedPlayer && (
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-xl border text-xs font-black shrink-0 max-w-[200px]',
+              'inline-flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-xl border text-xs font-semibold shrink-0 max-w-[200px]',
               selectedPlayer.role === 'partner'
                 ? 'bg-amber-500/12 border-amber-500/35 text-amber-800 dark:text-amber-200'
                 : 'bg-sapphire-blue/10 border-sapphire-blue/30 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-200',
@@ -453,10 +453,10 @@ export function MatchHistorySearchCombobox({
             <PlayerAvatar
               src={selectedPlayer.avatar}
               name={selectedPlayer.name}
-              className="size-5 rounded-md text-[10px]"
+              className="size-5 rounded-full text-xs"
             />
             {selectedPlayer.role !== 'any' && (
-              <span className="text-[10px] opacity-80 shrink-0">
+              <span className="text-xs font-medium opacity-80 shrink-0">
                 {selectedPlayer.role === 'partner' ? '搭檔' : '對手'}
               </span>
             )}
@@ -565,7 +565,7 @@ export function MatchHistorySearchCombobox({
                 const GroupIcon = group.icon;
                 return (
                   <div key={group.id} className="space-y-1">
-                    <div className="px-2 py-1 flex items-center gap-1.5 text-[11px] font-black text-muted-foreground">
+                    <div className="px-2 py-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                       <GroupIcon size={12} className={group.iconClass} aria-hidden="true" />
                       <span>{group.label}</span>
                     </div>
@@ -592,7 +592,7 @@ export function MatchHistorySearchCombobox({
                             onMouseEnter={() => setActiveIndex(idx)}
                             onClick={() => selectOption(item)}
                             className={cn(
-                              'w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors',
+                              'w-full min-h-10 flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors',
                               isSelected
                                 ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-blue-500/20 dark:text-blue-200'
                                 : isHighlighted
@@ -620,11 +620,11 @@ export function MatchHistorySearchCombobox({
                                 <PlayerAvatar
                                   src={item.avatar}
                                   name={item.name}
-                                  className="size-7 rounded-lg text-[11px] shrink-0"
+                                  className="size-7 rounded-lg text-xs shrink-0"
                                 />
                               )}
                               <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-black truncate">
+                                <span className="text-xs sm:text-sm font-semibold truncate">
                                   {item.isCustomFallback
                                     ? `篩選「${item.name}」${item.role === 'partner' ? '當搭檔' : '當對手'}`
                                     : item.name}
@@ -632,7 +632,7 @@ export function MatchHistorySearchCombobox({
                                 {item.roleLabel && (
                                   <span
                                     className={cn(
-                                      'px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none shrink-0',
+                                      'px-1.5 py-0.5 rounded-md text-xs font-semibold leading-none shrink-0',
                                       item.role === 'partner'
                                         ? 'bg-amber-500/12 text-amber-700 dark:text-amber-300'
                                         : 'bg-sapphire-blue/10 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300',
@@ -642,7 +642,7 @@ export function MatchHistorySearchCombobox({
                                   </span>
                                 )}
                                 {dept && (
-                                  <span className="text-[11px] font-bold text-muted-foreground truncate">
+                                  <span className="text-xs font-medium text-muted-foreground truncate">
                                     · {dept}
                                   </span>
                                 )}
@@ -650,11 +650,11 @@ export function MatchHistorySearchCombobox({
                             </div>
 
                             {item.isCustomFallback ? (
-                              <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                              <span className="text-xs font-medium text-muted-foreground shrink-0">
                                 全部紀錄
                               </span>
                             ) : (
-                              <div className="flex items-center gap-2 shrink-0 tabular-nums text-xs font-display font-black">
+                              <div className="flex items-center gap-2 shrink-0 tabular-nums text-xs font-display font-semibold">
                                 <span>
                                   <span className="text-emerald-600 dark:text-emerald-400">
                                     {item.wins}勝
@@ -664,17 +664,17 @@ export function MatchHistorySearchCombobox({
                                   </span>
                                 </span>
                                 {item.group === 'partners' ? (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[11px] text-foreground">
+                                  <span className="px-1.5 py-0.5 rounded-md bg-secondary text-xs text-foreground">
                                     {item.winRate}%
                                   </span>
                                 ) : item.group === 'active' || (item.group === 'recent' && scope === 'all') ? (
-                                  <span className="text-[11px] font-bold text-muted-foreground">
+                                  <span className="text-xs font-medium text-muted-foreground">
                                     {item.matches}場
                                   </span>
                                 ) : item.netMmr !== 0 ? (
                                   <span
                                     className={cn(
-                                      'text-[11px]',
+                                      'text-xs',
                                       item.netMmr > 0
                                         ? 'text-emerald-600 dark:text-emerald-400'
                                         : 'text-rose-500 dark:text-rose-400',
@@ -694,7 +694,7 @@ export function MatchHistorySearchCombobox({
               })}
             </>
           ) : (
-            <div className="px-3 py-3 text-xs font-bold text-muted-foreground text-center">
+            <div className="px-3 py-3 text-xs font-medium text-muted-foreground text-center">
               {trimmedQuery
                 ? `未在常用清單找到「${searchQuery.trim()}」— 已即時過濾所有紀錄`
                 : '尚無足夠對戰場次建立快選清單，可直接輸入姓名或單位搜尋'}
@@ -754,47 +754,47 @@ export function MatchHistorySummaryBar({
       personalSlice;
 
     return (
-      <div className="arena-surface rounded-2xl px-3.5 sm:px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+      <div className="bg-card border border-border rounded-2xl px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
         <div className="min-w-0 flex items-center gap-2 sm:gap-3 flex-wrap">
           {h2hContext ? (
             <button
               type="button"
               onClick={() => h2hContext.player.id && onInspectPlayer(String(h2hContext.player.id))}
               disabled={!h2hContext.player.id}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sapphire-blue/10 hover:bg-sapphire-blue/15 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-black transition-colors"
+              className="inline-flex items-center gap-1.5 min-h-8 px-2.5 py-1 rounded-xl bg-sapphire-blue/10 hover:bg-sapphire-blue/15 text-sapphire-blue dark:bg-blue-500/15 dark:text-blue-300 text-xs font-semibold transition-colors"
             >
               <PlayerAvatar
                 src={h2hContext.player.avatar}
                 name={h2hContext.player.name}
-                className="size-5 rounded-md text-[10px]"
+                className="size-5 rounded-full text-xs"
               />
               <span>
                 {h2hContext.role === 'rival' ? 'VS' : '搭檔'} {h2hContext.player.name}
               </span>
             </button>
           ) : (
-            <span className="px-2.5 py-1 rounded-xl bg-secondary text-xs font-black text-foreground/85 tabular-nums whitespace-nowrap">
+            <span className="px-2.5 py-1 rounded-xl bg-secondary text-xs font-semibold text-foreground/85 tabular-nums whitespace-nowrap">
               {hasActiveFilters ? `篩選 ${total} 場` : `近 ${total} 場`}
             </span>
           )}
 
           {total > 0 ? (
             <>
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-display font-black tabular-nums whitespace-nowrap">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-display font-bold tabular-nums whitespace-nowrap">
                 <span>
                   <span className="text-emerald-600 dark:text-emerald-400">{wins}勝</span>{' '}
                   <span className="text-rose-500 dark:text-rose-400">{losses}敗</span>
                 </span>
-                <span className="text-xs text-muted-foreground font-sans font-bold">
+                <span className="text-xs text-muted-foreground font-sans font-medium">
                   ({winRate}%)
                 </span>
                 {netMmr !== 0 && (
                   <span
                     className={cn(
-                      'px-2 py-0.5 rounded-lg text-xs font-black',
+                      'text-xs sm:text-sm font-display font-bold',
                       netMmr > 0
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-                        : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400',
                     )}
                   >
                     {formatSignedDelta(netMmr)} 分
@@ -803,19 +803,19 @@ export function MatchHistorySummaryBar({
               </div>
 
               {matchTypeFilter === 'all' && singles.total > 0 && doubles.total > 0 && (
-                <div className="hidden md:flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                <div className="hidden md:flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <span className="text-border">|</span>
                   <button
                     type="button"
                     onClick={() => onToggleMatchType('singles')}
-                    className="px-2 py-0.5 rounded-lg bg-surface-subtle hover:bg-secondary border border-border/70 transition-colors tabular-nums"
+                    className="min-h-8 px-2.5 py-1 rounded-lg bg-surface-subtle hover:bg-secondary border border-border/70 transition-colors tabular-nums"
                   >
                     單 {singles.wins}-{singles.losses}
                   </button>
                   <button
                     type="button"
                     onClick={() => onToggleMatchType('doubles')}
-                    className="px-2 py-0.5 rounded-lg bg-surface-subtle hover:bg-secondary border border-border/70 transition-colors tabular-nums"
+                    className="min-h-8 px-2.5 py-1 rounded-lg bg-surface-subtle hover:bg-secondary border border-border/70 transition-colors tabular-nums"
                   >
                     雙 {doubles.wins}-{doubles.losses}
                   </button>
@@ -829,7 +829,7 @@ export function MatchHistorySummaryBar({
                       key={item.id}
                       title={item.tooltip}
                       className={cn(
-                        'size-5 rounded-md flex items-center justify-center text-[10px] font-display font-black text-white select-none',
+                        'size-5.5 rounded-full flex items-center justify-center text-[0.6875rem] font-display font-bold text-white select-none',
                         item.win ? 'bg-emerald-500' : 'bg-rose-500',
                       )}
                     >
@@ -840,7 +840,7 @@ export function MatchHistorySummaryBar({
               )}
             </>
           ) : (
-            <span className="text-xs font-bold text-muted-foreground">尚無符合場次</span>
+            <span className="text-xs font-medium text-muted-foreground">尚無符合場次</span>
           )}
         </div>
 
@@ -849,7 +849,7 @@ export function MatchHistorySummaryBar({
             <div
               role="group"
               aria-label="切換對手或搭檔角色"
-              className="inline-flex p-0.5 rounded-lg bg-secondary border border-border text-[11px] font-black"
+              className="inline-flex p-0.5 rounded-lg bg-secondary border border-border text-xs font-semibold"
             >
               {([
                 { id: 'any', label: '不限' },
@@ -862,7 +862,7 @@ export function MatchHistorySummaryBar({
                   aria-pressed={playerRoleFilter === r.id}
                   onClick={() => onChangePlayerRole(r.id)}
                   className={cn(
-                    'px-2 py-0.5 rounded-md transition-colors whitespace-nowrap',
+                    'min-h-7 px-2.5 py-1 rounded-md transition-colors whitespace-nowrap',
                     playerRoleFilter === r.id
                       ? r.id === 'partner'
                         ? 'bg-amber-600 text-white shadow-2xs'
@@ -879,7 +879,7 @@ export function MatchHistorySummaryBar({
             <button
               type="button"
               onClick={() => onInspectPlayer(String(h2hContext.player.id))}
-              className="h-7 px-2.5 rounded-lg border border-sapphire-blue/30 bg-sapphire-blue/8 hover:bg-sapphire-blue/15 text-[11px] font-black text-sapphire-blue dark:text-blue-300 transition-colors whitespace-nowrap"
+              className="min-h-8 px-2.5 py-1 rounded-lg border border-sapphire-blue/30 bg-sapphire-blue/8 hover:bg-sapphire-blue/15 text-xs font-semibold text-sapphire-blue dark:text-blue-300 transition-colors whitespace-nowrap"
             >
               選手檔案
             </button>
@@ -888,7 +888,7 @@ export function MatchHistorySummaryBar({
             <button
               type="button"
               onClick={onResetFilters}
-              className="h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              className="min-h-8 px-2.5 py-1 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
             >
               重設
             </button>
@@ -899,12 +899,12 @@ export function MatchHistorySummaryBar({
   }
 
   return (
-    <div className="arena-surface rounded-2xl px-3.5 sm:px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+    <div className="bg-card border border-border rounded-2xl px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-2">
       <div className="min-w-0 flex items-center gap-2 sm:gap-3 flex-wrap">
-        <span className="px-2.5 py-1 rounded-xl bg-secondary text-xs font-black text-foreground/85 tabular-nums whitespace-nowrap">
+        <span className="px-2.5 py-1 rounded-xl bg-secondary text-xs font-semibold text-foreground/85 tabular-nums whitespace-nowrap">
           共 {clubStats.total} 場
         </span>
-        <span className="text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
+        <span className="text-xs font-medium text-muted-foreground tabular-nums whitespace-nowrap">
           單打 {clubStats.singlesCount} · 雙打 {clubStats.doublesCount} · {clubStats.activePlayersCount} 位參賽者
         </span>
         {clubStats.totalPendingInBase > 0 && (
@@ -913,13 +913,13 @@ export function MatchHistorySummaryBar({
             aria-pressed={statusFilter === 'pending'}
             onClick={onTogglePendingFilter}
             className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-black border transition-colors whitespace-nowrap',
+              'inline-flex items-center gap-1 min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap',
               statusFilter === 'pending'
                 ? 'bg-amber-600 text-white border-amber-600'
                 : 'bg-amber-50 text-amber-700 border-amber-200/80 hover:bg-amber-100/80 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
             )}
           >
-            <Clock size={11} aria-hidden="true" />
+            <Clock size={12} aria-hidden="true" />
             待確認 {clubStats.totalPendingInBase}
           </button>
         )}
@@ -929,7 +929,7 @@ export function MatchHistorySummaryBar({
         <button
           type="button"
           onClick={onResetFilters}
-          className="h-7 px-2.5 rounded-lg border border-border bg-card hover:bg-secondary text-[11px] font-black text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap ml-auto"
+          className="min-h-8 px-2.5 py-1 rounded-lg border border-border bg-card hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap ml-auto"
         >
           重設
         </button>
