@@ -461,14 +461,15 @@ export function NotificationBellButton({
         'relative flex items-center justify-center transition-colors shrink-0',
         variant === 'rail'
           ? 'size-11 rounded-2xl border border-border bg-card hover:bg-secondary text-foreground shadow-xs'
-          : 'size-10 rounded-xl border border-border bg-secondary/80 hover:bg-secondary text-foreground'
+          : 'size-10 rounded-full bg-transparent hover:bg-secondary active:bg-secondary/90 text-foreground'
       )}
     >
-      <Bell size={variant === 'rail' ? 18 : 17} aria-hidden="true" />
+      <Bell size={18} aria-hidden="true" />
       {unreadCount > 0 && (
         <span
           className={cn(
-            'absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-display font-black leading-none flex items-center justify-center tabular-nums shadow-xs ring-2 ring-card',
+            'absolute min-w-[18px] min-h-[18px] px-1 rounded-full text-white text-xs font-display font-bold leading-none flex items-center justify-center tabular-nums shadow-xs ring-2 ring-card',
+            variant === 'rail' ? '-top-1.5 -right-1.5' : 'top-0.5 right-0.5',
             hasUrgent ? 'bg-rose-500' : 'bg-sapphire-blue'
           )}
         >

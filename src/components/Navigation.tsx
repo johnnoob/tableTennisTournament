@@ -128,20 +128,16 @@ export function Navigation() {
       {/* Mobile Top App Bar (< md, unpinned so it scrolls away cleanly) */}
       <header className="relative z-30 md:hidden bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-md border-b border-border pt-[env(safe-area-inset-top,0px)]">
         <div className="h-14 px-4 flex items-center justify-between gap-2.5">
-          <NavLink to="/" aria-label="TT戰網｜貿易署桌球社積分系統 首頁" className="flex items-center gap-2 min-w-0">
-            <BrandLogo variant="icon" className="size-9 shrink-0" decorative />
-            <div className="min-w-0">
-              <p className="font-display font-bold text-base leading-none tracking-tight truncate">
-                <span className="text-[#006AC6] dark:text-sky-400 italic">TT</span>
-                <span className="text-foreground ml-0.5">戰網</span>
-              </p>
-              <p className="text-xs text-muted-foreground font-sans font-medium mt-0.5 truncate leading-tight">
-                貿易署桌球社
-              </p>
-            </div>
+          <NavLink
+            to="/"
+            aria-label="TT戰網｜貿易署桌球社積分系統 首頁"
+            title="TT戰網｜貿易署桌球社積分系統"
+            className="inline-flex items-center justify-center rounded-xl active:scale-95 transition-transform shrink-0"
+          >
+            <BrandLogo variant="icon" className="size-10 shrink-0" decorative />
           </NavLink>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {isAdmin && (
               <NavLink
                 to="/admin"
@@ -149,14 +145,14 @@ export function Navigation() {
                 title="管理後台"
                 className={({ isActive }) =>
                   cn(
-                    'size-10 rounded-xl border flex items-center justify-center transition-all shrink-0',
+                    'size-10 rounded-full flex items-center justify-center transition-colors shrink-0',
                     isActive
-                      ? 'bg-sapphire-blue/15 text-sapphire-blue border-sapphire-blue/40 dark:bg-sapphire-blue/25 dark:text-blue-300'
-                      : 'border-border bg-secondary/80 hover:bg-secondary text-foreground'
+                      ? 'bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/20 dark:text-blue-300'
+                      : 'text-foreground hover:bg-secondary active:bg-secondary/90'
                   )
                 }
               >
-                <Shield size={17} aria-hidden="true" />
+                <Shield size={18} aria-hidden="true" />
               </NavLink>
             )}
 
@@ -169,32 +165,34 @@ export function Navigation() {
               />
             )}
 
-            <ThemeToggle variant="icon" />
+            {!user && (
+              <ThemeToggle
+                variant="icon"
+                className="rounded-full border-transparent bg-transparent hover:bg-secondary"
+              />
+            )}
 
             {user ? (
               <UserProfileSettings
                 trigger={
                   <button
                     type="button"
-                    aria-label="個人設定"
-                    className="flex items-center gap-1.5 rounded-full pl-1 pr-2 py-1 bg-secondary border border-border hover:border-sapphire-blue/40 transition-colors min-h-10"
+                    aria-label={`${user.name} 個人設定`}
+                    title="個人設定與外觀主題"
+                    className="size-10 rounded-full flex items-center justify-center hover:bg-secondary/80 active:scale-95 transition-all shrink-0"
                   >
                     <PlayerAvatar
                       src={user.avatar_url || user.avatar}
                       name={user.name}
-                      className="size-8 rounded-full border border-card shadow-xs text-xs"
+                      className="size-8.5 rounded-full ring-1 ring-border shadow-xs text-xs"
                     />
-                    <span className="text-xs font-bold text-foreground max-w-[72px] truncate">
-                      {user.name}
-                    </span>
-                    <Settings size={13} className="text-muted-foreground shrink-0" aria-hidden="true" />
                   </button>
                 }
               />
             ) : (
               <NavLink
                 to="/login"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold tracking-wider hover:opacity-90 transition-opacity min-h-10"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity min-h-10"
               >
                 <LogIn size={14} aria-hidden="true" />
                 <span>登入</span>
