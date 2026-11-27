@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -10,9 +10,10 @@ import {
   Users,
   Trophy,
   Flame,
-  Rocket,
-  Target,
-  Swords,
+  ArrowDown,
+  ArrowUpDown,
+  Check,
+  LocateFixed,
   Building2,
   ChevronDown,
   RotateCcw,
@@ -27,11 +28,9 @@ import {
 } from 'lucide-react';
 import {
   getTierBadge,
-  getTierKey,
   getShortTierName,
   SEASON_BASE_SCORE,
   SEASON_PLACEMENT_MATCHES,
-  type TierKey,
 } from '@/lib/ranking';
 import { cn } from '@/lib/utils';
 import {
@@ -58,28 +57,8 @@ import type {
   SeasonSummary,
 } from '@/types/api.types';
 
-type SortMode = 'mmr' | 'weekly' | 'streak' | 'win_rate' | 'matches';
-type TierFilter = 'all' | TierKey;
-
-const SORT_OPTIONS: ReadonlyArray<{
-  id: SortMode;
-  label: string;
-  icon: typeof Trophy;
-}> = [
-  { id: 'mmr', label: '積分排行', icon: Trophy },
-  { id: 'weekly', label: '近7天飆分', icon: Rocket },
-  { id: 'streak', label: '連勝火熱', icon: Flame },
-  { id: 'win_rate', label: '勝率最高', icon: Target },
-  { id: 'matches', label: '出賽鐵人', icon: Swords },
-];
-
-const TIER_FILTERS: ReadonlyArray<{ id: TierFilter; label: string }> = [
-  { id: 'all', label: '全部段位' },
-  { id: 'elite', label: '菁英' },
-  { id: 'gold', label: '金牌' },
-  { id: 'silver', label: '銀牌' },
-  { id: 'bronze', label: '銅牌' },
-];
+type SortMode = 'mmr' | 'weekly' | 'matches';
+type SortDirection = 'desc' | 'asc';
 
 function getNormalizedDept(dept?: string | null): string {
   return dept && dept !== '未設定單位' ? dept : '未設定處室';
@@ -260,10 +239,22 @@ function WeeklyDeltaBadge({
 export function Leaderboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
-  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   const [sortBy, setSortBy] = useState<SortMode>('mmr');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [onlyRanked, setOnlyRanked] = useState(false);
   const [showUnrankedSection, setShowUnrankedSection] = useState(true);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [highlightedPlayerId, setHighlightedPlayerId] = useState<string | null>(null);
+  const [sortAnnouncement, setSortAnnouncement] = useState('');
+  const highlightTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: currentUser } = useAuth();
@@ -308,6 +299,9 @@ export function Leaderboard() {
   const currentSeasonObj = seasons.find((s) => s.id === activeSeasonId);
   const isSeasonEnded = currentSeasonObj?.status === 'completed';
   const isAllTime = activeSeasonId === 'all-time';
+  const showWeeklyMetrics = !isSeasonEnded && !isAllTime;
+  const effectiveSortBy: SortMode = !showWeeklyMetrics && sortBy === 'weekly' ? 'mmr' : sortBy;
+  const isDefaultSort = effectiveSortBy === 'mmr' && sortDir === 'desc';
 
   const openInspect = (playerId: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -317,16 +311,16 @@ export function Leaderboard() {
 
   const handleSeasonChange = (val: string | null) => {
     if (!val) return;
+    const nextSeasonObj = seasons.find((s) => s.id === val);
+    const nextHasWeekly = val !== 'all-time' && nextSeasonObj?.status !== 'completed';
+    if (!nextHasWeekly && sortBy === 'weekly') {
+      setSortBy('mmr');
+      setSortDir('desc');
+    }
+    setOnlyRanked(false);
     const newParams = new URLSearchParams(searchParams);
     newParams.set('season_id', val);
     setSearchParams(newParams);
-  };
-
-  const resetFilters = () => {
-    setSearchTerm('');
-    setSelectedDept('all');
-    setTierFilter('all');
-    setSortBy('mmr');
   };
 
   const departments = useMemo(() => {
@@ -365,6 +359,15 @@ export function Leaderboard() {
     ];
   }, [departments, realLeaderboard.length]);
 
+  const sortOptions = useMemo<ResponsiveSelectOption[]>(() => {
+    const opts: ResponsiveSelectOption[] = [{ value: 'mmr', label: '積分排行' }];
+    if (showWeeklyMetrics) {
+      opts.push({ value: 'weekly', label: '近 7 天漲幅' });
+    }
+    opts.push({ value: 'matches', label: '出賽場次' });
+    return opts;
+  }, [showWeeklyMetrics]);
+
   const realIndexMap = useMemo(() => {
     const map = new Map<string, number>();
     realLeaderboard.forEach((p, i) => {
@@ -378,64 +381,6 @@ export function Leaderboard() {
     [realLeaderboard],
   );
 
-  const hasActiveFilters =
-    Boolean(searchTerm.trim()) ||
-    selectedDept !== 'all' ||
-    tierFilter !== 'all' ||
-    sortBy !== 'mmr';
-
-  const filteredAndSortedPlayers = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-
-    const filtered = realLeaderboard.filter((p) => {
-      if (q) {
-        const nameHit = p.player_name.toLowerCase().includes(q);
-        const deptHit = (p.department || '').toLowerCase().includes(q);
-        if (!nameHit && !deptHit) return false;
-      }
-      if (selectedDept !== 'all' && getNormalizedDept(p.department) !== selectedDept) {
-        return false;
-      }
-      if (tierFilter !== 'all' && getTierKey(p.global_mmr) !== tierFilter) {
-        return false;
-      }
-      return true;
-    });
-
-    if (sortBy === 'mmr') return filtered;
-
-    const copy = [...filtered];
-    copy.sort((a, b) => {
-      switch (sortBy) {
-        case 'weekly': {
-          const diff = (b.weekly_mmr_delta ?? 0) - (a.weekly_mmr_delta ?? 0);
-          return diff !== 0 ? diff : b.global_mmr - a.global_mmr;
-        }
-        case 'streak': {
-          const diff = (b.current_streak ?? 0) - (a.current_streak ?? 0);
-          return diff !== 0 ? diff : b.global_mmr - a.global_mmr;
-        }
-        case 'win_rate': {
-          const aPlayed = a.matches_played > 0 ? 1 : 0;
-          const bPlayed = b.matches_played > 0 ? 1 : 0;
-          if (aPlayed !== bPlayed) return bPlayed - aPlayed;
-          const diff = parseFloat(b.win_rate) - parseFloat(a.win_rate);
-          if (diff !== 0) return diff;
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          return b.global_mmr - a.global_mmr;
-        }
-        case 'matches': {
-          if (b.matches_played !== a.matches_played) {
-            return b.matches_played - a.matches_played;
-          }
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          return b.global_mmr - a.global_mmr;
-        }
-      }
-    });
-    return copy;
-  }, [realLeaderboard, searchTerm, selectedDept, tierFilter, sortBy]);
-
   const activePlayedCount = useMemo(
     () => realLeaderboard.filter((p) => p.matches_played > 0).length,
     [realLeaderboard],
@@ -446,8 +391,80 @@ export function Leaderboard() {
   // Placement rush: matches started in this season, but nobody reached 5 placement matches yet
   const isPlacementPhase = !isAllTime && rankedCount === 0 && activePlayedCount > 0;
 
+  const hasPlacementPlayers = useMemo(
+    () => !isAllTime && realLeaderboard.some((p) => p.matches_played > 0 && p.rank === '-'),
+    [isAllTime, realLeaderboard],
+  );
+  const showOnlyRankedToggle = hasPlacementPlayers && !isPreseasonMode;
+  const effectiveOnlyRanked = showOnlyRankedToggle && onlyRanked;
+
+  const myPlayerEntry = useMemo(
+    () =>
+      currentUser?.id
+        ? (realLeaderboard.find((p) => p.player_id === currentUser.id) ?? null)
+        : null,
+    [currentUser, realLeaderboard],
+  );
+
+  const hasActiveFilters =
+    Boolean(searchTerm.trim()) ||
+    selectedDept !== 'all' ||
+    effectiveOnlyRanked ||
+    !isDefaultSort;
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedDept('all');
+    setOnlyRanked(false);
+    setSortBy('mmr');
+    setSortDir('desc');
+    setSortAnnouncement('已重置為積分排行由高到低');
+  };
+
+  const filteredAndSortedPlayers = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    const filtered = realLeaderboard.filter((p) => {
+      if (q && !p.player_name.toLowerCase().includes(q)) {
+        return false;
+      }
+      if (selectedDept !== 'all' && getNormalizedDept(p.department) !== selectedDept) {
+        return false;
+      }
+      if (effectiveOnlyRanked && p.rank === '-') {
+        return false;
+      }
+      return true;
+    });
+
+    if (effectiveSortBy === 'mmr' && sortDir === 'desc') return filtered;
+
+    const copy = [...filtered];
+    const factor = sortDir === 'asc' ? 1 : -1;
+    copy.sort((a, b) => {
+      switch (effectiveSortBy) {
+        case 'mmr': {
+          const diff = (a.global_mmr - b.global_mmr) * factor;
+          return diff !== 0 ? diff : b.matches_played - a.matches_played;
+        }
+        case 'weekly': {
+          const diff = ((a.weekly_mmr_delta ?? 0) - (b.weekly_mmr_delta ?? 0)) * factor;
+          return diff !== 0 ? diff : b.global_mmr - a.global_mmr;
+        }
+        case 'matches': {
+          if (a.matches_played !== b.matches_played) {
+            return (a.matches_played - b.matches_played) * factor;
+          }
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          return b.global_mmr - a.global_mmr;
+        }
+      }
+    });
+    return copy;
+  }, [realLeaderboard, searchTerm, selectedDept, effectiveOnlyRanked, effectiveSortBy, sortDir]);
+
   const { primaryPlayers, secondaryUnrankedPlayers } = useMemo(() => {
-    if (isPreseasonMode) {
+    if (isPreseasonMode || effectiveOnlyRanked) {
       return {
         primaryPlayers: filteredAndSortedPlayers,
         secondaryUnrankedPlayers: [] as RawLeaderboardItem[],
@@ -459,7 +476,73 @@ export function Leaderboard() {
         (p) => p.matches_played === 0,
       ),
     };
-  }, [filteredAndSortedPlayers, isPreseasonMode]);
+  }, [filteredAndSortedPlayers, isPreseasonMode, effectiveOnlyRanked]);
+
+  const announceSort = (mode: SortMode, dir: SortDirection, count: number) => {
+    const labelMap: Record<SortMode, string> = {
+      mmr: '積分排行',
+      weekly: '近 7 天漲幅',
+      matches: '出賽場次',
+    };
+    const dirText = dir === 'desc' ? '由高到低' : '由低到高';
+    setSortAnnouncement(`已依${labelMap[mode]}${dirText}排序，共 ${count} 位選手`);
+  };
+
+  const handleDropdownSortChange = (val: string) => {
+    const nextMode = val as SortMode;
+    setSortBy(nextMode);
+    setSortDir('desc');
+    announceSort(nextMode, 'desc', primaryPlayers.length || filteredAndSortedPlayers.length);
+  };
+
+  const handleColumnHeaderSort = (col: 'mmr' | 'matches') => {
+    const nextDir: SortDirection =
+      effectiveSortBy === col ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+    setSortBy(col);
+    setSortDir(nextDir);
+    announceSort(col, nextDir, primaryPlayers.length || filteredAndSortedPlayers.length);
+  };
+
+  const handleLocateMe = () => {
+    if (!myPlayerEntry) return;
+    if (
+      searchTerm.trim() &&
+      !myPlayerEntry.player_name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+    ) {
+      setSearchTerm('');
+    }
+    if (selectedDept !== 'all' && getNormalizedDept(myPlayerEntry.department) !== selectedDept) {
+      setSelectedDept('all');
+    }
+    if (effectiveOnlyRanked && myPlayerEntry.rank === '-') {
+      setOnlyRanked(false);
+    }
+    if (!isPreseasonMode && myPlayerEntry.matches_played === 0) {
+      setShowUnrankedSection(true);
+    }
+
+    if (highlightTimerRef.current) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    setHighlightedPlayerId(myPlayerEntry.player_id);
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedPlayerId(null);
+    }, 2200);
+
+    window.setTimeout(() => {
+      const nodes = document.querySelectorAll<HTMLElement>(
+        `[data-player-row="${CSS.escape(myPlayerEntry.player_id)}"]`,
+      );
+      const visibleNode = Array.from(nodes).find((el) => el.offsetParent !== null);
+      if (visibleNode) {
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        visibleNode.scrollIntoView({
+          behavior: reduceMotion ? 'auto' : 'smooth',
+          block: 'center',
+        });
+      }
+    }, 60);
+  };
 
   const seasonStatusBadge = (
     <span
@@ -538,150 +621,144 @@ export function Leaderboard() {
             />
           </motion.div>
 
-          {/* 多維度排序、處室與段位篩選控制列 */}
+          {/* 賽季、處室、搜尋、排序與快捷控制列 */}
           <motion.section
             variants={fadeInUp}
             aria-label="榜單篩選與排序"
-            className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xs space-y-3"
+            className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xs space-y-2.5"
           >
-            {/* Row 1: Season Select, Department Select, Search Input */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <ResponsiveSelect
-                value={activeSeasonId}
-                onValueChange={handleSeasonChange}
-                options={seasonOptions}
-                title="選擇檢視賽季"
-                description="切換不同賽季排行榜或 All-Time 歷史總榜"
-                placeholder="選擇賽季"
-                triggerClassName="w-full sm:w-56 shrink-0"
-                icon={
-                  isLeaderboardFetching ? (
-                    <Loader2
-                      size={15}
-                      className="text-sapphire-blue animate-spin shrink-0"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <History
+            <div className="flex flex-col lg:flex-row lg:items-center gap-2.5">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
+                <ResponsiveSelect
+                  value={activeSeasonId}
+                  onValueChange={handleSeasonChange}
+                  options={seasonOptions}
+                  title="選擇檢視賽季"
+                  description="切換不同賽季排行榜或 All-Time 歷史總榜"
+                  placeholder="選擇賽季"
+                  triggerClassName="w-full sm:w-auto sm:min-w-[232px] sm:max-w-[290px] shrink-0"
+                  icon={
+                    isLeaderboardFetching ? (
+                      <Loader2
+                        size={15}
+                        className="text-sapphire-blue animate-spin shrink-0"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <History
+                        size={15}
+                        className="text-muted-foreground shrink-0"
+                        aria-hidden="true"
+                      />
+                    )
+                  }
+                />
+
+                {departments.length > 1 && (
+                  <ResponsiveSelect
+                    value={selectedDept}
+                    onValueChange={(val) => setSelectedDept(val || 'all')}
+                    options={departmentOptions}
+                    title="篩選處室 / 單位"
+                    description="檢視特定處室或單位的積分排行"
+                    placeholder="篩選處室"
+                    triggerClassName="w-full sm:w-44 shrink-0"
+                    icon={
+                      <Building2
+                        size={15}
+                        className="text-sapphire-blue shrink-0"
+                        aria-hidden="true"
+                      />
+                    }
+                  />
+                )}
+
+                <div className="relative flex-1 min-w-[160px]">
+                  <Search
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                    size={17}
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="text"
+                    aria-label="搜尋選手姓名"
+                    placeholder="搜尋選手姓名..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full min-h-11 py-2.5 pl-10 pr-10 rounded-xl border border-input bg-card text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue transition-all font-medium text-foreground placeholder:text-muted-foreground/70 shadow-xs"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      aria-label="清除搜尋"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <X size={15} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+
+                <ResponsiveSelect
+                  value={effectiveSortBy}
+                  onValueChange={handleDropdownSortChange}
+                  options={sortOptions}
+                  title="排序方式"
+                  description="選擇排行榜的排序依據"
+                  placeholder="排序方式"
+                  triggerClassName="w-full sm:w-40 shrink-0"
+                  icon={
+                    <ArrowUpDown
                       size={15}
                       className="text-muted-foreground shrink-0"
                       aria-hidden="true"
                     />
-                  )
-                }
-              />
-
-              {departments.length > 1 && (
-                <ResponsiveSelect
-                  value={selectedDept}
-                  onValueChange={(val) => setSelectedDept(val || 'all')}
-                  options={departmentOptions}
-                  title="篩選處室 / 單位"
-                  description="檢視特定處室或單位的積分排行"
-                  placeholder="篩選處室"
-                  triggerClassName="w-full sm:w-48 shrink-0"
-                  icon={
-                    <Building2
-                      size={15}
-                      className="text-sapphire-blue shrink-0"
-                      aria-hidden="true"
-                    />
                   }
                 />
-              )}
-
-              <div className="relative flex-1 min-w-0">
-                <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                  size={17}
-                  aria-hidden="true"
-                />
-                <input
-                  type="text"
-                  aria-label="搜尋同仁姓名或單位"
-                  placeholder="搜尋同仁姓名或處室..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full min-h-11 py-2.5 pl-10 pr-10 rounded-xl border border-input bg-card text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sapphire-blue/25 focus:border-sapphire-blue transition-all font-medium text-foreground placeholder:text-muted-foreground/70 shadow-xs"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    aria-label="清除搜尋"
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                  >
-                    <X size={15} aria-hidden="true" />
-                  </button>
-                )}
               </div>
-            </div>
 
-            {/* Row 2: Scrollable Sort Pills & Tier Filter Pills */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-2.5 border-t border-border/70">
-              <div
-                role="group"
-                aria-label="排序維度"
-                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 lg:pb-0"
-              >
-                {SORT_OPTIONS.map((opt) => {
-                  const Icon = opt.icon;
-                  const active = sortBy === opt.id;
-                  return (
+              {(showOnlyRankedToggle || Boolean(myPlayerEntry) || hasActiveFilters) && (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {showOnlyRankedToggle && (
                     <button
-                      key={opt.id}
                       type="button"
-                      aria-pressed={active}
-                      onClick={() => setSortBy(opt.id)}
+                      aria-pressed={effectiveOnlyRanked}
+                      onClick={() => setOnlyRanked((v) => !v)}
                       className={cn(
-                        'min-h-9 px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 border transition-all',
-                        active
+                        'min-h-11 sm:min-h-10 py-2 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border whitespace-nowrap transition-colors',
+                        effectiveOnlyRanked
                           ? 'bg-sapphire-blue text-white border-sapphire-blue shadow-xs'
                           : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-secondary/70',
                       )}
                     >
-                      <Icon size={13} aria-hidden="true" />
-                      <span>{opt.label}</span>
+                      <Check size={14} aria-hidden="true" />
+                      <span>僅看已定級</span>
                     </button>
-                  );
-                })}
-              </div>
+                  )}
 
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <div
-                  role="group"
-                  aria-label="篩選段位"
-                  className="inline-flex items-center gap-1 p-0.5 rounded-xl bg-secondary border border-border shrink-0"
-                >
-                  {TIER_FILTERS.map((t) => (
+                  {myPlayerEntry && (
                     <button
-                      key={t.id}
                       type="button"
-                      aria-pressed={tierFilter === t.id}
-                      onClick={() => setTierFilter(t.id)}
-                      className={cn(
-                        'min-h-8 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap',
-                        tierFilter === t.id
-                          ? 'bg-card text-foreground shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
+                      onClick={handleLocateMe}
+                      className="min-h-11 sm:min-h-10 py-2 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-semibold text-foreground inline-flex items-center gap-1.5 whitespace-nowrap transition-colors"
                     >
-                      {t.label}
+                      <LocateFixed size={14} className="text-sapphire-blue" aria-hidden="true" />
+                      <span>定位到我</span>
                     </button>
-                  ))}
-                </div>
+                  )}
 
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="min-h-9 px-2.5 py-1 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-                  >
-                    <RotateCcw size={12} aria-hidden="true" />
-                    <span>重置</span>
-                  </button>
-                )}
-              </div>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="min-h-11 sm:min-h-10 py-2 px-3 rounded-xl border border-border bg-card hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap transition-colors"
+                    >
+                      <RotateCcw size={13} aria-hidden="true" />
+                      <span>重置</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </motion.section>
 
@@ -713,6 +790,9 @@ export function Leaderboard() {
 
           {/* 模組 1 & 5：原生雙模響應式排行清單（手機原生卡片 / 桌面專業數據表） */}
           <motion.section variants={fadeInUp} aria-label="積分排行榜清單" className="space-y-4">
+            <p role="status" className="sr-only">
+              {sortAnnouncement}
+            </p>
             {primaryPlayers.length > 0 ? (
               <>
                 {/* 手機 / 小平板 (< md): 原生競技列卡 */}
@@ -722,8 +802,12 @@ export function Leaderboard() {
                       key={player.player_id}
                       player={player}
                       previewIndex={realIndexMap.get(player.player_id) ?? idx + 1}
+                      sortPosition={idx + 1}
+                      isDefaultSort={isDefaultSort}
+                      showWeeklyMetrics={showWeeklyMetrics}
                       isAllTime={isAllTime}
                       isMe={currentUser?.id === player.player_id}
+                      isHighlighted={highlightedPlayerId === player.player_id}
                       onSelect={openInspect}
                     />
                   ))}
@@ -737,7 +821,7 @@ export function Leaderboard() {
                     aria-labelledby="leaderboard-table-caption"
                     className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-sapphire-blue"
                   >
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full min-w-[680px] text-left border-collapse">
                       <caption id="leaderboard-table-caption" className="sr-only">
                         {seasonName} 積分排行榜
                       </caption>
@@ -763,9 +847,27 @@ export function Leaderboard() {
                           </th>
                           <th
                             scope="col"
-                            className="py-3 px-4 text-xs font-semibold text-muted-foreground text-balance min-w-[165px]"
+                            aria-sort={
+                              effectiveSortBy === 'matches'
+                                ? sortDir === 'asc'
+                                  ? 'ascending'
+                                  : 'descending'
+                                : undefined
+                            }
+                            className="p-0 min-w-[165px]"
                           >
-                            勝率與戰績
+                            <button
+                              type="button"
+                              onClick={() => handleColumnHeaderSort('matches')}
+                              className="w-full min-h-11 py-3 px-4 flex items-center gap-1.5 text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sapphire-blue"
+                            >
+                              <span>出賽與勝率</span>
+                              <ArrowDown
+                                size={13}
+                                aria-hidden="true"
+                                className="sort-indicator shrink-0"
+                              />
+                            </button>
                           </th>
                           <th
                             scope="col"
@@ -775,9 +877,27 @@ export function Leaderboard() {
                           </th>
                           <th
                             scope="col"
-                            className="py-3 px-4 text-xs font-semibold text-foreground text-balance text-right"
+                            aria-sort={
+                              effectiveSortBy === 'mmr'
+                                ? sortDir === 'asc'
+                                  ? 'ascending'
+                                  : 'descending'
+                                : undefined
+                            }
+                            className="p-0 text-right"
                           >
-                            積分 (近7日)
+                            <button
+                              type="button"
+                              onClick={() => handleColumnHeaderSort('mmr')}
+                              className="w-full min-h-11 py-3 px-4 flex items-center justify-end gap-1.5 text-right text-xs font-semibold text-foreground hover:text-sapphire-blue transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sapphire-blue"
+                            >
+                              <span>{showWeeklyMetrics ? '積分 (近7日)' : '積分'}</span>
+                              <ArrowDown
+                                size={13}
+                                aria-hidden="true"
+                                className="sort-indicator shrink-0"
+                              />
+                            </button>
                           </th>
                         </tr>
                       </thead>
@@ -785,6 +905,7 @@ export function Leaderboard() {
                         {primaryPlayers.map((player, idx) => {
                           const isTop1 = player.rank === 1;
                           const isMe = currentUser?.id === player.player_id;
+                          const isHighlighted = highlightedPlayerId === player.player_id;
                           const tier = getTierBadge(player.global_mmr);
                           const { losses, winRateRounded, winBarPercent } =
                             getWinRateStats(player);
@@ -793,26 +914,51 @@ export function Leaderboard() {
                           return (
                             <tr
                               key={player.player_id}
+                              data-player-row={player.player_id}
                               onClick={() => openInspect(player.player_id)}
                               className={cn(
                                 'group hover:bg-surface-subtle/80 transition-colors cursor-pointer',
                                 isTop1 && 'bg-amber-50/30 dark:bg-amber-500/[0.06]',
                                 isMe && 'bg-sapphire-blue/[0.04] dark:bg-blue-500/[0.08]',
+                                isHighlighted && 'ring-2 ring-sapphire-blue/70 ring-inset',
                               )}
                             >
                               <td className="py-3.5 px-4 w-24 text-center">
                                 <div className="flex flex-col items-center justify-center gap-1">
-                                  <MedalBadge
-                                    rank={player.rank}
-                                    matchesPlayed={player.matches_played}
-                                    isAllTime={isAllTime}
-                                    previewIndex={
-                                      player.rank === '-'
-                                        ? (realIndexMap.get(player.player_id) ?? idx + 1)
-                                        : undefined
-                                    }
-                                  />
-                                  <TrendBadge trend={player.trend} />
+                                  {isDefaultSort ? (
+                                    <>
+                                      <MedalBadge
+                                        rank={player.rank}
+                                        matchesPlayed={player.matches_played}
+                                        isAllTime={isAllTime}
+                                        previewIndex={
+                                          player.rank === '-'
+                                            ? (realIndexMap.get(player.player_id) ?? idx + 1)
+                                            : undefined
+                                        }
+                                      />
+                                      <TrendBadge trend={player.trend} />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="font-display font-bold text-sm text-foreground tabular-nums leading-none">
+                                        #{idx + 1}
+                                      </span>
+                                      {player.rank !== '-' ? (
+                                        <span className="text-xs font-medium text-muted-foreground tabular-nums leading-none whitespace-nowrap">
+                                          積分 #{player.rank}
+                                        </span>
+                                      ) : (
+                                        !isAllTime &&
+                                        player.matches_played > 0 &&
+                                        player.matches_played < SEASON_PLACEMENT_MATCHES && (
+                                          <span className="text-xs font-medium text-sapphire-blue dark:text-blue-300 tabular-nums leading-none whitespace-nowrap">
+                                            定級 {player.matches_played}/{SEASON_PLACEMENT_MATCHES}
+                                          </span>
+                                        )
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                               </td>
 
@@ -885,8 +1031,15 @@ export function Leaderboard() {
                                         <span className="text-rose-500 dark:text-rose-400">
                                           {losses}敗
                                         </span>
-                                        <span className="text-muted-foreground font-sans font-medium ml-1">
-                                          ({player.matches_played})
+                                        <span
+                                          className={cn(
+                                            'font-sans ml-1',
+                                            effectiveSortBy === 'matches'
+                                              ? 'text-foreground font-semibold'
+                                              : 'text-muted-foreground font-medium',
+                                          )}
+                                        >
+                                          ({player.matches_played} 場)
                                         </span>
                                       </span>
                                     </div>
@@ -920,7 +1073,9 @@ export function Leaderboard() {
                                   >
                                     {Math.round(player.global_mmr)}
                                   </span>
-                                  <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
+                                  {showWeeklyMetrics && (
+                                    <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -994,17 +1149,20 @@ export function Leaderboard() {
                   <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 border-t border-border/70">
                     {secondaryUnrankedPlayers.map((player, idx) => {
                       const isMe = currentUser?.id === player.player_id;
+                      const isHighlighted = highlightedPlayerId === player.player_id;
                       const tier = getTierBadge(player.global_mmr, 11);
                       return (
                         <button
                           key={player.player_id}
                           type="button"
+                          data-player-row={player.player_id}
                           onClick={() => openInspect(player.player_id)}
                           className={cn(
                             'w-full min-h-[60px] p-3 rounded-2xl border bg-card hover:bg-surface-subtle flex items-center gap-2.5 text-left transition-colors group',
                             isMe
                               ? 'border-sapphire-blue/45 bg-sapphire-blue/[0.04] dark:bg-blue-500/10'
                               : 'border-border',
+                            isHighlighted && 'ring-2 ring-sapphire-blue',
                           )}
                         >
                           <span className="text-xs font-display font-semibold text-muted-foreground w-7 text-center tabular-nums shrink-0">
@@ -1074,14 +1232,22 @@ export function Leaderboard() {
 function MobilePlayerRowCard({
   player,
   previewIndex,
+  sortPosition,
+  isDefaultSort,
+  showWeeklyMetrics,
   isAllTime,
   isMe,
+  isHighlighted,
   onSelect,
 }: Readonly<{
   player: RawLeaderboardItem;
   previewIndex: number;
+  sortPosition: number;
+  isDefaultSort: boolean;
+  showWeeklyMetrics: boolean;
   isAllTime: boolean;
   isMe: boolean;
+  isHighlighted: boolean;
   onSelect: (id: string) => void;
 }>) {
   const isTop1 = player.rank === 1;
@@ -1092,6 +1258,7 @@ function MobilePlayerRowCard({
   return (
     <button
       type="button"
+      data-player-row={player.player_id}
       onClick={() => onSelect(player.player_id)}
       className={cn(
         'w-full text-left rounded-2xl border p-3.5 shadow-2xs transition-colors active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-sapphire-blue',
@@ -1100,18 +1267,42 @@ function MobilePlayerRowCard({
           : isTop1
             ? 'bg-amber-50/30 dark:bg-amber-500/[0.06] border-amber-300/60 dark:border-amber-400/40'
             : 'bg-card border-border hover:bg-surface-subtle/80',
+        isHighlighted && 'ring-2 ring-sapphire-blue',
       )}
     >
       {/* Top Row: Medal + Avatar + Name/Badges + Right Score */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-9 shrink-0 flex flex-col items-center justify-center gap-1">
-          <MedalBadge
-            rank={player.rank}
-            matchesPlayed={player.matches_played}
-            isAllTime={isAllTime}
-            previewIndex={player.rank === '-' ? previewIndex : undefined}
-          />
-          <TrendBadge trend={player.trend} />
+        <div className="w-11 shrink-0 flex flex-col items-center justify-center gap-1">
+          {isDefaultSort ? (
+            <>
+              <MedalBadge
+                rank={player.rank}
+                matchesPlayed={player.matches_played}
+                isAllTime={isAllTime}
+                previewIndex={player.rank === '-' ? previewIndex : undefined}
+              />
+              <TrendBadge trend={player.trend} />
+            </>
+          ) : (
+            <>
+              <span className="font-display font-bold text-sm text-foreground tabular-nums leading-none">
+                #{sortPosition}
+              </span>
+              {player.rank !== '-' ? (
+                <span className="text-xs font-medium text-muted-foreground tabular-nums leading-none whitespace-nowrap">
+                  分 #{player.rank}
+                </span>
+              ) : (
+                !isAllTime &&
+                player.matches_played > 0 &&
+                player.matches_played < SEASON_PLACEMENT_MATCHES && (
+                  <span className="text-xs font-medium text-sapphire-blue dark:text-blue-300 tabular-nums leading-none whitespace-nowrap">
+                    {player.matches_played}/{SEASON_PLACEMENT_MATCHES}
+                  </span>
+                )
+              )}
+            </>
+          )}
         </div>
 
         <PlayerAvatar
@@ -1151,9 +1342,11 @@ function MobilePlayerRowCard({
           >
             {Math.round(player.global_mmr)}
           </p>
-          <div className="mt-1 flex justify-end">
-            <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
-          </div>
+          {showWeeklyMetrics && (
+            <div className="mt-1 flex justify-end">
+              <WeeklyDeltaBadge delta={player.weekly_mmr_delta} />
+            </div>
+          )}
         </div>
       </div>
 

@@ -222,3 +222,24 @@
     background: #475569;
   }
 }
+
+/* Sortable table header indicator driven directly by th[aria-sort] */
+th[scope="col"] .sort-indicator {
+  opacity: 0.35;
+  transition: transform 0.18s ease, opacity 0.18s ease, color 0.18s ease;
+}
+
+th[aria-sort] .sort-indicator {
+  opacity: 1;
+  color: var(--color-sapphire-blue);
+}
+
+th[aria-sort="ascending"] .sort-indicator {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  th[scope="col"] .sort-indicator {
+    transition: none;
+  }
+}
