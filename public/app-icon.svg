@@ -1,18 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0b1220" />
-      <stop offset="100%" stop-color="#172554" />
+    <linearGradient id="tita-app-blade-grad" x1="15%" y1="10%" x2="88%" y2="90%">
+      <stop offset="0%" stop-color="#007CEB" />
+      <stop offset="52%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#004A94" />
     </linearGradient>
-    <linearGradient id="paddle" x1="160" y1="120" x2="360" y2="340" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#fb923c" />
-      <stop offset="100%" stop-color="#ea580c" />
+    <linearGradient id="tita-app-swoosh-main" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
     </linearGradient>
+    <linearGradient id="tita-app-swoosh-top" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+    <radialGradient id="tita-app-ball-grad" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#8CF7F0" />
+      <stop offset="55%" stop-color="#2AD2C9" />
+      <stop offset="100%" stop-color="#009E96" />
+    </radialGradient>
+    <clipPath id="tita-app-blade-clip">
+      <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" />
+    </clipPath>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bg)" />
-  <circle cx="256" cy="256" r="184" stroke="#3b82f6" stroke-opacity="0.35" stroke-width="10" />
-  <ellipse cx="268" cy="228" rx="102" ry="108" transform="rotate(-32 268 228)" fill="url(#paddle)" />
-  <rect x="162" y="295" width="38" height="106" rx="19" transform="rotate(-32 162 295)" fill="#f59e0b" />
-  <circle cx="348" cy="144" r="28" fill="#fbbf24" />
-  <circle cx="348" cy="144" r="28" stroke="#fef3c7" stroke-width="6" stroke-opacity="0.7" />
+
+  <rect width="512" height="512" rx="112" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4" />
+
+  <g transform="translate(46, 46) scale(1.75)">
+    <path
+      d="M 44 96 C 46 52 79 21 124 20 L 124 26.5 C 85 28.5 55 56 44 96 Z"
+      fill="url(#tita-app-swoosh-top)"
+    />
+    <g transform="translate(116, 114) rotate(34)">
+      <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" fill="#0B3468" />
+      <g clip-path="url(#tita-app-blade-clip)">
+        <rect x="-78" y="-92" width="156" height="138" fill="url(#tita-app-blade-grad)" />
+        <path d="M -78 -92 L 18 -92 L -36 46 L -78 46 Z" fill="#FFFFFF" opacity="0.09" />
+        <rect x="-78" y="42" width="156" height="4.5" fill="#2AD2C9" />
+        <path d="M -3.5 54 L 3.5 54 L 5 117 L -5 117 Z" fill="#2AD2C9" opacity="0.92" />
+      </g>
+    </g>
+    <g transform="translate(124, 100) skewX(-9)">
+      <path d="M -43 -15 H 0 V -2 H -14.5 V 35 H -28.5 V -2 H -43 Z" fill="#FFFFFF" />
+      <path d="M -4 -35 H 39 V -22 H 24.5 V 15 H 10.5 V -22 H -4 Z" fill="#2AD2C9" />
+      <g fill="#D8FAF7">
+        <rect x="-4" y="22.5" width="38" height="3.6" rx="1" />
+        <rect x="-2" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+        <rect x="6.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+        <rect x="15" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+        <rect x="23.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+        <rect x="30.8" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+      </g>
+    </g>
+    <path
+      d="M 169 170 C 198 150 211 112 204 68 L 195 70 C 200 109 190 144 169 170 Z"
+      fill="url(#tita-app-swoosh-main)"
+    />
+    <g>
+      <circle cx="197" cy="45" r="15.5" fill="url(#tita-app-ball-grad)" />
+      <path
+        d="M 189 41 C 190.5 36.2 195.2 33.8 199.8 34.8 C 196.2 35.8 192.6 38.6 191.2 42.6 Z"
+        fill="#FFFFFF"
+        opacity="0.88"
+      />
+    </g>
+  </g>
 </svg>

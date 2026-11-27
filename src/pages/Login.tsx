@@ -1,7 +1,8 @@
-import { Trophy, Shield, Target, ArrowRight, AlertCircle } from 'lucide-react';
+import { Shield, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { BrandLogo } from '@/components/BrandLogo';
 import { API_BASE_URL } from '@/utils/apiClient';
 import { useAuthProviders } from '@/hooks/useAuth';
 
@@ -35,45 +36,39 @@ export function Login() {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
 
-      {/* 🌟 左側：品牌形象視覺區 (晨星奧運風 + 球館聚光燈) */}
+      {/* 🌟 左側：品牌形象視覺區 */}
       <div className="relative hidden lg:flex flex-col justify-between w-1/2 arena-hero-dark p-12 overflow-hidden">
         {/* 背景裝飾浮水印 */}
-        <div className="absolute -bottom-24 -left-24 opacity-5 pointer-events-none">
-          <Trophy size={600} />
-        </div>
-        <div className="absolute top-1/4 right-10 opacity-10 pointer-events-none">
-          <Target size={300} />
+        <div className="absolute -bottom-24 -left-24 opacity-[0.07] pointer-events-none">
+          <BrandLogo variant="icon" surface="dark" className="size-[460px]" decorative />
         </div>
 
-        {/* 頂部 Logo */}
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="size-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
-            <Trophy size={24} className="text-amber-500" />
-          </div>
-          <div>
-            <h1 className="text-white font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
-            <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
+        {/* 頂部識別膠囊 */}
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-200">
+            <Shield size={14} className="text-teal-300 shrink-0" aria-hidden="true" />
+            <span>TT戰網 · 經濟部國際貿易署桌球社</span>
           </div>
         </div>
 
         {/* 中間精神標語 */}
         <div className="relative z-10 space-y-6 max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sapphire-blue/20 border border-sapphire-blue/30 text-blue-300 text-xs font-black uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sapphire-blue/20 border border-sapphire-blue/30 text-blue-300 text-xs font-semibold">
             <Shield size={14} aria-hidden="true" />
-            Precision Arena · Official Platform
+            <span>官方指定單軌積分系統</span>
           </div>
-          <h2 className="text-5xl font-display font-black text-white leading-[1.1] tracking-tight italic">
+          <h2 className="text-5xl font-display font-bold text-white leading-[1.12] tracking-tight">
             淬鍊每一拍的<br />
             <span className="text-olympic-gold">極致榮耀。</span>
           </h2>
           <p className="text-slate-300 font-medium leading-relaxed">
-            歡迎來到機關專屬桌球戰情室。免報名、隨時戰，透過單軌 Elo 積分系統記錄您的每一場熱血對決。
+            歡迎來到貿易署桌球社專屬積分系統。免報名、隨時戰，透過單軌積分制記錄您的每一場熱血對決。
           </p>
         </div>
 
         {/* 底部版權聲明 */}
-        <div className="relative z-10 text-xs font-bold text-slate-500 uppercase tracking-widest">
-          © 2026 Table Tennis Tournament System.
+        <div className="relative z-10 text-xs font-medium text-slate-400">
+          © 2026 TT戰網｜經濟部國際貿易署桌球社
         </div>
       </div>
 
@@ -83,18 +78,10 @@ export function Login() {
           <ThemeToggle variant="icon" />
         </div>
 
-        {/* 手機版顯示的頂部 Logo */}
-        <div className="lg:hidden flex items-center gap-3 mb-12">
-          <div className="size-12 rounded-2xl bg-primary-navy border border-white/10 flex items-center justify-center shadow-xl">
-            <Trophy size={24} className="text-amber-500" aria-hidden="true" />
+        <div className="w-full max-w-sm space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex justify-center">
+            <BrandLogo variant="vertical" className="w-44 sm:w-48 h-auto" />
           </div>
-          <div>
-            <h1 className="text-foreground font-display font-black text-xl leading-tight tracking-wider">PRECISION</h1>
-            <p className="text-xs text-muted-foreground uppercase tracking-[0.3em] font-sans font-bold">Arena Club</p>
-          </div>
-        </div>
-
-        <div className="w-full max-w-sm space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
           {/* 登入標題 */}
           <div className="text-center space-y-2">

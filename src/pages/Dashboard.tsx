@@ -471,7 +471,7 @@ export function Dashboard() {
         >
           <motion.div variants={fadeInUp}>
             <PageHeader
-              title={user?.name || 'Precision Arena'}
+              title={user?.name || 'TT戰網'}
               subtitle={isLoggedIn ? '個人戰情總覽' : '即時戰況總覽'}
               actions={
                 !isLoggedIn ? (

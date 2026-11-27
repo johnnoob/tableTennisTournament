@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, History, Trophy, Crown, Plus, Shield, Settings, LayoutGrid, LogIn } from 'lucide-react';
+import { LayoutDashboard, History, Trophy, Plus, Shield, Settings, LayoutGrid, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from './BrandLogo';
 import { ReportScore } from './ReportScore';
 import { Button } from './ui/button';
 import { UserProfileSettings } from './UserProfileSettings';
@@ -127,16 +128,15 @@ export function Navigation() {
       {/* Mobile Top App Bar (< md, unpinned so it scrolls away cleanly) */}
       <header className="relative z-30 md:hidden bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-md border-b border-border pt-[env(safe-area-inset-top,0px)]">
         <div className="h-14 px-4 flex items-center justify-between gap-2.5">
-          <NavLink to="/" className="flex items-center gap-2 min-w-0">
-            <div className="size-8 rounded-xl bg-primary-navy text-olympic-gold flex items-center justify-center shadow-sm border border-white/10 shrink-0">
-              <Crown size={16} aria-hidden="true" />
-            </div>
+          <NavLink to="/" aria-label="TT戰網｜貿易署桌球社積分系統 首頁" className="flex items-center gap-2 min-w-0">
+            <BrandLogo variant="icon" className="size-9 shrink-0" decorative />
             <div className="min-w-0">
-              <p className="text-foreground font-display font-black text-sm leading-none tracking-tight truncate">
-                Precision
+              <p className="font-display font-bold text-base leading-none tracking-tight truncate">
+                <span className="text-[#006AC6] dark:text-sky-400 italic">TT</span>
+                <span className="text-foreground ml-0.5">戰網</span>
               </p>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-sans font-bold mt-0.5 truncate">
-                Arena Club
+              <p className="text-xs text-muted-foreground font-sans font-medium mt-0.5 truncate leading-tight">
+                貿易署桌球社
               </p>
             </div>
           </NavLink>
@@ -259,10 +259,11 @@ export function Navigation() {
       >
         <NavLink
           to="/"
-          aria-label="Precision Arena 首頁"
-          className="size-11 rounded-2xl bg-primary-navy shadow-md shadow-primary-navy/20 border border-white/10 flex items-center justify-center mb-5 hover:scale-105 transition-transform shrink-0"
+          aria-label="TT戰網 首頁"
+          title="TT戰網｜貿易署桌球社積分系統"
+          className="size-12 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-center mb-5 hover:scale-105 transition-transform shrink-0"
         >
-          <Crown size={20} className="text-olympic-gold" aria-hidden="true" />
+          <BrandLogo variant="icon" className="size-9" decorative />
         </NavLink>
 
         <div className="mb-5 w-full flex justify-center">
@@ -370,14 +371,12 @@ export function Navigation() {
       {/* Desktop Sidebar (Slim w-64) */}
       <aside className="hidden lg:flex flex-col w-64 h-dvh p-5 fixed top-0 left-0 bg-background/95 border-r border-border z-40">
         {/* Brand Logo */}
-        <NavLink to="/" className="flex items-center gap-3 mb-8 px-2 group">
-          <div className="size-11 rounded-2xl bg-primary-navy shadow-md shadow-primary-navy/20 border border-white/10 flex items-center justify-center transform group-hover:rotate-6 transition-transform shrink-0">
-            <Crown size={22} className="text-olympic-gold" aria-hidden="true" />
-          </div>
-          <div>
-            <h2 className="text-foreground font-display font-black text-xl leading-tight">Precision</h2>
-            <p className="text-xs text-muted-foreground uppercase tracking-[0.26em] font-sans font-bold">Arena Club</p>
-          </div>
+        <NavLink
+          to="/"
+          aria-label="TT戰網｜貿易署桌球社積分系統 首頁"
+          className="block mb-7 px-1 group transition-transform hover:scale-[1.01]"
+        >
+          <BrandLogo variant="horizontal" className="w-full h-auto" decorative />
         </NavLink>
 
         {/* Primary Action */}

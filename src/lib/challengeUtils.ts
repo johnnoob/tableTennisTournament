@@ -102,7 +102,7 @@ export function buildChallengeShareText(challenge: ChallengeItem): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
-    `🏓【Precision Arena 約戰戰帖】\n` +
+    `🏓【TT戰網 約戰戰帖】\n` +
     `⚔️ ${sideA} vs ${sideB}\n` +
     `📅 時間：${when}（${modeLabel} ${challenge.format}）` +
     loc +
@@ -145,17 +145,17 @@ export function downloadChallengeIcs(challenge: ChallengeItem): void {
   const desc = escapeIcsText(
     [
       challenge.message ? `戰帖喊話：${challenge.message}` : null,
-      '賽後可直接回 Precision Arena 首頁一鍵轉報分。',
+      '賽後可直接回 TT戰網 首頁一鍵轉報分。',
     ]
       .filter(Boolean)
       .join('\n')
   );
-  const loc = escapeIcsText(challenge.location || 'Precision Arena 桌球室');
+  const loc = escapeIcsText(challenge.location || '貿易署桌球室');
 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Precision Arena//MatchChallenge//ZH-TW',
+    'PRODID:-//TT Battle Net//MatchChallenge//ZH-TW',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:challenge-${challenge.id}@precision-arena`,

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="經濟部國際貿易署桌球社 TT戰網 圖標 Logo">
+  <title>TT戰網｜經濟部國際貿易署桌球社 Logo（純圖標版）</title>
+  <defs>
+    <linearGradient id="tita-tt-icon-blade-grad" x1="15%" y1="10%" x2="88%" y2="90%">
+      <stop offset="0%" stop-color="#007CEB" />
+      <stop offset="52%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#004A94" />
+    </linearGradient>
+    <linearGradient id="tita-tt-icon-swoosh-main" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+    <linearGradient id="tita-tt-icon-swoosh-top" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+    <radialGradient id="tita-tt-icon-ball-grad" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#8CF7F0" />
+      <stop offset="55%" stop-color="#2AD2C9" />
+      <stop offset="100%" stop-color="#009E96" />
+    </radialGradient>
+    <clipPath id="tita-tt-icon-blade-clip">
+      <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" />
+    </clipPath>
+  </defs>
+  <!-- Layer 1: Top-Left Kinetic Counter-Balance Arc -->
+  <path
+    d="M 44 96 C 46 52 79 21 124 20 L 124 26.5 C 85 28.5 55 56 44 96 Z"
+    fill="url(#tita-tt-icon-swoosh-top)"
+  />
+
+  <!-- Layer 2: Dynamic 34° Forehand-Attack Table Tennis Paddle -->
+  <g transform="translate(116, 114) rotate(34)">
+    <!-- Handle & Neck Base -->
+    <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" fill="#0B3468" />
+
+    <!-- Clipped Blade Rubber Face & Handle Details -->
+    <g clip-path="url(#tita-tt-icon-blade-clip)">
+      <!-- Competition Rubber Sheet (stops cleanly above throat) -->
+      <rect x="-78" y="-92" width="156" height="138" fill="url(#tita-tt-icon-blade-grad)" />
+      <!-- Subtle Modern Architectural Sheen on Upper-Left Blade -->
+      <path d="M -78 -92 L 18 -92 L -36 46 L -78 46 Z" fill="#FFFFFF" opacity="0.09" />
+      <!-- Crisp Rubber Edge Tape Line separating Blade & Throat -->
+      <rect x="-78" y="42" width="156" height="4.5" fill="#2AD2C9" />
+      <!-- Sleek Ergonomic Grip Accent Stripe on Handle -->
+      <path d="M -3.5 54 L 3.5 54 L 5 117 L -5 117 Z" fill="#2AD2C9" opacity="0.92" />
+    </g>
+  </g>
+
+  <!-- Layer 3: TITA-Inspired Stepped Double-T ("TT") + Battle Net ("戰網") -->
+  <g transform="translate(124, 100) skewX(-9)">
+    <!-- Left "T" (Lower-Left, Grounded Support Pillar) -->
+    <path
+      d="M -43 -15 H 0 V -2 H -14.5 V 35 H -28.5 V -2 H -43 Z"
+      fill="#FFFFFF"
+    />
+    <!-- Right "T" (Upper-Right, Stepping Upward — TITA "建構向上的力量") -->
+    <path
+      d="M -4 -35 H 39 V -22 H 24.5 V 15 H 10.5 V -22 H -4 Z"
+      fill="#2AD2C9"
+    />
+    <!-- Stylized Table Tennis Net Motif ("戰網"意象) balancing bottom baseline -->
+    <g fill="#D8FAF7">
+      <!-- Net Top White Tape -->
+      <rect x="-4" y="22.5" width="38" height="3.6" rx="1" />
+      <!-- Crisp Net Mesh Vertical Posts -->
+      <rect x="-2" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+      <rect x="6.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+      <rect x="15" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+      <rect x="23.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+      <rect x="30.8" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+    </g>
+  </g>
+
+  <!-- Layer 4: High-Speed Topspin Trajectory Swoosh -->
+  <path
+    d="M 169 170 C 198 150 211 112 204 68 L 195 70 C 200 109 190 144 169 170 Z"
+    fill="url(#tita-tt-icon-swoosh-main)"
+  />
+
+  <!-- Layer 5: Launching Ping-Pong Ball at Upper-Right Apex -->
+  <g>
+    <circle cx="197" cy="45" r="15.5" fill="url(#tita-tt-icon-ball-grad)" />
+    <!-- Glossy 3D Specular Highlight Crescent -->
+    <path
+      d="M 189 41 C 190.5 36.2 195.2 33.8 199.8 34.8 C 196.2 35.8 192.6 38.6 191.2 42.6 Z"
+      fill="#FFFFFF"
+      opacity="0.88"
+    />
+  </g>
+</svg>

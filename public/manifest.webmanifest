@@ -1,13 +1,13 @@
 {
-  "name": "Precision Arena | 桌球積分戰情室",
-  "short_name": "桌球戰情室",
-  "description": "Precision Arena 桌球社團積分排行榜與賽事戰情室",
+  "name": "TT戰網｜貿易署桌球社積分系統",
+  "short_name": "TT戰網",
+  "description": "經濟部國際貿易署桌球社積分排行榜與賽事戰情室",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#070b14",
-  "theme_color": "#0f172a",
+  "background_color": "#f8fafc",
+  "theme_color": "#006AC6",
   "icons": [
     {
       "src": "/icon-192.png",
