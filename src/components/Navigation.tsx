@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, History, Trophy, Plus, Shield, Settings, LayoutGrid, LogIn } from 'lucide-react';
+import { Gauge, Swords, Trophy, BarChart3, Plus, Shield, Settings, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from './BrandLogo';
 import { ReportScore } from './ReportScore';
@@ -24,17 +24,17 @@ interface NavPendingMatch {
 }
 
 interface NavItemConfig {
-  icon: typeof LayoutDashboard;
+  icon: typeof Gauge;
   label: string;
   shortLabel: string;
   path: string;
 }
 
 const navItems: NavItemConfig[] = [
-  { icon: LayoutDashboard, label: '戰情室', shortLabel: '戰情', path: '/' },
-  { icon: History, label: '對戰紀錄', shortLabel: '紀錄', path: '/history' },
+  { icon: Gauge, label: '戰情室', shortLabel: '戰情', path: '/' },
+  { icon: Swords, label: '對戰紀錄', shortLabel: '紀錄', path: '/history' },
   { icon: Trophy, label: '賽事中心', shortLabel: '賽事', path: '/tournament' },
-  { icon: LayoutGrid, label: '積分榜', shortLabel: '積分', path: '/leaderboard' },
+  { icon: BarChart3, label: '積分榜', shortLabel: '積分', path: '/leaderboard' },
 ];
 
 function MobileBottomNavLink({
@@ -132,9 +132,9 @@ export function Navigation() {
             to="/"
             aria-label="TT戰網｜貿易署桌球社積分系統 首頁"
             title="TT戰網｜貿易署桌球社積分系統"
-            className="inline-flex items-center justify-center rounded-xl active:scale-95 transition-transform shrink-0"
+            className="inline-flex items-center rounded-xl active:scale-95 transition-transform min-w-0 shrink"
           >
-            <BrandLogo variant="icon" className="size-10 shrink-0" decorative />
+            <BrandLogo variant="horizontal" className="h-11 w-auto max-w-full" decorative />
           </NavLink>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -259,9 +259,9 @@ export function Navigation() {
           to="/"
           aria-label="TT戰網 首頁"
           title="TT戰網｜貿易署桌球社積分系統"
-          className="size-12 rounded-2xl bg-card border border-border shadow-xs flex items-center justify-center mb-5 hover:scale-105 transition-transform shrink-0"
+          className="size-12 rounded-xl flex items-center justify-center mb-5 hover:scale-105 active:scale-95 transition-transform shrink-0"
         >
-          <BrandLogo variant="icon" className="size-9" decorative />
+          <BrandLogo variant="icon" className="size-11" decorative />
         </NavLink>
 
         <div className="mb-5 w-full flex justify-center">
