@@ -34,12 +34,20 @@
         } catch (e) {}
       })();
     </script>
-    <style>body{margin:0;background:#f3f8fc;}html.dark body{background:#050d1a;}</style>
+    <style>
+      body{margin:0;background:#f3f8fc;}
+      html.dark body{background:#050d1a;}
+      @keyframes bootSlide{0%{transform:translateX(-100%)}50%{transform:translateX(160%)}100%{transform:translateX(-100%)}}
+      .boot-runner{width:40%;height:100%;border-radius:9999px;background:linear-gradient(90deg,#006ac6,#198cd8,#2ad2c9);animation:bootSlide 1.6s ease-in-out infinite;}
+      .boot-track{width:100%;max-width:210px;height:6px;border-radius:9999px;overflow:hidden;background:rgba(0,106,198,.12);}
+      html.dark .boot-track{background:rgba(255,255,255,.1);}
+    </style>
   </head>
   <body>
     <div id="root">
-      <div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px;">
-        <img src="/brand/loading.svg" alt="TT戰網熱身開球中" width="600" height="420" style="width:100%;max-width:440px;height:auto;display:block;border-radius:28px;" />
+      <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;">
+        <img src="/brand/loading.svg" alt="TT戰網熱身開球中" width="496" height="200" style="width:100%;max-width:390px;height:auto;display:block;" />
+        <div class="boot-track"><div class="boot-runner"></div></div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
