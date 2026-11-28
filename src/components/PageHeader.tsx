@@ -20,7 +20,7 @@ export function PageHeader({ title, subtitle, badge, actions, className }: PageH
       <div className="flex items-stretch gap-3 sm:gap-4 min-w-0">
         <div
           aria-hidden="true"
-          className="w-1 sm:w-1.5 bg-gradient-to-b from-sapphire-blue to-primary-navy dark:to-blue-400 rounded-full min-h-10 sm:min-h-12 shrink-0"
+          className="w-1 sm:w-1.5 bg-gradient-to-b from-sapphire-blue via-[#198cd8] to-tita-teal rounded-full min-h-10 sm:min-h-12 shrink-0"
         />
         <div className="space-y-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl md:text-4xl text-foreground font-display tracking-tight font-bold leading-tight">

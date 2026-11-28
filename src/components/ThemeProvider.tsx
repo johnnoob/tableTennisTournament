@@ -82,7 +82,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.colorScheme = resolvedTheme;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.setAttribute('content', isDark ? '#070b14' : '#f1f5f9');
+      meta.setAttribute('content', isDark ? '#050d1a' : '#f3f8fc');
     }
   }, [resolvedTheme]);
 

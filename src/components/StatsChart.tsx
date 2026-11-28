@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -43,10 +43,10 @@ interface CustomizedDotProps {
 }
 
 function getDotFillColor(payload: ChartDataPoint | undefined, isDark?: boolean): string {
-  if (payload?.event_type === 'soft_reset') return '#f59e0b';
+  if (payload?.event_type === 'soft_reset') return '#f5a50a';
   if (payload?.result === 'W') return '#10b981';
   if (payload?.result === 'L') return '#f43f5e';
-  return isDark ? '#60a5fa' : '#2563eb';
+  return isDark ? '#2ad2c9' : '#006ac6';
 }
 
 const CustomizedDot = ({
@@ -58,7 +58,7 @@ const CustomizedDot = ({
   onSelectPoint,
 }: CustomizedDotProps) => {
   if (cx === undefined || cy === undefined || !payload) return null;
-  const strokeColor = isDark ? '#0f172a' : '#ffffff';
+  const strokeColor = isDark ? '#0d1e36' : '#ffffff';
   const fillColor = getDotFillColor(payload, isDark);
   const isSelected = selectedIdx !== undefined && payload.idx === selectedIdx;
 
@@ -72,11 +72,11 @@ const CustomizedDot = ({
         style={{ cursor: onSelectPoint ? 'pointer' : undefined }}
       >
         {isSelected && (
-          <circle cx={8} cy={8} r={12} fill="#f59e0b" fillOpacity={0.22} />
+          <circle cx={8} cy={8} r={12} fill="#f5a50a" fillOpacity={0.22} />
         )}
         <path
           d="M8 0L9.8 5.5H15.6L10.9 9.1L12.7 14.6L8 11L3.3 14.6L5.1 9.1L0.4 5.5H6.2L8 0Z"
-          fill="#f59e0b"
+          fill="#f5a50a"
           stroke={strokeColor}
           strokeWidth="1.5"
         />
@@ -244,11 +244,15 @@ export function StatsChart({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const isSmUp = useMediaQuery('(min-width: 640px)');
+  const rawGradId = useId();
+  const cleanGradId = rawGradId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const areaGradId = `tita-elo-area-${cleanGradId}`;
+  const strokeGradId = `tita-elo-stroke-${cleanGradId}`;
 
-  const gridStroke = isDark ? 'rgba(148, 163, 184, 0.14)' : '#eceef0';
-  const tickColor = isDark ? '#94a3b8' : '#64748b';
-  const lineStroke = isDark ? '#60a5fa' : '#2563eb';
-  const refLineStroke = isDark ? '#64748b' : '#94a3b8';
+  const gridStroke = isDark ? 'rgba(125, 185, 228, 0.14)' : '#e1eef6';
+  const tickColor = isDark ? '#98b4d0' : '#5c7696';
+  const lineStroke = isDark ? '#2ad2c9' : '#006ac6';
+  const refLineStroke = isDark ? '#6d89a8' : '#90adc5';
 
   const chartData = useMemo(() => {
     if (data.length === 1) {
@@ -344,9 +348,23 @@ export function StatsChart({
             onMouseMove={!isSmUp ? handleChartPointSelect : undefined}
           >
             <defs>
-              <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={lineStroke} stopOpacity={isDark ? 0.28 : 0.16} />
-                <stop offset="95%" stopColor={lineStroke} stopOpacity={0} />
+              <linearGradient id={strokeGradId} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={isDark ? '#2196f3' : '#006ac6'} />
+                <stop offset="55%" stopColor={isDark ? '#2ad2c9' : '#198cd8'} />
+                <stop offset="100%" stopColor={isDark ? '#5ce6de' : '#2ad2c9'} />
+              </linearGradient>
+              <linearGradient id={areaGradId} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={isDark ? '#2ad2c9' : '#006ac6'}
+                  stopOpacity={isDark ? 0.28 : 0.18}
+                />
+                <stop
+                  offset="55%"
+                  stopColor="#2ad2c9"
+                  stopOpacity={isDark ? 0.1 : 0.07}
+                />
+                <stop offset="100%" stopColor="#2ad2c9" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridStroke} />
@@ -418,10 +436,10 @@ export function StatsChart({
             <Area
               type="monotone"
               dataKey="rating"
-              stroke={lineStroke}
+              stroke={`url(#${strokeGradId})`}
               strokeWidth={2.5}
               fillOpacity={1}
-              fill="url(#colorRating)"
+              fill={`url(#${areaGradId})`}
               animationDuration={700}
               dot={
                 <CustomizedDot
@@ -433,7 +451,7 @@ export function StatsChart({
               activeDot={{
                 r: 6,
                 strokeWidth: 2,
-                stroke: isDark ? '#0f172a' : '#ffffff',
+                stroke: isDark ? '#0d1e36' : '#ffffff',
               }}
             />
           </AreaChart>

@@ -517,7 +517,7 @@ export function Dashboard() {
                 {!isLoggedIn && (
                   <motion.section
                     variants={itemVariants}
-                    className="arena-hero-surface text-foreground rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-md dark:shadow-lg border border-blue-200/85 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+                    className="arena-hero-surface text-foreground rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-md dark:shadow-lg border border-sapphire-blue/25 dark:border-tita-teal/20 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
                   >
                     <div className="space-y-2">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sapphire-blue/12 text-sapphire-blue dark:bg-sapphire-blue/25 dark:text-blue-200 border border-sapphire-blue/20 text-xs font-black uppercase tracking-wider">
@@ -533,7 +533,7 @@ export function Dashboard() {
                     <Button
                       type="button"
                       onClick={() => navigate('/login')}
-                      className="h-12 px-6 rounded-xl bg-sapphire-blue hover:bg-blue-600 text-white font-display font-black text-sm gap-2 shrink-0"
+                      className="h-12 px-6 rounded-xl bg-gradient-to-r from-smash-orange to-rose-500 hover:opacity-95 text-white font-display font-black text-sm gap-2 shrink-0 shadow-md shadow-smash-orange/25 border-none"
                     >
                       <LogIn size={16} aria-hidden="true" />
                       立即登入

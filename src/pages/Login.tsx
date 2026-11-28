@@ -46,20 +46,20 @@ export function Login() {
         {/* 頂部識別膠囊 */}
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-200">
-            <Shield size={14} className="text-teal-300 shrink-0" aria-hidden="true" />
+            <Shield size={14} className="text-tita-teal shrink-0" aria-hidden="true" />
             <span>TT戰網 · 經濟部國際貿易署桌球社</span>
           </div>
         </div>
 
         {/* 中間精神標語 */}
         <div className="relative z-10 space-y-6 max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sapphire-blue/20 border border-sapphire-blue/30 text-blue-300 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tita-teal/15 border border-tita-teal/35 text-[#8CF7F0] text-xs font-semibold">
             <Shield size={14} aria-hidden="true" />
             <span>官方指定單軌積分系統</span>
           </div>
           <h2 className="text-5xl font-display font-bold text-white leading-[1.12] tracking-tight">
             淬鍊每一拍的<br />
-            <span className="text-olympic-gold">極致榮耀。</span>
+            <span className="bg-gradient-to-r from-olympic-gold via-amber-300 to-tita-teal bg-clip-text text-transparent">極致榮耀。</span>
           </h2>
           <p className="text-slate-300 font-medium leading-relaxed">
             歡迎來到貿易署桌球社專屬積分系統。免報名、隨時戰，透過單軌積分制記錄您的每一場熱血對決。

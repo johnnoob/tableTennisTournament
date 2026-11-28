@@ -147,7 +147,7 @@ function SeasonPulseCard({
               aria-valuemax={100}
             >
               <div
-                className="h-full rounded-full bg-sapphire-blue transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-sapphire-blue to-tita-teal transition-all duration-500"
                 style={{ width: `${pulse.progress_percent}%` }}
               />
             </div>

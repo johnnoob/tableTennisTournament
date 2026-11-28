@@ -26,7 +26,7 @@ function getTierAvatarRing(mmr: number): string {
   if (mmr >= 1320) return 'from-amber-400 via-yellow-300 to-amber-500';
   if (mmr >= 1180) return 'from-amber-400 via-orange-400 to-yellow-500';
   if (mmr >= 1050) return 'from-slate-300 via-blue-300 to-indigo-400';
-  return 'from-sapphire-blue via-sky-400 to-indigo-500';
+  return 'from-sapphire-blue via-[#198cd8] to-tita-teal';
 }
 
 function getLeaderboardRankBadgeStyle(
@@ -275,6 +275,10 @@ export function RankingCard({
 
   return (
     <Card className="group relative transition-all duration-300 overflow-hidden sm:overflow-visible rounded-2xl md:rounded-3xl arena-hero-surface text-foreground p-4 sm:p-6 mt-1 sm:mt-3 border border-border/90 shadow-sm">
+      <div
+        aria-hidden="true"
+        className="hidden sm:block absolute left-14 right-6 top-0 h-[3px] rounded-b-full bg-gradient-to-r from-sapphire-blue via-[#198cd8] to-tita-teal opacity-90 pointer-events-none"
+      />
       {/* Floating Rank Badge (Tablet / Desktop — matches Leaderboard MedalBadge) */}
       <div
         title={
@@ -361,7 +365,7 @@ export function RankingCard({
                     </span>
                   )}
                   {currentStreak >= 2 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-semibold shadow-xs whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-smash-orange to-rose-500 text-white text-xs font-semibold shadow-xs whitespace-nowrap">
                       <Flame size={12} aria-hidden="true" />
                       {currentStreak} 連勝
                     </span>
@@ -692,8 +696,8 @@ export function RankingCard({
                 className={cn(
                   'h-full rounded-full transition-all duration-500',
                   tierProgress.progressPercent >= 85
-                    ? 'bg-gradient-to-r from-sapphire-blue to-olympic-gold'
-                    : 'bg-sapphire-blue',
+                    ? 'bg-gradient-to-r from-smash-orange via-olympic-gold to-amber-300'
+                    : 'bg-gradient-to-r from-sapphire-blue to-tita-teal',
                 )}
                 style={{ width: `${tierProgress.progressPercent}%` }}
               />

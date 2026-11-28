@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Clock,
   Gavel,
-  Loader2,
   RotateCcw,
   ShieldAlert,
   Sparkles,
@@ -28,6 +27,7 @@ import type {
 } from '@/hooks/useNotifications';
 import { inferMatchFormat } from '@/lib/matchScore';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
+import PingPongLoader from '@/components/PingPongLoader';
 import { cn, formatLocalTime } from '@/lib/utils';
 import {
   Sheet,
@@ -711,9 +711,8 @@ export function NotificationCenterSheet({
       {/* Scrollable Notifications Feed */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {isLoading ? (
-          <div className="py-16 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="animate-spin text-sapphire-blue" size={28} />
-            <p className="text-xs font-bold text-muted-foreground">載入最新通知中...</p>
+          <div className="py-10 px-4 flex items-center justify-center">
+            <PingPongLoader size="sm" label="載入最新通知" />
           </div>
         ) : filteredList.length === 0 ? (
           <div className="py-16 px-6 text-center space-y-2.5">

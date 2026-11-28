@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/PageHeader';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
+import PingPongLoader from '@/components/PingPongLoader';
 import { Button } from '@/components/ui/button';
 import { Trophy, Scale, Calendar, ArrowLeft, ExternalLink, Clock } from 'lucide-react';
 import { cn, formatLocalTime } from '@/lib/utils';
@@ -68,7 +69,11 @@ export function TournamentDetail() {
   }, [tournament]);
 
   if (loading) {
-    return <div className="arena-page flex items-center justify-center font-medium text-muted-foreground">載入賽事中...</div>;
+    return (
+      <div className="arena-page flex items-center justify-center">
+        <PingPongLoader label="載入賽事資訊" />
+      </div>
+    );
   }
 
   if (!tournament) {

@@ -11,7 +11,6 @@ import {
   Edit3,
   FlaskConical,
   History,
-  Loader2,
   Lock,
   Minus,
   Plus,
@@ -31,6 +30,7 @@ import type { AdminUserItem } from '@/types/admin';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
+import PingPongLoader from '@/components/PingPongLoader';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect, type ResponsiveSelectOption } from '@/components/ui/responsive-select';
 import { AdminUserMmrLogsDrawer } from '@/components/admin/AdminUserMmrLogsDrawer';
@@ -656,11 +656,8 @@ export function AdminUsersManager({ currentUserId, onUpdate }: AdminUsersManager
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-border bg-card py-20 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-sapphire-blue" size={32} />
-        <p className="text-xs font-medium text-muted-foreground">
-          載入成員名錄中...
-        </p>
+      <div className="rounded-2xl border border-border bg-card py-12 px-4 flex items-center justify-center">
+        <PingPongLoader size="md" label="載入成員名錄" />
       </div>
     );
   }

@@ -127,7 +127,7 @@ function AppContent() {
 
           {/* 🌟 局部 Loading：身分驗證中，僅主內容區顯示桌球動畫 */}
           {loading ? (
-            <div className="flex items-center justify-center min-h-[calc(100dvh-6rem)]">
+            <div className="flex items-center justify-center min-h-[calc(100dvh-6rem)] px-4">
               <PingPongLoader />
             </div>
           ) : (

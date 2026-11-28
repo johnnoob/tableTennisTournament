@@ -2,6 +2,7 @@ import { useId, useState, useRef } from 'react';
 import { addDays, format, parseISO, isValid } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import PingPongLoader from '@/components/PingPongLoader';
 import {
     Settings,
     Megaphone,
@@ -308,11 +309,8 @@ export function AdminDashboard() {
             {/* Main Content Area */}
             <div className="relative min-h-[500px]">
                 {loading ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="animate-spin text-sapphire-blue" size={40} />
-                            <p className="text-muted-foreground font-medium text-xs">載入數據中...</p>
-                        </div>
+                    <div className="absolute inset-0 flex items-center justify-center px-4">
+                        <PingPongLoader size="lg" label="載入管理後台數據" />
                     </div>
                 ) : (
                     <AnimatePresence mode="wait">

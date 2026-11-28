@@ -5,43 +5,47 @@
 
 :root {
   color-scheme: light;
-  --surface-canvas: #f8fafc;
-  --surface-shell: #f8fafc;
+  --surface-canvas: #f3f8fc;
+  --surface-shell: #f5fafd;
   --surface-card: #ffffff;
-  --surface-subtle: #f1f5f9;
+  --surface-subtle: #ebf4f9;
   --surface-elevated: #ffffff;
-  --ink-primary: #0f172a;
-  --ink-secondary: #475569;
-  --ink-muted: #64748b;
-  --line-subtle: #e2e8f0;
-  --line-strong: #cbd5e1;
-  --brand-sapphire: #2563eb;
-  --brand-gold: #f59e0b;
-  --brand-smash: #ea580c;
-  --brand-primary-btn: #0f172a;
-  --scrollbar-thumb: #94a3b8;
-  --scrollbar-track: #f1f5f9;
+  --ink-primary: #062854;
+  --ink-secondary: #3b5575;
+  --ink-muted: #5c7696;
+  --line-subtle: #d8e8f2;
+  --line-strong: #bdd5e6;
+  --brand-sapphire: #006ac6;
+  --brand-teal: #2ad2c9;
+  --brand-teal-ink: #00837d;
+  --brand-gold: #f5a50a;
+  --brand-smash: #ea4c1c;
+  --brand-primary-btn: #06326b;
+  --scrollbar-thumb: #90adc5;
+  --scrollbar-track: #ebf4f9;
   --target-size: 24px;
 }
 
 .dark {
   color-scheme: dark;
-  --surface-canvas: #070b14;
-  --surface-shell: #0b1120;
-  --surface-card: #111a2e;
-  --surface-subtle: #172238;
-  --surface-elevated: #1a2742;
-  --ink-primary: #f1f5f9;
-  --ink-secondary: #94a3b8;
-  --ink-muted: #64748b;
-  --line-subtle: rgba(148, 163, 184, 0.16);
-  --line-strong: rgba(148, 163, 184, 0.28);
-  --brand-sapphire: #3b82f6;
-  --brand-gold: #fbbf24;
-  --brand-smash: #fb923c;
-  --brand-primary-btn: #2563eb;
-  --scrollbar-thumb: #334155;
-  --scrollbar-track: #0b1120;
+  --surface-canvas: #050d1a;
+  --surface-shell: #081426;
+  --surface-card: #0d1e36;
+  --surface-subtle: #132947;
+  --surface-elevated: #173257;
+  --ink-primary: #f0f7fc;
+  --ink-secondary: #98b4d0;
+  --ink-muted: #6d89a8;
+  --line-subtle: rgba(125, 185, 228, 0.16);
+  --line-strong: rgba(125, 185, 228, 0.30);
+  --brand-sapphire: #1484e6;
+  --brand-teal: #2ad2c9;
+  --brand-teal-ink: #4ce6dd;
+  --brand-gold: #ffc436;
+  --brand-smash: #ff6b35;
+  --brand-primary-btn: #006ac6;
+  --scrollbar-thumb: #25446b;
+  --scrollbar-track: #081426;
 }
 
 @theme inline {
@@ -49,11 +53,13 @@
   --font-sans: "Public Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", "Noto Sans TC", "PingFang TC", ui-sans-serif, system-ui, sans-serif;
 
-  /* 晨星奧運風 + 夜間競技場語意色票 */
-  --color-primary-navy: #0f172a;
+  /* TITA 雙色基底 × 殺球橘／榮耀金語意色票 */
+  --color-primary-navy: #06326b;
   --color-primary-slate: var(--ink-secondary);
 
   --color-sapphire-blue: var(--brand-sapphire);
+  --color-tita-teal: var(--brand-teal);
+  --color-tita-teal-ink: var(--brand-teal-ink);
   --color-olympic-gold: var(--brand-gold);
   --color-smash-orange: var(--brand-smash);
 
@@ -153,16 +159,18 @@
   .arena-hero-surface {
     background-color: #ffffff;
     background-image:
-      radial-gradient(circle at 90% 10%, rgba(37, 99, 235, 0.06), transparent 48%),
-      linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+      radial-gradient(circle at 92% 8%, rgba(42, 210, 201, 0.12), transparent 46%),
+      radial-gradient(circle at 8% 92%, rgba(0, 106, 198, 0.06), transparent 48%),
+      linear-gradient(135deg, #ffffff 0%, #f4fafd 100%);
   }
 
   .dark .arena-hero-surface,
   .arena-hero-dark {
-    background-color: #0f172a;
+    background-color: #071730;
     background-image:
-      radial-gradient(circle at 88% 12%, rgba(59, 130, 246, 0.16), transparent 48%),
-      linear-gradient(135deg, #0f172a 0%, #13203a 100%);
+      radial-gradient(circle at 88% 12%, rgba(42, 210, 201, 0.18), transparent 46%),
+      radial-gradient(circle at 12% 86%, rgba(0, 106, 198, 0.24), transparent 50%),
+      linear-gradient(135deg, #071730 0%, #0b2447 55%, #09304f 100%);
   }
 
   .arena-label {
@@ -190,7 +198,7 @@
   }
 
   .power-button {
-    @apply bg-gradient-to-r from-sapphire-blue to-blue-700 text-white rounded-2xl shadow-md border-none hover:opacity-90 active:scale-95 transition-all;
+    @apply bg-gradient-to-r from-sapphire-blue via-[#198cd8] to-tita-teal text-white rounded-2xl shadow-md shadow-sapphire-blue/20 border-none hover:opacity-92 active:scale-95 transition-all;
   }
 
   .no-scrollbar::-webkit-scrollbar {

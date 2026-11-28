@@ -1242,10 +1242,10 @@ function ScoutingPanel({
     }));
   }, [radarBlock, myAxes]);
 
-  const gridStroke = isDark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(100, 116, 139, 0.22)';
-  const labelColor = isDark ? '#e2e8f0' : '#334155';
-  const targetStroke = isDark ? '#60a5fa' : '#2563eb';
-  const myStroke = isDark ? '#fb923c' : '#ea580c';
+  const gridStroke = isDark ? 'rgba(125, 185, 228, 0.2)' : 'rgba(6, 50, 107, 0.14)';
+  const labelColor = isDark ? '#e6f1fa' : '#062854';
+  const targetStroke = isDark ? '#2ad2c9' : '#006ac6';
+  const myStroke = isDark ? '#ff6b35' : '#ea4c1c';
 
   return (
     <div className="space-y-4">

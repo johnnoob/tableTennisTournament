@@ -1,0 +1,723 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" width="600" height="420" role="img" aria-labelledby="svgTitle svgDesc" style="max-width: 100%; height: auto;">
+  <title id="svgTitle">TT戰網｜經濟部國際貿易署桌球社 兩人對打 Loading 動畫</title>
+  <desc id="svgDesc">結合 TT戰網 經濟部國際貿易署桌球社橫式標準 Logo 與雙人對打桌球循環動態的載入畫面。</desc>
+
+  <!--
+    ============================================================
+    色彩規範（參照經濟部國際貿易署 TITA 官方識別色彩）
+    - 主色 1（深寶藍 PANTONE 2175 C）: #006AC6 / 深層海軍藍 #06326B
+    - 主色 2（湖水青綠 PANTONE 3252 C）: #2AD2C9 / 亮青 #5CE6DE
+    - 過渡中藍（呼應雙 T 交疊層次 C70 M40）: #198CD8
+    - 背景與文字: #F4FAFC / #FFFFFF / #06326B
+    ============================================================
+  -->
+
+  <style>
+    /* 全域字體設定 */
+    .loading-label {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* ---------- 1. 桌球拋物線主路徑（1.6s 無縫循環） ---------- */
+    .ball-main {
+      animation: rallyPath 1.6s linear infinite;
+    }
+    /* 動態殘影尾跡（透過微幅時間差自動形成流暢拖尾） */
+    .ball-trail-1 {
+      animation: rallyPath 1.6s linear -0.045s infinite;
+      opacity: 0.42;
+    }
+    .ball-trail-2 {
+      animation: rallyPath 1.6s linear -0.09s infinite;
+      opacity: 0.2;
+    }
+    .ball-trail-3 {
+      animation: rallyPath 1.6s linear -0.135s infinite;
+      opacity: 0.08;
+    }
+
+    /* 桌球擠壓與拉伸微動態（觸桌與擊球瞬間更具彈性） */
+    .ball-squash {
+      transform-origin: 0px 0px;
+      animation: ballSquash 1.6s linear infinite;
+    }
+
+    @keyframes rallyPath {
+      /* 0%：左側選手擊球瞬間 */
+      0%   { transform: translate(152px, 204px); }
+      4%   { transform: translate(184.7px, 182px); }
+      8%   { transform: translate(216.5px, 167.9px); }
+      12%  { transform: translate(247.3px, 161.8px); }
+      16%  { transform: translate(277px, 163.5px); }
+      20%  { transform: translate(305.8px, 173.3px); }
+      24%  { transform: translate(333.5px, 190.9px); }
+      28%  { transform: translate(360.2px, 216.5px); }
+      /* 32%：右側桌面彈跳點 */
+      32%  { transform: translate(386px, 250px); }
+      38%  { transform: translate(405.4px, 227.1px); }
+      44%  { transform: translate(426px, 211.8px); }
+      /* 50%：右側選手回擊瞬間 */
+      50%  { transform: translate(448px, 204px); }
+      54%  { transform: translate(415.3px, 182px); }
+      58%  { transform: translate(383.5px, 167.9px); }
+      62%  { transform: translate(352.7px, 161.8px); }
+      66%  { transform: translate(323px, 163.5px); }
+      70%  { transform: translate(294.2px, 173.3px); }
+      74%  { transform: translate(266.5px, 190.9px); }
+      78%  { transform: translate(239.8px, 216.5px); }
+      /* 82%：左側桌面彈跳點 */
+      82%  { transform: translate(214px, 250px); }
+      88%  { transform: translate(194.6px, 227.1px); }
+      94%  { transform: translate(174px, 211.8px); }
+      100% { transform: translate(152px, 204px); }
+    }
+
+    @keyframes ballSquash {
+      0%, 100% { transform: scale(0.84, 1.16); }
+      5%, 26%  { transform: scale(1.08, 0.93); }
+      32%      { transform: scale(1.24, 0.76); }
+      37%, 45% { transform: scale(1.05, 0.95); }
+      50%      { transform: scale(0.84, 1.16); }
+      55%, 76% { transform: scale(1.08, 0.93); }
+      82%      { transform: scale(1.24, 0.76); }
+      87%, 95% { transform: scale(1.05, 0.95); }
+    }
+
+    /* ---------- 2. 桌面球影同步追蹤 ---------- */
+    .ball-shadow {
+      animation: ballShadowMove 1.6s linear infinite;
+    }
+    @keyframes ballShadowMove {
+      0%   { transform: translate(152px, 257px) scale(0.45); opacity: 0.14; }
+      16%  { transform: translate(277px, 257px) scale(0.32); opacity: 0.1; }
+      32%  { transform: translate(386px, 257px) scale(1.05); opacity: 0.45; }
+      41%  { transform: translate(416px, 257px) scale(0.6);  opacity: 0.22; }
+      50%  { transform: translate(448px, 257px) scale(0.45); opacity: 0.14; }
+      66%  { transform: translate(323px, 257px) scale(0.32); opacity: 0.1; }
+      82%  { transform: translate(214px, 257px) scale(1.05); opacity: 0.45; }
+      91%  { transform: translate(184px, 257px) scale(0.6);  opacity: 0.22; }
+      100% { transform: translate(152px, 257px) scale(0.45); opacity: 0.14; }
+    }
+
+    /* ---------- 3. 桌面彈跳漣漪特效 ---------- */
+    .ripple-right {
+      transform-origin: 386px 257px;
+      animation: bounceRippleR 1.6s ease-out infinite;
+    }
+    @keyframes bounceRippleR {
+      0%, 31.5% { transform: scale(0.2); opacity: 0; }
+      32%       { transform: scale(0.35); opacity: 0.9; }
+      46%       { transform: scale(1.7); opacity: 0; }
+      100%      { transform: scale(1.7); opacity: 0; }
+    }
+
+    .ripple-left {
+      transform-origin: 214px 257px;
+      animation: bounceRippleL 1.6s ease-out infinite;
+    }
+    @keyframes bounceRippleL {
+      0%, 81.5% { transform: scale(0.2); opacity: 0; }
+      82%       { transform: scale(0.35); opacity: 0.9; }
+      96%       { transform: scale(1.7); opacity: 0; }
+      100%      { transform: scale(1.7); opacity: 0; }
+    }
+
+    /* ---------- 4. 揮拍擊球瞬間光爆 ---------- */
+    .impact-left {
+      transform-origin: 152px 204px;
+      animation: impactPopL 1.6s ease-out infinite;
+    }
+    @keyframes impactPopL {
+      0%        { transform: scale(0.35); opacity: 0.95; }
+      10%       { transform: scale(1.35); opacity: 0; }
+      100%      { transform: scale(1.35); opacity: 0; }
+    }
+
+    .impact-right {
+      transform-origin: 448px 204px;
+      animation: impactPopR 1.6s ease-out infinite;
+    }
+    @keyframes impactPopR {
+      0%, 49.5% { transform: scale(0.35); opacity: 0; }
+      50%       { transform: scale(0.35); opacity: 0.95; }
+      60%       { transform: scale(1.35); opacity: 0; }
+      100%      { transform: scale(1.35); opacity: 0; }
+    }
+
+    /* ---------- 5. 左側選手（深藍主隊服）動作同步 ---------- */
+    .player-a-upper {
+      transform-origin: 105px 262px;
+      animation: playerABody 1.6s ease-in-out infinite;
+    }
+    @keyframes playerABody {
+      0%, 100% { transform: rotate(4deg) translateY(0px); }
+      12%      { transform: rotate(7deg) translateY(-2px); }
+      35%      { transform: rotate(0deg) translateY(2px); }
+      60%      { transform: rotate(-2deg) translateY(0px); }
+      86%      { transform: rotate(-7deg) translateY(3px); }
+    }
+
+    .player-a-arm {
+      transform-origin: 118px 210px;
+      animation: playerAArm 1.6s cubic-bezier(0.35, 0, 0.25, 1) infinite;
+    }
+    @keyframes playerAArm {
+      /* 0% 準確擊球，隨後上拉收拍，86% 引拍蓄力 */
+      0%, 100% { transform: rotate(0deg); }
+      12%      { transform: rotate(-28deg); }
+      35%      { transform: rotate(-4deg); }
+      68%      { transform: rotate(8deg); }
+      86%      { transform: rotate(32deg); }
+    }
+
+    /* 頭帶飄動 */
+    .headband-tail {
+      transform-origin: 104px 175px;
+      animation: ribbonWave 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes ribbonWave {
+      from { transform: rotate(-8deg); }
+      to   { transform: rotate(10deg); }
+    }
+
+    /* ---------- 6. 右側選手（青綠主隊服）動作同步 ---------- */
+    .player-b-upper {
+      transform-origin: 495px 262px;
+      animation: playerBBody 1.6s ease-in-out infinite;
+    }
+    @keyframes playerBBody {
+      0%, 100% { transform: rotate(2deg) translateY(0px); }
+      36%      { transform: rotate(7deg) translateY(3px); }
+      50%      { transform: rotate(-4deg) translateY(0px); }
+      62%      { transform: rotate(-7deg) translateY(-2px); }
+      85%      { transform: rotate(0deg) translateY(2px); }
+    }
+
+    .player-b-arm {
+      transform-origin: 482px 210px;
+      animation: playerBArm 1.6s cubic-bezier(0.35, 0, 0.25, 1) infinite;
+    }
+    @keyframes playerBArm {
+      /* 36% 引拍蓄力，50% 準確擊球，62% 上拉收拍 */
+      0%, 100% { transform: rotate(-6deg); }
+      20%      { transform: rotate(-10deg); }
+      36%      { transform: rotate(-32deg); }
+      50%      { transform: rotate(0deg); }
+      62%      { transform: rotate(28deg); }
+      85%      { transform: rotate(4deg); }
+    }
+
+    /* 馬尾微擺 */
+    .ponytail-sway {
+      transform-origin: 496px 176px;
+      animation: ponyWave 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes ponyWave {
+      from { transform: rotate(-7deg); }
+      to   { transform: rotate(9deg); }
+    }
+
+    /* ---------- 7. 球網氣流微震 ---------- */
+    .net-mesh {
+      transform-origin: 300px 262px;
+      animation: netBreeze 1.6s ease-in-out infinite;
+    }
+    @keyframes netBreeze {
+      0%, 15%, 30%, 65%, 80%, 100% { transform: skewX(0deg); }
+      20% { transform: skewX(2.2deg); }
+      70% { transform: skewX(-2.2deg); }
+    }
+
+    /* ---------- 8. Loading 進度條與躍動圓點 ---------- */
+    .progress-runner {
+      animation: progressSlide 1.6s ease-in-out infinite;
+    }
+    @keyframes progressSlide {
+      0%   { transform: translateX(-85px); }
+      50%  { transform: translateX(135px); }
+      100% { transform: translateX(-85px); }
+    }
+
+    .dot-1 { animation: dotBounce 1.2s ease-in-out 0s infinite; }
+    .dot-2 { animation: dotBounce 1.2s ease-in-out 0.2s infinite; }
+    .dot-3 { animation: dotBounce 1.2s ease-in-out 0.4s infinite; }
+    @keyframes dotBounce {
+      0%, 60%, 100% { transform: translateY(0px); opacity: 0.45; }
+      30%           { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* 背景品牌意象脈衝光圈 */
+    .bg-pulse {
+      transform-origin: 300px 215px;
+      animation: bgPulse 3.2s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse {
+      from { transform: scale(0.96); opacity: 0.5; }
+      to   { transform: scale(1.04); opacity: 0.85; }
+    }
+  </style>
+
+  <!-- ==================== 漸層、裁切與陰影定義 ==================== -->
+  <defs>
+    <!-- 卡片背景漸層 -->
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F7FCFD" />
+      <stop offset="55%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EAF7FA" />
+    </linearGradient>
+
+    <!-- TITA 標誌雙色漸層（寶藍 → 湖水青綠） -->
+    <linearGradient id="titaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="55%" stop-color="#198CD8" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+
+    <!-- 球桌桌面漸層（TITA PANTONE 2175 C 深寶藍系） -->
+    <linearGradient id="tableTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0074D9" />
+      <stop offset="55%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#084B94" />
+    </linearGradient>
+
+    <!-- 左側選手隊服漸層 -->
+    <linearGradient id="jerseyBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A7BE0" />
+      <stop offset="100%" stop-color="#0055A4" />
+    </linearGradient>
+
+    <!-- 右側選手隊服漸層（TITA PANTONE 3252 C 青綠系） -->
+    <linearGradient id="jerseyTealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3FE0D7" />
+      <stop offset="100%" stop-color="#1CBAB2" />
+    </linearGradient>
+
+    <!-- 桌球立體漸層 -->
+    <radialGradient id="ballGrad" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="70%" stop-color="#EDF9FA" />
+      <stop offset="100%" stop-color="#BEEAE8" />
+    </radialGradient>
+
+    <!-- 球網格線圖樣 -->
+    <pattern id="netPattern" width="6" height="6" patternUnits="userSpaceOnUse">
+      <path d="M 6 0 L 0 0 0 6" fill="none" stroke="#FFFFFF" stroke-width="0.9" opacity="0.65" />
+    </pattern>
+
+    <!-- Loading 進度條裁切區 -->
+    <clipPath id="progressClip">
+      <rect x="190" y="352" width="220" height="7" rx="3.5" />
+    </clipPath>
+
+    <!-- 柔和卡片陰影 -->
+    <filter id="softGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#006AC6" flood-opacity="0.14" />
+    </filter>
+
+    <!-- TT戰網｜經濟部國際貿易署桌球社 橫式標準 Logo 專用漸層與裁切 -->
+    <linearGradient id="tita-tt-horizontal-blade-grad" x1="15%" y1="10%" x2="88%" y2="90%">
+      <stop offset="0%" stop-color="#007CEB" />
+      <stop offset="52%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#004A94" />
+    </linearGradient>
+    <linearGradient id="tita-tt-horizontal-swoosh-main" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+    <linearGradient id="tita-tt-horizontal-swoosh-top" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+    <radialGradient id="tita-tt-horizontal-ball-grad" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#8CF7F0" />
+      <stop offset="55%" stop-color="#2AD2C9" />
+      <stop offset="100%" stop-color="#009E96" />
+    </radialGradient>
+    <clipPath id="tita-tt-horizontal-blade-clip">
+      <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" />
+    </clipPath>
+    <linearGradient id="tita-tt-horizontal-rule-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#006AC6" />
+      <stop offset="100%" stop-color="#2AD2C9" />
+    </linearGradient>
+  </defs>
+
+  <!-- ==================== 1. 背景層（若需透明嵌入網頁，可移除此群組） ==================== -->
+  <g id="loading-backdrop">
+    <rect x="8" y="8" width="584" height="404" rx="28" fill="url(#cardBg)" stroke="#D4EEF5" stroke-width="1.5" />
+
+    <!-- 呼應貿易署「向上前進」幾何感之微淡背景裝飾（下移聚焦對打區域，避免干擾頂部 Logo） -->
+    <g class="bg-pulse" style="transform-origin: 300px 238px;">
+      <circle cx="300" cy="238" r="116" fill="none" stroke="#2AD2C9" stroke-width="1.2" stroke-dasharray="6 8" opacity="0.35" />
+      <circle cx="300" cy="238" r="88" fill="#E8F8FA" opacity="0.45" />
+    </g>
+  </g>
+
+  <!-- ==================== 1.5 頂部 TT戰網｜經濟部國際貿易署桌球社 橫式標準 Logo ==================== -->
+  <g id="tita-club-badge" transform="translate(147, 22) scale(0.52)">
+    <!-- Left Emblem scaled neatly into 184x184 inside 200px height -->
+    <g transform="translate(8, 8) scale(0.7667)">
+      <!-- Layer 1: Top-Left Kinetic Counter-Balance Arc -->
+      <path
+        d="M 44 96 C 46 52 79 21 124 20 L 124 26.5 C 85 28.5 55 56 44 96 Z"
+        fill="url(#tita-tt-horizontal-swoosh-top)"
+      />
+
+      <!-- Layer 2: Dynamic 34° Forehand-Attack Table Tennis Paddle -->
+      <g transform="translate(116, 114) rotate(34)">
+        <!-- Handle & Neck Base -->
+        <path d="M 0 -86 C 40 -86 68 -57 68 -17 C 68 15 48 42 24 52 C 15 56 13 64 14 74 L 18 109 C 18 114 14 117 9 117 L -9 117 C -14 117 -18 114 -18 109 L -14 74 C -13 64 -15 56 -24 52 C -48 42 -68 15 -68 -17 C -68 -57 -40 -86 0 -86 Z" fill="#0B3468" />
+
+        <!-- Clipped Blade Rubber Face & Handle Details -->
+        <g clip-path="url(#tita-tt-horizontal-blade-clip)">
+          <!-- Competition Rubber Sheet (stops cleanly above throat) -->
+          <rect x="-78" y="-92" width="156" height="138" fill="url(#tita-tt-horizontal-blade-grad)" />
+          <!-- Subtle Modern Architectural Sheen on Upper-Left Blade -->
+          <path d="M -78 -92 L 18 -92 L -36 46 L -78 46 Z" fill="#FFFFFF" opacity="0.09" />
+          <!-- Crisp Rubber Edge Tape Line separating Blade & Throat -->
+          <rect x="-78" y="42" width="156" height="4.5" fill="#2AD2C9" />
+          <!-- Sleek Ergonomic Grip Accent Stripe on Handle -->
+          <path d="M -3.5 54 L 3.5 54 L 5 117 L -5 117 Z" fill="#2AD2C9" opacity="0.92" />
+        </g>
+      </g>
+
+      <!-- Layer 3: TITA-Inspired Stepped Double-T ("TT") + Battle Net ("戰網") -->
+      <g transform="translate(124, 100) skewX(-9)">
+        <!-- Left "T" (Lower-Left, Grounded Support Pillar) -->
+        <path
+          d="M -43 -15 H 0 V -2 H -14.5 V 35 H -28.5 V -2 H -43 Z"
+          fill="#FFFFFF"
+        />
+        <!-- Right "T" (Upper-Right, Stepping Upward — TITA "建構向上的力量") -->
+        <path
+          d="M -4 -35 H 39 V -22 H 24.5 V 15 H 10.5 V -22 H -4 Z"
+          fill="#2AD2C9"
+        />
+        <!-- Stylized Table Tennis Net Motif ("戰網"意象) balancing bottom baseline -->
+        <g fill="#D8FAF7">
+          <!-- Net Top White Tape -->
+          <rect x="-4" y="22.5" width="38" height="3.6" rx="1" />
+          <!-- Crisp Net Mesh Vertical Posts -->
+          <rect x="-2" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+          <rect x="6.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+          <rect x="15" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+          <rect x="23.5" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+          <rect x="30.8" y="28" width="3.2" height="7" rx="0.8" opacity="0.88" />
+        </g>
+      </g>
+
+      <!-- Layer 4: High-Speed Topspin Trajectory Swoosh -->
+      <path
+        d="M 169 170 C 198 150 211 112 204 68 L 195 70 C 200 109 190 144 169 170 Z"
+        fill="url(#tita-tt-horizontal-swoosh-main)"
+      />
+
+      <!-- Layer 5: Launching Ping-Pong Ball at Upper-Right Apex -->
+      <g>
+        <circle cx="197" cy="45" r="15.5" fill="url(#tita-tt-horizontal-ball-grad)" />
+        <!-- Glossy 3D Specular Highlight Crescent -->
+        <path
+          d="M 189 41 C 190.5 36.2 195.2 33.8 199.8 34.8 C 196.2 35.8 192.6 38.6 191.2 42.6 Z"
+          fill="#FFFFFF"
+          opacity="0.88"
+        />
+      </g>
+    </g>
+
+    <!-- Subtle Vertical Brand Divider -->
+    <rect x="206" y="40" width="2.5" height="120" rx="1.25" fill="#2AD2C9" opacity="0.45" />
+
+    <!-- Right Typography Lockup: TT戰網 + 經濟部國際貿易署桌球社 -->
+    <g transform="translate(230, 0)">
+      <!-- Primary Website Name: TT戰網 -->
+      <text
+        x="0"
+        y="96"
+        font-family="'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif"
+        font-size="68"
+        font-weight="900"
+        letter-spacing="2"
+      ><tspan fill="#006AC6" font-style="italic">TT</tspan><tspan fill="#0B2E59" dx="8">戰網</tspan></text>
+
+      <!-- Dynamic Dual-Tone Speed Accent Bar -->
+      <polygon points="2,112 318,112 311,117.5 0,117.5" fill="url(#tita-tt-horizontal-rule-grad)" />
+
+      <!-- Chinese Club Name -->
+      <text
+        x="2"
+        y="144"
+        fill="#335070"
+        font-family="'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif"
+        font-size="20"
+        font-weight="700"
+        letter-spacing="3.5"
+      >經濟部國際貿易署桌球社</text>
+
+      <!-- English Official Club Subtitle -->
+      <text
+        x="2"
+        y="167"
+        fill="#00968E"
+        font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+        font-size="12.5"
+        font-weight="800"
+        letter-spacing="3.1"
+      >TITA TABLE TENNIS CLUB</text>
+    </g>
+  </g>
+
+  <!-- ==================== 2. 地面柔和陰影 ==================== -->
+  <g id="floor-shadows">
+    <ellipse cx="106" cy="326" rx="38" ry="6.5" fill="#06326B" opacity="0.1" />
+    <ellipse cx="494" cy="326" rx="38" ry="6.5" fill="#06326B" opacity="0.1" />
+    <ellipse cx="300" cy="327" rx="135" ry="7.5" fill="#06326B" opacity="0.11" />
+  </g>
+
+  <!-- ==================== 3. 左側選手（Player A：TITA 寶藍隊服 + 青綠球拍） ==================== -->
+  <g id="player-left">
+    <!-- 下半身雙腿（固定在地面呈運動弓步） -->
+    <g id="player-a-legs">
+      <!-- 後腳（左腿） -->
+      <path d="M 97 264 L 84 294 L 77 319" fill="none" stroke="#F4C7A6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- 前腳（右腿） -->
+      <path d="M 113 264 L 127 291 L 125 319" fill="none" stroke="#F7D1B5" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- 運動襪 -->
+      <path d="M 80 307 L 77 319 M 126 306 L 125 319" fill="none" stroke="#FFFFFF" stroke-width="10.5" stroke-linecap="round" />
+      <!-- 運動鞋（深藍＋青綠鞋底） -->
+      <path d="M 71 318 Q 84 316 94 323 L 71 323 Z" fill="#006AC6" />
+      <line x1="70" y1="323.5" x2="95" y2="323.5" stroke="#2AD2C9" stroke-width="2.6" stroke-linecap="round" />
+      <path d="M 119 318 Q 133 316 144 323 L 119 323 Z" fill="#006AC6" />
+      <line x1="118" y1="323.5" x2="145" y2="323.5" stroke="#2AD2C9" stroke-width="2.6" stroke-linecap="round" />
+      <!-- 運動短褲 -->
+      <path d="M 91 255 L 121 255 L 125 276 L 109 276 L 105 268 L 100 276 L 86 276 Z" fill="#06326B" />
+      <line x1="91" y1="262" x2="88" y2="274" stroke="#2AD2C9" stroke-width="2.5" stroke-linecap="round" />
+    </g>
+
+    <!-- 上半身（隨揮拍節奏前傾與回彈） -->
+    <g class="player-a-upper">
+      <!-- 平衡用左手臂（在軀幹後方） -->
+      <path d="M 98 208 L 79 224 L 87 239" fill="none" stroke="#EAC0A0" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" />
+
+      <!-- 軀幹隊服（PANTONE 2175 C 深寶藍） -->
+      <path d="M 95 204 Q 112 197 127 206 L 122 257 L 91 257 Z" fill="url(#jerseyBlueGrad)" />
+      <!-- 隊服斜向動態青綠飾條 -->
+      <path d="M 95 224 L 124 214 L 123 223 L 94 233 Z" fill="#2AD2C9" />
+      <path d="M 94 236 L 123 226 L 122.5 230 L 93.5 240 Z" fill="#FFFFFF" opacity="0.85" />
+
+      <!-- 頸部與頭部 -->
+      <line x1="113" y1="193" x2="115" y2="204" stroke="#F4C7A6" stroke-width="8" stroke-linecap="round" />
+      <circle cx="118" cy="179" r="15.5" fill="#F7D1B5" />
+      <!-- 俏皮短髮 -->
+      <path d="M 102 180 C 101 164, 118 158, 132 167 C 134 170, 132 174, 126 173 C 117 171, 108 175, 105 184 Z" fill="#06326B" />
+      <!-- 青綠運動頭帶與飄帶 -->
+      <path d="M 103 175 Q 118 169 132 173" fill="none" stroke="#2AD2C9" stroke-width="3.8" stroke-linecap="round" />
+      <g class="headband-tail">
+        <path d="M 104 175 L 91 171 M 104 176 L 92 179" stroke="#2AD2C9" stroke-width="2.6" stroke-linecap="round" />
+      </g>
+      <!-- 專注微笑側面表情 -->
+      <circle cx="127.5" cy="179" r="1.7" fill="#06326B" />
+      <path d="M 126 186 Q 130 187.5 132 185" fill="none" stroke="#C98A68" stroke-width="1.5" stroke-linecap="round" />
+
+      <!-- 揮拍右臂與桌球拍（以右肩 118,210 為軸心精準擊球） -->
+      <g class="player-a-arm">
+        <!-- 袖口 -->
+        <path d="M 111 205 L 124 205 L 126 221 L 112 221 Z" fill="#0055A4" />
+        <!-- 手臂 -->
+        <path d="M 118 214 L 125 232 L 145 220" fill="none" stroke="#F7D1B5" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- 青綠護腕 -->
+        <line x1="138" y1="224" x2="143" y2="221" stroke="#2AD2C9" stroke-width="9" stroke-linecap="round" />
+        <!-- 桌球拍（TITA 青綠膠皮 + 深藍握柄） -->
+        <g transform="translate(152, 204) rotate(16)">
+          <!-- 拍柄 -->
+          <rect x="-2.5" y="10" width="5" height="12" rx="2.5" fill="#06326B" />
+          <!-- 球拍底板白邊 -->
+          <ellipse cx="0" cy="0" rx="10.5" ry="13" fill="#FFFFFF" stroke="#06326B" stroke-width="1.4" />
+          <!-- 球拍正面膠皮（PANTONE 3252 C） -->
+          <ellipse cx="0.6" cy="0" rx="8.8" ry="11.2" fill="#2AD2C9" />
+          <!-- 反光高光 -->
+          <path d="M -3 -6 Q 1 -8 4 -4" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.7" />
+        </g>
+        <!-- 手掌握拍 -->
+        <circle cx="147" cy="219" r="4.5" fill="#F7D1B5" />
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== 4. 右側選手（Player B：TITA 青綠隊服 + 寶藍球拍） ==================== -->
+  <g id="player-right">
+    <!-- 下半身雙腿（鏡像弓步） -->
+    <g id="player-b-legs">
+      <!-- 後腳（右腿） -->
+      <path d="M 503 264 L 516 294 L 523 319" fill="none" stroke="#F4C7A6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- 前腳（左腿） -->
+      <path d="M 487 264 L 473 291 L 475 319" fill="none" stroke="#F7D1B5" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- 運動襪 -->
+      <path d="M 520 307 L 523 319 M 474 306 L 475 319" fill="none" stroke="#FFFFFF" stroke-width="10.5" stroke-linecap="round" />
+      <!-- 運動鞋（青綠＋深藍鞋底） -->
+      <path d="M 529 318 Q 516 316 506 323 L 529 323 Z" fill="#2AD2C9" />
+      <line x1="530" y1="323.5" x2="505" y2="323.5" stroke="#006AC6" stroke-width="2.6" stroke-linecap="round" />
+      <path d="M 481 318 Q 467 316 456 323 L 481 323 Z" fill="#2AD2C9" />
+      <line x1="482" y1="323.5" x2="455" y2="323.5" stroke="#006AC6" stroke-width="2.6" stroke-linecap="round" />
+      <!-- 運動短褲 -->
+      <path d="M 509 255 L 479 255 L 475 276 L 491 276 L 495 268 L 500 276 L 514 276 Z" fill="#006AC6" />
+      <line x1="509" y1="262" x2="512" y2="274" stroke="#2AD2C9" stroke-width="2.5" stroke-linecap="round" />
+    </g>
+
+    <!-- 上半身（隨回擊節奏前傾與回彈） -->
+    <g class="player-b-upper">
+      <!-- 平衡用手臂（後方） -->
+      <path d="M 502 208 L 521 224 L 513 239" fill="none" stroke="#EAC0A0" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" />
+
+      <!-- 軀幹隊服（PANTONE 3252 C 湖水青綠） -->
+      <path d="M 505 204 Q 488 197 473 206 L 478 257 L 509 257 Z" fill="url(#jerseyTealGrad)" />
+      <!-- 隊服深藍斜向飾條 -->
+      <path d="M 505 224 L 476 214 L 477 223 L 506 233 Z" fill="#006AC6" />
+      <path d="M 506 236 L 477 226 L 477.5 230 L 506.5 240 Z" fill="#FFFFFF" opacity="0.88" />
+
+      <!-- 頸部與頭部 -->
+      <line x1="487" y1="193" x2="485" y2="204" stroke="#F4C7A6" stroke-width="8" stroke-linecap="round" />
+      <!-- 活力馬尾 -->
+      <g class="ponytail-sway">
+        <path d="M 496 174 C 508 168, 517 178, 513 190 C 507 185, 502 184, 496 180 Z" fill="#06326B" />
+        <circle cx="497" cy="176" r="2.6" fill="#006AC6" />
+      </g>
+      <circle cx="482" cy="179" r="15.5" fill="#F7D1B5" />
+      <!-- 俐落運動髮型 -->
+      <path d="M 498 180 C 499 164, 482 158, 468 167 C 466 170, 468 174, 474 173 C 483 171, 492 175, 495 184 Z" fill="#06326B" />
+      <!-- 專注微笑側面表情 -->
+      <circle cx="472.5" cy="179" r="1.7" fill="#06326B" />
+      <path d="M 474 186 Q 470 187.5 468 185" fill="none" stroke="#C98A68" stroke-width="1.5" stroke-linecap="round" />
+
+      <!-- 揮拍左臂與桌球拍（以左肩 482,210 為軸心精準回擊） -->
+      <g class="player-b-arm">
+        <!-- 袖口 -->
+        <path d="M 489 205 L 476 205 L 474 221 L 488 221 Z" fill="#18ABA3" />
+        <!-- 手臂 -->
+        <path d="M 482 214 L 475 232 L 455 220" fill="none" stroke="#F7D1B5" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- 寶藍護腕 -->
+        <line x1="462" y1="224" x2="457" y2="221" stroke="#006AC6" stroke-width="9" stroke-linecap="round" />
+        <!-- 桌球拍（TITA 寶藍膠皮 + 深藍握柄） -->
+        <g transform="translate(448, 204) rotate(-16)">
+          <!-- 拍柄 -->
+          <rect x="-2.5" y="10" width="5" height="12" rx="2.5" fill="#06326B" />
+          <!-- 球拍底板白邊 -->
+          <ellipse cx="0" cy="0" rx="10.5" ry="13" fill="#FFFFFF" stroke="#06326B" stroke-width="1.4" />
+          <!-- 球拍正面膠皮（PANTONE 2175 C） -->
+          <ellipse cx="-0.6" cy="0" rx="8.8" ry="11.2" fill="#006AC6" />
+          <!-- 反光高光 -->
+          <path d="M 3 -6 Q -1 -8 -4 -4" fill="none" stroke="#2AD2C9" stroke-width="1.5" stroke-linecap="round" opacity="0.85" />
+        </g>
+        <!-- 手掌握拍 -->
+        <circle cx="453" cy="219" r="4.5" fill="#F7D1B5" />
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== 5. 桌球桌與球網 ==================== -->
+  <g id="pingpong-table" filter="url(#softGlow)">
+    <!-- 桌腳支撐結構（深海軍藍） -->
+    <g stroke="#06326B" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <line x1="204" y1="274" x2="188" y2="323" />
+      <line x1="396" y1="274" x2="412" y2="323" />
+      <!-- 內側支撐斜桿 -->
+      <line x1="200" y1="292" x2="246" y2="274" stroke="#0A458C" stroke-width="4.5" />
+      <line x1="400" y1="292" x2="354" y2="274" stroke="#0A458C" stroke-width="4.5" />
+      <!-- 底部防滑橫桿 -->
+      <line x1="194" y1="306" x2="406" y2="306" stroke="#0B3B75" stroke-width="3.5" opacity="0.55" />
+    </g>
+
+    <!-- 2.5D 透視球桌平面（PANTONE 2175 C 深寶藍） -->
+    <polygon points="178,248 422,248 438,266 162,266" fill="url(#tableTopGrad)" />
+
+    <!-- 球桌標準白色邊線與中線 -->
+    <polygon points="181,250 419,250 433,264.5 167,264.5" fill="none" stroke="#FFFFFF" stroke-width="1.6" opacity="0.92" />
+    <line x1="174" y1="257" x2="426" y2="257" stroke="#FFFFFF" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.6" />
+
+    <!-- 球桌前緣厚度與青綠品牌飾邊 -->
+    <rect x="162" y="266" width="276" height="9" rx="2" fill="#06326B" />
+    <rect x="162" y="272" width="276" height="3" rx="1.5" fill="#2AD2C9" />
+
+    <!-- 桌面同步球影 -->
+    <g class="ball-shadow">
+      <ellipse cx="0" cy="0" rx="8.5" ry="2.6" fill="#041E42" />
+    </g>
+
+    <!-- 左右桌面彈跳漣漪 -->
+    <ellipse cx="386" cy="257" rx="14" ry="4.2" fill="none" stroke="#2AD2C9" stroke-width="2" class="ripple-right" />
+    <ellipse cx="214" cy="257" rx="14" ry="4.2" fill="none" stroke="#2AD2C9" stroke-width="2" class="ripple-left" />
+
+    <!-- 中央球網與網架 -->
+    <g id="table-net">
+      <g class="net-mesh">
+        <!-- 半透明網面 -->
+        <polygon points="297,225 303,225 303,265 297,265" fill="#06326B" opacity="0.28" />
+        <rect x="297" y="225" width="6" height="40" fill="url(#netPattern)" />
+        <!-- 球網頂部白帶 -->
+        <rect x="296.5" y="223" width="7" height="4" rx="1" fill="#FFFFFF" />
+      </g>
+      <!-- 球網金屬立柱 -->
+      <rect x="298.5" y="223" width="3" height="47" rx="1.5" fill="#06326B" />
+      <circle cx="300" cy="223" r="2.2" fill="#2AD2C9" />
+    </g>
+  </g>
+
+  <!-- ==================== 6. 桌球本體、流暢拖尾與擊球火花 ==================== -->
+  <g id="pingpong-ball-system">
+    <!-- 動態殘影尾跡（使用 TITA 青綠與亮藍，強化速度感） -->
+    <g class="ball-trail-3">
+      <circle cx="0" cy="0" r="3.6" fill="#006AC6" />
+    </g>
+    <g class="ball-trail-2">
+      <circle cx="0" cy="0" r="4.6" fill="#198CD8" />
+    </g>
+    <g class="ball-trail-1">
+      <circle cx="0" cy="0" r="5.5" fill="#2AD2C9" />
+    </g>
+
+    <!-- 主桌球本體 -->
+    <g class="ball-main">
+      <g class="ball-squash">
+        <circle cx="0" cy="0" r="6.5" fill="url(#ballGrad)" stroke="#006AC6" stroke-width="1.2" />
+        <!-- 球面高光 -->
+        <circle cx="-2" cy="-2.2" r="1.8" fill="#FFFFFF" />
+      </g>
+    </g>
+
+    <!-- 左側擊球瞬間火花 -->
+    <g class="impact-left" stroke-linecap="round">
+      <circle cx="152" cy="204" r="10" fill="none" stroke="#2AD2C9" stroke-width="2" />
+      <line x1="164" y1="194" x2="171" y2="188" stroke="#006AC6" stroke-width="2.2" />
+      <line x1="166" y1="204" x2="175" y2="204" stroke="#2AD2C9" stroke-width="2.2" />
+      <line x1="163" y1="214" x2="170" y2="220" stroke="#006AC6" stroke-width="2.2" />
+    </g>
+
+    <!-- 右側擊球瞬間火花 -->
+    <g class="impact-right" stroke-linecap="round">
+      <circle cx="448" cy="204" r="10" fill="none" stroke="#006AC6" stroke-width="2" />
+      <line x1="436" y1="194" x2="429" y2="188" stroke="#2AD2C9" stroke-width="2.2" />
+      <line x1="434" y1="204" x2="425" y2="204" stroke="#006AC6" stroke-width="2.2" />
+      <line x1="437" y1="214" x2="430" y2="220" stroke="#2AD2C9" stroke-width="2.2" />
+    </g>
+  </g>
+
+  <!-- ==================== 7. Loading 載入進度條與文字區 ==================== -->
+  <g id="loading-ui">
+    <!-- 進度條底軌 -->
+    <rect x="190" y="352" width="220" height="7" rx="3.5" fill="#DCEFF5" />
+    <!-- 動態往返漸層滑塊（寶藍 → 青綠） -->
+    <g clip-path="url(#progressClip)">
+      <rect x="190" y="352" width="95" height="7" rx="3.5" fill="url(#titaGrad)" class="progress-runner" />
+    </g>
+
+    <!-- 載入提示文字與跳動圓點 -->
+    <text x="292" y="384" text-anchor="middle" class="loading-label" font-size="13.5" font-weight="700" letter-spacing="2.5" fill="#06326B">
+      熱身開球中 · LOADING
+    </text>
+    <!-- 三顆依序彈跳的桌球圓點 -->
+    <g fill="#2AD2C9">
+      <circle cx="388" cy="380" r="2.6" class="dot-1" fill="#006AC6" />
+      <circle cx="398" cy="380" r="2.6" class="dot-2" fill="#198CD8" />
+      <circle cx="408" cy="380" r="2.6" class="dot-3" fill="#2AD2C9" />
+    </g>
+  </g>
+</svg>

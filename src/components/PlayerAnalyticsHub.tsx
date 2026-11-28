@@ -420,11 +420,11 @@ function RadarAnalyticsView({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
-  const gridStroke = isDark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(100, 116, 139, 0.22)';
-  const labelColor = isDark ? '#e2e8f0' : '#334155';
-  const strokeColor = isDark ? '#60a5fa' : '#2563eb';
-  const fillColor = isDark ? '#3b82f6' : '#2563eb';
-  const baselineStroke = isDark ? '#94a3b8' : '#64748b';
+  const gridStroke = isDark ? 'rgba(125, 185, 228, 0.2)' : 'rgba(6, 50, 107, 0.14)';
+  const labelColor = isDark ? '#e6f1fa' : '#062854';
+  const strokeColor = isDark ? '#2ad2c9' : '#006ac6';
+  const fillColor = isDark ? '#2ad2c9' : '#198cd8';
+  const baselineStroke = isDark ? '#98b4d0' : '#5c7696';
 
   if (!analytics) {
     return (
@@ -588,7 +588,7 @@ function RadarAnalyticsView({
               {showBaselineOverlay && (
                 <div className="px-3 pb-1.5 flex items-center justify-center gap-4 text-xs font-medium text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="w-4 h-0.5 bg-sapphire-blue rounded-full" />
+                    <span className="w-4 h-0.5 bg-gradient-to-r from-sapphire-blue to-tita-teal rounded-full" />
                     實線：{activeIntervalLabel}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
@@ -613,7 +613,7 @@ function RadarAnalyticsView({
                     <div className="flex items-center gap-2.5">
                       <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-sapphire-blue transition-all duration-500"
+                          className="h-full rounded-full bg-gradient-to-r from-sapphire-blue to-tita-teal transition-all duration-500"
                           style={{ width: `${axis.score}%` }}
                         />
                       </div>

@@ -37,6 +37,7 @@ import { inferMatchFormat, validateMatchScore, type MatchFormat } from '@/lib/ma
 import { cn, formatLocalTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
+import PingPongLoader from '@/components/PingPongLoader';
 import { ResponsiveFormModal } from '@/components/ResponsiveFormModal';
 import { ResponsiveSelect, type ResponsiveSelectOption } from '@/components/ui/responsive-select';
 import { ScoreInputSection } from '@/components/ScoreInputSection';
@@ -798,11 +799,8 @@ export function AdminMatchesManager({ initialStatus, onUpdate }: AdminMatchesMan
 
       {/* Matches Feed */}
       {isLoading ? (
-        <div className="py-20 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="animate-spin text-sapphire-blue" size={32} />
-          <p className="text-xs font-medium text-muted-foreground">
-            載入對戰清單中...
-          </p>
+        <div className="py-12 px-4 flex items-center justify-center">
+          <PingPongLoader size="md" label="載入對戰清單" />
         </div>
       ) : filteredMatches.length === 0 ? (
         <div className="p-12 text-center space-y-3">

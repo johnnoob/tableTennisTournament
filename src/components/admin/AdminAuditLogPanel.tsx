@@ -17,6 +17,7 @@ import { downloadCsv } from '@/lib/csv';
 import type { AdminAuditLogItem } from '@/types/admin';
 import { cn, formatLocalTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import PingPongLoader from '@/components/PingPongLoader';
 
 type AuditCategoryFilter = 'all' | 'members' | 'matches' | 'seasons' | 'system';
 
@@ -225,9 +226,8 @@ export function AdminAuditLogPanel() {
 
       {/* Feed Body */}
       {isLoading ? (
-        <div className="py-12 flex flex-col items-center justify-center gap-2">
-          <Loader2 className="animate-spin text-sapphire-blue" size={24} />
-          <p className="text-xs font-medium text-muted-foreground">載入操作稽核紀錄中...</p>
+        <div className="py-10 px-4 flex items-center justify-center">
+          <PingPongLoader size="md" label="載入操作稽核紀錄" />
         </div>
       ) : logs.length === 0 ? (
         <div className="p-10 text-center space-y-2">

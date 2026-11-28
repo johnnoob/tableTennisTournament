@@ -62,7 +62,7 @@ function MobileBottomNavLink({
           {isActive && (
             <span
               aria-hidden="true"
-              className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-7 rounded-full bg-sapphire-blue"
+              className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-7 rounded-full bg-gradient-to-r from-sapphire-blue to-tita-teal"
             />
           )}
           <div className="relative">
@@ -126,7 +126,7 @@ export function Navigation() {
   return (
     <>
       {/* Mobile Top App Bar (< md, unpinned so it scrolls away cleanly) */}
-      <header className="relative z-30 md:hidden bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-md border-b border-border pt-[env(safe-area-inset-top,0px)]">
+      <header className="relative z-30 md:hidden bg-card/90 dark:bg-surface-shell/90 backdrop-blur-md border-b border-border pt-[env(safe-area-inset-top,0px)]">
         <div className="h-14 px-4 flex items-center justify-between gap-2.5">
           <NavLink
             to="/"
@@ -206,7 +206,7 @@ export function Navigation() {
       <nav
         aria-label="主導覽"
         className={cn(
-          'fixed bottom-0 inset-x-0 bg-card/90 dark:bg-[#0b1120]/90 backdrop-blur-xl border-t border-border z-50 md:hidden px-2 pb-[max(0.35rem,env(safe-area-inset-bottom,0px))] pt-1.5 transition-transform duration-300 ease-out will-change-transform',
+          'fixed bottom-0 inset-x-0 bg-card/90 dark:bg-surface-shell/90 backdrop-blur-xl border-t border-border z-50 md:hidden px-2 pb-[max(0.35rem,env(safe-area-inset-bottom,0px))] pt-1.5 transition-transform duration-300 ease-out will-change-transform',
           isMobileNavHidden ? 'translate-y-[calc(100%+1rem)] pointer-events-none' : 'translate-y-0'
         )}
       >
@@ -222,7 +222,7 @@ export function Navigation() {
                   <button
                     type="button"
                     aria-label="立即報分"
-                    className="min-h-12 w-full rounded-xl bg-gradient-to-br from-smash-orange to-orange-600 text-white shadow-md shadow-smash-orange/25 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
+                    className="min-h-12 w-full rounded-xl bg-gradient-to-br from-smash-orange via-[#ff6430] to-rose-500 text-white shadow-md shadow-smash-orange/30 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
                   >
                     <Plus size={19} strokeWidth={2.75} aria-hidden="true" />
                     <span className="text-[11px] font-sans font-black leading-tight truncate max-w-full">
@@ -235,7 +235,7 @@ export function Navigation() {
               <NavLink
                 to="/login"
                 aria-label="登入以立即報分"
-                className="min-h-12 w-full rounded-xl bg-gradient-to-br from-sapphire-blue to-blue-700 text-white shadow-md shadow-sapphire-blue/25 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
+                className="min-h-12 w-full rounded-xl bg-gradient-to-br from-sapphire-blue to-tita-teal text-white shadow-md shadow-sapphire-blue/25 flex flex-col items-center justify-center gap-0.5 py-1 hover:opacity-95 active:scale-95 transition-all"
               >
                 <Plus size={19} strokeWidth={2.75} aria-hidden="true" />
                 <span className="text-[11px] font-sans font-black leading-tight truncate max-w-full">
@@ -272,7 +272,7 @@ export function Navigation() {
                   type="button"
                   aria-label="立即報分"
                   title="立即報分"
-                  className="size-11 p-0 rounded-2xl bg-gradient-to-br from-smash-orange to-orange-600 hover:opacity-95 text-white shadow-md shadow-smash-orange/25 border-none"
+                  className="size-11 p-0 rounded-2xl bg-gradient-to-br from-smash-orange via-[#ff6430] to-rose-500 hover:opacity-95 text-white shadow-md shadow-smash-orange/30 border-none"
                 >
                   <Plus size={20} strokeWidth={2.75} aria-hidden="true" />
                 </Button>
@@ -312,7 +312,7 @@ export function Navigation() {
                   {isActive && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-sapphire-blue"
+                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-gradient-to-b from-sapphire-blue to-tita-teal"
                     />
                   )}
                   <div className="relative">
@@ -384,7 +384,7 @@ export function Navigation() {
               trigger={
                 <Button
                   type="button"
-                  className="w-full h-12 rounded-2xl bg-gradient-to-r from-smash-orange to-orange-600 hover:opacity-95 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-smash-orange/25 transition-all border-none"
+                  className="w-full h-12 rounded-2xl bg-gradient-to-r from-smash-orange via-[#ff6430] to-rose-500 hover:opacity-95 text-white font-display font-black text-sm tracking-wider shadow-lg shadow-smash-orange/30 transition-all border-none"
                 >
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                   立即報分
@@ -422,7 +422,7 @@ export function Navigation() {
                   {isActive && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-sapphire-blue"
+                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-gradient-to-b from-sapphire-blue to-tita-teal"
                     />
                   )}
                   <item.icon
